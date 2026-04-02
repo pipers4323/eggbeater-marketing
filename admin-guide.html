@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Eggbeater Admin Guide</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --royal:       #002868;
+  --royal-dark:  #001a4a;
+  --royal-mid:   #1a4898;
+  --royal-light: #dce5f5;
+  --royal-subtle:#edf1f8;
+  --red:         #cc1f1f;
+  --green:       #16a34a;
+  --amber:       #d97706;
+  --g50:         #f8f9fb;
+  --g100:        #f0f2f7;
+  --g200:        #e2e6ef;
+  --g400:        #8a94a6;
+  --g600:        #4a5568;
+  --g900:        #1a202c;
+  --radius:      14px;
+  --radius-sm:   8px;
+}
+
+html { font-size: 16px; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: var(--g100);
+  color: var(--g900);
+  line-height: 1.6;
+}
+
+/* ── Hero ─────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(135deg, var(--royal) 0%, var(--royal-mid) 100%);
+  color: white;
+  padding: 48px 24px 56px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: -30px; left: 0; right: 0;
+  height: 60px;
+  background: var(--g100);
+  border-radius: 50% 50% 0 0;
+}
+.hero-badge {
+  display: inline-block;
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.hero h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  letter-spacing: -.5px;
+}
+.hero p {
+  font-size: 1rem;
+  opacity: .85;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* ── Container ────────────────────────────────────── */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 20px 80px;
+}
+
+/* ── Table of Contents ────────────────────────────── */
+.toc {
+  background: white;
+  border-radius: var(--radius);
+  padding: 24px 28px;
+  margin: -20px auto 32px;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 4px 20px rgba(0,40,104,.1);
+}
+.toc h2 {
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--g400);
+  margin-bottom: 14px;
+}
+.toc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 24px;
+}
+@media (max-width: 600px) { .toc-grid { grid-template-columns: 1fr; } }
+.toc a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--g900);
+  font-size: .88rem;
+  font-weight: 500;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  transition: background .15s;
+}
+.toc a:hover { background: var(--royal-subtle); }
+.toc a .num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  background: var(--royal-light);
+  color: var(--royal);
+  border-radius: 6px;
+  font-size: .7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ── Section ──────────────────────────────────────── */
+.section {
+  margin-bottom: 36px;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--royal-light);
+}
+.section-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px; height: 40px;
+  background: var(--royal);
+  color: white;
+  border-radius: 10px;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+.section-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--royal);
+}
+
+/* ── Cards ────────────────────────────────────────── */
+.card {
+  background: white;
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 14px;
+  border: 1px solid var(--g200);
+}
+.card h3 {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--g900);
+  margin-bottom: 8px;
+}
+.card p, .card li {
+  font-size: .88rem;
+  color: var(--g600);
+  line-height: 1.65;
+}
+.card ul, .card ol {
+  padding-left: 20px;
+  margin-top: 6px;
+}
+.card li { margin-bottom: 4px; }
+.card li strong { color: var(--g900); }
+
+/* ── Step cards ───────────────────────────────────── */
+.steps {
+  counter-reset: step;
+}
+.step {
+  background: white;
+  border-radius: var(--radius);
+  padding: 18px 20px 18px 56px;
+  margin-bottom: 10px;
+  border: 1px solid var(--g200);
+  position: relative;
+}
+.step::before {
+  counter-increment: step;
+  content: counter(step);
+  position: absolute;
+  left: 18px; top: 18px;
+  width: 26px; height: 26px;
+  background: var(--royal);
+  color: white;
+  border-radius: 8px;
+  font-size: .78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.step h3 {
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--g900);
+  margin-bottom: 4px;
+}
+.step p {
+  font-size: .85rem;
+  color: var(--g600);
+  line-height: 1.6;
+}
+
+/* ── Callout ──────────────────────────────────────── */
+.callout {
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.callout-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+.callout p { font-size: .85rem; line-height: 1.6; }
+.callout-info { background: var(--royal-subtle); border: 1px solid var(--royal-light); }
+.callout-info p { color: var(--royal-mid); }
+.callout-warn { background: #fffbeb; border: 1px solid #fde68a; }
+.callout-warn p { color: #92400e; }
+.callout-success { background: #dcfce7; border: 1px solid #bbf7d0; }
+.callout-success p { color: #166534; }
+
+/* ── Key-value pairs ──────────────────────────────── */
+.kv-row {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--g100);
+  font-size: .85rem;
+}
+.kv-row:last-child { border-bottom: none; }
+.kv-label {
+  font-weight: 600;
+  color: var(--g900);
+  min-width: 110px;
+  flex-shrink: 0;
+}
+.kv-value { color: var(--g600); }
+
+/* ── Tab preview ──────────────────────────────────── */
+.tab-strip {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.tab-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: .8rem;
+  font-weight: 600;
+  border: 1.5px solid var(--g200);
+  background: white;
+  color: var(--g600);
+}
+.tab-pill.active {
+  background: var(--royal);
+  color: white;
+  border-color: var(--royal);
+}
+
+/* ── Inline code / kbd ────────────────────────────── */
+code {
+  background: var(--royal-subtle);
+  color: var(--royal);
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: .82rem;
+  font-family: "SF Mono", "Menlo", monospace;
+}
+kbd {
+  background: var(--g100);
+  border: 1px solid var(--g200);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: .78rem;
+  font-family: inherit;
+  box-shadow: 0 1px 0 var(--g200);
+}
+
+/* ── Two-column feature grid ──────────────────────── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+@media (max-width: 600px) { .feature-grid { grid-template-columns: 1fr; } }
+.feature-card {
+  background: white;
+  border: 1px solid var(--g200);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.feature-card .fc-icon {
+  font-size: 1.3rem;
+  margin-bottom: 6px;
+}
+.feature-card h4 {
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--g900);
+  margin-bottom: 4px;
+}
+.feature-card p {
+  font-size: .8rem;
+  color: var(--g400);
+  line-height: 1.5;
+}
+
+/* ── Footer ───────────────────────────────────────── */
+.footer {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--g400);
+  font-size: .8rem;
+}
+.footer a { color: var(--royal); text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+
+/* ── Print ────────────────────────────────────────── */
+@media print {
+  .hero { padding: 24px; }
+  .hero::after { display: none; }
+  .container { padding: 0 10px; }
+  .toc { box-shadow: none; border: 1px solid var(--g200); }
+  .section { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<div class="hero">
+  <div class="hero-badge">Admin Guide</div>
+  <h1>Eggbeater Admin Panel</h1>
+  <p>Everything you need to set up your club, manage tournaments, and keep parents informed.</p>
+</div>
+
+<div class="container">
+
+<!-- ═══════════════ TOC ═══════════════ -->
+<nav class="toc">
+  <h2>In This Guide</h2>
+  <div class="toc-grid">
+    <a href="#getting-started"><span class="num">1</span> Getting Started</a>
+    <a href="#your-dashboard"><span class="num">2</span> Your Dashboard</a>
+    <a href="#club-setup"><span class="num">3</span> Club Setup</a>
+    <a href="#schedule"><span class="num">4</span> Schedule &amp; Games</a>
+    <a href="#roster"><span class="num">5</span> Roster Management</a>
+    <a href="#deploying"><span class="num">6</span> Deploying Changes</a>
+    <a href="#tournaments"><span class="num">7</span> Tournament Lifecycle</a>
+    <a href="#communication"><span class="num">8</span> Team Communication</a>
+    <a href="#live-scoring"><span class="num">9</span> Live Scoring</a>
+    <a href="#archive"><span class="num">10</span> Archive &amp; Stats</a>
+    <a href="#branding"><span class="num">11</span> Custom Branding</a>
+    <a href="#admin-management"><span class="num">12</span> Managing Admins</a>
+    <a href="#advanced"><span class="num">13</span> Advanced Features</a>
+    <a href="#tips"><span class="num">14</span> Tips &amp; FAQ</a>
+  </div>
+</nav>
+
+<!-- ═══════════════ 1. GETTING STARTED ═══════════════ -->
+<div class="section" id="getting-started">
+  <div class="section-header">
+    <div class="section-icon">1</div>
+    <h2>Getting Started</h2>
+  </div>
+
+  <div class="card">
+    <h3>What is Eggbeater?</h3>
+    <p>Eggbeater is a tournament management platform built for water polo clubs and high school programs. Your admin panel is where you build schedules, manage rosters, communicate with parents, and run live scoring &mdash; all from your phone or laptop.</p>
+    <p style="margin-top:8px">Parents and admins can access Eggbeater via our <strong>mobile-optimized web app</strong> or by downloading the <strong>Eggbeater native app for iOS</strong>. An Android app is coming soon &mdash; Android users should continue to use the "Install to Home Screen" feature for the best experience.</p>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <h3>Open the Admin Panel</h3>
+      <p>Go to <code>eggbeater-wp.netlify.app/admin.html?club=your-club-id</code> in any browser. Bookmark it for quick access.</p>
+    </div>
+    <div class="step">
+      <h3>Sign In with Google</h3>
+      <p>Tap <strong>Sign In with Google</strong> and use the Google account that was authorized by your club's platform admin. Your email must be on the approved admin list.</p>
+    </div>
+    <div class="step">
+      <h3>Select Your Age Group</h3>
+      <p>Use the <strong>age group pills</strong> at the top of the screen to switch between teams (e.g., 14U Girls, 16U Boys). Each age group has its own schedule, roster, and tournament data.</p>
+    </div>
+    <div class="step">
+      <h3>Start Building</h3>
+      <p>Add your games, import your roster, configure settings, then hit <strong>Deploy</strong> to publish everything to the parent app instantly.</p>
+    </div>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-icon">&#x1f4a1;</div>
+    <p><strong>Tip:</strong> The admin panel works great on mobile. You can manage everything from the pool deck on your phone.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 2. YOUR DASHBOARD ═══════════════ -->
+<div class="section" id="your-dashboard">
+  <div class="section-header">
+    <div class="section-icon">2</div>
+    <h2>Your Dashboard</h2>
+  </div>
+
+  <div class="card">
+    <h3>The Header</h3>
+    <p>The header bar is your command center. It shows your club name, the current tournament, and the active age group. Here's what each piece does:</p>
+    <ul>
+      <li><strong>Age Group Pills</strong> &mdash; Tap to switch between teams. A colored dot shows each team's status (green = live, red = draft, gray = no data). The list now wraps for better visibility on mobile.</li>
+      <li><strong>Tournament Library</strong> &mdash; In the "+ Games" tab, manage your private library of tournament drafts. Save entire workspace snapshots (games + rosters) to swap between tournaments easily.</li>
+      <li><strong>Deploy Button</strong> &mdash; Deploy your currently active workspace or push a specific saved draft live from the Schedule tab.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Navigation Tabs</h3>
+    <p>The admin panel is organized into tabs. On <strong>desktop/tablet</strong>, all tabs are visible directly in the left sidebar — no More button needed. On <strong>mobile</strong>, the primary tabs (Schedule, Roster, Add Games) are in the bottom bar, and the remaining tabs are one tap away via the <strong>More</strong> button:</p>
+    <div class="tab-strip">
+      <span class="tab-pill active">Schedule</span>
+      <span class="tab-pill">Roster</span>
+      <span class="tab-pill">Add Games</span>
+      <span class="tab-pill">More &hellip; (mobile)</span>
+    </div>
+    <div class="kv-row"><span class="kv-label">Schedule</span><span class="kv-value">View and manage the current game schedule for the selected age group</span></div>
+    <div class="kv-row"><span class="kv-label">Roster</span><span class="kv-value">Add players, import from spreadsheets, manage cap numbers</span></div>
+    <div class="kv-row"><span class="kv-label">Add Games</span><span class="kv-value">Tournament settings, add/edit games, clock config, templates, brackets</span></div>
+    <div class="kv-row"><span class="kv-label">Club Info</span><span class="kv-value">Organization type, logo, branding, admin management, join links</span></div>
+    <div class="kv-row"><span class="kv-label">Communication</span><span class="kv-value">Push notifications, announcements, Telegram/GroupMe/TeamSnap bots</span></div>
+    <div class="kv-row"><span class="kv-label">Archive</span><span class="kv-value">Season dashboard, past tournament records, stats</span></div>
+    <div class="kv-row"><span class="kv-label">History</span><span class="kv-value">Tournament results, MaxPreps import (high school)</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════ 3. CLUB SETUP ═══════════════ -->
+<div class="section" id="club-setup">
+  <div class="section-header">
+    <div class="section-icon">3</div>
+    <h2>Club Setup</h2>
+  </div>
+
+  <div class="card">
+    <h3>First-Time Setup Checklist</h3>
+    <p>When you first access your club's admin panel, complete these steps to get everything configured:</p>
+    <ol>
+      <li><strong>Set Organization Type</strong> &mdash; Go to Club Info and choose "Club / Age Group" or "High School". This changes the age group labels (10U-18U vs. Varsity/JV).</li>
+      <li><strong>Set Club Name</strong> &mdash; This appears in game cards as "680 Drivers vs. NorCal Gold". Leave blank to use the default "vs." format.</li>
+      <li><strong>Upload Club Logo</strong> &mdash; A square image under 150KB. Shows in the app header and game cards.</li>
+      <li><strong>Set Branding Colors</strong> &mdash; Pick your club's primary and secondary colors so the parent app matches your brand.</li>
+      <li><strong>Share the Join Link</strong> &mdash; Copy your club's parent link from Club Info and share it with families. They'll open it in a browser to follow your team.</li>
+    </ol>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-icon">&#x1f4f1;</div>
+    <p><strong>Parent Link:</strong> Your club's app URL is <code>eggbeater-wp.netlify.app/?club=your-club-id</code>. Parents open this link, pick their age group, and they're set. No account required.</p>
+  </div>
+
+</div>
+
+<!-- ═══════════════ 4. SCHEDULE & GAMES ═══════════════ -->
+<div class="section" id="schedule">
+  <div class="section-header">
+    <div class="section-icon">4</div>
+    <h2>Schedule &amp; Games</h2>
+  </div>
+
+  <div class="card">
+    <h3>Adding Games</h3>
+    <p>Go to the <strong>Add Games</strong> tab to build your tournament schedule. You have several options:</p>
+    <ul>
+      <li><strong>Tournament Library</strong> &mdash; Save your current "Workspace" (games and roster) as a named draft. You can build these in advance and load them when needed.</li>
+      <li><strong>+ Add Game</strong> &mdash; Add games manually with opponent, time, location, pool, and cap color.</li>
+      <li><strong>Start Fresh</strong> &mdash; Use the "✨ Start Fresh" button to clear your current workspace games and roster without affecting your saved drafts or the live site.</li>
+      <li><strong>Paste Schedule</strong> &mdash; Paste a full schedule from a spreadsheet (Google Sheets, Excel).</li>
+      <li><strong>Clone from Archive</strong> &mdash; Reuse a past tournament's structure (games/roster) with scores cleared.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Game Fields</h3>
+    <div class="kv-row"><span class="kv-label">Opponent</span><span class="kv-value">Team you're playing (e.g., "NorCal Gold")</span></div>
+    <div class="kv-row"><span class="kv-label">Date</span><span class="kv-value">Game date &mdash; shown on game cards in the parent app</span></div>
+    <div class="kv-row"><span class="kv-label">Time</span><span class="kv-value">Start time (e.g., "8:30 AM")</span></div>
+    <div class="kv-row"><span class="kv-label">Location</span><span class="kv-value">Venue name &mdash; parents can tap for Google Maps directions</span></div>
+    <div class="kv-row"><span class="kv-label">Pool</span><span class="kv-value">Pool play group (e.g., "Pool A") or bracket round (e.g., "Semifinal")</span></div>
+    <div class="kv-row"><span class="kv-label">Cap Color</span><span class="kv-value">White or Dark &mdash; shown on game cards so parents know what cap to bring</span></div>
+  </div>
+
+  <div class="card">
+    <h3>Tournament Settings</h3>
+    <p>At the top of Add Games, configure your tournament details:</p>
+    <ul>
+      <li><strong>Tournament Name &amp; Dates</strong> &mdash; Shown at the top of the parent app.</li>
+      <li><strong>Coming Soon Message</strong> &mdash; A placeholder shown to parents before you've added games (e.g., "Schedule will be posted Wednesday").</li>
+      <li><strong>Scoring Password</strong> &mdash; Optional. If set, scorers must enter this password to submit live scores.</li>
+      <li><strong>Clock Settings</strong> &mdash; Quarter length, breaks, halftime, and timeout configuration for the live scoring clock.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Upcoming Mode</h3>
+    <p>Toggle a game to <strong>Upcoming Mode</strong> to show tournament info (name, dates, venue) without revealing the full schedule. Useful when you know the tournament but haven't finalized games yet. Parents see the coming soon message instead of an empty schedule.</p>
+  </div>
+
+  <div class="callout callout-warn">
+    <div class="callout-icon">&#x26a0;&#xfe0f;</div>
+    <p><strong>Remember:</strong> Changes aren't visible to parents until you <strong>Deploy</strong>. You can edit freely without affecting what parents see.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 5. ROSTER ═══════════════ -->
+<div class="section" id="roster">
+  <div class="section-header">
+    <div class="section-icon">5</div>
+    <h2>Roster Management</h2>
+  </div>
+
+  <div class="card">
+    <h3>Adding Players</h3>
+    <p>Go to the <strong>Roster</strong> tab to manage your team's players. Each player has a cap number, first name, and last name.</p>
+    <ul>
+      <li><strong>+ Add Player</strong> &mdash; Add one player at a time.</li>
+      <li><strong>Paste from Spreadsheet</strong> &mdash; Paste roster data from Google Sheets or Excel. The parser auto-detects columns by header (Cap/#, Name, Position).</li>
+      <li><strong>Upload CSV</strong> &mdash; Import a CSV file with the same column detection.</li>
+      <li><strong>Sync from Google Sheets</strong> &mdash; Enter a Google Sheets URL and sync your roster directly. Expected columns: Team, Cap #, First Name, Last Name.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Multi-Team Rosters</h3>
+    <p>If your age group has multiple teams (A/B/C), each team has its own roster section. Players are assigned to a specific team. You can customize team labels in Tournament Settings (e.g., "Red" and "Blue" instead of "A" and "B").</p>
+  </div>
+
+  <div class="card">
+    <h3>Exporting</h3>
+    <p>Tap <strong>Export Roster CSV</strong> to download your roster as a spreadsheet file. The file is named with your club ID and age group (e.g., <code>680-drivers-14u-girls-roster.csv</code>).</p>
+  </div>
+
+</div>
+
+<!-- ═══════════════ 6. DEPLOYING ═══════════════ -->
+<div class="section" id="deploying">
+  <div class="section-header">
+    <div class="section-icon">6</div>
+    <h2>Deploying Changes</h2>
+  </div>
+
+  <div class="card">
+    <h3>How Deploy Works</h3>
+    <p>The <strong>Deploy</strong> button is the most important button in the admin panel. Here's the workflow:</p>
+    <ol>
+      <li>You make changes in the workspace (add games, update roster, change settings).</li>
+      <li>Changes are saved as a draft but <strong>not yet visible</strong> to parents.</li>
+      <li><strong>Option A:</strong> Tap the main <strong>Deploy</strong> button to publish your current desk.</li>
+      <li><strong>Option B:</strong> Go to the **Schedule** tab and tap **Deploy to Live** on any saved draft in your library.</li>
+      <li>Changes go live instantly &mdash; the draft replaces the active site data and triggers the live update.</li>
+    </ol>
+  </div>
+
+  <div class="callout callout-success">
+    <div class="callout-icon">&#x2705;</div>
+    <p><strong>Safe to experiment:</strong> Until you deploy, parents see the last deployed version. Edit freely, preview everything, then deploy when it looks right.</p>
+  </div>
+
+  <div class="card">
+    <h3>When to Deploy</h3>
+    <ul>
+      <li>After adding or editing games</li>
+      <li>After updating the roster</li>
+      <li>After changing tournament settings or coming soon message</li>
+      <li>After entering scores (if not using live scoring)</li>
+      <li>After switching to/from Upcoming Mode</li>
+    </ul>
+    <p style="margin-top:8px"><strong>You don't need to deploy</strong> after: changing club info/branding (saves automatically), sending push notifications, or managing admin access.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 7. TOURNAMENT LIFECYCLE ═══════════════ -->
+<div class="section" id="tournaments">
+  <div class="section-header">
+    <div class="section-icon">7</div>
+    <h2>Tournament Lifecycle</h2>
+  </div>
+
+  <div class="card">
+    <h3>Create &rarr; Build &rarr; Activate &rarr; Archive</h3>
+    <div class="kv-row"><span class="kv-label">Create</span><span class="kv-value">Tap the tournament selector and choose "+ New Tournament". Give it a name and ID.</span></div>
+    <div class="kv-row"><span class="kv-label">Build</span><span class="kv-value">Add games, import roster, set clock, configure settings. Deploy when ready.</span></div>
+    <div class="kv-row"><span class="kv-label">Activate</span><span class="kv-value">Mark the tournament as "Active" so it's the one parents see. Only one tournament per age group is active at a time.</span></div>
+    <div class="kv-row"><span class="kv-label">Archive</span><span class="kv-value">After the tournament ends, archive it. Results are saved permanently and show up in the Season Dashboard and player stats.</span></div>
+  </div>
+
+  <div class="card">
+    <h3>Brackets</h3>
+    <p>If your tournament has bracket play after pool play, use <strong>Auto-Populate Bracket</strong> in the Add Games tab. It analyzes pool play results, ranks teams by record and goal differential, and maps them to bracket seeds. You can review and manually adjust seeds before applying.</p>
+  </div>
+
+  <div class="card">
+    <h3>Templates</h3>
+    <p>Save any tournament structure as a reusable template with <strong>Save as Template</strong>. Next time you set up a similar tournament, load the template and your games, bracket format, and structure are pre-filled &mdash; just update dates and opponents.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 8. COMMUNICATION ═══════════════ -->
+<div class="section" id="communication">
+  <div class="section-header">
+    <div class="section-icon">8</div>
+    <h2>Team Communication</h2>
+  </div>
+
+  <div class="card">
+    <h3>Push Notifications</h3>
+    <p>Parents who enable notifications in the app receive push alerts on their phone. You control what gets sent:</p>
+    <ul>
+      <li><strong>Game Day Reminders</strong> &mdash; Automatic. When enabled, parents get a reminder 2 hours before each game with the opponent, time, and location. Toggle this on/off in the Communication tab.</li>
+      <li><strong>Announcements</strong> &mdash; Manual. Write a title and message, pick which age groups to notify, then send. Rate limited to 5 per hour.</li>
+      <li><strong>Scheduled Announcements</strong> &mdash; Toggle "Schedule for Later" to pick a future date/time. The notification sends automatically at the scheduled time.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Subscriber Stats</h3>
+    <p>Tap <strong>Load Subscriber Stats</strong> in the Communication tab to see how many parents have notifications enabled, broken down by age group and notification type.</p>
+  </div>
+
+  <div class="card">
+    <h3>Messaging Integrations</h3>
+    <p>Connect external messaging services to automatically post score updates:</p>
+    <ul>
+      <li><strong>Telegram</strong> &mdash; Add your bot token and chat ID.</li>
+      <li><strong>GroupMe</strong> &mdash; Add your bot ID.</li>
+      <li><strong>TeamSnap</strong> &mdash; Connect via OAuth and link your team.</li>
+    </ul>
+    <p style="margin-top:6px">After connecting, score updates and announcements can be sent to these channels alongside push notifications.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 9. LIVE SCORING ═══════════════ -->
+<div class="section" id="live-scoring">
+  <div class="section-header">
+    <div class="section-icon">9</div>
+    <h2>Live Scoring</h2>
+  </div>
+
+  <div class="card">
+    <h3>How It Works</h3>
+    <p>During a game, a designated scorer opens the <strong>parent app</strong> (not the admin panel), taps on the active game, and enters the live scoring view. They can:</p>
+    <ul>
+      <li>Tap to increment/decrement scores for each team</li>
+      <li>Run the game clock with quarter tracking</li>
+      <li>Record individual player stats (goals, assists, steals, ejections)</li>
+      <li>Manage lineups and track playing time per quarter</li>
+    </ul>
+    <p style="margin-top:8px">Score updates push to all parents watching in real time. If the scorer loses internet, updates queue locally and sync automatically when connectivity returns.</p>
+  </div>
+
+  <div class="card">
+    <h3>Scoring Password</h3>
+    <p>Set a <strong>Scoring Password</strong> in Tournament Settings to prevent unauthorized scoring. Only people with the password can submit live scores. Share it with your designated scorer at each game.</p>
+  </div>
+
+  <div class="card">
+    <h3>Sharing Results</h3>
+    <p>After a game, parents can tap <strong>Share Result</strong> on any completed game card to generate a branded image with the final score. It's sized for Instagram and can be shared directly to iMessage, Instagram Stories, or any social app.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 10. ARCHIVE & STATS ═══════════════ -->
+<div class="section" id="archive">
+  <div class="section-header">
+    <div class="section-icon">10</div>
+    <h2>Archive &amp; Season Stats</h2>
+  </div>
+
+  <div class="card">
+    <h3>Season Dashboard</h3>
+    <p>The top of the <strong>Archive</strong> tab shows your club's season record at a glance &mdash; overall wins, losses, ties, and win percentage across all age groups. Each age group has its own row with a record summary and color-coded win percentage bar.</p>
+  </div>
+
+  <div class="card">
+    <h3>Tournament Archive</h3>
+    <p>Every archived tournament is stored permanently with full game results and rosters. Tap any archived tournament to see the detail view with all game scores, roster snapshot, and metadata. You can also <strong>load an archived roster</strong> back into a current tournament.</p>
+  </div>
+
+  <div class="card">
+    <h3>Player Stats</h3>
+    <p>In the Roster tab, tap <strong>Load Season Stats</strong> to see cumulative player statistics across all archived tournaments: games played, goals, assists, steals, ejections, and goals per game. Stats are sortable by any column. Players and parents can also see these stats in the public app.</p>
+  </div>
+
+  <div class="card">
+    <h3>CSV Export</h3>
+    <p>Export game results or your roster as CSV files at any time. Files are named with your club and age group for easy organization.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 11. BRANDING ═══════════════ -->
+<div class="section" id="branding">
+  <div class="section-header">
+    <div class="section-icon">11</div>
+    <h2>Custom Branding</h2>
+  </div>
+
+  <div class="card">
+    <h3>Make It Yours</h3>
+    <p>In the <strong>Club Info</strong> tab, the Branding section lets you customize how the parent app looks for your club:</p>
+    <ul>
+      <li><strong>Primary Color</strong> &mdash; Used for the header, buttons, and accent elements throughout the app.</li>
+      <li><strong>Secondary Color</strong> &mdash; Used for highlights and supporting accents.</li>
+      <li><strong>Header Style</strong> &mdash; Choose between gradient, bold gradient, or solid color.</li>
+      <li><strong>Club Logo</strong> &mdash; Displayed in the app header and on game cards.</li>
+    </ul>
+    <p style="margin-top:8px">Changes preview in real time as you pick colors. Tap <strong>Save Branding</strong> when you're happy with the look.</p>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-icon">&#x1f3a8;</div>
+    <p><strong>Pro tip:</strong> Use your club's official colors for a polished, professional look. If you're unsure of the hex codes, check your club's website or ask your club coordinator.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 12. ADMIN MANAGEMENT ═══════════════ -->
+<div class="section" id="admin-management">
+  <div class="section-header">
+    <div class="section-icon">12</div>
+    <h2>Managing Admins</h2>
+  </div>
+
+  <div class="card">
+    <h3>Adding New Admins</h3>
+    <p>In <strong>Club Info</strong>, the admin management section lets you control who has access:</p>
+    <ul>
+      <li><strong>Invite Link</strong> &mdash; Generate a one-time invite link and send it to a new admin. They click the link, sign in with Google, and they're automatically added.</li>
+      <li><strong>Add by UID</strong> &mdash; If you have someone's Firebase UID, add them directly.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Admin Roles</h3>
+    <p>Each admin has a role that controls their access level:</p>
+    <div class="kv-row"><span class="kv-label">Admin</span><span class="kv-value">Full access &mdash; can edit games, rosters, settings, deploy, and manage other admins.</span></div>
+    <div class="kv-row"><span class="kv-label">Scorer</span><span class="kv-value">Limited access &mdash; can only use the live scoring interface. Cannot edit schedules, rosters, or settings.</span></div>
+    <p style="margin-top:8px">Use the Scorer role to give a parent access to run the scoreboard at a tournament without granting full admin permissions.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 13. ADVANCED FEATURES ═══════════════ -->
+<div class="section" id="advanced">
+  <div class="section-header">
+    <div class="section-icon">13</div>
+    <h2>Advanced Features</h2>
+  </div>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="fc-icon">&#x1f3c6;</div>
+      <h4>Director Package</h4>
+      <p>Build tournament bracket sheets with seeding grids, divisions, and game formats. Share with tournament directors via a 6-character code.</p>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon">&#x1f4ca;</div>
+      <h4>Analytics</h4>
+      <p>View subscriber counts by age group, daily page views, and platform growth metrics in the Communication tab.</p>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon">&#x1f4f1;</div>
+      <h4>Dark Mode &amp; Themes</h4>
+      <p>Parents can choose Light, Dark, or System theme in the app settings. Great for poolside visibility in bright sun or evening games.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>History &amp; MaxPreps (High School)</h3>
+    <p>If your organization type is set to "High School," you get a <strong>History</strong> tab for tracking season-by-season tournament results. Import results directly from MaxPreps by pasting the schedule page URL, or add them manually. History data powers the multi-season record displayed to parents.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 14. TIPS & FAQ ═══════════════ -->
+<div class="section" id="tips">
+  <div class="section-header">
+    <div class="section-icon">14</div>
+    <h2>Tips &amp; FAQ</h2>
+  </div>
+
+  <div class="card">
+    <h3>Common Questions</h3>
+
+    <div class="kv-row" style="flex-direction:column;gap:2px">
+      <span class="kv-label">Q: I made changes but parents can't see them?</span>
+      <span class="kv-value">A: You need to tap <strong>Deploy</strong>. Changes are only visible to parents after deploying.</span>
+    </div>
+
+    <div class="kv-row" style="flex-direction:column;gap:2px">
+      <span class="kv-label">Q: How do parents find my club's app?</span>
+      <span class="kv-value">A: Share the URL from Club Info with your parents. No download or account required.</span>
+    </div>
+
+    <div class="kv-row" style="flex-direction:column;gap:2px">
+      <span class="kv-label">Q: Can I have multiple admins?</span>
+      <span class="kv-value">A: Yes. Generate an invite link in Club Info and send it to anyone you want to grant access. You can assign Admin or Scorer roles.</span>
+    </div>
+
+    <div class="kv-row" style="flex-direction:column;gap:2px">
+      <span class="kv-label">Q: What happens if I archive a tournament by accident?</span>
+      <span class="kv-value">A: You can clone it from the archive to restore the full tournament structure, or activate it again from the tournament selector.</span>
+    </div>
+
+    <div class="kv-row" style="flex-direction:column;gap:2px">
+      <span class="kv-label">Q: Does live scoring work with bad WiFi?</span>
+      <span class="kv-value">A: Yes. Scores queue locally on the device and sync automatically when connectivity returns. The scorer sees a yellow "offline" banner.</span>
+    </div>
+
+    <div class="kv-row" style="flex-direction:column;gap:2px">
+      <span class="kv-label">Q: Can I use this on my phone?</span>
+      <span class="kv-value">A: Absolutely. The admin panel is fully mobile-responsive. Many coaches manage everything from the pool deck.</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Pro Tips</h3>
+    <ul>
+      <li><strong>Clone often</strong> &mdash; If you attend the same tournament each year, clone last year's from the archive. Games, roster, and structure carry over.</li>
+      <li><strong>Use Upcoming Mode</strong> &mdash; Deploy the tournament info early so parents can see the dates and venue, even before you have the full schedule.</li>
+      <li><strong>Set up game reminders</strong> &mdash; Enable automatic push reminders in the Communication tab. Parents love getting a heads-up 2 hours before game time.</li>
+      <li><strong>Save templates</strong> &mdash; If your league has a standard format (e.g., "3 pool play + bracket"), save it as a template for one-click setup.</li>
+      <li><strong>Print game sheets</strong> &mdash; Print them before you leave for the tournament. They have your roster, scoring grids, and quarter tracking built in.</li>
+      <li><strong>Check the Activity Log</strong> &mdash; If multiple admins manage the same team, the activity log (in the Add Games tab) shows who changed what and when.</li>
+    </ul>
+  </div>
+
+  <div class="callout callout-success">
+    <div class="callout-icon">&#x1f64b;</div>
+    <p><strong>Need help?</strong> Tap the <strong>Help</strong> tab inside the admin panel for detailed documentation on every feature, or reach out to your platform administrator.</p>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<div class="footer">
+  <p><strong>Eggbeater Water Polo</strong></p>
+  <p style="margin-top:4px"><a href="https://eggbeater-wp.netlify.app">eggbeater-wp.netlify.app</a></p>
+</div>
+
+</body>
+</html>
