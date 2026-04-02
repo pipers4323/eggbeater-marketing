@@ -509,14 +509,17 @@ function buildLocationLink(location) {
   const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
   const appleUrl = `https://maps.apple.com/?daddr=${dest}`;
   const wazeUrl = `https://waze.com/ul?q=${dest}`;
-  const btnStyle = `display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;font-weight:700;background:#f8fafc;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:3px 8px;text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent`;
-  const iconStyle = `width:14px;height:14px;border-radius:2px;object-fit:contain;flex-shrink:0`;
-  return `<span style="display:inline-flex;align-items:center;gap:4px;min-height:44px;flex-wrap:wrap">
-    <a href="${googleUrl}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline;font-weight:600;-webkit-tap-highlight-color:transparent" onclick="event.stopPropagation()">📍 ${escHtml(location)}</a>
-    <span style="display:inline-flex;gap:3px">
+  const iconStyle = `width:13px;height:13px;border-radius:2px;object-fit:contain;flex-shrink:0`;
+  const btnStyle = `display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;font-weight:600;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:4px 10px;text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent;letter-spacing:0.01em`;
+  return `<span style="display:flex;flex-direction:column;gap:5px;margin-top:2px" onclick="event.stopPropagation()">
+    <span style="display:inline-flex;gap:5px">
       <a href="${appleUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()" style="${btnStyle}"><img src="https://maps.apple.com/favicon.ico" alt="" style="${iconStyle}" onerror="this.style.display='none'">Apple</a>
       <a href="${googleUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()" style="${btnStyle}"><img src="https://maps.gstatic.com/favicon3.ico" alt="" style="${iconStyle}" onerror="this.style.display='none'">Google</a>
       <a href="${wazeUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()" style="${btnStyle}"><img src="https://www.waze.com/favicon.ico" alt="" style="${iconStyle}" onerror="this.style.display='none'">Waze</a>
+    </span>
+    <span style="display:inline-flex;align-items:center;gap:5px">
+      <svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;opacity:0.7"><path d="M6 0C3.24 0 1 2.24 1 5c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.5A1.5 1.5 0 1 1 6 3.5 1.5 1.5 0 0 1 6 6.5z" fill="currentColor"/></svg>
+      <span style="font-size:0.8rem;color:rgba(255,255,255,0.6);letter-spacing:0.01em">${escHtml(location)}</span>
     </span>
   </span>`;
 }
