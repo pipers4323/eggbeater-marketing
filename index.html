@@ -853,8 +853,8 @@
     <span class="section-tag" style="color: var(--gold-light);">Get Early Access</span>
     <h2 class="section-heading">Ready to run a better club?</h2>
     <p class="section-sub">Leave your email and we'll reach out to get your club set up. It takes about 10 minutes.</p>
-    <form class="cta-form" onsubmit="handleSubmit(event)">
-      <input type="email" class="cta-input" placeholder="your@email.com" required />
+    <form class="cta-form" action="https://formspree.io/f/xvzvqjnr" method="POST">
+      <input type="email" name="email" class="cta-input" placeholder="your@email.com" required />
       <button type="submit" class="btn-primary">Get Access</button>
     </form>
     <p class="cta-note">No spam. No credit card required to start.</p>
@@ -894,14 +894,6 @@
 </footer>
 
 <script>
-  function handleSubmit(e) {
-    e.preventDefault();
-    const email = e.target.querySelector('input').value;
-    // TODO: wire up to backend / form handler
-    alert('Thanks! We\'ll be in touch at ' + email);
-    e.target.reset();
-  }
-
   // Smooth active nav highlighting
   const sections = document.querySelectorAll('section[id], div[id]');
   const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
