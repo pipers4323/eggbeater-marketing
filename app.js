@@ -2803,6 +2803,14 @@ function renderSettingsTab() {
           <div class="settings-item-value">Join another club via code</div>
         </div>
       </div>
+      <div class="settings-item" onclick="_settingsReturnToClubPicker()" style="border-top:1px solid var(--gray-100)">
+        <span class="settings-item-icon">🏠</span>
+        <div class="settings-item-text">
+          <div class="settings-item-label">Return to Club Picker</div>
+          <div class="settings-item-value">Switch to a different club</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
     </div>
 
     <div class="settings-section">
@@ -2898,19 +2906,21 @@ async function _renderSettingsClubList() {
   let html = '';
   for (const club of clubs) {
     const isCurrent = club.id === currentClubId;
-    const checkMark = isCurrent ? '<span style="color:var(--royal);font-weight:800;font-size:1rem;flex-shrink:0">✓</span>' : '';
     const nameStyle = isCurrent ? 'font-weight:700;color:var(--royal)' : '';
     const clubIcon = club.logo
       ? `<img src="${escHtml(club.logo)}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.5px solid var(--gray-200)">`
       : `<span style="font-size:1.3rem">🤽‍♀️</span>`;
+    const switchAction = isCurrent ? '' : `_settingsSwitchClub('${escHtml(club.id)}','${escHtml(club.name || club.id)}','${escHtml(club.clubType || '')}')`;
+    const removeBtn = `<button onclick="event.stopPropagation();_settingsRemoveClub('${escHtml(club.id)}')" style="flex-shrink:0;background:none;border:none;padding:6px;cursor:pointer;color:var(--gray-400);font-size:1rem;line-height:1;border-radius:6px" title="Remove club">✕</button>`;
     html += `
-      <div class="settings-item${isCurrent ? '' : ''}" onclick="${isCurrent ? '' : `_settingsSwitchClub('${escHtml(club.id)}','${escHtml(club.name || club.id)}','${escHtml(club.clubType || '')}')`}" ${isCurrent ? 'style="cursor:default;background:var(--royal-subtle)"' : ''}>
+      <div class="settings-item" onclick="${switchAction}" style="${isCurrent ? 'cursor:default;background:var(--royal-subtle)' : ''}">
         <span class="settings-item-icon" style="display:flex;align-items:center;justify-content:center">${clubIcon}</span>
         <div class="settings-item-text">
           <div class="settings-item-label" style="${nameStyle}">${escHtml(club.name || club.id)}</div>
           ${isCurrent ? '<div class="settings-item-value">Current club</div>' : ''}
         </div>
-        ${checkMark}
+        ${isCurrent ? '<span style="color:var(--royal);font-weight:800;font-size:1rem;flex-shrink:0;margin-right:4px">✓</span>' : ''}
+        ${removeBtn}
       </div>
     `;
   }
@@ -2954,6 +2964,29 @@ function _settingsSwitchClub(clubId, clubName, clubType) {
   }
   // Reload to re-initialize with the new club
   window.location.href = window.location.pathname + '?club=' + encodeURIComponent(clubId);
+}
+
+/** Remove a club from the joined list. If it's the current club, return to splash. */
+function _settingsRemoveClub(clubId) {
+  removeJoinedClub(clubId);
+  const currentClubId = getAppClubId();
+  if (clubId === currentClubId) {
+    // Clear current club and return to club picker
+    localStorage.removeItem('ebwp-club-id');
+    localStorage.removeItem('ebwp-club-name');
+    localStorage.removeItem('ebwp-club-type');
+    window.location.href = window.location.pathname;
+  } else {
+    _renderSettingsClubList();
+  }
+}
+
+/** Clear current club and return to the club picker splash screen */
+function _settingsReturnToClubPicker() {
+  localStorage.removeItem('ebwp-club-id');
+  localStorage.removeItem('ebwp-club-name');
+  localStorage.removeItem('ebwp-club-type');
+  window.location.href = window.location.pathname;
 }
 
 /** Show inline add-club input in Settings */
