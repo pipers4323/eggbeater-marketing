@@ -3062,7 +3062,7 @@ body.modal-open { overflow: hidden; }
 
 /* ── Push Notification Button ───────────────────────────────────────────── */
 #push-btn-container {
-  padding: 0 12px 6px;
+  padding: 8px 12px 6px;
 }
 
 .push-btn {
