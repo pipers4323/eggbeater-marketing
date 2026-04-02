@@ -17,37 +17,24 @@
       margin: 0;
       color: #e6edf3;
     }
-    .dir-header {
-      padding: max(env(safe-area-inset-top, 0px), 0px) 0 0;
+    header { background: #002868; color: white; padding: 0; }
+    .header-logo-band { background: #002868; padding: 12px 24px; display: flex; align-items: center; }
+    .header-logo-band img { height: 72px; width: auto; display: block; }
+    .header-title-band {
+      background: linear-gradient(135deg, #1e40af 0%, #002868 100%);
+      padding: 14px 24px 0;
+      border-top: 1px solid rgba(255,255,255,.12);
     }
-    .dir-header-logo-band {
-      background: #001a4a;
-      padding: 10px 24px;
-      display: flex;
-      align-items: center;
+    .header-doc-title { font-size: 1.45rem; font-weight: 800; }
+    .header-bottom {
+      padding: 10px 0;
+      font-size: 0.8rem;
+      opacity: 0.8;
     }
-    .dir-header-teal-bar { height: 3px; background: #0891b2; }
-    .dir-logo {
-      height: 96px;
-      width: auto;
-      display: block;
-      max-width: 420px;
-    }
-    .dir-header-body {
+    .teal-bar { height: 3px; background: #0891b2; }
+    .dir-search-section {
       text-align: center;
-      padding: 24px 20px 20px;
-    }
-    .dir-title {
-      font-size: 1.8rem;
-      font-weight: 800;
-      color: white;
-      margin: 0 0 4px;
-      letter-spacing: -0.5px;
-    }
-    .dir-subtitle {
-      font-size: 0.95rem;
-      color: rgba(255,255,255,.65);
-      margin: 0 0 20px;
+      padding: 24px 20px 4px;
     }
     .dir-search-wrap {
       max-width: 480px;
@@ -184,18 +171,21 @@
   </style>
 </head>
 <body>
-  <div class="dir-header">
-    <div class="dir-header-logo-band">
-      <img src="logo_large.png" alt="Eggbeater" class="dir-logo">
+  <header>
+    <div class="header-logo-band">
+      <img src="logo_large.png" alt="Eggbeater Water Polo">
     </div>
-    <div class="dir-header-teal-bar"></div>
-    <div class="dir-header-body">
-    <h1 class="dir-title">Find Your Club</h1>
-    <p class="dir-subtitle">Select your water polo club to see schedules, scores, and rosters</p>
+    <div class="header-title-band">
+      <div class="header-doc-title">Find Your Club</div>
+      <div class="header-bottom">Select your water polo club to view schedules, scores, and rosters</div>
+    </div>
+    <div class="teal-bar"></div>
+  </header>
+
+  <div class="dir-search-section">
     <div class="dir-search-wrap">
       <span class="dir-search-icon">🔍</span>
       <input type="text" class="dir-search" id="dir-search" placeholder="Search clubs…" autocomplete="off" oninput="filterClubs()">
-    </div>
     </div>
   </div>
 
