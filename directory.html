@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#002868">
   <meta name="description" content="Find your water polo club on Eggbeater — live scores, schedules, and rosters for youth and high school teams.">
   <title>Find Your Club — Eggbeater Water Polo</title>
-  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/icon-512.png">
   <link rel="stylesheet" href="styles.css?v=103">
   <style>
     body {
@@ -18,14 +18,23 @@
       color: #e6edf3;
     }
     .dir-header {
-      text-align: center;
-      padding: max(env(safe-area-inset-top, 0px), 16px) 20px 20px;
+      padding: max(env(safe-area-inset-top, 0px), 0px) 0 0;
+    }
+    .dir-header-logo-band {
+      background: rgba(0,0,0,.2);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,.1);
     }
     .dir-logo {
-      width: 200px;
-      height: auto;
-      margin: 0 auto 16px;
+      height: 88px;
+      width: auto;
       display: block;
+    }
+    .dir-header-body {
+      text-align: center;
+      padding: 24px 20px 20px;
     }
     .dir-title {
       font-size: 1.8rem;
@@ -175,12 +184,16 @@
 </head>
 <body>
   <div class="dir-header">
-    <img src="logo_large.svg" alt="Eggbeater" class="dir-logo">
+    <div class="dir-header-logo-band">
+      <img src="logo_large.svg" alt="Eggbeater" class="dir-logo">
+    </div>
+    <div class="dir-header-body">
     <h1 class="dir-title">Find Your Club</h1>
     <p class="dir-subtitle">Select your water polo club to see schedules, scores, and rosters</p>
     <div class="dir-search-wrap">
       <span class="dir-search-icon">🔍</span>
       <input type="text" class="dir-search" id="dir-search" placeholder="Search clubs…" autocomplete="off" oninput="filterClubs()">
+    </div>
     </div>
   </div>
 

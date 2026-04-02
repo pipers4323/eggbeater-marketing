@@ -4,15 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Privacy Policy — Eggbeater Water Polo</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/icon-512.png">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --royal:        #002868;
-      --royal-dark:   #001a4a;
-      --royal-mid:    #1a4898;
-      --royal-light:  #dce5f5;
-      --royal-subtle: #edf1f8;
-      --red:          #cc1f1f;
+      --royal:        #1e40af;
+      --royal-dark:   #002868;
+      --royal-mid:    #1e40af;
+      --royal-light:  #dbeafe;
+      --royal-subtle: #eff6ff;
+      --teal:         #0891b2;
       --gray-100: #f0f2f7;
       --gray-400: #8a94a6;
       --gray-700: #374151;
@@ -28,8 +30,13 @@
 
     /* ── Header ── */
     header { background: var(--royal-dark); color: white; padding: 0; }
-    .header-logo-band { background: var(--royal-dark); overflow: hidden; line-height: 0; }
-    .header-logo-band img { width: 100%; height: auto; display: block; max-height: 160px; }
+    .header-logo-band {
+      background: var(--royal-dark);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+    }
+    .header-logo-band img { height: 72px; width: auto; display: block; }
     .header-title-band {
       background: linear-gradient(135deg, var(--royal-mid) 0%, var(--royal-dark) 100%);
       padding: 14px 24px 0;
@@ -48,7 +55,7 @@
     }
     .header-bottom a { color: rgba(255,255,255,.85); text-decoration: none; }
     .header-bottom a:hover { color: white; }
-    .red-bar { height: 3px; background: var(--red); }
+    .red-bar { height: 3px; background: var(--teal); }
 
     /* ── Main ── */
     main {
@@ -163,7 +170,7 @@
 
   <div class="intro-card">
     <p>Eggbeater is a private tournament tracking tool for water polo teams. It is not a commercial product and does not sell or share personal data.</p>
-    <p>This Privacy Policy describes how the <strong>Eggbeater Water Polo</strong> app ("the App") handles information when you use it at <a href="https://eggbeater-wp.netlify.app">eggbeater-wp.netlify.app</a> or via our native mobile application for iOS. By using the App you agree to this policy.</p>
+    <p>This Privacy Policy describes how the <strong>Eggbeater Water Polo</strong> app ("the App") handles information when you use it at <a href="https://eggbeater-wp.netlify.app">eggbeater-wp.netlify.app</a> or via our native mobile applications for iOS and Android. By using the App you agree to this policy.</p>
   </div>
 
   <section>
@@ -245,11 +252,12 @@
     <h2><span class="num">4</span> Data Sharing</h2>
     <p>We do not sell, trade, or share your personal information with third parties. The following third-party infrastructure is used to operate the App:</p>
     <ul>
-      <li><strong>Netlify</strong> — hosts the App's static files. Standard web access logs (IP address, browser type, pages visited) may be retained by Netlify per their own privacy policy.</li>
+      <li><strong>Vercel</strong> — hosts the App's static files. Standard web access logs (IP address, browser type, pages visited) may be retained by Vercel per their own privacy policy.</li>
       <li><strong>Cloudflare Workers / KV</strong> — processes push notification delivery, temporarily relays live score data, and stores club-scoped tournament data (schedules, rosters, scores, bot credentials). Admin Firebase UIDs are stored in KV for authorization checks. All data is namespaced by club ID to ensure complete isolation between clubs.</li>
       <li><strong>Google Firebase (Firestore &amp; Authentication)</strong> — if you sign in, Firebase Authentication manages your identity session and Google Firestore stores your My Players and age group preferences. Data is stored in Google's us-central region. Firebase is governed by <a href="https://firebase.google.com/terms" target="_blank" rel="noopener">Google's Firebase Terms of Service</a> and <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a>.</li>
       <li><strong>Google LLC</strong> — provides OAuth authentication and Calendar API services when you choose to enable calendar sync.</li>
       <li><strong>Apple Inc.</strong> — provides the Apple Push Notification service (APNs) for native iOS notifications.</li>
+      <li><strong>Google LLC (Firebase Cloud Messaging)</strong> — provides push notification delivery for the native Android app.</li>
     </ul>
   </section>
 

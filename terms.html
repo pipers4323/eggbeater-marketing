@@ -4,15 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Terms of Service — Eggbeater Water Polo</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/icon-512.png">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --royal:        #002868;
-      --royal-dark:   #001a4a;
-      --royal-mid:    #1a4898;
-      --royal-light:  #dce5f5;
-      --royal-subtle: #edf1f8;
-      --red:          #cc1f1f;
+      --royal:        #1e40af;
+      --royal-dark:   #002868;
+      --royal-mid:    #1e40af;
+      --royal-light:  #dbeafe;
+      --royal-subtle: #eff6ff;
+      --teal:         #0891b2;
       --gray-100: #f0f2f7;
       --gray-400: #8a94a6;
       --gray-700: #374151;
@@ -28,8 +30,13 @@
 
     /* ── Header ── */
     header { background: var(--royal-dark); color: white; padding: 0; }
-    .header-logo-band { background: var(--royal-dark); overflow: hidden; line-height: 0; }
-    .header-logo-band img { width: 100%; height: auto; display: block; max-height: 160px; }
+    .header-logo-band {
+      background: var(--royal-dark);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+    }
+    .header-logo-band img { height: 72px; width: auto; display: block; }
     .header-title-band {
       background: linear-gradient(135deg, var(--royal-mid) 0%, var(--royal-dark) 100%);
       padding: 14px 24px 0;
@@ -48,7 +55,7 @@
     }
     .header-bottom a { color: rgba(255,255,255,.85); text-decoration: none; }
     .header-bottom a:hover { color: white; }
-    .red-bar { height: 3px; background: var(--red); }
+    .red-bar { height: 3px; background: var(--teal); }
 
     /* ── Main ── */
     main {
@@ -150,7 +157,7 @@
 
   <section>
     <h2><span class="num">1</span> About the App</h2>
-    <p>The App is a tournament management and tracking tool created for water polo teams and their families. It is available as a mobile web application at <a href="https://eggbeater-wp.netlify.app">eggbeater-wp.netlify.app</a> and as a native mobile application for iOS via the Apple App Store. An Android application is currently in development. The App provides schedule viewing, live score tracking, player statistics, Google Calendar sync, push notifications, and optional Google Sign-In for cross-device preference sync. The App supports multiple clubs and tournaments, with each club maintaining independent data, admin access, and tournament archives. The App is provided free of charge with no commercial intent.</p>
+    <p>The App is a tournament management and tracking tool created for water polo teams and their families. It is available as a mobile web application at <a href="https://eggbeater-wp.netlify.app">eggbeater-wp.netlify.app</a> and as a native mobile application for iOS via the Apple App Store and for Android via Google Play. The App provides schedule viewing, live score tracking, player statistics, Google Calendar sync, push notifications, and optional Google Sign-In for cross-device preference sync. The App supports multiple clubs and tournaments, with each club maintaining independent data, admin access, and tournament archives. The App is provided free of charge with no commercial intent.</p>
   </section>
 
   <section>
@@ -270,6 +277,7 @@
       <li><a href="https://firebase.google.com/terms" target="_blank" rel="noopener">Firebase Terms of Service</a> — Authentication and Firestore database</li>
       <li><a href="https://policies.google.com/terms" target="_blank" rel="noopener">Google Terms of Service</a> — OAuth, Calendar API, and Firebase infrastructure</li>
       <li><a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener">Apple Standard EULA</a> — iOS distribution</li>
+      <li><a href="https://play.google.com/about/play-terms/" target="_blank" rel="noopener">Google Play Terms of Service</a> — Android distribution</li>
     </ul>
   </section>
 
