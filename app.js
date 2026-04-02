@@ -509,13 +509,14 @@ function buildLocationLink(location) {
   const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
   const appleUrl = `https://maps.apple.com/?daddr=${dest}`;
   const wazeUrl = `https://waze.com/ul?q=${dest}`;
-  const btnStyle = `display:inline-flex;align-items:center;gap:2px;font-size:0.68rem;font-weight:700;background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd;border-radius:6px;padding:2px 7px;text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent`;
+  const btnStyle = `display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;font-weight:700;background:#f8fafc;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:3px 8px;text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent`;
+  const iconStyle = `width:14px;height:14px;border-radius:2px;object-fit:contain;flex-shrink:0`;
   return `<span style="display:inline-flex;align-items:center;gap:4px;min-height:44px;flex-wrap:wrap">
     <a href="${googleUrl}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline;font-weight:600;-webkit-tap-highlight-color:transparent" onclick="event.stopPropagation()">📍 ${escHtml(location)}</a>
     <span style="display:inline-flex;gap:3px">
-      <a href="${appleUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()" style="${btnStyle}">🍎 Apple</a>
-      <a href="${googleUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()" style="${btnStyle}">🗺️ Google</a>
-      <a href="${wazeUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()" style="${btnStyle}">🚗 Waze</a>
+      <a href="${appleUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()" style="${btnStyle}"><img src="https://maps.apple.com/favicon.ico" alt="" style="${iconStyle}" onerror="this.style.display='none'">Apple</a>
+      <a href="${googleUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()" style="${btnStyle}"><img src="https://maps.gstatic.com/favicon3.ico" alt="" style="${iconStyle}" onerror="this.style.display='none'">Google</a>
+      <a href="${wazeUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()" style="${btnStyle}"><img src="https://www.waze.com/favicon.ico" alt="" style="${iconStyle}" onerror="this.style.display='none'">Waze</a>
     </span>
   </span>`;
 }
@@ -7365,9 +7366,9 @@ function renderHelpTab() {
         <li>When a game has a location, the 📍 location name is a tappable link.</li>
         <li>Three direction buttons appear next to each location — choose whichever app you prefer:
           <ul style="margin-top:4px">
-            <li><strong>🍎 Apple</strong> — opens Apple Maps (great for iPhone users)</li>
-            <li><strong>🗺️ Google</strong> — opens Google Maps</li>
-            <li><strong>🚗 Waze</strong> — opens Waze for live traffic routing</li>
+            <li><strong>Apple</strong> — opens Apple Maps (great for iPhone users)</li>
+            <li><strong>Google</strong> — opens Google Maps</li>
+            <li><strong>Waze</strong> — opens Waze for live traffic routing</li>
           </ul>
         </li>
         <li>Both the Next Game card and regular schedule cards show direction buttons.</li>
