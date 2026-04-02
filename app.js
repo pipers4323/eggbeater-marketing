@@ -4044,7 +4044,11 @@ async function forceAppRefresh(btn) {
       await Promise.all(keys.map(k => caches.delete(k)));
     }
   } catch (e) { /* ignore — reload anyway */ }
-  window.location.reload();
+  // In Capacitor's WKWebView, location.reload() can still serve from the native
+  // disk cache even after SW caches are cleared. Navigate to a fresh URL with a
+  // timestamp param to force the WebView to treat it as a new resource.
+  const base = window.location.origin + window.location.pathname;
+  window.location.replace(base + '?_r=' + Date.now());
 }
 
 function renderNextGameCard() {
