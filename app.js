@@ -7071,13 +7071,13 @@ function renderHelpTab() {
   const sections = [
     {
       icon: '🚀',
-      title: 'Native iOS App — RECOMMENDED',
-      body: `<p>For the best experience on iPhone, we highly recommend downloading the <strong>Eggbeater Water Polo</strong> app from the Apple App Store.</p>
+      title: 'Native App — RECOMMENDED (iOS & Android)',
+      body: `<p>For the best experience, download the <strong>Eggbeater Water Polo</strong> native app — available on the <strong>Apple App Store</strong> (iPhone/iPad) and <strong>Google Play</strong> (Android).</p>
       <ul>
         <li><strong>Native Performance</strong> — Faster loading, ultra-smooth scrolling, and a premium "app-like" feel.</li>
-        <li><strong>Reliable Notifications</strong> — Never miss a score or schedule change. Native iOS push notifications are more reliable than browser-based ones.</li>
-        <li><strong>Live Activities</strong> — Follow live game scores directly on your iPhone Lock Screen and Dynamic Island!</li>
-        <li><strong>Home Screen Access</strong> — No more searching for links in Safari or iMessage.</li>
+        <li><strong>Reliable Notifications</strong> — Never miss a score or schedule change. Native push notifications are more reliable than browser-based ones.</li>
+        <li><strong>Live Activities (iOS)</strong> — Follow live game scores directly on your iPhone Lock Screen and Dynamic Island!</li>
+        <li><strong>Home Screen Access</strong> — No more searching for links in Safari or messages.</li>
       </ul>`
     },
     {
@@ -7267,7 +7267,8 @@ function renderHelpTab() {
     {
       icon: '🤖',
       title: 'Installing the App (Android)',
-      body: `<p>Android users can install the app as a home screen shortcut directly from Chrome:</p>
+      body: `<p><strong>Recommended:</strong> Download the native <strong>Eggbeater Water Polo</strong> app from <strong>Google Play</strong> for the best experience, including reliable push notifications.</p>
+      <p style="margin-top:8px">Alternatively, install as a home screen shortcut from Chrome:</p>
       <ol>
         <li>Open <a href="https://eggbeater.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater.app</a> in <strong>Chrome</strong>.</li>
         <li>Tap the <strong>three-dot menu</strong> (⋮) in the top-right corner of Chrome.</li>
@@ -7275,7 +7276,7 @@ function renderHelpTab() {
         <li>Tap <strong>Add</strong> or <strong>Install</strong> on the confirmation prompt.</li>
         <li>The app icon appears on your home screen — open it for a full-screen experience.</li>
       </ol>
-      <p style="margin-top:8px"><strong>Push notifications on Android:</strong> After installing, open the app from the home screen icon, tap <em>Get Notified</em>, and allow notifications when Chrome prompts you.</p>`
+      <p style="margin-top:8px"><strong>Push notifications on Android:</strong> After installing, open the app from the home screen icon, tap <em>Get Notified</em>, and allow notifications when prompted.</p>`
     },
     {
       icon: '📺',

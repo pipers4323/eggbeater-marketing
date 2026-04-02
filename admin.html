@@ -8081,7 +8081,7 @@ function renderHelpTab() {
       body: `<p>The Raw tab is used for two advanced scenarios — you won't need it often.</p>
       <ul>
         <li><strong>Deploy tournament.js from Claude</strong> — if Claude generates a complete <code>tournament.js</code> file for a new tournament, paste it here and tap <strong>Parse &amp; Deploy</strong>. The admin panel will validate it, save it to the server, and push it live automatically.</li>
-        <li><strong>Bootstrap File Manifest</strong> — a one-time setup step used after deploying from a laptop. Paste the JSON manifest (a list of filenames and their content hashes) and tap <strong>Save Manifest</strong>. This tells the admin panel which files are currently on Netlify so it can do incremental deploys from this panel. Only needed if the manifest gets out of sync.</li>
+        <li><strong>Bootstrap File Manifest</strong> — a one-time setup step used after deploying from a laptop. Paste the JSON manifest (a list of filenames and their content hashes) and tap <strong>Save Manifest</strong>. This tells the admin panel which files are currently on Vercel so it can do incremental deploys from this panel. Only needed if the manifest gets out of sync.</li>
       </ul>
       <p style="margin-top:8px">💡 <strong>Normal workflow:</strong> You won't use the Raw tab day-to-day. Use the Schedule, Add Games, and Roster tabs and the main Deploy button instead.</p>`
     },
@@ -8114,7 +8114,7 @@ function renderHelpTab() {
       title: 'The Deploy Button — When & Why',
       body: `<p>The <strong>💾 Deploy</strong> button in the top-right header publishes all your changes to the live app at once.</p>
       <ul>
-        <li><strong>What it does</strong> — saves tournament data to the server (Cloudflare KV) and pushes updated files to Netlify so every parent's app sees the changes within seconds.</li>
+        <li><strong>What it does</strong> — saves tournament data to the server (Cloudflare KV) and pushes updated files to Vercel so every parent's app sees the changes within seconds.</li>
         <li><strong>When to use it</strong> — after adding or editing games, changing tournament info, or updating the roster. Nothing is visible to parents until you deploy.</li>
         <li>The main <strong>💾 Deploy</strong> button in the header is the primary way to push changes. Use it after making any changes.</li>
         <li><strong>Deploy time</strong> — usually 5–10 seconds. The button shows a spinner while deploying and a ✓ confirmation when done.</li>
