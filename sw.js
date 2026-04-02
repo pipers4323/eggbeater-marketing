@@ -6,8 +6,8 @@
  *   notifies parents when new games are added to the schedule
  */
 
-const CACHE = 'ebwp-v20';
-const VER   = '?v=98';   // bump alongside index.html script tags on every deploy
+const CACHE = 'ebwp-v21';
+const VER   = '?v=99';   // bump alongside index.html script tags on every deploy
 const ASSETS = [
   '/',
   '/index.html',
@@ -31,9 +31,19 @@ self.addEventListener('activate', e => {
         keys.filter(k => k !== CACHE && k !== 'ebwp-known-games').map(k => caches.delete(k))
       )
     ).then(() => {
-      // Tell all open pages to reload so they pick up the new code immediately
+      // Navigate all open pages to a cache-busting URL so WKWebView is forced
+      // to fetch fresh assets — postMessage + location.reload() is not enough
+      // because WKWebView's native disk cache ignores JS reloads.
       return self.clients.matchAll({ type: 'window' }).then(clients => {
-        clients.forEach(c => c.postMessage({ type: 'SW_UPDATED' }));
+        clients.forEach(c => {
+          try {
+            const u = new URL(c.url);
+            u.searchParams.set('_r', Date.now());
+            c.navigate(u.toString());
+          } catch (_) {
+            c.postMessage({ type: 'SW_UPDATED' });
+          }
+        });
       });
     })
   );
