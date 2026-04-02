@@ -2808,7 +2808,7 @@ function renderSettingsTab() {
         </div>
       </div>
       <div class="settings-item" onclick="_settingsReturnToClubPicker()" style="border-top:1px solid var(--gray-100)">
-        <span class="settings-item-icon">🏠</span>
+        <span class="settings-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg></span>
         <div class="settings-item-text">
           <div class="settings-item-label">Return to Club Picker</div>
           <div class="settings-item-value">Switch to a different club</div>
@@ -2818,7 +2818,7 @@ function renderSettingsTab() {
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">🎨 Appearance</div>
+      <div class="settings-section-title">Appearance</div>
       <div style="padding:12px 16px">
         <div style="font-size:0.82rem;color:var(--gray-500);margin-bottom:10px">Choose your display theme</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -2830,7 +2830,7 @@ function renderSettingsTab() {
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">📅 Calendar &amp; Notifications</div>
+      <div class="settings-section-title">Calendar &amp; Notifications</div>
       <div id="sync-section"></div>
       <div id="push-btn-container"></div>
     </div>
@@ -2839,21 +2839,21 @@ function renderSettingsTab() {
       <div class="settings-section-title">Account</div>
       ${user ? `
         <div class="settings-item" style="cursor:default">
-          <span class="settings-item-icon" style="font-size:1.3rem">☁️</span>
+          <span class="settings-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg></span>
           <div class="settings-item-text">
             <div class="settings-item-label">${escHtml(user.displayName || 'Signed In')}</div>
             <div class="settings-item-value">${escHtml(user.email || '')}</div>
           </div>
         </div>
         <div class="settings-item" onclick="fbSignOut()" style="border-top:1px solid var(--gray-100)">
-          <span class="settings-item-icon">🚪</span>
+          <span class="settings-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
           <div class="settings-item-text">
             <div class="settings-item-label" style="color:#dc2626">Sign Out</div>
           </div>
         </div>
       ` : `
         <div class="settings-item" onclick="fbSignIn()">
-          <span class="settings-item-icon">👤</span>
+          <span class="settings-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
           <div class="settings-item-text">
             <div class="settings-item-label">Sign In with Google</div>
             <div class="settings-item-value">Sync preferences across devices</div>
@@ -4152,7 +4152,7 @@ function renderSyncCard() {
     section.innerHTML = `
       <div class="sync-status-card">
         <div class="sync-status-inner">
-          <span class="sync-cal-name">📅 ${escHtml(state.selectedCalName || 'Calendar')}</span>
+          <span class="sync-cal-name"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${escHtml(state.selectedCalName || 'Calendar')}</span>
           <span class="sync-time">Last sync: ${timeStr}</span>
         </div>
         <div class="sync-btn-row">
@@ -4892,9 +4892,10 @@ function renderHistoryTab() {
   // No teams selected — show empty prompt
   if (slots.length === 0 && !_inMultiRender) {
     const viewEl = document.getElementById('view-history');
+    const _isHS0 = localStorage.getItem('ebwp-club-type') === 'highschool';
     if (viewEl) viewEl.innerHTML = `<div class="card tab-card">
-      <div class="history-header-row"><h2>Tournament History</h2></div>
-      <p class="step-desc">Select an age group above to view tournament history.</p>
+      <div class="history-header-row"><h2>${_isHS0 ? 'Season History' : 'Tournament History'}</h2></div>
+      <p class="step-desc">Select an age group above to view ${_isHS0 ? 'season' : 'tournament'} history.</p>
     </div>`;
     return;
   }
@@ -4907,12 +4908,13 @@ function renderHistoryTab() {
     const viewEl = document.getElementById('view-history');
     if (viewEl && !viewEl.querySelector('#history-list')) {
       const label = _groupSectionLabelFor(slots[0].groupKey, slots[0].letter);
+      const _isHS1 = localStorage.getItem('ebwp-club-type') === 'highschool';
       viewEl.innerHTML = `<div class="card tab-card">
         <div class="history-header-row">
-          <h2>Tournament History</h2>
+          <h2>${_isHS1 ? 'Season History' : 'Tournament History'}</h2>
           <span class="history-subtitle" id="history-subtitle">${escHtml(label)}</span>
         </div>
-        <p class="step-desc" id="history-desc">Past tournament results, most recent first.</p>
+        <p class="step-desc" id="history-desc">Past ${_isHS1 ? 'season' : 'tournament'} results, most recent first.</p>
         <div id="history-team-search"></div>
         <div id="history-standings"></div>
         <div id="history-list"></div>
@@ -5292,8 +5294,9 @@ function buildStandingsHtml(entries, seriesLabel) {
 function _renderHistoryMulti(slots) {
   const viewEl = document.getElementById('view-history');
   if (!viewEl) return;
+  const _isHSM = localStorage.getItem('ebwp-club-type') === 'highschool';
   viewEl.innerHTML = `<div class="card tab-card">
-    <div class="history-header-row"><h2>Tournament History</h2></div>
+    <div class="history-header-row"><h2>${_isHSM ? 'Season History' : 'Tournament History'}</h2></div>
     <p class="step-desc">Results for all your selected age groups.</p>
     ${slots.map(({ groupKey, letter, suffix }) =>
       `<div class="team-section" style="margin:0 -2px">
@@ -6227,7 +6230,7 @@ function renderPushButton() {
     el.innerHTML = `
       <div class="push-card">
         <div class="push-header">
-          <span class="push-icon">🔔</span>
+          <span class="push-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
           <span class="push-title">Notifications On${native ? ' (iOS)' : ''}</span>
         </div>
         <div class="push-prefs">
