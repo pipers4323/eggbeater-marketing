@@ -498,7 +498,7 @@ function escHtml(str) {
 }
 
 /**
- * Build a tappable Google Maps directions link for a location string.
+ * Build a tappable directions link for a location string with Apple Maps, Google Maps, and Waze.
  * If location looks like coordinates ("37.7749,-122.4194"), use directly.
  * Otherwise URL-encode as a place name search.
  */
@@ -506,10 +506,17 @@ function buildLocationLink(location) {
   if (!location) return '';
   const isCoords = /^-?\d+\.\d+\s*,\s*-?\d+\.\d+$/.test(location.trim());
   const dest = isCoords ? location.trim() : encodeURIComponent(location);
-  const url = `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
-  return `<span style="display:inline-flex;align-items:center;gap:4px;min-height:44px">
-    <a href="${url}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline;font-weight:600;-webkit-tap-highlight-color:transparent" onclick="event.stopPropagation()">📍 ${escHtml(location)}</a>
-    <a href="${url}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:2px;font-size:0.68rem;font-weight:700;background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd;border-radius:6px;padding:2px 7px;text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent">🗺️ Directions</a>
+  const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
+  const appleUrl = `https://maps.apple.com/?daddr=${dest}`;
+  const wazeUrl = `https://waze.com/ul?q=${dest}`;
+  const btnStyle = `display:inline-flex;align-items:center;gap:2px;font-size:0.68rem;font-weight:700;background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd;border-radius:6px;padding:2px 7px;text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent`;
+  return `<span style="display:inline-flex;align-items:center;gap:4px;min-height:44px;flex-wrap:wrap">
+    <a href="${googleUrl}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline;font-weight:600;-webkit-tap-highlight-color:transparent" onclick="event.stopPropagation()">📍 ${escHtml(location)}</a>
+    <span style="display:inline-flex;gap:3px">
+      <a href="${appleUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()" style="${btnStyle}">🍎 Apple</a>
+      <a href="${googleUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()" style="${btnStyle}">🗺️ Google</a>
+      <a href="${wazeUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()" style="${btnStyle}">🚗 Waze</a>
+    </span>
   </span>`;
 }
 
@@ -7070,15 +7077,47 @@ function renderHelpTab() {
 
   const sections = [
     {
-      icon: '🚀',
-      title: 'Native App — RECOMMENDED (iOS & Android)',
-      body: `<p>For the best experience, download the <strong>Eggbeater Water Polo</strong> native app — available on the <strong>Apple App Store</strong> (iPhone/iPad) and <strong>Google Play</strong> (Android).</p>
-      <ul>
-        <li><strong>Native Performance</strong> — Faster loading, ultra-smooth scrolling, and a premium "app-like" feel.</li>
-        <li><strong>Reliable Notifications</strong> — Never miss a score or schedule change. Native push notifications are more reliable than browser-based ones.</li>
-        <li><strong>Live Activities (iOS)</strong> — Follow live game scores directly on your iPhone Lock Screen and Dynamic Island!</li>
-        <li><strong>Home Screen Access</strong> — No more searching for links in Safari or messages.</li>
-      </ul>`
+      icon: '📲',
+      title: 'Installing the App (iOS App Store & Google Play)',
+      body: `<p>Download the native <strong>Eggbeater Water Polo</strong> app for the best experience — faster performance, reliable push notifications, and home screen access.</p>
+      <p style="margin-top:10px"><strong>🍎 iPhone / iPad (iOS)</strong></p>
+      <ol>
+        <li>Open the <strong>App Store</strong> on your iPhone or iPad.</li>
+        <li>Search for <strong>Eggbeater Water Polo</strong>.</li>
+        <li>Tap <strong>Get</strong> to download and install.</li>
+        <li>Open the app, select your club and age group, then go to <strong>Settings → Notifications</strong> to enable push notifications.</li>
+      </ol>
+      <p style="margin-top:10px"><strong>🤖 Android</strong></p>
+      <ol>
+        <li>Open the <strong>Google Play Store</strong> on your Android device.</li>
+        <li>Search for <strong>Eggbeater Water Polo</strong>.</li>
+        <li>Tap <strong>Install</strong>.</li>
+        <li>Open the app, select your club and age group, then allow notifications when prompted.</li>
+      </ol>
+      <p style="margin-top:8px;color:var(--text-muted);font-size:0.85rem">💡 The native app is recommended for the most reliable notifications and the smoothest experience.</p>`
+    },
+    {
+      icon: '📱',
+      title: 'Installing the Web App (iOS & Android)',
+      body: `<p>No App Store needed — you can install the Eggbeater web app directly from your browser and add it to your home screen for a full-screen, app-like experience.</p>
+      <p style="margin-top:10px"><strong>🍎 iPhone / iPad (iOS — Safari required)</strong></p>
+      <ol>
+        <li>Open <a href="https://eggbeater.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater.app</a> in <strong>Safari</strong> (must be Safari — Chrome and other iOS browsers cannot install home screen apps).</li>
+        <li>Tap the <strong>Share</strong> button — the box-with-arrow icon at the bottom of the screen (top-right on iPad).</li>
+        <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+        <li>Tap <strong>Add</strong> — the Eggbeater icon appears on your home screen.</li>
+        <li>Always open from the home screen icon for full-screen mode and push notifications.</li>
+        <li>Go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <em>Enable Notifications</em>.</li>
+      </ol>
+      <p style="margin-top:8px;color:var(--text-muted);font-size:0.85rem">⚠️ Push notifications on iOS require iOS 16.4+ and the app must be opened from the home screen icon, not from Safari directly.</p>
+      <p style="margin-top:10px"><strong>🤖 Android (Chrome)</strong></p>
+      <ol>
+        <li>Open <a href="https://eggbeater.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater.app</a> in <strong>Chrome</strong>.</li>
+        <li>Tap the <strong>three-dot menu</strong> (⋮) in the top-right corner.</li>
+        <li>Tap <strong>Add to Home screen</strong> or <strong>Install app</strong>.</li>
+        <li>Tap <strong>Add</strong> or <strong>Install</strong> to confirm.</li>
+        <li>Open from your home screen icon, then tap <em>Get Notified</em> and allow notifications when prompted.</li>
+      </ol>`
     },
     {
       icon: '📅',
@@ -7215,14 +7254,14 @@ function renderHelpTab() {
     },
     {
       icon: '🌐',
-      title: 'Using the App on the Web',
-      body: `<p>No install required — the app works in any modern browser on any device, phone, tablet, or computer.</p>
+      title: 'Accessing the Parent App from the Web',
+      body: `<p>No install required — the full app works in any modern browser on any device: phone, tablet, or computer.</p>
       <ul>
         <li>Open <a href="https://eggbeater.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater.app</a> in any browser — Chrome, Safari, Firefox, Edge, etc.</li>
         <li>All features work in the browser: schedule, live scores, bracket, roster, and history.</li>
-        <li><strong>Bookmark it</strong> for quick access — tap the browser's share or bookmark button and save it to your favorites or home screen.</li>
-        <li>The app remembers your age group selections and preferences automatically in your browser.</li>
-        <li><strong>Push notifications and full-screen mode</strong> require installing the app as a home screen shortcut — see the iOS and Android sections below for how to do that.</li>
+        <li><strong>Bookmark it</strong> for quick access — tap the browser's share or bookmark icon and save it to your favorites.</li>
+        <li>Your age group selections and preferences are remembered automatically in your browser.</li>
+        <li>For push notifications and full-screen mode, install the app to your home screen — see <em>Installing the Web App</em> above, or download the native app from the App Store or Google Play.</li>
       </ul>`
     },
     {
@@ -7246,37 +7285,9 @@ function renderHelpTab() {
         <li><strong>Google Calendar</strong> — Sign in with Google first (tap <strong>Sign In</strong> in Settings), then go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <strong>Connect</strong> to choose which of your Google calendars to sync to. All games are added automatically and update if times or locations change.</li>
         <li>To change which calendar is used, tap <em>Change</em> in the connected calendar card in Settings.</li>
         <li>Your calendar connection is remembered. On future visits the app reconnects silently in the background — no action needed.</li>
-        <li><strong>Push Notifications</strong> — On iOS (iPhone/iPad), first install the app to your home screen (see "Installing on iOS" below), open from the home screen icon, then go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <em>Enable Notifications</em>. On Android you can do the same directly in Chrome.</li>
+        <li><strong>Push Notifications</strong> — On iOS (iPhone/iPad), first install the app to your home screen (see <em>Installing the Web App</em> above), open from the home screen icon, then go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <em>Enable Notifications</em>. On Android you can do the same directly in Chrome, or use the native Google Play app.</li>
         <li><strong>Telegram / GroupMe</strong> — The scorer can send box score updates and shootout alerts directly to your team channel from the Scores tab.</li>
       </ul>`
-    },
-    {
-      icon: '🍎',
-      title: 'Installing on iOS (iPhone & iPad)',
-      body: `<p>For the best experience — including push notifications and full-screen mode — install the app as a home screen shortcut. Requires iOS 16.4 or later for push notification support.</p>
-      <ol>
-        <li>Open <a href="https://eggbeater.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater.app</a> in <strong>Safari</strong> (must be Safari — Chrome and other browsers on iOS cannot install home screen apps).</li>
-        <li>Tap the <strong>Share</strong> button — the box-with-arrow icon at the bottom of the screen (on iPad it's in the top-right toolbar).</li>
-        <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
-        <li>Tap <strong>Add</strong> — the Eggbeater icon appears on your home screen.</li>
-        <li>Always open the app from that home screen icon for full-screen mode and push notifications.</li>
-        <li>Once open from the home screen, go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <em>Enable Notifications</em>, then allow when iOS prompts you.</li>
-      </ol>
-      <p style="margin-top:8px;color:var(--text-muted);font-size:0.85rem">⚠️ Push notifications on iOS require iOS 16.4+ and the app must be opened from the home screen icon, not from Safari directly.</p>`
-    },
-    {
-      icon: '🤖',
-      title: 'Installing the App (Android)',
-      body: `<p><strong>Recommended:</strong> Download the native <strong>Eggbeater Water Polo</strong> app from <strong>Google Play</strong> for the best experience, including reliable push notifications.</p>
-      <p style="margin-top:8px">Alternatively, install as a home screen shortcut from Chrome:</p>
-      <ol>
-        <li>Open <a href="https://eggbeater.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater.app</a> in <strong>Chrome</strong>.</li>
-        <li>Tap the <strong>three-dot menu</strong> (⋮) in the top-right corner of Chrome.</li>
-        <li>Tap <strong>Add to Home screen</strong> (you may see <strong>Install app</strong> instead — either works).</li>
-        <li>Tap <strong>Add</strong> or <strong>Install</strong> on the confirmation prompt.</li>
-        <li>The app icon appears on your home screen — open it for a full-screen experience.</li>
-      </ol>
-      <p style="margin-top:8px"><strong>Push notifications on Android:</strong> After installing, open the app from the home screen icon, tap <em>Get Notified</em>, and allow notifications when prompted.</p>`
     },
     {
       icon: '📺',
@@ -7316,12 +7327,18 @@ function renderHelpTab() {
     {
       icon: '📍',
       title: 'Map & Directions',
-      body: `<p>Game cards now include <strong>tappable map links</strong> so you can quickly get directions to the game venue.</p>
+      body: `<p>Game cards include <strong>tappable direction links</strong> so you can get to the venue in your preferred maps app.</p>
       <ul>
-        <li>When a game has a location, the location text becomes a tappable link (📍 pin emoji) that opens <strong>Google Maps directions</strong>.</li>
-        <li>A separate <strong>🗺️ Directions</strong> button is also shown next to the location for quick access.</li>
-        <li>Both the next game card and regular schedule cards show direction links.</li>
-        <li>If the location looks like GPS coordinates, they're used directly; otherwise the location name is searched in Google Maps.</li>
+        <li>When a game has a location, the 📍 location name is a tappable link.</li>
+        <li>Three direction buttons appear next to each location — choose whichever app you prefer:
+          <ul style="margin-top:4px">
+            <li><strong>🍎 Apple</strong> — opens Apple Maps (great for iPhone users)</li>
+            <li><strong>🗺️ Google</strong> — opens Google Maps</li>
+            <li><strong>🚗 Waze</strong> — opens Waze for live traffic routing</li>
+          </ul>
+        </li>
+        <li>Both the Next Game card and regular schedule cards show direction buttons.</li>
+        <li>If the location is GPS coordinates, they're passed directly; otherwise the venue name is searched.</li>
       </ul>`
     },
     {
