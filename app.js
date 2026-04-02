@@ -4099,10 +4099,9 @@ function renderNextGameCard() {
           ${liveSummary}
           <div class="next-meta">
             <span>🕐 ${escHtml(g.time)} &nbsp;·&nbsp; ${escHtml(g.date || g.dateISO)}</span>
-            ${g.pool              ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}</span>`              : ''}
+            ${g.pool ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap)} Caps</span>` : '')}
             ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
           </div>
-          <div class="next-cap-badge">${capIcon} ${escHtml(g.cap)} Caps</div>
         </div>
       </div>`;
   } else {
@@ -4321,10 +4320,9 @@ function buildScheduleCard(g) {
       </div>
       <div class="sched-meta">
         <span>🕐 ${escHtml(g.time || 'TBD')}${g.date ? ' · ' + escHtml(g.date) : ''}</span>
-        ${g.pool              ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}</span>`              : ''}
+        ${g.pool ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
         ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
       </div>
-      <div class="sched-cap-badge">${capIcon} ${escHtml(g.cap || '')} Caps</div>
     </div>`;
 }
 
