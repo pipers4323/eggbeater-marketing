@@ -787,17 +787,18 @@ h2 {
 .next-game-card-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 2px;
-  min-height: 22px;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 .next-game-num {
-  font-size: 0.72rem;
-  font-weight: 700;
-  background: rgba(255,255,255,.15);
+  font-size: 0.7rem;
+  font-weight: 800;
+  background: rgba(255,255,255,0.2);
+  color: white;
   padding: 3px 9px;
   border-radius: 99px;
-  color: rgba(255,255,255,.9);
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
 }
 .live-badge-next {
   font-size: 0.75rem;
@@ -923,32 +924,38 @@ h2 {
 
 .result-btn {
   flex: 1;
-  padding: 6px 0 5px;
-  border-radius: 6px;
-  border: 1.5px solid var(--gray-200);
+  padding: 8px 0 6px;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
   background: var(--gray-50);
-  color: var(--gray-400);
+  color: var(--gray-500);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all 0.15s;
   -webkit-tap-highlight-color: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
 }
+
+.result-w-btn  { background: #f0fdf4; border-color: #86efac; color: #166534; }
+.result-sw-btn { background: #f0fdfa; border-color: #5eead4; color: #0f766e; }
+.result-sl-btn { background: #fffbeb; border-color: #fcd34d; color: #92400e; }
+.result-l-btn  { background: #fff1f2; border-color: #fda4af; color: #9f1239; }
+.result-f-btn  { background: #f9fafb; border-color: #d1d5db; color: #6b7280; }
 
 .result-btn:active { transform: scale(0.96); }
 
 /* Label + points sub-labels inside each button */
 .rbtn-label {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.2px;
   line-height: 1;
 }
 
 .rbtn-pts {
-  font-size: 0.6rem;
+  font-size: 0.62rem;
   font-weight: 600;
   opacity: 0.55;
   line-height: 1;

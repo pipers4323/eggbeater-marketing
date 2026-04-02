@@ -4092,14 +4092,14 @@ function renderNextGameCard() {
           <div class="next-game-card-top">
             ${g.gameNum ? `<div class="next-game-num">${escHtml(g.gameNum)}</div>` : ''}
             ${nextLive ? `<span class="live-badge-next">🔴 LIVE</span>` : ''}
-            <button class="follow-live-btn" onclick="toggleLiveActivity('${g.id}')">📡 Follow Live</button>
+            <button class="follow-live-btn" onclick="toggleLiveActivity('${g.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Follow Live</button>
           </div>
           <div class="next-label">${nextLive ? 'In Progress' : 'Next Game'}</div>
           <div class="next-vs">vs ${escHtml(g.opponent || 'TBD')}</div>
           ${liveSummary}
           <div class="next-meta">
-            <span>🕐 ${escHtml(g.time)} &nbsp;·&nbsp; ${escHtml(g.date || g.dateISO)}</span>
-            ${g.pool ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap)} Caps</span>` : '')}
+            <span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${escHtml(g.time)} &nbsp;·&nbsp; ${escHtml(g.date || g.dateISO)}</span>
+            ${g.pool ? `<span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><path d="M2 12h20M2 17c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2M6 12V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/></svg> ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap)} Caps</span>` : '')}
             ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
           </div>
         </div>
@@ -4108,7 +4108,7 @@ function renderNextGameCard() {
     // Projected bracket game
     const g = next.game;
     const timeStr = g.time && g.time !== 'TBD'
-      ? `🕐 ${escHtml(g.time)} · ${escHtml(g.date || g.dateISO)}`
+      ? `<span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${escHtml(g.time)} · ${escHtml(g.date || g.dateISO)}</span>`
       : g.date ? escHtml(g.date) : 'Time TBD';
     section.innerHTML = `
       <div class="next-game-wrap">
@@ -4310,7 +4310,7 @@ function buildScheduleCard(g) {
   // LIVE badge is handled by the Next Game blue card; plain schedule cards don't show it
   const isLive = getTournamentGames().some(game => game.id === g.id && isGameLive(game.id));
   const liveBadge = isLive ? ' <span class="live-badge">🔴 LIVE</span>' : '';
-  const followBtn = `<button class="follow-live-btn-sm" onclick="toggleLiveActivity('${g.id}')" title="Follow Live on Lock Screen">📡 Follow</button>`;
+  const followBtn = `<button class="follow-live-btn-sm" onclick="toggleLiveActivity('${g.id}')" title="Follow Live on Lock Screen"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Follow</button>`;
 
   return `
     <div class="sched-card">
@@ -4319,8 +4319,8 @@ function buildScheduleCard(g) {
         ${g.gameNum ? `<div class="sched-game-num">${escHtml(g.gameNum)}</div>` : ''}
       </div>
       <div class="sched-meta">
-        <span>🕐 ${escHtml(g.time || 'TBD')}${g.date ? ' · ' + escHtml(g.date) : ''}</span>
-        ${g.pool ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
+        <span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${escHtml(g.time || 'TBD')}${g.date ? ' · ' + escHtml(g.date) : ''}</span>
+        ${g.pool ? `<span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><path d="M2 12h20M2 17c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2M6 12V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/></svg> ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
         ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
       </div>
     </div>`;
@@ -4557,8 +4557,8 @@ function buildGameCard(g, viewerOnly = false) {
       </div>
       ${liveScoreBarHtml}
       <div class="game-info-row">
-        <span class="icon-label">🕐 ${escHtml(g.time || 'TBD')}</span>
-        ${g.pool              ? `<span class="icon-label">${swimmerEmoji()} ${escHtml(g.pool)}</span>`              : ''}
+        <span class="icon-label" style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${escHtml(g.time || 'TBD')}</span>
+        ${g.pool              ? `<span class="icon-label" style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><path d="M2 12h20M2 17c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2M6 12V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/></svg> ${escHtml(g.pool)}</span>`              : ''}
         ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
       </div>
       <div class="game-info-row">
