@@ -853,11 +853,16 @@
     <span class="section-tag" style="color: var(--gold-light);">Get Early Access</span>
     <h2 class="section-heading">Ready to run a better club?</h2>
     <p class="section-sub">Leave your email and we'll reach out to get your club set up. It takes about 10 minutes.</p>
-    <form class="cta-form" action="https://formspree.io/f/xvzvqjnr" method="POST">
+    <form class="cta-form" id="access-form" action="https://formspree.io/f/xvzvqjnr" method="POST">
       <input type="email" name="email" class="cta-input" placeholder="your@email.com" required />
       <button type="submit" class="btn-primary">Get Access</button>
     </form>
-    <p class="cta-note">No spam. No credit card required to start.</p>
+    <div id="access-success" style="display:none; text-align:center;">
+      <div style="font-size:2rem; margin-bottom:12px;">✓</div>
+      <p style="font-size:1.1rem; font-weight:600; color:#fff; margin-bottom:6px;">You're on the list.</p>
+      <p style="color:rgba(255,255,255,0.65); font-size:0.95rem;">We'll reach out within 24 hours to get your club set up.</p>
+    </div>
+    <p class="cta-note" id="access-note">No spam. No credit card required to start.</p>
     <!-- App store badges: unhide when App Store / Play Store listings are live -->
     <!--
     <div class="store-badges">
@@ -894,6 +899,33 @@
 </footer>
 
 <script>
+  // Early access form — async submit, inline confirmation
+  const accessForm = document.getElementById('access-form');
+  accessForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = accessForm.querySelector('button');
+    btn.textContent = 'Sending…';
+    btn.disabled = true;
+    try {
+      const res = await fetch(accessForm.action, {
+        method: 'POST',
+        body: new FormData(accessForm),
+        headers: { 'Accept': 'application/json' }
+      });
+      if (res.ok) {
+        accessForm.style.display = 'none';
+        document.getElementById('access-note').style.display = 'none';
+        document.getElementById('access-success').style.display = 'block';
+      } else {
+        btn.textContent = 'Try again';
+        btn.disabled = false;
+      }
+    } catch {
+      btn.textContent = 'Try again';
+      btn.disabled = false;
+    }
+  });
+
   // Smooth active nav highlighting
   const sections = document.querySelectorAll('section[id], div[id]');
   const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
