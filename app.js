@@ -4100,8 +4100,8 @@ function renderNextGameCard() {
           <div class="next-meta">
             <span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${escHtml(g.time)} &nbsp;·&nbsp; ${escHtml(g.date || g.dateISO)}</span>
             ${g.pool ? `<span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><path d="M2 12h20M2 17c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2M6 12V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/></svg> ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap)} Caps</span>` : '')}
-            ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
           </div>
+          ${TOURNAMENT.location ? `<div class="next-meta">${buildLocationLink(TOURNAMENT.location)}</div>` : ''}
         </div>
       </div>`;
   } else {
@@ -4321,8 +4321,8 @@ function buildScheduleCard(g) {
       <div class="sched-meta">
         <span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${escHtml(g.time || 'TBD')}${g.date ? ' · ' + escHtml(g.date) : ''}</span>
         ${g.pool ? `<span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><path d="M2 12h20M2 17c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2M6 12V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/></svg> ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
-        ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
       </div>
+      ${TOURNAMENT.location ? `<div class="sched-meta">${buildLocationLink(TOURNAMENT.location)}</div>` : ''}
     </div>`;
 }
 
@@ -4558,13 +4558,10 @@ function buildGameCard(g, viewerOnly = false) {
       ${liveScoreBarHtml}
       <div class="game-info-row">
         <span class="icon-label" style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${escHtml(g.time || 'TBD')}</span>
-        ${g.pool              ? `<span class="icon-label" style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><path d="M2 12h20M2 17c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2M6 12V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/></svg> ${escHtml(g.pool)}</span>`              : ''}
-        ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
-      </div>
-      <div class="game-info-row">
-        <span class="icon-label ${g.cap === 'Dark' ? 'cap-dark' : 'cap-white'}">${capIcon} ${escHtml(g.cap || '')} Caps</span>
+        ${g.pool ? `<span class="icon-label" style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><path d="M2 12h20M2 17c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2M6 12V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/></svg> ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span class="icon-label">${capIcon} ${escHtml(g.cap)} Caps</span>` : '')}
         ${pts !== null ? `<span class="points-badge">+${pts} bracket pts</span>` : ''}
       </div>
+      ${TOURNAMENT.location ? `<div class="game-info-row">${buildLocationLink(TOURNAMENT.location)}</div>` : ''}
 
       ${(viewerOnly || !canScore) ? viewerSection : scorerSection}
 
