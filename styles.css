@@ -5066,12 +5066,35 @@ details[open] .help-chevron { transform: rotate(180deg); }
 [data-theme="dark"] .push-pref-row { color: #c9d1d9; }
 [data-theme="dark"] .push-pref-row span { color: #c9d1d9; }
 
-/* ── Directions Button (inline-styled, override via attribute selector) ─ */
-[data-theme="dark"] .directions-btn,
-[data-theme="dark"] a[class="directions-btn"] {
+/* ── Directions Button ───────────────────────────────────────────────── */
+.directions-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-300);
+  border-radius: 20px;
+  padding: 4px 10px;
+  text-decoration: none;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  -webkit-tap-highlight-color: transparent;
+}
+.location-venue {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+  letter-spacing: 0.01em;
+}
+[data-theme="dark"] .directions-btn {
   background: #1e3a5f !important;
   color: #58a6ff !important;
   border-color: #30363d !important;
+}
+[data-theme="dark"] .location-venue {
+  color: rgba(255,255,255,0.6);
 }
 
 /* ── Location Link ────────────────────────────────────────────────────── */
