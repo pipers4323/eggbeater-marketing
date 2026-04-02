@@ -1,962 +1,403 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Eggbeater Water Polo — Club Management Platform</title>
-  <meta name="description" content="The all-in-one platform for water polo clubs. Manage rosters, schedules, and communicate with your team — all in one app." />
-  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png" />
-  <link rel="apple-touch-icon" href="/icon-512.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --navy: #1e40af;
-      --navy-light: #2563eb;
-      --navy-dark: #1e3a8a;
-      --gold: #0891b2;
-      --gold-light: #22d3ee;
-      --white: #ffffff;
-      --gray-50: #f8f9fa;
-      --gray-100: #f1f3f5;
-      --gray-200: #e9ecef;
-      --gray-400: #868e96;
-      --gray-600: #495057;
-      --gray-800: #212529;
-      --radius: 12px;
-      --radius-lg: 20px;
-    }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      color: var(--gray-800);
-      background: var(--white);
-      line-height: 1.6;
-      overflow-x: hidden;
-    }
-
-    /* ── NAV ── */
-    nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      background: rgba(0, 40, 104, 0.97);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-    .nav-inner {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 0 24px;
-      height: 96px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .nav-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
-    }
-    .nav-logo-img {
-      height: 88px;
-      width: auto;
-      display: block;
-    }
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      list-style: none;
-    }
-    .nav-links a {
-      text-decoration: none;
-      color: rgba(255,255,255,0.8);
-      font-size: 14px;
-      font-weight: 500;
-      padding: 6px 12px;
-      border-radius: 6px;
-      transition: color 0.15s, background 0.15s;
-    }
-    .nav-links a:hover { color: var(--white); background: rgba(255,255,255,0.08); }
-    .nav-cta {
-      background: var(--gold) !important;
-      color: var(--navy) !important;
-      font-weight: 700 !important;
-      padding: 8px 18px !important;
-    }
-    .nav-cta:hover { background: var(--gold-light) !important; }
-
-    /* ── HERO ── */
-    .hero {
-      background: linear-gradient(160deg, var(--navy-dark) 0%, var(--navy) 50%, #1d4ed8 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      padding: 128px 24px 80px;
-      position: relative;
-      overflow: hidden;
-    }
-    .hero::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-    }
-    .hero-inner {
-      max-width: 1120px;
-      margin: 0 auto;
-      width: 100%;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 64px;
-      align-items: center;
-      position: relative;
-    }
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(8,145,178,0.15);
-      border: 1px solid rgba(8,145,178,0.4);
-      color: var(--gold-light);
-      font-size: 12px;
-      font-weight: 600;
-      padding: 6px 14px;
-      border-radius: 100px;
-      margin-bottom: 24px;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-    }
-    .hero h1 {
-      font-size: clamp(2.4rem, 5vw, 3.6rem);
-      font-weight: 900;
-      color: var(--white);
-      line-height: 1.1;
-      letter-spacing: -1.5px;
-      margin-bottom: 20px;
-    }
-    .hero h1 span { color: var(--gold-light); }
-    .hero-sub {
-      font-size: 1.125rem;
-      color: rgba(255,255,255,0.72);
-      margin-bottom: 36px;
-      max-width: 480px;
-      line-height: 1.65;
-    }
-    .hero-actions {
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--gold);
-      color: var(--navy);
-      font-weight: 700;
-      font-size: 15px;
-      padding: 14px 28px;
-      border-radius: var(--radius);
-      text-decoration: none;
-      transition: background 0.15s, transform 0.1s;
-      border: none;
-      cursor: pointer;
-    }
-    .btn-primary:hover { background: var(--gold-light); transform: translateY(-1px); }
-    .btn-secondary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255,255,255,0.1);
-      color: var(--white);
-      font-weight: 600;
-      font-size: 15px;
-      padding: 14px 28px;
-      border-radius: var(--radius);
-      text-decoration: none;
-      border: 1px solid rgba(255,255,255,0.2);
-      transition: background 0.15s;
-    }
-    .btn-secondary:hover { background: rgba(255,255,255,0.15); }
-    .hero-visual {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    .phones-wrap {
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      gap: 0;
-      position: relative;
-      height: 520px;
-    }
-    .phone-mock {
-      width: 200px;
-      border-radius: 32px;
-      border: 7px solid rgba(255,255,255,0.18);
-      box-shadow: 0 32px 64px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06);
-      overflow: hidden;
-      flex-shrink: 0;
-      background: #000;
-    }
-    .phone-mock img {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
-    .phone-mock-left {
-      transform: rotate(-5deg) translateX(28px) translateY(30px);
-      z-index: 1;
-      opacity: 0.88;
-      width: 178px;
-    }
-    .phone-mock-center {
-      transform: rotate(0deg);
-      z-index: 3;
-      box-shadow: 0 40px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.08);
-    }
-    .phone-mock-right {
-      transform: rotate(5deg) translateX(-28px) translateY(30px);
-      z-index: 1;
-      opacity: 0.88;
-      width: 178px;
-    }
-
-    /* ── LOGOS / SOCIAL PROOF ── */
-    .social-proof {
-      background: var(--gray-50);
-      padding: 40px 24px;
-      border-bottom: 1px solid var(--gray-200);
-    }
-    .social-proof-inner {
-      max-width: 1120px;
-      margin: 0 auto;
-      text-align: center;
-    }
-    .social-proof p {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--gray-400);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 24px;
-    }
-    .club-logos {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 40px;
-      flex-wrap: wrap;
-    }
-    .club-logo-item {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--gray-400);
-      opacity: 0.7;
-    }
-
-    /* ── SECTION SHARED ── */
-    section { padding: 96px 24px; }
-    .section-inner { max-width: 1120px; margin: 0 auto; }
-    .section-tag {
-      display: inline-block;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--gold);
-      margin-bottom: 12px;
-    }
-    .section-heading {
-      font-size: clamp(1.8rem, 3.5vw, 2.75rem);
-      font-weight: 900;
-      letter-spacing: -1px;
-      line-height: 1.15;
-      color: var(--navy);
-      margin-bottom: 16px;
-    }
-    .section-sub {
-      font-size: 1.05rem;
-      color: var(--gray-600);
-      max-width: 560px;
-      line-height: 1.65;
-    }
-    .section-header { text-align: center; margin-bottom: 64px; }
-    .section-header .section-sub { margin: 0 auto; }
-
-    /* ── HOW IT WORKS ── */
-    #how-it-works { background: var(--white); }
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 40px;
-      counter-reset: step;
-    }
-    .step { position: relative; }
-    .step-num {
-      width: 48px;
-      height: 48px;
-      background: var(--navy);
-      color: var(--white);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      font-weight: 900;
-      margin-bottom: 20px;
-    }
-    .step h3 { font-size: 1.15rem; font-weight: 800; color: var(--navy); margin-bottom: 10px; }
-    .step p { font-size: 0.95rem; color: var(--gray-600); line-height: 1.6; }
-    .step-connector {
-      position: absolute;
-      top: 24px;
-      right: -20px;
-      width: 40px;
-      height: 2px;
-      background: var(--gray-200);
-    }
-    .step:last-child .step-connector { display: none; }
-
-    /* ── FEATURES ── */
-    #features { background: var(--gray-50); }
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-    }
-    .feature-card {
-      background: var(--white);
-      border: 1px solid var(--gray-200);
-      border-radius: var(--radius-lg);
-      padding: 32px;
-      transition: box-shadow 0.2s, transform 0.2s;
-    }
-    .feature-card:hover { box-shadow: 0 8px 32px rgba(0,40,104,0.1); transform: translateY(-2px); }
-    .feature-icon {
-      width: 52px;
-      height: 52px;
-      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      margin-bottom: 20px;
-    }
-    .feature-card h3 { font-size: 1.05rem; font-weight: 800; color: var(--navy); margin-bottom: 10px; }
-    .feature-card p { font-size: 0.9rem; color: var(--gray-600); line-height: 1.6; }
-    .feature-card-featured {
-      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
-      border-color: transparent;
-      grid-column: span 2;
-    }
-    .feature-card-featured h3,
-    .feature-card-featured p { color: rgba(255,255,255,0.9); }
-    .feature-card-featured h3 { color: var(--white); }
-    .feature-card-featured .feature-icon { background: rgba(255,255,255,0.1); }
-
-    /* ── FOR CLUBS ── */
-    #clubs { background: var(--white); }
-    .clubs-split {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 80px;
-      align-items: center;
-    }
-    .clubs-visual {
-      background: var(--navy);
-      border-radius: var(--radius-lg);
-      padding: 40px;
-      position: relative;
-      overflow: hidden;
-    }
-    .clubs-visual::before {
-      content: '';
-      position: absolute;
-      top: -60px; right: -60px;
-      width: 200px; height: 200px;
-      background: radial-gradient(circle, rgba(8,145,178,0.3) 0%, transparent 70%);
-    }
-    .clubs-visual-title { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 24px; }
-    .club-row {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 10px;
-    }
-    .club-row:last-child { margin-bottom: 0; }
-    .club-color-dot {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      flex-shrink: 0;
-    }
-    .club-row-name { font-size: 14px; font-weight: 700; color: var(--white); }
-    .club-row-meta { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 1px; }
-    .club-row-tag {
-      margin-left: auto;
-      background: rgba(8,145,178,0.15);
-      border: 1px solid rgba(8,145,178,0.3);
-      color: var(--gold-light);
-      font-size: 10px;
-      font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 100px;
-    }
-    .clubs-text { }
-    .clubs-text .section-tag { display: block; margin-bottom: 12px; }
-    .clubs-list { list-style: none; margin-top: 28px; display: flex; flex-direction: column; gap: 16px; }
-    .clubs-list li {
-      display: flex;
-      gap: 14px;
-      align-items: flex-start;
-    }
-    .clubs-check {
-      width: 24px;
-      height: 24px;
-      background: var(--navy);
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      margin-top: 1px;
-      font-size: 13px;
-      color: var(--gold-light);
-    }
-    .clubs-list li strong { font-weight: 700; color: var(--navy); }
-    .clubs-list li span { font-size: 0.9rem; color: var(--gray-600); }
-
-    /* ── PRICING ── */
-    #pricing { background: var(--gray-50); }
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
-      align-items: stretch;
-    }
-    .pricing-card {
-      background: var(--white);
-      border: 1px solid var(--gray-200);
-      border-radius: var(--radius-lg);
-      padding: 28px 24px;
-      display: flex;
-      flex-direction: column;
-    }
-    .pricing-card-featured {
-      background: var(--navy);
-      border-color: transparent;
-      box-shadow: 0 20px 60px rgba(0,40,104,0.35);
-      transform: scale(1.03);
-    }
-    .pricing-popular {
-      display: inline-block;
-      background: var(--gold);
-      color: var(--navy);
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 4px 12px;
-      border-radius: 100px;
-      margin-bottom: 20px;
-    }
-    .pricing-name { font-size: 1rem; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
-    .pricing-card-featured .pricing-name { color: rgba(255,255,255,0.7); }
-    .pricing-price {
-      font-size: 2.5rem;
-      font-weight: 900;
-      color: var(--navy);
-      letter-spacing: -1.5px;
-      line-height: 1;
-      margin-bottom: 4px;
-    }
-    .pricing-card-featured .pricing-price { color: var(--white); }
-    .pricing-period { font-size: 13px; color: var(--gray-400); margin-bottom: 24px; }
-    .pricing-card-featured .pricing-period { color: rgba(255,255,255,0.45); }
-    .pricing-divider { border: none; border-top: 1px solid var(--gray-200); margin: 24px 0; }
-    .pricing-card-featured .pricing-divider { border-color: rgba(255,255,255,0.1); }
-    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 12px; flex: 1; }
-    .pricing-features li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--gray-600); }
-    .pricing-card-featured .pricing-features li { color: rgba(255,255,255,0.75); }
-    .pricing-features li::before { content: '✓'; color: var(--navy); font-weight: 700; flex-shrink: 0; }
-    .pricing-card-featured .pricing-features li::before { color: var(--gold-light); }
-    .pricing-cta {
-      margin-top: 32px;
-      display: block;
-      text-align: center;
-      padding: 14px;
-      border-radius: var(--radius);
-      font-weight: 700;
-      font-size: 15px;
-      text-decoration: none;
-      background: var(--navy);
-      color: var(--white);
-      transition: background 0.15s;
-    }
-    .pricing-cta:hover { background: var(--navy-light); }
-    .pricing-card-featured .pricing-cta { background: var(--gold); color: var(--navy); }
-    .pricing-card-featured .pricing-cta:hover { background: var(--gold-light); }
-
-    /* ── CTA / CONTACT ── */
-    #get-started {
-      background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 60%, #1d4ed8 100%);
-      padding: 96px 24px;
-    }
-    .cta-inner {
-      max-width: 640px;
-      margin: 0 auto;
-      text-align: center;
-    }
-    .cta-inner .section-heading { color: var(--white); }
-    .cta-inner .section-sub { color: rgba(255,255,255,0.68); margin: 0 auto 40px; }
-    .cta-form {
-      display: flex;
-      gap: 12px;
-      max-width: 480px;
-      margin: 0 auto;
-    }
-    .cta-input {
-      flex: 1;
-      padding: 14px 18px;
-      border-radius: var(--radius);
-      border: 1px solid rgba(255,255,255,0.2);
-      background: rgba(255,255,255,0.1);
-      color: var(--white);
-      font-size: 15px;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.15s, background 0.15s;
-    }
-    .cta-input::placeholder { color: rgba(255,255,255,0.4); }
-    .cta-input:focus { border-color: var(--gold); background: rgba(255,255,255,0.15); }
-    .cta-note { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 14px; }
-    .store-badges {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-      margin-top: 32px;
-    }
-    .store-badge {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 10px;
-      padding: 10px 18px;
-      text-decoration: none;
-      color: var(--white);
-      transition: background 0.15s;
-    }
-    .store-badge:hover { background: rgba(255,255,255,0.16); }
-    .store-badge-icon { font-size: 22px; }
-    .store-badge-text { display: flex; flex-direction: column; }
-    .store-badge-sub { font-size: 9px; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: 0.5px; }
-    .store-badge-name { font-size: 14px; font-weight: 700; }
-
-    /* ── FOOTER ── */
-    footer {
-      background: var(--navy-dark);
-      padding: 48px 24px 32px;
-      color: rgba(255,255,255,0.5);
-      font-size: 14px;
-    }
-    .footer-inner {
-      max-width: 1120px;
-      margin: 0 auto;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-    .footer-logo { color: var(--white); font-weight: 800; font-size: 15px; }
-    .footer-links { display: flex; gap: 24px; }
-    .footer-links a { color: rgba(255,255,255,0.4); text-decoration: none; transition: color 0.15s; }
-    .footer-links a:hover { color: rgba(255,255,255,0.8); }
-    .footer-copy { color: rgba(255,255,255,0.3); }
-
-    /* ── RESPONSIVE ── */
-    @media (max-width: 900px) {
-      .hero-inner, .clubs-split { grid-template-columns: 1fr; }
-      .hero-visual { display: none; }
-      .steps, .features-grid, .pricing-grid { grid-template-columns: 1fr 1fr; }
-      .feature-card-featured { grid-column: span 1; }
-      .pricing-card-featured { transform: none; }
-    }
-    @media (max-width: 600px) {
-      .steps, .features-grid, .pricing-grid { grid-template-columns: 1fr; }
-      .nav-links { display: none; }
-      .cta-form { flex-direction: column; }
-      .footer-inner { flex-direction: column; text-align: center; }
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, shrink-to-fit=no">
+  <meta name="theme-color" content="#002868">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Eggbeater">
+  <title>Eggbeater Water Polo</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <link rel="stylesheet" href="styles.css?v=103">
+  <!-- Google Identity Services (OAuth) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
-<!-- NAV -->
-<nav>
-  <div class="nav-inner">
-    <a href="#" class="nav-logo">
-      <img src="logo_large.png" alt="Eggbeater Water Polo" class="nav-logo-img" />
-    </a>
-    <ul class="nav-links">
-      <li><a href="#how-it-works">How It Works</a></li>
-      <li><a href="#features">Features</a></li>
-      <li><a href="#pricing">Pricing</a></li>
-      <li><a href="#get-started" class="nav-cta">Get Started</a></li>
-    </ul>
-  </div>
-</nav>
-
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-inner">
-    <div class="hero-content">
-      <div class="hero-badge">🏊 Built for Water Polo</div>
-      <h1>Run your club.<br /><span>All in one app.</span></h1>
-      <p class="hero-sub">
-        Eggbeater brings rosters, schedules, communication, and club branding together in a single platform — built specifically for water polo clubs.
-      </p>
-      <div class="hero-actions">
-        <a href="#get-started" class="btn-primary">Get Early Access →</a>
-        <a href="#how-it-works" class="btn-secondary">See How It Works</a>
-      </div>
+  <!-- ── Club Picker (shown on first visit when no club selected) ────────── -->
+  <div id="club-picker" class="club-picker hidden">
+    <div class="club-picker-header">
+      <img src="logo_large.svg" alt="Eggbeater Water Polo" class="club-picker-logo">
     </div>
-    <div class="hero-visual">
-      <div class="phones-wrap">
-        <div class="phone-mock phone-mock-left">
-          <img src="screen-schedule.png" alt="Schedule view" />
+    <div class="club-picker-body">
+      <div class="club-picker-inner">
+        <h1 class="club-picker-title">Welcome to Eggbeater</h1>
+        <p class="club-picker-subtitle">Select your club to get started</p>
+        <div id="club-picker-list" class="club-picker-list">
+          <div class="club-picker-loading">Loading clubs…</div>
         </div>
-        <div class="phone-mock phone-mock-center">
-          <img src="screen-scoring.png" alt="Live scoring" />
-        </div>
-        <div class="phone-mock phone-mock-right">
-          <img src="screen-bracket.png" alt="Bracket view" />
-        </div>
+        <p class="club-picker-footer">Don't see your club? Ask your club admin for the link.</p>
+        <a href="parent-guide.html" target="_blank" style="display:block;text-align:center;margin-top:12px;font-size:0.82rem;color:rgba(255,255,255,0.8);text-decoration:none;font-weight:600">New to Eggbeater? Read the Parent Guide &rarr;</a>
       </div>
     </div>
   </div>
-</section>
 
-<!-- SOCIAL PROOF -->
-<div class="social-proof">
-  <div class="social-proof-inner">
+  <!-- ── Offline Banner (Phase 5E) ──────────────────────────────────────── -->
+  <div id="offline-banner" class="offline-banner hidden">
+    📡 You're offline — showing cached data
   </div>
-</div>
 
-<!-- HOW IT WORKS -->
-<section id="how-it-works">
-  <div class="section-inner">
-    <div class="section-header">
-      <span class="section-tag">How It Works</span>
-      <h2 class="section-heading">Up and running in minutes</h2>
-      <p class="section-sub">No spreadsheets, no group texts. Just a clean app your whole club will actually use.</p>
-    </div>
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <h3>Set up your club</h3>
-        <p>Create your club profile, add your colors and logo, and invite your coaching staff. Your branded app is live immediately.</p>
-        <div class="step-connector"></div>
-      </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <h3>Add players & teams</h3>
-        <p>Import your roster or invite players directly. Organize into age groups and teams. Players download the app and they're in.</p>
-        <div class="step-connector"></div>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <h3>Run your season</h3>
-        <p>Post the schedule, track attendance, send push notifications, and manage everything from the admin dashboard.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- FEATURES -->
-<section id="features">
-  <div class="section-inner">
-    <div class="section-header">
-      <span class="section-tag">Features</span>
-      <h2 class="section-heading">Everything your club needs</h2>
-      <p class="section-sub">Purpose-built for water polo. Not another generic sports app.</p>
-    </div>
-    <div class="features-grid">
-      <div class="feature-card feature-card-featured">
-        <div class="feature-icon">🏊</div>
-        <h3>Multi-Club Support</h3>
-        <p>Run multiple clubs or age groups under one account. Each club gets its own branded experience — separate colors, logos, and rosters — all managed from a single admin dashboard.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📅</div>
-        <h3>Schedule & Attendance</h3>
-        <p>Build your season schedule, track RSVPs, and see at a glance who's available for each game or practice.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔔</div>
-        <h3>Push Notifications</h3>
-        <p>Instantly notify players and parents about game changes, practice updates, or club announcements.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📋</div>
-        <h3>Roster Management</h3>
-        <p>Full player profiles with positions, numbers, and contact info. Keep your roster up to date across the season.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🎨</div>
-        <h3>Club Branding</h3>
-        <p>Your colors, your logo. Each club's app looks and feels uniquely theirs — no generic templates.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📱</div>
-        <h3>Native Mobile App</h3>
-        <p>Available on iOS and Android. Coaches and players get a fast, polished experience — not a web page in a frame.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- FOR CLUBS -->
-<section id="clubs">
-  <div class="section-inner">
-    <div class="clubs-split">
-      <div class="clubs-visual">
-        <div class="clubs-visual-title">Your clubs</div>
-        <div class="club-row">
-          <div class="club-color-dot" style="background: linear-gradient(135deg, #002868, #003580);"></div>
-          <div>
-            <div class="club-row-name">Southern Riders — 14U Girls</div>
-            <div class="club-row-meta">22 players · Spring Season</div>
-          </div>
-          <div class="club-row-tag">Active</div>
-        </div>
-        <div class="club-row">
-          <div class="club-color-dot" style="background: linear-gradient(135deg, #8B0000, #c0392b);"></div>
-          <div>
-            <div class="club-row-name">Pacific Wave — 16U Boys</div>
-            <div class="club-row-meta">18 players · Spring Season</div>
-          </div>
-          <div class="club-row-tag">Active</div>
-        </div>
-        <div class="club-row">
-          <div class="club-color-dot" style="background: linear-gradient(135deg, #1a5276, #2471a3);"></div>
-          <div>
-            <div class="club-row-name">Triton Aquatics — 18U Co-Ed</div>
-            <div class="club-row-meta">26 players · Off-season</div>
-          </div>
-          <div class="club-row-tag">Active</div>
-        </div>
-      </div>
-      <div class="clubs-text">
-        <span class="section-tag">For Club Directors</span>
-        <h2 class="section-heading">One platform. Every club you run.</h2>
-        <p class="section-sub">Whether you manage one team or fifteen, Eggbeater scales with you. Each club is fully isolated with its own branding, roster, and admin access.</p>
-        <ul class="clubs-list">
-          <li>
-            <div class="clubs-check">✓</div>
-            <div><strong>Branded per club</strong><br /><span>Each club gets its own color scheme, logo, and app identity.</span></div>
-          </li>
-          <li>
-            <div class="clubs-check">✓</div>
-            <div><strong>Separate admin access</strong><br /><span>Delegate club management to coaches without giving access to other clubs.</span></div>
-          </li>
-          <li>
-            <div class="clubs-check">✓</div>
-            <div><strong>Invite-only access</strong><br /><span>Players can only see their own club — secure by design.</span></div>
-          </li>
-          <li>
-            <div class="clubs-check">✓</div>
-            <div><strong>Google Sign-In</strong><br /><span>No passwords to manage. Players and parents sign in securely with Google.</span></div>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- PRICING -->
-<section id="pricing">
-  <div class="section-inner">
-    <div class="section-header">
-      <span class="section-tag">Pricing</span>
-      <h2 class="section-heading">Simple, transparent pricing</h2>
-      <p class="section-sub">No per-seat fees, no hidden costs. One flat rate per club — plus an optional parent upgrade.</p>
-    </div>
-    <div class="pricing-grid">
-      <div class="pricing-card">
-        <div class="pricing-name">Free</div>
-        <div class="pricing-price">$0</div>
-        <div class="pricing-period">forever free</div>
-        <hr class="pricing-divider" />
-        <ul class="pricing-features">
-          <li>1 age group</li>
-          <li>Schedule & roster</li>
-          <li>Basic team info</li>
-          <li>iOS & Android app</li>
-        </ul>
-        <a href="#get-started" class="pricing-cta">Get started free</a>
-      </div>
-      <div class="pricing-card">
-        <div class="pricing-name">Parent</div>
-        <div class="pricing-price">$4.99</div>
-        <div class="pricing-period">per parent / month</div>
-        <hr class="pricing-divider" />
-        <ul class="pricing-features">
-          <li>Follow multiple teams</li>
-          <li>Live score notifications</li>
-          <li>Player stats history</li>
-          <li>Bracket & tournament view</li>
-          <li>Calendar sync</li>
-          <li>Ad-free experience</li>
-        </ul>
-        <a href="#get-started" class="pricing-cta">Get early access</a>
-      </div>
-      <div class="pricing-card pricing-card-featured">
-        <div class="pricing-popular">Most Popular</div>
-        <div class="pricing-name">Club</div>
-        <div class="pricing-price">$24.99</div>
-        <div class="pricing-period">per club / month · or $199/yr</div>
-        <hr class="pricing-divider" />
-        <ul class="pricing-features">
-          <li>Up to 9 age groups</li>
-          <li>Live scoring</li>
-          <li>Push notifications</li>
-          <li>Season stats & player progress</li>
-          <li>Bracket tracking</li>
-          <li>Custom club branding</li>
-          <li>14-day free trial</li>
-        </ul>
-        <a href="#get-started" class="pricing-cta">Start free trial</a>
-      </div>
-      <div class="pricing-card">
-        <div class="pricing-name">Tournament Host</div>
-        <div class="pricing-price">$199</div>
-        <div class="pricing-period">per event</div>
-        <hr class="pricing-divider" />
-        <ul class="pricing-features">
-          <li>Unlimited age groups</li>
-          <li>Multi-team public bracket</li>
-          <li>Live public scoring view</li>
-          <li>Shareable spectator URL</li>
-          <li>Exportable reports</li>
-        </ul>
-        <a href="#get-started" class="pricing-cta">Contact us</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- GET STARTED -->
-<section id="get-started">
-  <div class="cta-inner">
-    <span class="section-tag" style="color: var(--gold-light);">Get Early Access</span>
-    <h2 class="section-heading">Ready to run a better club?</h2>
-    <p class="section-sub">Leave your email and we'll reach out to get your club set up. It takes about 10 minutes.</p>
-    <form class="cta-form" id="access-form" action="https://formspree.io/f/xvzvqjnr" method="POST">
-      <input type="email" name="email" class="cta-input" placeholder="your@email.com" required />
-      <button type="submit" class="btn-primary">Get Access</button>
-    </form>
-    <div id="access-success" style="display:none; text-align:center;">
-      <div style="font-size:2rem; margin-bottom:12px;">✓</div>
-      <p style="font-size:1.1rem; font-weight:600; color:#fff; margin-bottom:6px;">You're on the list.</p>
-      <p style="color:rgba(255,255,255,0.65); font-size:0.95rem;">We'll reach out within 24 hours to get your club set up.</p>
-    </div>
-    <p class="cta-note" id="access-note">No spam. No credit card required to start.</p>
-    <!-- App store badges: unhide when App Store / Play Store listings are live -->
-    <!--
-    <div class="store-badges">
-      <a href="#" class="store-badge">
-        <span class="store-badge-icon">🍎</span>
-        <div class="store-badge-text">
-          <span class="store-badge-sub">Download on the</span>
-          <span class="store-badge-name">App Store</span>
-        </div>
-      </a>
-      <a href="#" class="store-badge">
-        <span class="store-badge-icon">▶</span>
-        <div class="store-badge-text">
-          <span class="store-badge-sub">Get it on</span>
-          <span class="store-badge-name">Google Play</span>
-        </div>
-      </a>
-    </div>
-    -->
-  </div>
-</section>
-
-<!-- FOOTER -->
-<footer>
-  <div class="footer-inner">
-    <div class="footer-links">
-      <a href="#how-it-works">How It Works</a>
-      <a href="#features">Features</a>
-      <a href="#pricing">Pricing</a>
-      <a href="mailto:hello@eggbeater.app">Contact</a>
-    </div>
-    <span class="footer-copy">© 2026 Eggbeater Water Polo</span>
-  </div>
-</footer>
-
-<script>
-  // Early access form — async submit, inline confirmation
-  const accessForm = document.getElementById('access-form');
-  accessForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = accessForm.querySelector('button');
-    btn.textContent = 'Sending…';
-    btn.disabled = true;
-    try {
-      const res = await fetch(accessForm.action, {
-        method: 'POST',
-        body: new FormData(accessForm),
-        headers: { 'Accept': 'application/json' }
-      });
-      if (res.ok) {
-        accessForm.style.display = 'none';
-        document.getElementById('access-note').style.display = 'none';
-        document.getElementById('access-success').style.display = 'block';
-      } else {
-        btn.textContent = 'Try again';
-        btn.disabled = false;
+  <!-- Dark mode: apply saved theme immediately to prevent FOUC -->
+  <script>
+    (function(){
+      var pref = localStorage.getItem('ebwp-theme-preference');
+      // Migrate old key
+      if (!pref) {
+        var old = localStorage.getItem('ebwp-theme');
+        if (old === 'dark' || old === 'light') { pref = old; localStorage.setItem('ebwp-theme-preference', pref); localStorage.removeItem('ebwp-theme'); }
+        else pref = 'system';
       }
-    } catch {
-      btn.textContent = 'Try again';
-      btn.disabled = false;
+      var t = pref === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : pref;
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header class="app-header">
+    <div class="header-inner">
+      <!-- Theme toggle removed — now in Settings > Appearance -->
+      <div class="club-logo">
+        <!-- Default: eggbeater brand logo (recolored to club primary color) -->
+        <img src="logo_large.svg" alt="Eggbeater Water Polo" class="club-logo-img">
+        <!-- Custom club logo (shown when club has uploaded their own logo) -->
+        <div class="club-custom-logo-wrap hidden">
+          <img class="club-custom-logo-img" alt="">
+        </div>
+      </div>
+      <div class="header-right">
+        <div id="sync-badge" class="sync-badge hidden"></div>
+        <!-- Auth UI moved to Settings tab — hidden elements kept for firebase.js compat -->
+        <span id="fb-user-info" class="fb-user-info hidden" style="display:none"></span>
+        <button id="fb-auth-btn" class="fb-auth-btn hidden" style="display:none">Sign In</button>
+      </div>
+    </div>
+    <!-- "Brought to you by eggbeater" — full-bleed bar, only visible when club has custom logo -->
+    <div class="eggbeater-poweredby-bar hidden">
+      <span>brought to you by</span>
+      <img src="logo_large.svg" class="eggbeater-inline-logo" alt="eggbeater">
+    </div>
+    <!-- Tournament info strip -->
+    <div class="tournament-strip">
+      <span id="header-tournament-name">Loading...</span>
+      <span class="strip-dot">·</span>
+      <span id="header-tournament-dates"></span>
+    </div>
+    <!-- Age group + team picker (always shown, rendered by renderTeamPicker) -->
+    <div id="team-picker" class="team-picker"></div>
+  </header>
+
+  <!-- ── App Content ──────────────────────────────────────────────────────── -->
+  <div id="app">
+
+    <!-- ── Schedule Tab ──────────────────────────────────────────────────── -->
+    <div id="view-schedule" class="tab-view">
+      <!-- Next game highlight (pool play or projected bracket) -->
+      <div id="next-game-section"></div>
+      <!-- Director import removed — now in T-Score tab -->
+      <!-- Pool play games list (grouped by date) -->
+      <div id="schedule-list"></div>
+      <!-- Bracket points standings (shown when no active schedule) -->
+      <div id="schedule-standings"></div>
+      <!-- Force refresh button -->
+      <div id="schedule-refresh-wrap"></div>
+    </div>
+
+    <!-- ── Possible Games Tab ─────────────────────────────────────────────── -->
+    <div id="view-possible" class="tab-view hidden">
+      <div class="card tab-card">
+        <h2>Possible Games</h2>
+        <p class="step-desc" id="possible-desc">Bracket paths based on pool play results.</p>
+        <div id="possible-list"></div>
+        <div id="possible-empty" class="empty-msg hidden">
+          No bracket data for this tournament.
+        </div>
+      </div>
+    </div>
+
+    <!-- ── History Tab ────────────────────────────────────────────────────── -->
+    <div id="view-history" class="tab-view hidden">
+      <div class="card tab-card">
+        <div class="history-header-row">
+          <h2>Tournament History</h2>
+          <span class="history-subtitle" id="history-subtitle"></span>
+        </div>
+        <p class="step-desc" id="history-desc">Past tournament results, most recent first.</p>
+        <!-- Search by team filter card -->
+        <div id="history-team-search"></div>
+        <!-- Cumulative bracket points standings across all days -->
+        <div id="history-standings"></div>
+        <div id="history-list"></div>
+        <div id="history-empty" class="empty-msg">
+          No history yet. Results from completed tournaments will appear here automatically.
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Calendar Chooser (shown after sign-in) ────────────────────────── -->
+    <div id="view-calendar" class="tab-view hidden">
+      <div class="card tab-card">
+        <h2>Choose a Calendar</h2>
+        <p class="step-desc">Select which Google Calendar to add games to.</p>
+        <div id="calendars-list" class="calendars-list"></div>
+        <button class="btn btn-ghost" onclick="cancelCalendarChoice()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- ── Scores Tab ─────────────────────────────────────────────────────── -->
+    <div id="view-scores" class="tab-view hidden">
+      <!-- Rendered by renderScoresTab() -->
+    </div>
+
+    <!-- ── Roster Tab ──────────────────────────────────────────────────────── -->
+    <div id="view-roster" class="tab-view hidden">
+      <!-- Rendered by renderRosterTab() -->
+    </div>
+
+    <!-- ── Tournament Score Tab ──────────────────────────────────────────── -->
+    <div id="view-tournscore" class="tab-view hidden">
+      <!-- Rendered by renderTournScoreTab() -->
+    </div>
+
+    <!-- ── Help Tab ───────────────────────────────────────────────────────── -->
+    <div id="view-help" class="tab-view hidden">
+      <!-- Rendered by renderHelpTab() -->
+    </div>
+
+    <!-- ── Settings Tab ────────────────────────────────────────────────────── -->
+    <div id="view-settings" class="tab-view hidden">
+      <!-- Rendered by renderSettingsTab() -->
+    </div>
+
+  </div><!-- #app -->
+
+  <!-- ── Bottom Navigation (4 primary tabs) ──────────────────────────────── -->
+  <nav class="bottom-nav" id="bottom-nav">
+    <button class="nav-btn nav-active" data-tab="schedule" onclick="switchTab('schedule')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <span>Schedule</span>
+    </button>
+    <button class="nav-btn" data-tab="scores" onclick="switchTab('scores')">
+      <div class="nav-icon-wrap">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        <span id="scores-live-dot" class="scores-live-dot hidden"></span>
+      </div>
+      <span>Scores</span>
+    </button>
+    <button class="nav-btn" data-tab="history" onclick="switchTab('history')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+      <span>History</span>
+    </button>
+    <button class="nav-btn" data-tab="more" onclick="toggleMoreDrawer()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+      <span>More</span>
+    </button>
+    <!-- Desktop-only sidebar items (hidden on mobile via CSS) -->
+    <div class="desktop-nav-divider"></div>
+    <button class="desktop-nav-item" data-tab="possible" onclick="moreNavigate('possible')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
+      </svg>
+      <span>Bracket</span>
+    </button>
+    <button class="desktop-nav-item" data-tab="roster" onclick="moreNavigate('roster')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      <span>Roster</span>
+    </button>
+    <button class="desktop-nav-item" data-tab="settings" onclick="moreNavigate('settings')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      <span>Settings</span>
+    </button>
+    <button class="desktop-nav-item" data-tab="help" onclick="moreNavigate('help')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <span>Help</span>
+    </button>
+  </nav>
+
+  <!-- ── More Drawer (bottom sheet) ────────────────────────────────────────── -->
+  <div id="more-drawer" class="more-drawer hidden">
+    <div class="more-drawer-backdrop" onclick="toggleMoreDrawer()"></div>
+    <div class="more-drawer-sheet">
+      <div class="more-drawer-handle"></div>
+      <div class="more-drawer-items">
+        <button class="more-drawer-item" onclick="moreNavigate('possible')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
+          </svg>
+          <span>Bracket</span>
+          <svg class="more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button class="more-drawer-item more-drawer-tscore hidden" onclick="moreNavigate('tournscore')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="12" y1="3" x2="12" y2="17"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+          <span>Tournament Scores</span>
+          <svg class="more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button class="more-drawer-item" onclick="moreNavigate('roster')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span>Roster</span>
+          <svg class="more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="more-drawer-divider"></div>
+        <button class="more-drawer-item" onclick="moreNavigate('settings')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span>Settings</span>
+          <svg class="more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button class="more-drawer-item" onclick="moreNavigate('help')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>Help</span>
+          <svg class="more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clock prompt modal (bottom sheet — asks for time before recording any event) -->
+  <div id="clock-prompt" class="clock-prompt hidden" role="dialog" aria-modal="true" aria-label="Enter clock time">
+    <div class="clock-prompt-backdrop" onclick="skipClockPrompt()"></div>
+    <div class="clock-prompt-sheet">
+      <div class="clock-prompt-title">⏱ Time on clock?</div>
+      <input id="clock-prompt-input" class="clock-prompt-input" type="text"
+             inputmode="decimal" placeholder="e.g. 2:30" maxlength="5" autocomplete="off"
+             onkeydown="if(event.key==='Enter')confirmClockPrompt(this.value)">
+      <div class="clock-prompt-btns">
+        <button class="clock-skip-btn" onclick="skipClockPrompt()">Skip</button>
+        <button class="clock-ok-btn"   onclick="confirmClockPrompt($('clock-prompt-input').value)">✓ Record</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Roster picker modal (bottom sheet for recording goal scorers) -->
+  <div id="roster-modal" class="roster-modal hidden" role="dialog" aria-modal="true" aria-label="Select goal scorer">
+    <div class="roster-modal-backdrop" onclick="closeRosterPicker()"></div>
+    <div class="roster-modal-sheet">
+      <div class="roster-modal-header">
+        <span id="roster-modal-title" class="roster-modal-title">Who scored?</span>
+        <button class="roster-modal-close" onclick="closeEventPicker()" aria-label="Close">✕</button>
+      </div>
+      <!-- 6-on-5 toggle (visible only for goals) -->
+      <div id="roster-6v5-row" class="roster-6v5-row hidden">
+        <label class="roster-6v5-label">
+          <input type="checkbox" id="roster-6v5-checkbox" class="roster-6v5-checkbox">
+          <span>6-on-5 power play goal ⚡</span>
+        </label>
+      </div>
+      <div id="roster-modal-list" class="roster-modal-list"></div>
+    </div>
+  </div>
+
+  <!-- Scorer password modal (bottom sheet) -->
+  <div id="scoring-pw-modal" class="roster-modal hidden" role="dialog" aria-modal="true" aria-label="Scorer login">
+    <div class="roster-modal-backdrop" onclick="closeScoringPasswordModal()"></div>
+    <div class="roster-modal-sheet">
+      <div class="roster-modal-header">
+        <span class="roster-modal-title">🔒 Scorer Login</span>
+        <button class="roster-modal-close" onclick="closeScoringPasswordModal()" aria-label="Close">✕</button>
+      </div>
+      <div class="scoring-pw-body">
+        <p class="scoring-pw-desc">Enter the scoring password to enable live stat entry for this tournament.</p>
+        <input id="scoring-pw-input" type="password" class="scoring-pw-input"
+               placeholder="Tournament password"
+               autocomplete="off" autocorrect="off" spellcheck="false"
+               onkeydown="if(event.key==='Enter')submitScoringPassword()">
+        <div id="scoring-pw-error" class="scoring-pw-error"></div>
+        <button class="scoring-pw-btn" onclick="submitScoringPassword()">Unlock Scoring</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Director scoring password modal (bottom sheet) -->
+  <div id="dir-scoring-pw-modal" class="roster-modal hidden" role="dialog" aria-modal="true" aria-label="Director scorer login">
+    <div class="roster-modal-backdrop" onclick="closeDirScoringModal()"></div>
+    <div class="roster-modal-sheet">
+      <div class="roster-modal-header">
+        <span class="roster-modal-title">🏆 Submit Live Scores</span>
+        <button class="roster-modal-close" onclick="closeDirScoringModal()" aria-label="Close">✕</button>
+      </div>
+      <div class="scoring-pw-body">
+        <p class="scoring-pw-desc">Enter the score entry password to submit game scores for this tournament.</p>
+        <input id="dir-scoring-pw-input" type="password" class="scoring-pw-input"
+               placeholder="Score entry password"
+               autocomplete="off" autocorrect="off" spellcheck="false"
+               onkeydown="if(event.key==='Enter')submitDirScoringPassword()">
+        <div id="dir-scoring-pw-error" class="scoring-pw-error"></div>
+        <button class="scoring-pw-btn" onclick="submitDirScoringPassword()">Unlock Score Entry</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Player stats download modal (bottom sheet) -->
+  <div id="player-stats-modal" class="roster-modal hidden" role="dialog" aria-modal="true" aria-label="Download player stats">
+    <div class="roster-modal-backdrop" onclick="closePlayerStatsModal()"></div>
+    <div class="roster-modal-sheet">
+      <div class="roster-modal-header">
+        <span class="roster-modal-title">📊 Download Player Stats</span>
+        <button class="roster-modal-close" onclick="closePlayerStatsModal()" aria-label="Close">✕</button>
+      </div>
+      <div class="pstats-modal-desc">Tap a player to download their stats across all games as a CSV file.</div>
+      <div id="player-stats-list" class="roster-modal-list"></div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Firebase compat SDK (v10) — loaded before firebase.js and app.js -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="firebase.js?v=97"></script>
+
+  <!-- Android 16 Live Update Bridge -->
+  <script src="live-update.js?v=97"></script>
+
+  <!-- Native push notification bridge (Capacitor iOS) -->
+  <script src="capacitor-push.js?v=97"></script>
+
+  <!-- Data + App — query string busts any intermediate cache on every deploy -->
+  <script src="tournament.js?v=97"></script>
+  <script src="app.js?v=97"></script>
+
+  <!-- SW auto-reload: runs before app.js initialises so every device always
+       picks up new code immediately after a deploy, even on the first load. -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      // Reload whenever a new SW takes control (covers both first-time and updates)
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        window.location.reload();
+      });
+      // Also reload when the SW explicitly signals it has updated
+      navigator.serviceWorker.addEventListener('message', function(e) {
+        if (e.data && e.data.type === 'SW_UPDATED') window.location.reload();
+      });
     }
-  });
-
-  // Smooth active nav highlighting
-  const sections = document.querySelectorAll('section[id], div[id]');
-  const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
-  window.addEventListener('scroll', () => {
-    let current = '';
-    sections.forEach(s => {
-      if (window.scrollY >= s.offsetTop - 80) current = s.id;
-    });
-    navLinks.forEach(a => {
-      a.style.color = a.getAttribute('href') === '#' + current
-        ? 'white' : '';
-    });
-  });
-</script>
-
+  </script>
 </body>
 </html>
