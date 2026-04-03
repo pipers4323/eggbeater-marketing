@@ -7920,6 +7920,7 @@ async function toggleLiveActivity(gameId) {
     return;
   }
 
+  showToast("Starting Live Activity…", "info");
   try {
     const result = await LiveActivity.startActivity({
       homeTeam: game ? getTeamLabel(game.team) : "Home",
@@ -7949,7 +7950,8 @@ async function toggleLiveActivity(gameId) {
       }
     });
   } catch (e) {
-    showToast("Live Activity error: " + (e.message || JSON.stringify(e)), "error");
+    const errMsg = e?.message || e?.code || e?.error?.message || (typeof e === 'string' ? e : null) || JSON.stringify(e) || 'unknown error';
+    showToast("Live Activity error: " + errMsg, "error");
   }
 }
 
