@@ -14,8 +14,14 @@
 
   function getPlugin() {
     try {
-      if (window.Capacitor && window.Capacitor.registerPlugin) {
-        return window.Capacitor.registerPlugin('LiveUpdate');
+      // Capacitor 8: native bridge auto-populates Plugins for registered native plugins
+      if (window.Capacitor?.Plugins?.LiveUpdate) return window.Capacitor.Plugins.LiveUpdate;
+      // Fallback: low-level nativePromise bridge
+      if (window.Capacitor?.nativePromise) {
+        return {
+          startLiveUpdate: (opts) => window.Capacitor.nativePromise('LiveUpdate', 'startLiveUpdate', opts),
+          stopLiveUpdate:  ()     => window.Capacitor.nativePromise('LiveUpdate', 'stopLiveUpdate',  {}),
+        };
       }
     } catch (e) {
       console.warn('[live-update] Could not access LiveUpdate plugin:', e.message);

@@ -819,7 +819,8 @@ function afterScore(gameId) {
   if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
     const s = state.liveScores[gameId];
     if (s && s.gameState !== 'pre' && s.gameState !== 'final') {
-      const _la = Capacitor.registerPlugin('LiveActivity');
+      const _la = window.Capacitor?.Plugins?.LiveActivity ||
+        (window.Capacitor?.nativePromise ? { updateActivity: (o) => window.Capacitor.nativePromise('LiveActivity', 'updateActivity', o) } : null);
       if (_la) {
         _la.updateActivity({
           homeScore: s.team || 0,
@@ -7915,12 +7916,18 @@ async function toggleLiveActivity(gameId) {
     return;
   }
 
-  // registerPlugin creates the JS↔native bridge for a local native plugin.
-  // Capacitor.Plugins.LiveActivity is only auto-populated for npm/SPM packages;
-  // local native-only plugins must be explicitly bridged with registerPlugin().
-  const LiveActivity = Capacitor.registerPlugin('LiveActivity');
+  // Capacitor 8: native bridge auto-populates Plugins for all registered native plugins.
+  // Fallback to nativePromise (low-level bridge) if Plugins entry is missing.
+  let LiveActivity = window.Capacitor?.Plugins?.LiveActivity;
+  if (!LiveActivity && window.Capacitor?.nativePromise) {
+    LiveActivity = {
+      startActivity:  (opts) => window.Capacitor.nativePromise('LiveActivity', 'startActivity',  opts),
+      updateActivity: (opts) => window.Capacitor.nativePromise('LiveActivity', 'updateActivity', opts),
+      endActivity:    (opts) => window.Capacitor.nativePromise('LiveActivity', 'endActivity',    opts),
+    };
+  }
   if (!LiveActivity) {
-    showToast("Live Activity plugin not installed/registered", "error");
+    showToast("Live Activity plugin not available", "error");
     return;
   }
 
