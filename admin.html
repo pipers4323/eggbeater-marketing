@@ -478,6 +478,123 @@
       height: 1px; background: #e5e7eb; margin: 4px 20px;
     }
 
+    /* ── Paywall Sheet ─────────────────────────────────────────── */
+    .paywall-drawer {
+      position: fixed; inset: 0; z-index: 300;
+      transition: visibility 0s;
+    }
+    .paywall-hidden {
+      visibility: hidden; pointer-events: none;
+      transition: visibility 0s 0.35s;
+    }
+    .paywall-backdrop {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      opacity: 1; transition: opacity 0.3s;
+    }
+    .paywall-hidden .paywall-backdrop { opacity: 0; }
+    .paywall-sheet {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: #fff;
+      border-radius: 22px 22px 0 0;
+      box-shadow: 0 -8px 40px rgba(0,0,0,.2);
+      padding: 0 0 calc(20px + env(safe-area-inset-bottom, 0));
+      transform: translateY(0);
+      transition: transform 0.34s cubic-bezier(.4,0,.2,1);
+      max-height: 92vh; overflow-y: auto;
+    }
+    .paywall-hidden .paywall-sheet { transform: translateY(100%); }
+    .paywall-handle {
+      width: 36px; height: 4px; border-radius: 2px;
+      background: #d1d5db; margin: 10px auto 0;
+    }
+    .paywall-header {
+      padding: 16px 20px 0;
+      text-align: center;
+    }
+    .paywall-title {
+      font-size: 1.25rem; font-weight: 800; color: #111827; margin: 10px 0 4px;
+    }
+    .paywall-sub {
+      font-size: 0.85rem; color: #6b7280; margin: 0 0 16px;
+    }
+    .paywall-features {
+      list-style: none; margin: 0 0 18px; padding: 0;
+      display: flex; flex-direction: column; gap: 6px;
+      text-align: left;
+    }
+    .paywall-features li {
+      font-size: 0.88rem; color: #374151; display: flex; align-items: center; gap: 8px;
+    }
+    .paywall-features li::before {
+      content: '✓'; color: #2563eb; font-weight: 800; font-size: 0.95rem; flex-shrink: 0;
+    }
+    .paywall-toggle {
+      display: flex; gap: 6px;
+      background: #f3f4f6; border-radius: 10px; padding: 3px;
+      margin: 0 auto 18px; width: fit-content;
+    }
+    .paywall-toggle button {
+      padding: 6px 18px; border: none; border-radius: 8px;
+      font-size: 0.82rem; font-weight: 700; cursor: pointer;
+      transition: all 0.18s; background: transparent; color: #6b7280;
+    }
+    .paywall-toggle button.active {
+      background: #fff; color: #111827;
+      box-shadow: 0 1px 4px rgba(0,0,0,.12);
+    }
+    .paywall-cards {
+      padding: 0 16px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .paywall-card {
+      border: 2px solid #e5e7eb; border-radius: 14px;
+      padding: 14px 16px; cursor: pointer;
+      transition: border-color 0.15s;
+      position: relative;
+    }
+    .paywall-card.featured { border-color: #2563eb; }
+    .paywall-card-badge {
+      position: absolute; top: -10px; left: 16px;
+      background: #2563eb; color: #fff;
+      font-size: 0.68rem; font-weight: 800; letter-spacing: 0.04em;
+      padding: 2px 8px; border-radius: 20px;
+    }
+    .paywall-card-title {
+      font-weight: 800; font-size: 1rem; color: #111827; margin: 0 0 2px;
+    }
+    .paywall-card-desc {
+      font-size: 0.78rem; color: #6b7280; margin: 0 0 10px;
+    }
+    .paywall-card-price {
+      font-size: 1.5rem; font-weight: 900; color: #111827;
+    }
+    .paywall-card-price span {
+      font-size: 0.8rem; font-weight: 500; color: #6b7280;
+    }
+    .paywall-card-saving {
+      font-size: 0.72rem; font-weight: 700; color: #059669; margin-top: 2px;
+    }
+    .paywall-buy-btn {
+      width: 100%; margin-top: 10px;
+      padding: 12px; border: none; border-radius: 10px;
+      font-size: 0.92rem; font-weight: 800; cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .paywall-buy-btn:disabled { opacity: 0.55; cursor: default; }
+    .paywall-buy-btn.primary { background: #2563eb; color: #fff; }
+    .paywall-buy-btn.secondary { background: #f3f4f6; color: #374151; }
+    .paywall-footer {
+      text-align: center; padding: 14px 16px 0;
+      font-size: 0.75rem; color: #9ca3af;
+    }
+    .paywall-footer a { color: #6b7280; text-decoration: underline; cursor: pointer; }
+    .paywall-web-note {
+      margin: 12px 16px 0;
+      background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px;
+      padding: 12px 14px; font-size: 0.8rem; color: #0369a1; text-align: center;
+    }
+
     /* ── Content ───────────────────────────────────────────────── */
     #tab-content { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
 
@@ -1373,6 +1490,39 @@
 
   <main id="tab-content"></main>
 
+  <!-- ── Paywall Sheet ──────────────────────────────────────────────────────── -->
+  <div id="paywall-drawer" class="paywall-drawer paywall-hidden">
+    <div class="paywall-backdrop" onclick="_closePaywall()"></div>
+    <div class="paywall-sheet">
+      <div class="paywall-handle"></div>
+      <div class="paywall-header">
+        <div class="paywall-title">Unlock Eggbeater Club</div>
+        <div class="paywall-sub">Everything your club needs, all in one app</div>
+        <ul class="paywall-features">
+          <li>Live scoring with real-time updates</li>
+          <li>Push notifications to parents &amp; players</li>
+          <li>Multi-team management (up to 9 age groups)</li>
+          <li>Season stats &amp; player tracking</li>
+        </ul>
+        <div class="paywall-toggle">
+          <button id="paywall-monthly-btn" class="active" onclick="_paywallTogglePeriod('monthly')">Monthly</button>
+          <button id="paywall-annual-btn" onclick="_paywallTogglePeriod('annual')">Annual — Save 34%</button>
+        </div>
+      </div>
+      <div class="paywall-cards" id="paywall-cards">
+        <!-- populated by _openPaywall() -->
+      </div>
+      <div class="paywall-footer">
+        <a onclick="_paywallRestore()">Restore Purchases</a>
+        &nbsp;·&nbsp;
+        <a href="https://eggbeater.app/terms.html" target="_blank">Terms</a>
+        &nbsp;·&nbsp;
+        <a href="https://eggbeater.app/privacy.html" target="_blank">Privacy</a>
+        <div style="margin-top:6px">Prices shown in your local currency. Billed by Apple / Google.</div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ── Status Bar ─────────────────────────────────────────────────────────── -->
@@ -1900,9 +2050,192 @@ function renderUpgradeNudge(featureName) {
   </div>`;
 }
 
-/** Placeholder upgrade sheet — Phase B will replace this with the full paywall UI. */
-function showUpgradeSheet() {
-  alert('Upgrade to Eggbeater Club ($24.99/mo) to unlock live scoring, push notifications, multi-team management, and season stats.\n\nVisit https://eggbeater.app to learn more.');
+// ─── PAYWALL UI (Phase B) ──────────────────────────────────────────────────────
+
+// Cached offerings from RevenueCat (keyed by identifier)
+let _paywallOfferings = null;
+let _paywallPeriod = 'monthly'; // 'monthly' | 'annual'
+
+/** Open the paywall sheet. Fetches RC offerings on native; shows static prices on web. */
+async function showUpgradeSheet() {
+  const drawer = document.getElementById('paywall-drawer');
+  if (!drawer) return;
+
+  // Already subscribed to Club? Show a friendly message instead
+  const tier = S.clubTier || 'free';
+  if (tier === 'club') {
+    showStatus('Your club already has an active Club subscription.', 'ok');
+    return;
+  }
+
+  // Reset toggle to monthly
+  _paywallPeriod = 'monthly';
+  document.getElementById('paywall-monthly-btn')?.classList.add('active');
+  document.getElementById('paywall-annual-btn')?.classList.remove('active');
+
+  // Show sheet immediately with a loading state
+  drawer.classList.remove('paywall-hidden');
+  _renderPaywallCards(null); // loading state
+
+  // Fetch offerings from RevenueCat on native
+  const Purchases = window.Capacitor?.Plugins?.Purchases;
+  if (Purchases) {
+    try {
+      const result = await Purchases.getOfferings();
+      const pkgs = result?.current?.availablePackages || [];
+      _paywallOfferings = {};
+      for (const p of pkgs) _paywallOfferings[p.identifier] = p;
+    } catch (e) {
+      console.warn('[paywall] getOfferings failed:', e.message);
+      _paywallOfferings = {};
+    }
+  } else {
+    _paywallOfferings = null; // web — use static prices
+  }
+
+  _renderPaywallCards(_paywallOfferings);
+}
+
+/** Render the pricing cards into #paywall-cards. offerings=null means web/static. */
+function _renderPaywallCards(offerings) {
+  const el = document.getElementById('paywall-cards');
+  if (!el) return;
+
+  // Loading state
+  if (offerings === null && window.Capacitor?.Plugins?.Purchases) {
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:#9ca3af;font-size:0.9rem">Loading prices…</div>';
+    return;
+  }
+
+  const isNative = !!(window.Capacitor?.Plugins?.Purchases);
+  const isMonthly = _paywallPeriod === 'monthly';
+
+  // Helper: get real price string from RC or fall back to static
+  const price = (id, fallback) => offerings?.[id]?.product?.priceString || fallback;
+
+  // Club card — monthly or annual
+  const clubMonthlyId = '$rc_monthly';
+  const clubAnnualId  = '$rc_annual';
+  const clubPkg       = isMonthly ? clubMonthlyId : clubAnnualId;
+  const clubPrice     = isMonthly ? price(clubMonthlyId, '$24.99') : price(clubAnnualId, '$199.99');
+  const clubPeriod    = isMonthly ? '/month' : '/year';
+  const clubSaving    = isMonthly ? '' : '<div class="paywall-card-saving">Save ~34% vs monthly billing</div>';
+  const clubTrialLine = isMonthly ? '14-day free trial · cancel anytime' : 'Best value · cancel anytime';
+  const clubBtnText   = isMonthly ? 'Start Free Trial' : 'Subscribe Annually';
+
+  // Tournament Host card
+  const hostId    = 'tournament_host';
+  const hostPrice = price(hostId, '$199.99');
+
+  let html = `
+    <div class="paywall-card featured">
+      <div class="paywall-card-badge">MOST POPULAR</div>
+      <div class="paywall-card-title">Eggbeater Club</div>
+      <div class="paywall-card-desc">${clubTrialLine}</div>
+      <div class="paywall-card-price">${clubPrice}<span>${clubPeriod}</span></div>
+      ${clubSaving}
+      ${isNative
+        ? `<button class="paywall-buy-btn primary" id="paywall-club-btn" onclick="_paywallPurchase('${clubPkg}')">${clubBtnText}</button>`
+        : `<div class="paywall-web-note">Open the Eggbeater app on your phone to subscribe.</div>`
+      }
+    </div>
+
+    <div class="paywall-card">
+      <div class="paywall-card-title">Tournament Host</div>
+      <div class="paywall-card-desc">One-time purchase · unlimited age groups · public live scoring</div>
+      <div class="paywall-card-price">${hostPrice}<span> one-time</span></div>
+      ${isNative
+        ? `<button class="paywall-buy-btn secondary" id="paywall-host-btn" onclick="_paywallPurchase('${hostId}')">Purchase Tournament Host</button>`
+        : `<div class="paywall-web-note">Open the Eggbeater app on your phone to purchase.</div>`
+      }
+    </div>`;
+
+  el.innerHTML = html;
+}
+
+/** Switch between monthly and annual view. */
+function _paywallTogglePeriod(period) {
+  _paywallPeriod = period;
+  document.getElementById('paywall-monthly-btn')?.classList.toggle('active', period === 'monthly');
+  document.getElementById('paywall-annual-btn')?.classList.toggle('active', period === 'annual');
+  _renderPaywallCards(_paywallOfferings);
+}
+
+/** Close the paywall sheet. */
+function _closePaywall() {
+  document.getElementById('paywall-drawer')?.classList.add('paywall-hidden');
+}
+
+/** Initiate a purchase for the given RC package identifier. */
+async function _paywallPurchase(packageId) {
+  const Purchases = window.Capacitor?.Plugins?.Purchases;
+  if (!Purchases) return;
+
+  // Disable both buy buttons during purchase
+  ['paywall-club-btn', 'paywall-host-btn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) { btn.disabled = true; btn.textContent = 'Processing…'; }
+  });
+
+  try {
+    const pkg = _paywallOfferings?.[packageId];
+    if (!pkg) throw new Error('Package not found: ' + packageId);
+
+    const result = await Purchases.purchasePackage({ aPackage: pkg });
+    const entitlements = result?.customerInfo?.entitlements?.active || {};
+
+    // Map entitlement to tier
+    let newTier = S.clubTier;
+    if (entitlements['club'])            newTier = 'club';
+    else if (entitlements['tournament_host']) newTier = 'tournament_host';
+    else if (entitlements['parent'])     newTier = 'parent';
+
+    S.clubTier = newTier;
+    updateTierBadge();
+    _closePaywall();
+    showStatus('Purchase complete! Welcome to ' + (TIER_LABELS[newTier] || newTier) + '.', 'ok');
+
+  } catch (e) {
+    // RC throws with userCancelled=true if user dismissed — don't show error for that
+    if (e?.userCancelled) {
+      // silently re-enable buttons
+    } else {
+      showStatus('Purchase failed: ' + (e.message || 'Unknown error'), 'err');
+    }
+    // Re-enable buttons
+    _renderPaywallCards(_paywallOfferings);
+  }
+}
+
+/** Restore previous purchases. */
+async function _paywallRestore() {
+  const Purchases = window.Capacitor?.Plugins?.Purchases;
+  if (!Purchases) {
+    showStatus('Restore is only available in the native app.', 'info');
+    return;
+  }
+  showStatus('Restoring purchases…', 'info');
+  try {
+    const result = await Purchases.restorePurchases();
+    const entitlements = result?.customerInfo?.entitlements?.active || {};
+
+    let newTier = 'free';
+    if (entitlements['club'])                newTier = 'club';
+    else if (entitlements['tournament_host']) newTier = 'tournament_host';
+    else if (entitlements['parent'])          newTier = 'parent';
+
+    S.clubTier = newTier;
+    updateTierBadge();
+
+    if (newTier !== 'free') {
+      _closePaywall();
+      showStatus('Purchases restored! ' + (TIER_LABELS[newTier] || newTier) + ' plan active.', 'ok');
+    } else {
+      showStatus('No active purchases found.', 'info');
+    }
+  } catch (e) {
+    showStatus('Restore failed: ' + (e.message || 'Unknown error'), 'err');
+  }
 }
 
 /**
