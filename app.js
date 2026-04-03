@@ -586,11 +586,18 @@ function findNextGameOrProjected() {
   const now = new Date();
   const games = getTournamentGames();
 
-  // 1. Next upcoming pool play game by clock time
+  // 1. Next upcoming pool play game by clock time.
+  // Include: future games, currently live games, and games whose scheduled time
+  // passed within the last 2 hours but haven't been archived yet (delayed starts,
+  // long games, or games scored without being formally completed).
+  const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000);
   const nextPool = games
     .filter(g => {
+      if (isGameLive(g.id)) return true;
+      if (state.results?.[g.id]) return false; // archived/completed
       const t = parseGameTime(g.dateISO, g.time);
-      return t && t > now;
+      if (!t) return false;
+      return t > twoHoursAgo; // future or started within last 2h
     })
     .sort((a, b) => parseGameTime(a.dateISO, a.time) - parseGameTime(b.dateISO, b.time))[0];
 
