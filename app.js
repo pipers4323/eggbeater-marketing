@@ -7879,6 +7879,16 @@ async function toggleLiveActivity(gameId) {
     return;
   }
 
+  // Guard: game must be live before starting a Live Activity
+  if (!score || score.gameState === 'pre' || !isGameLive(gameId)) {
+    showToast("Game hasn't started yet — tap Follow Live once the game is live.", "info");
+    return;
+  }
+  if (score.gameState === 'final') {
+    showToast("This game has ended.", "info");
+    return;
+  }
+
   // registerPlugin creates the JS↔native bridge for a local native plugin.
   // Capacitor.Plugins.LiveActivity is only auto-populated for npm/SPM packages;
   // local native-only plugins must be explicitly bridged with registerPlugin().
