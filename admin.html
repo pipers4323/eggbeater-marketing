@@ -1408,6 +1408,7 @@ const S = {
   dirSelectedAg: -1,    // selected age group index from imported pkg
   dirSelectedTeam: '',  // selected team name within age group
   teamStatuses: {},     // { 'teamKey': 'green'|'yellow'|'gray' } for status dots
+  clubTier:     'free', // current subscription tier: 'free' | 'club' | 'tournament_host' | 'parent'
 };
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
@@ -1494,6 +1495,9 @@ async function doGoogleLogin() {
         }
       }
     }
+
+    // Phase C: identify this club in RevenueCat (for purchase attribution on native)
+    rcLoginForClub(savedClubId);
 
     // Load admin data from Worker using the Firebase token
     showStatus('Loading data…', 'info');
@@ -1824,6 +1828,104 @@ function updateAdminHeader() {
   subEl.textContent = parts.join(' · ');
 }
 
+// ─── SUBSCRIPTION TIER (Phase C) ─────────────────────────────────────────────
+
+const TIER_LABELS = { free: 'Free', club: 'Club', tournament_host: 'Tournament Host', parent: 'Parent' };
+const TIER_COLORS = { free: '#6b7280', club: '#2563eb', tournament_host: '#7c3aed', parent: '#059669' };
+
+/**
+ * Fetch the club's current subscription tier from the worker and store in S.clubTier.
+ * Falls back to 'free' on any error.
+ */
+async function loadClubTier(clubId) {
+  if (!clubId) return;
+  try {
+    const res = await fetch(`${WORKER}/club-tier?clubId=${encodeURIComponent(clubId)}`);
+    if (res.ok) {
+      const data = await res.json();
+      S.clubTier = data.tier || 'free';
+      console.info(`[tier] Club tier for ${clubId}: ${S.clubTier}`);
+    }
+  } catch (e) {
+    console.warn('[tier] Could not fetch club tier:', e.message);
+  }
+  updateTierBadge();
+}
+
+/** Render or update the tier badge in the admin header. */
+function updateTierBadge() {
+  let badge = document.getElementById('tier-badge');
+  if (!badge) {
+    const titleEl = document.querySelector('#admin-app .admin-header-title');
+    if (!titleEl) return;
+    badge = document.createElement('span');
+    badge.id = 'tier-badge';
+    badge.style.cssText = 'font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:20px;color:white;margin-left:6px;vertical-align:middle;letter-spacing:0.03em;cursor:default';
+    titleEl.parentNode.insertBefore(badge, titleEl.nextSibling);
+  }
+  const tier = S.clubTier || 'free';
+  badge.textContent = TIER_LABELS[tier] || tier;
+  badge.style.background = TIER_COLORS[tier] || '#6b7280';
+  badge.title = tier === 'free' ? 'Upgrade to Club to unlock all features' : `Active: ${TIER_LABELS[tier]} plan`;
+}
+
+/**
+ * Check if the current club has access to a paid feature.
+ * Returns true if the feature is available for the current tier.
+ */
+function tierHasFeature(feature) {
+  const tier = S.clubTier || 'free';
+  switch (feature) {
+    case 'multi_team':        return tier !== 'free';
+    case 'push_notify':       return tier !== 'free';
+    case 'live_scoring':      return tier !== 'free';
+    case 'season_stats':      return tier !== 'free';
+    case 'tournament_host':   return tier === 'tournament_host';
+    default:                  return true;
+  }
+}
+
+/**
+ * Show a tasteful upgrade nudge inline (not a popup).
+ * Returns an HTML string for a locked feature prompt.
+ */
+function renderUpgradeNudge(featureName) {
+  return `<div style="display:flex;align-items:center;gap:10px;background:var(--bg,#f9fafb);border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin:8px 0">
+    <span style="font-size:1.4rem">🔒</span>
+    <div>
+      <div style="font-weight:700;font-size:0.9rem">${featureName} — Club Plan</div>
+      <div style="font-size:0.78rem;color:#6b7280;margin-top:2px">Upgrade to unlock this feature for your club.</div>
+    </div>
+    <button onclick="showUpgradeSheet()" style="margin-left:auto;background:#2563eb;color:white;border:none;border-radius:7px;padding:7px 14px;font-size:0.8rem;font-weight:700;cursor:pointer;flex-shrink:0">Upgrade ↗</button>
+  </div>`;
+}
+
+/** Placeholder upgrade sheet — Phase B will replace this with the full paywall UI. */
+function showUpgradeSheet() {
+  alert('Upgrade to Eggbeater Club ($24.99/mo) to unlock live scoring, push notifications, multi-team management, and season stats.\n\nVisit https://eggbeater.app to learn more.');
+}
+
+/**
+ * Attempt to log in to RevenueCat SDK with clubId as the app_user_id.
+ * This ensures purchases are attributed to the correct club.
+ * Only works on native (iOS/Android) — silently no-ops on web.
+ */
+async function rcLoginForClub(clubId) {
+  if (!clubId) return;
+  try {
+    const Purchases = window.Capacitor?.Plugins?.Purchases;
+    if (!Purchases) return; // running in browser — skip
+    const apiKey = window.Capacitor.getPlatform() === 'ios'
+      ? 'appl_xrlDYgNuYWYDOboFAyxMfNNUwGf'
+      : 'goog_HRazxrVZgjHNXPpNFqDrjwGflmW';
+    await Purchases.configure({ apiKey });
+    await Purchases.logIn({ appUserID: clubId });
+    console.info(`[rc] Logged in to RevenueCat as club: ${clubId}`);
+  } catch (e) {
+    console.warn('[rc] RevenueCat logIn failed (non-fatal):', e.message);
+  }
+}
+
 /** Shared post-login setup — called by both doLogin() and doGoogleLogin(). */
 async function _doAdminLoad() {
   document.getElementById('login-screen').style.display = 'none';
@@ -1846,6 +1948,9 @@ async function _doAdminLoad() {
   // Load club settings (type, name, branding, logo) first so S.clubType and
   // branding are populated before we render team pills or the header.
   await loadClubSettings();
+
+  // Phase C: load subscription tier (non-blocking — badge updates when ready)
+  loadClubTier(savedClubId);
 
   renderAdminTeamPills();
   if (typeof fbLoadTournaments === 'function' && fbReady()) {
