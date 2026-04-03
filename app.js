@@ -7839,22 +7839,52 @@ function renderMyPlayerCard() {
   return html;
 }
 
-// ─── LIVE ACTIVITIES (iOS) ───────────────────────────────────────────────────
+// ─── LIVE ACTIVITIES (iOS) / LIVE UPDATES (Android) ─────────────────────────
 async function toggleLiveActivity(gameId) {
-  if (!window.Capacitor || !Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'ios') {
-    showToast("Live Activities only supported on iOS App");
+  if (!window.Capacitor || !Capacitor.isNativePlatform()) {
+    showToast("Follow Live is only available in the iOS or Android app");
     return;
   }
-  
-  const LiveActivity = Capacitor.Plugins.LiveActivityPlugin;
+
+  const platform = Capacitor.getPlatform();
+  const game = getTournamentGames().find(g => g.id === gameId);
+  const score = getLiveScore(gameId);
+
+  // ── Android: use Live Update status bar chip ──────────────────────────────
+  if (platform === 'android') {
+    if (typeof EggbeaterLiveUpdate === 'undefined') {
+      showToast("Live Update not available on this device", "error");
+      return;
+    }
+    if (!score || score.gameState === 'pre' || !isGameLive(gameId)) {
+      showToast("Game hasn't started yet — tap Follow Live once the game is live.", "info");
+      return;
+    }
+    if (score.gameState === 'final') {
+      showToast("This game has ended.", "info");
+      return;
+    }
+    try {
+      await EggbeaterLiveUpdate.sync(gameId, score);
+      showToast("Following Live! Score updates will appear in your status bar.", "ok");
+    } catch (e) {
+      showToast("Live Update unavailable: " + e.message, "error");
+    }
+    return;
+  }
+
+  // ── iOS: use Live Activities on lock screen ───────────────────────────────
+  if (platform !== 'ios') {
+    showToast("Follow Live is only available in the iOS or Android app");
+    return;
+  }
+
+  const LiveActivity = Capacitor.Plugins.LiveActivity;
   if (!LiveActivity) {
     showToast("Live Activity plugin not installed/registered", "error");
     return;
   }
 
-  const game = getTournamentGames().find(g => g.id === gameId);
-  const score = getLiveScore(gameId);
-  
   try {
     const result = await LiveActivity.startActivity({
       homeTeam: game ? getTeamLabel(game.team) : "Home",
@@ -7868,8 +7898,6 @@ async function toggleLiveActivity(gameId) {
     // Listen for push token to send to the Worker
     LiveActivity.addListener('onPushTokenReceived', async (info) => {
       console.log("Live Activity APNs Token Received:", info.token);
-      
-      // Save to Cloudflare Worker KV so backend can push updates
       try {
         await fetch(`${PUSH_SERVER_URL}/live-activity/sync`, {
           method: 'POST',

@@ -5096,6 +5096,18 @@ details[open] .help-chevron { transform: rotate(180deg); }
 [data-theme="dark"] .location-venue {
   color: rgba(255,255,255,0.6);
 }
+/* Navy card (next-game-card) overrides — location text must be white */
+.next-meta .location-venue {
+  color: rgba(255,255,255,0.9);
+}
+.next-meta .directions-btn {
+  background: rgba(255,255,255,0.15);
+  color: #ffffff;
+  border-color: rgba(255,255,255,0.3);
+}
+.next-meta .directions-btn:hover {
+  background: rgba(255,255,255,0.25);
+}
 
 /* ── Location Link ────────────────────────────────────────────────────── */
 [data-theme="dark"] .location-link {
