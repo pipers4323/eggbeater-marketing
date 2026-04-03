@@ -790,7 +790,7 @@ function addMyGame(gameId) {
 // or another device broadcast it recently.
 function isGameLive(gameId) {
   const s = state.liveScores[gameId];
-  if (!s || !s.gameState || s.gameState === 'pre') return false;
+  if (!s || !s.gameState || s.gameState === 'pre' || s.gameState === 'final') return false;
   const myGames = getMyGames();
   // If a recent remote broadcast exists, use that regardless of myGames history
   if (s._broadcastAt) return (Date.now() - s._broadcastAt) < 30 * 60 * 1000;
@@ -841,7 +841,7 @@ function updateLiveDot() {
   const myGames     = getMyGames();
   const hasLive = getTournamentGames().some(g => {
     const s = state.liveScores[g.id];
-    if (!s || !s.gameState || s.gameState === 'pre') return false;
+    if (!s || !s.gameState || s.gameState === 'pre' || s.gameState === 'final') return false;
     if (myGames.has(g.id) || !s._remote) return localActive;
     return (Date.now() - (s._broadcastAt || 0)) < STALE_MS;
   });
