@@ -14,14 +14,8 @@
 
   function getPlugin() {
     try {
-      // Capacitor 8: native bridge auto-populates Plugins for registered native plugins
-      if (window.Capacitor?.Plugins?.LiveUpdate) return window.Capacitor.Plugins.LiveUpdate;
-      // Fallback: low-level nativePromise bridge
-      if (window.Capacitor?.nativePromise) {
-        return {
-          startLiveUpdate: (opts) => window.Capacitor.nativePromise('LiveUpdate', 'startLiveUpdate', opts),
-          stopLiveUpdate:  ()     => window.Capacitor.nativePromise('LiveUpdate', 'stopLiveUpdate',  {}),
-        };
+      if (window.Capacitor && window.Capacitor.Plugins) {
+        return window.Capacitor.Plugins.LiveUpdate;
       }
     } catch (e) {
       console.warn('[live-update] Could not access LiveUpdate plugin:', e.message);
@@ -39,27 +33,32 @@
     const plugin = getPlugin();
     if (!plugin) return;
 
-    // Only sync if the game is active
-    if (!score || score.gameState === 'pre' || score.gameState === 'final') {
-      await plugin.stopLiveUpdate();
+    // Stop chip if game is not active
+    if (!score || score.gameState === 'pre' || score.gameState === 'final'
+        || score.gameState === 'so_w' || score.gameState === 'so_l') {
+      try { await plugin.stopLiveUpdate(); } catch {}
       return;
     }
 
     const teamLabel = (typeof getActiveTeamLabel === 'function') ? getActiveTeamLabel() : 'Eggbeater';
-    const oppLabel = score.oppName || 'Opponent';
-    
-    // Status Chip Text (Max ~7-9 chars recommended for Android 16)
-    // Format: "7-5 Q3" or "0-0 1st"
-    const shortText = `${score.team}-${score.opp} ${score.period || ''}`.trim();
+    const oppLabel  = score.oppName || 'Opponent';
 
-    // Notification Body
-    const body = `${teamLabel} vs ${oppLabel} · ${score.clock || 'Start'}`;
+    // Quarter label
+    const qLabel = score.period ? `Q${score.period}` : '';
+
+    // Status Chip Text — keep short for Android chip (~9 chars)
+    // Format: "Q1 7-5" or "Q3 2-4"
+    const shortText = `${qLabel} ${score.team ?? 0}-${score.opp ?? 0}`.trim();
+
+    // Clock + full notification body
+    const clockStr = score.clock || '';
+    const body = `${teamLabel} vs ${oppLabel}${qLabel ? ' · ' + qLabel : ''}${clockStr ? ' ' + clockStr : ''}`;
 
     try {
       await plugin.startLiveUpdate({
-        title: `Live: ${teamLabel} ${score.team}-${score.opp}`,
-        body: body,
-        shortText: shortText
+        title:     `🤽 LIVE: ${teamLabel} ${score.team ?? 0}-${score.opp ?? 0}`,
+        body:      body,
+        shortText: shortText,
       });
     } catch (e) {
       console.error('[live-update] Sync failed:', e);
@@ -68,7 +67,9 @@
 
   async function stop() {
     const plugin = getPlugin();
-    if (plugin) await plugin.stopLiveUpdate();
+    if (plugin) {
+      try { await plugin.stopLiveUpdate(); } catch {}
+    }
   }
 
   window.EggbeaterLiveUpdate = {

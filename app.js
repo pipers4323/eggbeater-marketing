@@ -111,6 +111,12 @@ function applyClubBranding(primaryColor, secondaryColor, headerStyle) {
   // Store for theme toggle to reference
   window._clubPrimaryColor = primaryColor;
 
+  // Update state for WidgetSync
+  state.clubInfo = state.clubInfo || {};
+  state.clubInfo.primaryColor = primaryColor;
+  state.clubInfo.secondaryColor = secondaryColor;
+  if (typeof WidgetSync !== 'undefined') WidgetSync.syncAll(state);
+
   // Recolor all eggbeater SVG logo instances (header logo + inline "brought to you by" logo)
   function recolorEggbeaterSvg(imgEl) {
     if (!imgEl) return;
@@ -213,6 +219,11 @@ function applyClubLogo(logoDataUrl, clubName) {
       defaultLogo.classList.add('hidden');
       defaultLogo.style.display = 'none'; // Force hide
     }
+    // Update state for WidgetSync
+    state.clubInfo = state.clubInfo || {};
+    state.clubInfo.logo = logoDataUrl;
+    state.clubInfo.name = clubName || state.clubInfo.name;
+    if (typeof WidgetSync !== 'undefined') WidgetSync.syncAll(state);
   } else {
     // No custom logo — show eggbeater logo, reset any stale SVG blob from a
     // previous club that had branding (avoids keeping the old club's color)
@@ -498,28 +509,24 @@ function escHtml(str) {
 }
 
 /**
- * Build a tappable directions link for a location string with Apple Maps, Google Maps, and Waze.
+ * Build a tappable Google Maps directions link for a location string.
  * If location looks like coordinates ("37.7749,-122.4194"), use directly.
  * Otherwise URL-encode as a place name search.
  */
-function buildLocationLink(location) {
+function buildLocationLink(location, dark = false) {
   if (!location) return '';
   const isCoords = /^-?\d+\.\d+\s*,\s*-?\d+\.\d+$/.test(location.trim());
   const dest = isCoords ? location.trim() : encodeURIComponent(location);
-  const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
-  const appleUrl = `https://maps.apple.com/?daddr=${dest}`;
-  const wazeUrl = `https://waze.com/ul?q=${dest}`;
-  const iconStyle = `width:13px;height:13px;border-radius:2px;object-fit:contain;flex-shrink:0`;
-  return `<span style="display:flex;flex-direction:column;gap:5px;margin-top:2px" onclick="event.stopPropagation()">
-    <span style="display:inline-flex;align-items:center;gap:5px">
-      <svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;opacity:0.7"><path d="M6 0C3.24 0 1 2.24 1 5c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.5A1.5 1.5 0 1 1 6 3.5 1.5 1.5 0 0 1 6 6.5z" fill="currentColor"/></svg>
-      <span class="location-venue">${escHtml(location)}</span>
-    </span>
-    <span style="display:inline-flex;gap:5px;padding-left:17px">
-      <a href="${appleUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()"><img src="https://maps.apple.com/favicon.ico" alt="" style="${iconStyle}" onerror="this.style.display='none'">Apple</a>
-      <a href="${googleUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()"><img src="https://maps.gstatic.com/favicon3.ico" alt="" style="${iconStyle}" onerror="this.style.display='none'">Google</a>
-      <a href="${wazeUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()"><img src="https://www.waze.com/favicon.ico" alt="" style="${iconStyle}" onerror="this.style.display='none'">Waze</a>
-    </span>
+  const url = `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
+  const linkStyle = dark
+    ? 'color:#ffffff;text-decoration:underline;font-weight:600;-webkit-tap-highlight-color:transparent'
+    : 'color:#2563eb;text-decoration:underline;font-weight:600;-webkit-tap-highlight-color:transparent';
+  const btnStyle = dark
+    ? 'display:inline-flex;align-items:center;gap:2px;font-size:0.68rem;font-weight:700;background:rgba(255,255,255,0.15);color:#ffffff;border:1px solid rgba(255,255,255,0.35);border-radius:6px;padding:2px 7px;text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent'
+    : 'display:inline-flex;align-items:center;gap:2px;font-size:0.68rem;font-weight:700;background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd;border-radius:6px;padding:2px 7px;text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent';
+  return `<span style="display:inline-flex;align-items:center;gap:4px;min-height:44px">
+    <a href="${url}" target="_blank" rel="noopener" style="${linkStyle}" onclick="event.stopPropagation()">📍 ${escHtml(location)}</a>
+    <a href="${url}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()" style="${btnStyle}">🗺️ Directions</a>
   </span>`;
 }
 
@@ -566,7 +573,7 @@ function parseGameTime(dateISO, timeStr) {
     const m = parseInt(mStr || '0', 10);
     if (ampm === 'PM' && h !== 12) h += 12;
     if (ampm === 'AM' && h === 12) h = 0;
-    const d = new Date(dateISO + 'T00:00:00'); // local midnight, not UTC
+    const d = new Date(dateISO);
     d.setHours(h, m, 0, 0);
     return d;
   } catch { return null; }
@@ -586,18 +593,11 @@ function findNextGameOrProjected() {
   const now = new Date();
   const games = getTournamentGames();
 
-  // 1. Next upcoming pool play game by clock time.
-  // Include: future games, currently live games, and games whose scheduled time
-  // passed within the last 2 hours but haven't been archived yet (delayed starts,
-  // long games, or games scored without being formally completed).
-  const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000);
+  // 1. Next upcoming pool play game by clock time
   const nextPool = games
     .filter(g => {
-      if (isGameLive(g.id)) return true;
-      if (state.results?.[g.id]) return false; // archived/completed
       const t = parseGameTime(g.dateISO, g.time);
-      if (!t) return false;
-      return t > twoHoursAgo; // future or started within last 2h
+      return t && t > now;
     })
     .sort((a, b) => parseGameTime(a.dateISO, a.time) - parseGameTime(b.dateISO, b.time))[0];
 
@@ -723,6 +723,19 @@ function archiveTournament(snapshot, results, bracketResults, liveScores) {
   if (idx >= 0) history[idx] = archived;
   else history.unshift(archived);
 
+  // Widget Sync - Update personalized stats for followed players
+  if (typeof WidgetSync !== 'undefined') {
+    const myPlayers = getMyPlayers();
+    const stats = myPlayers.map(p => {
+      const s = getMyPlayerSummaryStats(p.name);
+      return {
+        name: p.name.split(' ')[0],
+        detail: s ? `${s.G} G, ${s.A} A` : 'No stats yet'
+      };
+    });
+    WidgetSync.updateStats(stats);
+  }
+
   localStorage.setItem(STORE.HISTORY, JSON.stringify(history));
 }
 
@@ -797,12 +810,10 @@ function addMyGame(gameId) {
 // or another device broadcast it recently.
 function isGameLive(gameId) {
   const s = state.liveScores[gameId];
-  if (!s || !s.gameState || s.gameState === 'pre' || s.gameState === 'final') return false;
+  if (!s || !s.gameState || s.gameState === 'pre') return false;
   const myGames = getMyGames();
-  // If a recent remote broadcast exists, use that regardless of myGames history
-  if (s._broadcastAt) return (Date.now() - s._broadcastAt) < 30 * 60 * 1000;
-  // Local-only score: live only while scorer is actively unlocked on this device
-  return isScorerUnlocked();
+  if (myGames.has(gameId) || !s._remote) return isScorerUnlocked();
+  return (Date.now() - (s._broadcastAt || 0)) < 30 * 60 * 1000;
 }
 
 /** Save + re-render + broadcast after any scoring action. */
@@ -813,29 +824,28 @@ function afterScore(gameId) {
   renderNextGameCard(); // update LIVE badge on blue card
   if (state.currentTab === 'scores') renderScoresTab();
   updateLiveDot();
-  // Broadcast score to CF Worker — reset to pre clears all viewer devices
-  const _gs = state.liveScores[gameId];
-  if (_gs && _gs.gameState === 'pre') broadcastGameReset(gameId);
-  else broadcastLiveScore(gameId); // fire-and-forget
+  broadcastLiveScore(gameId); // fire-and-forget
   notifyScorePush(gameId, 'goal'); // fire-and-forget APNs push
   // Android 16 Live Update Sync
   if (typeof EggbeaterLiveUpdate !== 'undefined') {
     EggbeaterLiveUpdate.sync(gameId, state.liveScores[gameId]);
   }
-  // iOS Live Activity auto-update (fire-and-forget)
-  if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
-    const s = state.liveScores[gameId];
-    if (s && s.gameState !== 'pre' && s.gameState !== 'final') {
-      const _la = window.Capacitor?.Plugins?.LiveActivity ||
-        (window.Capacitor?.nativePromise ? { updateActivity: (o) => window.Capacitor.nativePromise('LiveActivity', 'updateActivity', o) } : null);
-      if (_la) {
-        _la.updateActivity({
-          homeScore: s.team || 0,
-          awayScore: s.opp || 0,
-          clock: s.clock || "0:00",
-          quarter: String(s.period || 1)
-        }).catch(() => {});
-      }
+  // Widget Sync
+  if (typeof WidgetSync !== 'undefined') {
+    const game = getTournamentGames().find(g => g.id === gameId);
+    const ls = state.liveScores[gameId];
+    if (game && ls) {
+      WidgetSync.updateScore({
+        gameId: gameId,
+        homeTeam: getTeamLabel(game.team),
+        awayTeam: game.opponent || 'Opponent',
+        homeScore: ls.team || 0,
+        awayScore: ls.opp || 0,
+        status: (ls.gameState === 'final' || ls.gameState === 'so_w' || ls.gameState === 'so_l') ? 'FINAL' : 'LIVE',
+        clock: ls.clock || '0:00',
+        homeLogo: state.clubInfo ? state.clubInfo.logo : null,
+        awayLogo: game.opponentLogo
+      });
     }
   }
 }
@@ -852,7 +862,7 @@ function updateLiveDot() {
   const myGames     = getMyGames();
   const hasLive = getTournamentGames().some(g => {
     const s = state.liveScores[g.id];
-    if (!s || !s.gameState || s.gameState === 'pre' || s.gameState === 'final') return false;
+    if (!s || !s.gameState || s.gameState === 'pre') return false;
     if (myGames.has(g.id) || !s._remote) return localActive;
     return (Date.now() - (s._broadcastAt || 0)) < STALE_MS;
   });
@@ -1592,7 +1602,7 @@ function buildBoxScoreText(gameId) {
       text += `${n} ${p.Sv}  ${p.Blk}  ${p.Excl}\n`;
     }
   }
-  text += `\n— ${getActiveTeamLabel()} WP App\nhttps://eggbeater.app`;
+  text += `\n— ${getActiveTeamLabel()} WP App\nhttps://eggbeater-wp.netlify.app`;
   return text;
 }
 
@@ -2834,18 +2844,10 @@ function renderSettingsTab() {
           <div class="settings-item-value">Join another club via code</div>
         </div>
       </div>
-      <div class="settings-item" onclick="_settingsReturnToClubPicker()" style="border-top:1px solid var(--gray-100)">
-        <span class="settings-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg></span>
-        <div class="settings-item-text">
-          <div class="settings-item-label">Return to Club Picker</div>
-          <div class="settings-item-value">Switch to a different club</div>
-        </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">Appearance</div>
+      <div class="settings-section-title">🎨 Appearance</div>
       <div style="padding:12px 16px">
         <div style="font-size:0.82rem;color:var(--gray-500);margin-bottom:10px">Choose your display theme</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -2857,7 +2859,7 @@ function renderSettingsTab() {
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">Calendar &amp; Notifications</div>
+      <div class="settings-section-title">📅 Calendar &amp; Notifications</div>
       <div id="sync-section"></div>
       <div id="push-btn-container"></div>
     </div>
@@ -2866,21 +2868,21 @@ function renderSettingsTab() {
       <div class="settings-section-title">Account</div>
       ${user ? `
         <div class="settings-item" style="cursor:default">
-          <span class="settings-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg></span>
+          <span class="settings-item-icon" style="font-size:1.3rem">☁️</span>
           <div class="settings-item-text">
             <div class="settings-item-label">${escHtml(user.displayName || 'Signed In')}</div>
             <div class="settings-item-value">${escHtml(user.email || '')}</div>
           </div>
         </div>
         <div class="settings-item" onclick="fbSignOut()" style="border-top:1px solid var(--gray-100)">
-          <span class="settings-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+          <span class="settings-item-icon">🚪</span>
           <div class="settings-item-text">
             <div class="settings-item-label" style="color:#dc2626">Sign Out</div>
           </div>
         </div>
       ` : `
         <div class="settings-item" onclick="fbSignIn()">
-          <span class="settings-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+          <span class="settings-item-icon">👤</span>
           <div class="settings-item-text">
             <div class="settings-item-label">Sign In with Google</div>
             <div class="settings-item-value">Sync preferences across devices</div>
@@ -2937,21 +2939,19 @@ async function _renderSettingsClubList() {
   let html = '';
   for (const club of clubs) {
     const isCurrent = club.id === currentClubId;
+    const checkMark = isCurrent ? '<span style="color:var(--royal);font-weight:800;font-size:1rem;flex-shrink:0">✓</span>' : '';
     const nameStyle = isCurrent ? 'font-weight:700;color:var(--royal)' : '';
     const clubIcon = club.logo
       ? `<img src="${escHtml(club.logo)}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.5px solid var(--gray-200)">`
       : `<span style="font-size:1.3rem">🤽‍♀️</span>`;
-    const switchAction = isCurrent ? '' : `_settingsSwitchClub('${escHtml(club.id)}','${escHtml(club.name || club.id)}','${escHtml(club.clubType || '')}')`;
-    const removeBtn = `<button onclick="event.stopPropagation();_settingsRemoveClub('${escHtml(club.id)}')" style="flex-shrink:0;background:none;border:none;padding:6px;cursor:pointer;color:var(--gray-400);font-size:1rem;line-height:1;border-radius:6px" title="Remove club">✕</button>`;
     html += `
-      <div class="settings-item" onclick="${switchAction}" style="${isCurrent ? 'cursor:default;background:var(--royal-subtle)' : ''}">
+      <div class="settings-item${isCurrent ? '' : ''}" onclick="${isCurrent ? '' : `_settingsSwitchClub('${escHtml(club.id)}','${escHtml(club.name || club.id)}','${escHtml(club.clubType || '')}')`}" ${isCurrent ? 'style="cursor:default;background:var(--royal-subtle)"' : ''}>
         <span class="settings-item-icon" style="display:flex;align-items:center;justify-content:center">${clubIcon}</span>
         <div class="settings-item-text">
           <div class="settings-item-label" style="${nameStyle}">${escHtml(club.name || club.id)}</div>
           ${isCurrent ? '<div class="settings-item-value">Current club</div>' : ''}
         </div>
-        ${isCurrent ? '<span style="color:var(--royal);font-weight:800;font-size:1rem;flex-shrink:0;margin-right:4px">✓</span>' : ''}
-        ${removeBtn}
+        ${checkMark}
       </div>
     `;
   }
@@ -2995,29 +2995,6 @@ function _settingsSwitchClub(clubId, clubName, clubType) {
   }
   // Reload to re-initialize with the new club
   window.location.href = window.location.pathname + '?club=' + encodeURIComponent(clubId);
-}
-
-/** Remove a club from the joined list. If it's the current club, return to splash. */
-function _settingsRemoveClub(clubId) {
-  removeJoinedClub(clubId);
-  const currentClubId = getAppClubId();
-  if (clubId === currentClubId) {
-    // Clear current club and return to club picker
-    localStorage.removeItem('ebwp-club-id');
-    localStorage.removeItem('ebwp-club-name');
-    localStorage.removeItem('ebwp-club-type');
-    window.location.href = window.location.pathname;
-  } else {
-    _renderSettingsClubList();
-  }
-}
-
-/** Clear current club and return to the club picker splash screen */
-function _settingsReturnToClubPicker() {
-  localStorage.removeItem('ebwp-club-id');
-  localStorage.removeItem('ebwp-club-name');
-  localStorage.removeItem('ebwp-club-type');
-  window.location.href = window.location.pathname;
 }
 
 /** Show inline add-club input in Settings */
@@ -3958,15 +3935,20 @@ function renderScheduleTab() {
   renderNextGameCard();
   renderDirectorImportCard();
   renderGamesList();
+
   // When there's no active schedule, show the bracket standings below the coming-soon card
-  // Use HISTORY_SEED (current team's server data) to avoid showing stale entries from
-  // other age groups that were previously selected and merged into shared localStorage.
   if (!getTournamentGames().length) {
     renderHistoryStandings('schedule-standings', window.HISTORY_SEED || []);
   } else {
     const el = $('schedule-standings');
     if (el) el.innerHTML = '';
   }
+
+  // Widget Sync - Update schedule widget with latest data
+  if (typeof WidgetSync !== 'undefined') {
+    WidgetSync.syncAll(state);
+  }
+
   // Refresh button at the bottom of the tab
   const rb = $('schedule-refresh-wrap');
   if (rb) rb.innerHTML = `
@@ -3974,6 +3956,15 @@ function renderScheduleTab() {
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       Force Refresh
     </button>`;
+
+  // Widget Sync - Update schedule widget
+  if (typeof WidgetSync !== 'undefined') {
+    const games = getTournamentGames().slice(0, 4).map(g => ({
+      teams: `${getTeamLabel(g.team)} vs ${g.opponent || 'TBD'}`,
+      time: g.time || 'TBD'
+    }));
+    WidgetSync.updateSchedule(games);
+  }
 }
 
 /**
@@ -4071,11 +4062,7 @@ async function forceAppRefresh(btn) {
       await Promise.all(keys.map(k => caches.delete(k)));
     }
   } catch (e) { /* ignore — reload anyway */ }
-  // In Capacitor's WKWebView, location.reload() can still serve from the native
-  // disk cache even after SW caches are cleared. Navigate to a fresh URL with a
-  // timestamp param to force the WebView to treat it as a new resource.
-  const base = window.location.origin + window.location.pathname;
-  window.location.replace(base + '?_r=' + Date.now());
+  window.location.reload();
 }
 
 function renderNextGameCard() {
@@ -4123,23 +4110,24 @@ function renderNextGameCard() {
           <div class="next-game-card-top">
             ${g.gameNum ? `<div class="next-game-num">${escHtml(g.gameNum)}</div>` : ''}
             ${nextLive ? `<span class="live-badge-next">🔴 LIVE</span>` : ''}
-            <button class="follow-live-btn" onclick="toggleLiveActivity('${g.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Follow Live</button>
+            <button class="follow-live-btn" onclick="toggleLiveActivity('${g.id}')">📡 Follow Live</button>
           </div>
           <div class="next-label">${nextLive ? 'In Progress' : 'Next Game'}</div>
           <div class="next-vs">vs ${escHtml(g.opponent || 'TBD')}</div>
           ${liveSummary}
           <div class="next-meta">
-            <span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${escHtml(g.time)} &nbsp;·&nbsp; ${escHtml(g.date || g.dateISO)}</span>
-            ${g.pool ? `<span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><path d="M2 12h20M2 17c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2M6 12V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/></svg> ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap)} Caps</span>` : '')}
+            <span>🕐 ${escHtml(g.time)} &nbsp;·&nbsp; ${escHtml(g.date || g.dateISO)}</span>
+            ${g.pool              ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}</span>`              : ''}
+            ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location, true) : ''}
           </div>
-          ${TOURNAMENT.location ? `<div class="next-meta">${buildLocationLink(TOURNAMENT.location)}</div>` : ''}
+          <div class="next-cap-badge">${capIcon} ${escHtml(g.cap)} Caps</div>
         </div>
       </div>`;
   } else {
     // Projected bracket game
     const g = next.game;
     const timeStr = g.time && g.time !== 'TBD'
-      ? `<span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${escHtml(g.time)} · ${escHtml(g.date || g.dateISO)}</span>`
+      ? `🕐 ${escHtml(g.time)} · ${escHtml(g.date || g.dateISO)}`
       : g.date ? escHtml(g.date) : 'Time TBD';
     section.innerHTML = `
       <div class="next-game-wrap">
@@ -4149,7 +4137,7 @@ function renderNextGameCard() {
           <div class="next-vs">${escHtml(g.desc || 'Bracket Game')}</div>
           <div class="next-meta">
             <span>${timeStr}</span>
-            ${bracketLocationDisplay(g.location) ? buildLocationLink(bracketLocationDisplay(g.location)) : ''}
+            ${bracketLocationDisplay(g.location) ? buildLocationLink(bracketLocationDisplay(g.location), true) : ''}
           </div>
           <div class="next-cap-badge projected-note">Based on ${getPoolRecord()} pool record</div>
         </div>
@@ -4183,7 +4171,7 @@ function renderSyncCard() {
     section.innerHTML = `
       <div class="sync-status-card">
         <div class="sync-status-inner">
-          <span class="sync-cal-name"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${escHtml(state.selectedCalName || 'Calendar')}</span>
+          <span class="sync-cal-name">📅 ${escHtml(state.selectedCalName || 'Calendar')}</span>
           <span class="sync-time">Last sync: ${timeStr}</span>
         </div>
         <div class="sync-btn-row">
@@ -4341,7 +4329,7 @@ function buildScheduleCard(g) {
   // LIVE badge is handled by the Next Game blue card; plain schedule cards don't show it
   const isLive = getTournamentGames().some(game => game.id === g.id && isGameLive(game.id));
   const liveBadge = isLive ? ' <span class="live-badge">🔴 LIVE</span>' : '';
-  const followBtn = `<button class="follow-live-btn-sm" onclick="toggleLiveActivity('${g.id}')" title="Follow Live on Lock Screen"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Follow</button>`;
+  const followBtn = `<button class="follow-live-btn-sm" onclick="toggleLiveActivity('${g.id}')" title="Follow Live on Lock Screen">📡 Follow</button>`;
 
   return `
     <div class="sched-card">
@@ -4350,10 +4338,11 @@ function buildScheduleCard(g) {
         ${g.gameNum ? `<div class="sched-game-num">${escHtml(g.gameNum)}</div>` : ''}
       </div>
       <div class="sched-meta">
-        <span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${escHtml(g.time || 'TBD')}${g.date ? ' · ' + escHtml(g.date) : ''}</span>
-        ${g.pool ? `<span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><path d="M2 12h20M2 17c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2M6 12V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/></svg> ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
+        <span>🕐 ${escHtml(g.time || 'TBD')}${g.date ? ' · ' + escHtml(g.date) : ''}</span>
+        ${g.pool              ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}</span>`              : ''}
+        ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
       </div>
-      ${TOURNAMENT.location ? `<div class="sched-meta">${buildLocationLink(TOURNAMENT.location)}</div>` : ''}
+      <div class="sched-cap-badge">${capIcon} ${escHtml(g.cap || '')} Caps</div>
     </div>`;
 }
 
@@ -4588,11 +4577,14 @@ function buildGameCard(g, viewerOnly = false) {
       </div>
       ${liveScoreBarHtml}
       <div class="game-info-row">
-        <span class="icon-label" style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${escHtml(g.time || 'TBD')}</span>
-        ${g.pool ? `<span class="icon-label" style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.7;vertical-align:-1px"><path d="M2 12h20M2 17c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2M6 12V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/></svg> ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span class="icon-label">${capIcon} ${escHtml(g.cap)} Caps</span>` : '')}
+        <span class="icon-label">🕐 ${escHtml(g.time || 'TBD')}</span>
+        ${g.pool              ? `<span class="icon-label">${swimmerEmoji()} ${escHtml(g.pool)}</span>`              : ''}
+        ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
+      </div>
+      <div class="game-info-row">
+        <span class="icon-label ${g.cap === 'Dark' ? 'cap-dark' : 'cap-white'}">${capIcon} ${escHtml(g.cap || '')} Caps</span>
         ${pts !== null ? `<span class="points-badge">+${pts} bracket pts</span>` : ''}
       </div>
-      ${TOURNAMENT.location ? `<div class="game-info-row">${buildLocationLink(TOURNAMENT.location)}</div>` : ''}
 
       ${(viewerOnly || !canScore) ? viewerSection : scorerSection}
 
@@ -4923,10 +4915,9 @@ function renderHistoryTab() {
   // No teams selected — show empty prompt
   if (slots.length === 0 && !_inMultiRender) {
     const viewEl = document.getElementById('view-history');
-    const _isHS0 = localStorage.getItem('ebwp-club-type') === 'highschool';
     if (viewEl) viewEl.innerHTML = `<div class="card tab-card">
-      <div class="history-header-row"><h2>${_isHS0 ? 'Season History' : 'Tournament History'}</h2></div>
-      <p class="step-desc">Select an age group above to view ${_isHS0 ? 'season' : 'tournament'} history.</p>
+      <div class="history-header-row"><h2>Tournament History</h2></div>
+      <p class="step-desc">Select an age group above to view tournament history.</p>
     </div>`;
     return;
   }
@@ -4939,13 +4930,12 @@ function renderHistoryTab() {
     const viewEl = document.getElementById('view-history');
     if (viewEl && !viewEl.querySelector('#history-list')) {
       const label = _groupSectionLabelFor(slots[0].groupKey, slots[0].letter);
-      const _isHS1 = localStorage.getItem('ebwp-club-type') === 'highschool';
       viewEl.innerHTML = `<div class="card tab-card">
         <div class="history-header-row">
-          <h2>${_isHS1 ? 'Season History' : 'Tournament History'}</h2>
+          <h2>Tournament History</h2>
           <span class="history-subtitle" id="history-subtitle">${escHtml(label)}</span>
         </div>
-        <p class="step-desc" id="history-desc">Past ${_isHS1 ? 'season' : 'tournament'} results, most recent first.</p>
+        <p class="step-desc" id="history-desc">Past tournament results, most recent first.</p>
         <div id="history-team-search"></div>
         <div id="history-standings"></div>
         <div id="history-list"></div>
@@ -5325,9 +5315,8 @@ function buildStandingsHtml(entries, seriesLabel) {
 function _renderHistoryMulti(slots) {
   const viewEl = document.getElementById('view-history');
   if (!viewEl) return;
-  const _isHSM = localStorage.getItem('ebwp-club-type') === 'highschool';
   viewEl.innerHTML = `<div class="card tab-card">
-    <div class="history-header-row"><h2>${_isHSM ? 'Season History' : 'Tournament History'}</h2></div>
+    <div class="history-header-row"><h2>Tournament History</h2></div>
     <p class="step-desc">Results for all your selected age groups.</p>
     ${slots.map(({ groupKey, letter, suffix }) =>
       `<div class="team-section" style="margin:0 -2px">
@@ -5590,6 +5579,25 @@ function init() {
   // Keep --header-h updated so the desktop sidebar top offset stays correct
   window.addEventListener('resize', syncHeaderHeight);
 
+  // Native Deep Linking (Widgets)
+  if (typeof Capacitor !== 'undefined' && Capacitor.Plugins.App) {
+    Capacitor.Plugins.App.addListener('appUrlOpen', data => {
+      console.log('[bridge] Deep link opened:', data.url);
+      const url = new URL(data.url);
+      if (url.protocol === 'eggbeater:' && url.host === 'score') {
+        const gameId = url.pathname.replace('/', '');
+        if (gameId) {
+          switchTab('scores');
+          setTimeout(() => {
+            if (typeof openGameScoreModal === 'function') {
+              openGameScoreModal(gameId);
+            }
+          }, 500);
+        }
+      }
+    });
+  }
+
   // ── Offline/online detection (Phase 5E) ─────────────────────────────────
   window.addEventListener('offline', () => {
     const b = document.getElementById('offline-banner');
@@ -5634,6 +5642,14 @@ function init() {
         }
       })
       .catch(() => {});
+  }
+
+  // Initial Widget Sync
+  if (typeof WidgetSync !== 'undefined') {
+    // Wait a moment for team data to be potentially loaded from KV
+    setTimeout(() => {
+      WidgetSync.syncAll(state);
+    }, 2000);
   }
 }
 
@@ -6261,7 +6277,7 @@ function renderPushButton() {
     el.innerHTML = `
       <div class="push-card">
         <div class="push-header">
-          <span class="push-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+          <span class="push-icon">🔔</span>
           <span class="push-title">Notifications On${native ? ' (iOS)' : ''}</span>
         </div>
         <div class="push-prefs">
@@ -6712,19 +6728,26 @@ async function pollLiveScores() {
     const myGames = getMyGames();
 
     for (const [gameId, remoteScore] of Object.entries(remote)) {
-      if (myGames.has(gameId) && isScorerUnlocked()) continue; // active scorer — don't overwrite local state
+      if (myGames.has(gameId)) continue; // we scored this game — never overwrite with remote
       const local = state.liveScores[gameId] || {};
       if ((remoteScore.broadcastAt || 0) <= (local._broadcastAt || 0)) continue; // not newer
 
       // Strip worker meta fields; tag the score as remote with the source device
       const { deviceId, tournamentId, gameId: _gid, broadcastAt, ...scoreData } = remoteScore;
-      // If scorer reset the game to pre, wipe the local entry entirely
-      if (scoreData.gameState === 'pre') {
-        if (state.liveScores[gameId]) { delete state.liveScores[gameId]; changed = true; }
-        continue;
-      }
       state.liveScores[gameId] = { ...scoreData, _remote: true, _broadcastAt: broadcastAt, _deviceId: deviceId };
       changed = true;
+    }
+
+    // Android 16 Live Update Sync — always run so chip appears immediately when viewer opens app
+    if (typeof EggbeaterLiveUpdate !== 'undefined' && Capacitor?.getPlatform?.() === 'android') {
+      const liveGames = getTournamentGames().filter(g => isGameLive(g.id));
+      if (liveGames.length > 0) {
+        const gId = liveGames[0].id;
+        EggbeaterLiveUpdate.sync(gId, state.liveScores[gId]);
+      } else {
+        // No live games — clear the chip
+        EggbeaterLiveUpdate.stop();
+      }
     }
 
     if (changed) {
@@ -6734,13 +6757,50 @@ async function pollLiveScores() {
       if (state.currentTab === 'scores') renderScoresTab();
       updateLiveDot();
       showLiveToast();
-      // Android 16 Live Update Sync (for viewers)
-      if (typeof EggbeaterLiveUpdate !== 'undefined') {
+      // Widget Sync (for viewers)
+      if (typeof WidgetSync !== 'undefined') {
         const liveGames = getTournamentGames().filter(g => isGameLive(g.id));
         if (liveGames.length > 0) {
-          // Sync the first one found (usually only one game live at a time for a team)
           const gId = liveGames[0].id;
-          EggbeaterLiveUpdate.sync(gId, state.liveScores[gId]);
+          const game = getTournamentGames().find(g => g.id === gId);
+          const ls = state.liveScores[gId];
+          if (game && ls) {
+            WidgetSync.updateScore({
+              gameId: gId,
+              homeTeam: getTeamLabel(game.team),
+              awayTeam: game.opponent || 'Opponent',
+              homeScore: ls.team || 0,
+              awayScore: ls.opp || 0,
+              status: (ls.gameState === 'final' || ls.gameState === 'so_w' || ls.gameState === 'so_l') ? 'FINAL' : 'LIVE',
+              clock: ls.clock || '0:00',
+              homeLogo: state.clubInfo ? state.clubInfo.logo : null,
+              awayLogo: game.opponentLogo
+            });
+          }
+        }
+      }
+
+      // iOS Live Activity update
+      if (window._activeLA) {
+        const { gameId: laGameId, plugin: laPlugin } = window._activeLA;
+        const ls = state.liveScores[laGameId];
+        if (ls) {
+          const isEnded = ls.gameState === 'final' || ls.gameState === 'so_w' || ls.gameState === 'so_l';
+          if (isEnded) {
+            try { await laPlugin.endActivity({}); } catch {}
+            window._activeLA = null;
+          } else {
+            try {
+              await laPlugin.updateActivity({
+                homeScore: ls.team  || 0,
+                awayScore: ls.opp   || 0,
+                clock:     ls.clock || '0:00',
+                quarter:   String(ls.period || 1),
+              });
+            } catch (e) {
+              console.warn('[LA] updateActivity failed:', e);
+            }
+          }
         }
       }
     }
@@ -7148,47 +7208,15 @@ function renderHelpTab() {
 
   const sections = [
     {
-      icon: '📲',
-      title: 'Installing the App (iOS App Store & Google Play)',
-      body: `<p>Download the native <strong>Eggbeater Water Polo</strong> app for the best experience — faster performance, reliable push notifications, and home screen access.</p>
-      <p style="margin-top:10px"><strong>🍎 iPhone / iPad (iOS)</strong></p>
-      <ol>
-        <li>Open the <strong>App Store</strong> on your iPhone or iPad.</li>
-        <li>Search for <strong>Eggbeater Water Polo</strong>.</li>
-        <li>Tap <strong>Get</strong> to download and install.</li>
-        <li>Open the app, select your club and age group, then go to <strong>Settings → Notifications</strong> to enable push notifications.</li>
-      </ol>
-      <p style="margin-top:10px"><strong>🤖 Android</strong></p>
-      <ol>
-        <li>Open the <strong>Google Play Store</strong> on your Android device.</li>
-        <li>Search for <strong>Eggbeater Water Polo</strong>.</li>
-        <li>Tap <strong>Install</strong>.</li>
-        <li>Open the app, select your club and age group, then allow notifications when prompted.</li>
-      </ol>
-      <p style="margin-top:8px;color:var(--text-muted);font-size:0.85rem">💡 The native app is recommended for the most reliable notifications and the smoothest experience.</p>`
-    },
-    {
-      icon: '📱',
-      title: 'Installing the Web App (iOS & Android)',
-      body: `<p>No App Store needed — you can install the Eggbeater web app directly from your browser and add it to your home screen for a full-screen, app-like experience.</p>
-      <p style="margin-top:10px"><strong>🍎 iPhone / iPad (iOS — Safari required)</strong></p>
-      <ol>
-        <li>Open <a href="https://eggbeater.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater.app</a> in <strong>Safari</strong> (must be Safari — Chrome and other iOS browsers cannot install home screen apps).</li>
-        <li>Tap the <strong>Share</strong> button — the box-with-arrow icon at the bottom of the screen (top-right on iPad).</li>
-        <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
-        <li>Tap <strong>Add</strong> — the Eggbeater icon appears on your home screen.</li>
-        <li>Always open from the home screen icon for full-screen mode and push notifications.</li>
-        <li>Go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <em>Enable Notifications</em>.</li>
-      </ol>
-      <p style="margin-top:8px;color:var(--text-muted);font-size:0.85rem">⚠️ Push notifications on iOS require iOS 16.4+ and the app must be opened from the home screen icon, not from Safari directly.</p>
-      <p style="margin-top:10px"><strong>🤖 Android (Chrome)</strong></p>
-      <ol>
-        <li>Open <a href="https://eggbeater.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater.app</a> in <strong>Chrome</strong>.</li>
-        <li>Tap the <strong>three-dot menu</strong> (⋮) in the top-right corner.</li>
-        <li>Tap <strong>Add to Home screen</strong> or <strong>Install app</strong>.</li>
-        <li>Tap <strong>Add</strong> or <strong>Install</strong> to confirm.</li>
-        <li>Open from your home screen icon, then tap <em>Get Notified</em> and allow notifications when prompted.</li>
-      </ol>`
+      icon: '🚀',
+      title: 'Native iOS App — RECOMMENDED',
+      body: `<p>For the best experience on iPhone, we highly recommend downloading the <strong>Eggbeater Water Polo</strong> app from the Apple App Store.</p>
+      <ul>
+        <li><strong>Native Performance</strong> — Faster loading, ultra-smooth scrolling, and a premium "app-like" feel.</li>
+        <li><strong>Reliable Notifications</strong> — Never miss a score or schedule change. Native iOS push notifications are more reliable than browser-based ones.</li>
+        <li><strong>Live Activities</strong> — Follow live game scores directly on your iPhone Lock Screen and Dynamic Island!</li>
+        <li><strong>Home Screen Access</strong> — No more searching for links in Safari or iMessage.</li>
+      </ul>`
     },
     {
       icon: '📅',
@@ -7325,14 +7353,14 @@ function renderHelpTab() {
     },
     {
       icon: '🌐',
-      title: 'Accessing the Parent App from the Web',
-      body: `<p>No install required — the full app works in any modern browser on any device: phone, tablet, or computer.</p>
+      title: 'Using the App on the Web',
+      body: `<p>No install required — the app works in any modern browser on any device, phone, tablet, or computer.</p>
       <ul>
-        <li>Open <a href="https://eggbeater.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater.app</a> in any browser — Chrome, Safari, Firefox, Edge, etc.</li>
+        <li>Open <a href="https://eggbeater-wp.netlify.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater-wp.netlify.app</a> in any browser — Chrome, Safari, Firefox, Edge, etc.</li>
         <li>All features work in the browser: schedule, live scores, bracket, roster, and history.</li>
-        <li><strong>Bookmark it</strong> for quick access — tap the browser's share or bookmark icon and save it to your favorites.</li>
-        <li>Your age group selections and preferences are remembered automatically in your browser.</li>
-        <li>For push notifications and full-screen mode, install the app to your home screen — see <em>Installing the Web App</em> above, or download the native app from the App Store or Google Play.</li>
+        <li><strong>Bookmark it</strong> for quick access — tap the browser's share or bookmark button and save it to your favorites or home screen.</li>
+        <li>The app remembers your age group selections and preferences automatically in your browser.</li>
+        <li><strong>Push notifications and full-screen mode</strong> require installing the app as a home screen shortcut — see the iOS and Android sections below for how to do that.</li>
       </ul>`
     },
     {
@@ -7356,9 +7384,36 @@ function renderHelpTab() {
         <li><strong>Google Calendar</strong> — Sign in with Google first (tap <strong>Sign In</strong> in Settings), then go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <strong>Connect</strong> to choose which of your Google calendars to sync to. All games are added automatically and update if times or locations change.</li>
         <li>To change which calendar is used, tap <em>Change</em> in the connected calendar card in Settings.</li>
         <li>Your calendar connection is remembered. On future visits the app reconnects silently in the background — no action needed.</li>
-        <li><strong>Push Notifications</strong> — On iOS (iPhone/iPad), first install the app to your home screen (see <em>Installing the Web App</em> above), open from the home screen icon, then go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <em>Enable Notifications</em>. On Android you can do the same directly in Chrome, or use the native Google Play app.</li>
+        <li><strong>Push Notifications</strong> — On iOS (iPhone/iPad), first install the app to your home screen (see "Installing on iOS" below), open from the home screen icon, then go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <em>Enable Notifications</em>. On Android you can do the same directly in Chrome.</li>
         <li><strong>Telegram / GroupMe</strong> — The scorer can send box score updates and shootout alerts directly to your team channel from the Scores tab.</li>
       </ul>`
+    },
+    {
+      icon: '🍎',
+      title: 'Installing on iOS (iPhone & iPad)',
+      body: `<p>For the best experience — including push notifications and full-screen mode — install the app as a home screen shortcut. Requires iOS 16.4 or later for push notification support.</p>
+      <ol>
+        <li>Open <a href="https://eggbeater-wp.netlify.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater-wp.netlify.app</a> in <strong>Safari</strong> (must be Safari — Chrome and other browsers on iOS cannot install home screen apps).</li>
+        <li>Tap the <strong>Share</strong> button — the box-with-arrow icon at the bottom of the screen (on iPad it's in the top-right toolbar).</li>
+        <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+        <li>Tap <strong>Add</strong> — the Eggbeater icon appears on your home screen.</li>
+        <li>Always open the app from that home screen icon for full-screen mode and push notifications.</li>
+        <li>Once open from the home screen, go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <em>Enable Notifications</em>, then allow when iOS prompts you.</li>
+      </ol>
+      <p style="margin-top:8px;color:var(--text-muted);font-size:0.85rem">⚠️ Push notifications on iOS require iOS 16.4+ and the app must be opened from the home screen icon, not from Safari directly.</p>`
+    },
+    {
+      icon: '🤖',
+      title: 'Installing the App (Android)',
+      body: `<p>Android users can install the app as a home screen shortcut directly from Chrome:</p>
+      <ol>
+        <li>Open <a href="https://eggbeater-wp.netlify.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater-wp.netlify.app</a> in <strong>Chrome</strong>.</li>
+        <li>Tap the <strong>three-dot menu</strong> (⋮) in the top-right corner of Chrome.</li>
+        <li>Tap <strong>Add to Home screen</strong> (you may see <strong>Install app</strong> instead — either works).</li>
+        <li>Tap <strong>Add</strong> or <strong>Install</strong> on the confirmation prompt.</li>
+        <li>The app icon appears on your home screen — open it for a full-screen experience.</li>
+      </ol>
+      <p style="margin-top:8px"><strong>Push notifications on Android:</strong> After installing, open the app from the home screen icon, tap <em>Get Notified</em>, and allow notifications when Chrome prompts you.</p>`
     },
     {
       icon: '📺',
@@ -7398,18 +7453,12 @@ function renderHelpTab() {
     {
       icon: '📍',
       title: 'Map & Directions',
-      body: `<p>Game cards include <strong>tappable direction links</strong> so you can get to the venue in your preferred maps app.</p>
+      body: `<p>Game cards now include <strong>tappable map links</strong> so you can quickly get directions to the game venue.</p>
       <ul>
-        <li>When a game has a location, the 📍 location name is a tappable link.</li>
-        <li>Three direction buttons appear next to each location — choose whichever app you prefer:
-          <ul style="margin-top:4px">
-            <li><strong>Apple</strong> — opens Apple Maps (great for iPhone users)</li>
-            <li><strong>Google</strong> — opens Google Maps</li>
-            <li><strong>Waze</strong> — opens Waze for live traffic routing</li>
-          </ul>
-        </li>
-        <li>Both the Next Game card and regular schedule cards show direction buttons.</li>
-        <li>If the location is GPS coordinates, they're passed directly; otherwise the venue name is searched.</li>
+        <li>When a game has a location, the location text becomes a tappable link (📍 pin emoji) that opens <strong>Google Maps directions</strong>.</li>
+        <li>A separate <strong>🗺️ Directions</strong> button is also shown next to the location for quick access.</li>
+        <li>Both the next game card and regular schedule cards show direction links.</li>
+        <li>If the location looks like GPS coordinates, they're used directly; otherwise the location name is searched in Google Maps.</li>
       </ul>`
     },
     {
@@ -7430,7 +7479,7 @@ function renderHelpTab() {
       title: 'Club Directory',
       body: `<p>A <strong>public club directory</strong> is available for discovering clubs on the Eggbeater platform.</p>
       <ul>
-        <li>Visit <a href="https://eggbeater.app/directory.html" target="_blank" style="color:var(--royal);font-weight:700">the Club Directory</a> to browse all clubs.</li>
+        <li>Visit <a href="https://eggbeater-wp.netlify.app/directory.html" target="_blank" style="color:var(--royal);font-weight:700">the Club Directory</a> to browse all clubs.</li>
         <li>Each club shows their logo, name, type (Club or High School), and number of active age groups.</li>
         <li>Use the <strong>search bar</strong> at the top to filter clubs by name.</li>
         <li>Tapping a club card loads the app with that club's schedule pre-selected.</li>
@@ -7497,6 +7546,8 @@ function saveMyPlayers(arr) {
   localStorage.setItem(STORE.MY_PLAYERS, JSON.stringify(arr));
   // Sync to Firestore if parent is signed in (Phase 1)
   if (typeof fbSavePrefs === 'function') fbSavePrefs();
+  // Sync to Widgets
+  if (typeof WidgetSync !== 'undefined') WidgetSync.syncAll(state);
 }
 function addMyPlayer(name, teamKey) {
   const arr = getMyPlayers();
@@ -7872,109 +7923,82 @@ function renderMyPlayerCard() {
   return html;
 }
 
-// ─── LIVE ACTIVITIES (iOS) / LIVE UPDATES (Android) ─────────────────────────
+// ─── LIVE ACTIVITIES (iOS) ───────────────────────────────────────────────────
+
+// Tracks the currently active Live Activity so pollLiveScores can update it.
+window._activeLA = null;
+
 async function toggleLiveActivity(gameId) {
-  try {
-  if (!window.Capacitor || !Capacitor.isNativePlatform()) {
-    showToast("Follow Live is only available in the iOS or Android app");
+  if (!window.Capacitor || !Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'ios') {
+    showToast("Live Activities only supported on iOS App");
     return;
   }
 
-  const platform = Capacitor.getPlatform();
+  const LiveActivity = Capacitor.Plugins.LiveActivity;
+  if (!LiveActivity) {
+    showToast("Live Activity plugin not installed/registered", "error");
+    return;
+  }
+
+  // If already following this game — end it
+  if (window._activeLA && window._activeLA.gameId === gameId) {
+    try { await LiveActivity.endActivity({}); } catch {}
+    window._activeLA = null;
+    showToast("Stopped following live.", "info");
+    return;
+  }
+
+  // End any previous activity before starting a new one
+  if (window._activeLA) {
+    try { await LiveActivity.endActivity({}); } catch {}
+    window._activeLA = null;
+  }
+
   const game = getTournamentGames().find(g => g.id === gameId);
+
+  // Poll for fresh score before starting so we don't show 0-0
+  try { await pollLiveScores(); } catch {}
   const score = getLiveScore(gameId);
 
-  // ── Android: use Live Update status bar chip ──────────────────────────────
-  if (platform === 'android') {
-    if (typeof EggbeaterLiveUpdate === 'undefined') {
-      showToast("Live Update not available on this device", "error");
-      return;
-    }
-    if (!score || score.gameState === 'pre' || !isGameLive(gameId)) {
-      showToast("Game hasn't started yet — tap Follow Live once the game is live.", "info");
-      return;
-    }
-    if (score.gameState === 'final') {
-      showToast("This game has ended.", "info");
-      return;
-    }
-    try {
-      await EggbeaterLiveUpdate.sync(gameId, score);
-      showToast("Following Live! Score updates will appear in your status bar.", "ok");
-    } catch (e) {
-      showToast("Live Update unavailable: " + e.message, "error");
-    }
-    return;
-  }
+  // Club branding colours (fall back to Eggbeater royal/teal)
+  const primaryColor  = (state.clubInfo?.primaryColor  || '#002868').replace('#', '');
+  const secondaryColor = (state.clubInfo?.secondaryColor || '#00A693').replace('#', '');
 
-  // ── iOS: use Live Activities on lock screen ───────────────────────────────
-  if (platform !== 'ios') {
-    showToast("Follow Live is only available in the iOS or Android app");
-    return;
-  }
-
-  // Guard: game must be live before starting a Live Activity
-  if (!score || score.gameState === 'pre' || !isGameLive(gameId)) {
-    showToast("Game hasn't started yet — tap Follow Live once the game is live.", "info");
-    return;
-  }
-  if (score.gameState === 'final') {
-    showToast("This game has ended.", "info");
-    return;
-  }
-
-  // Capacitor 8: native bridge auto-populates Plugins for all registered native plugins.
-  // Fallback to nativePromise (low-level bridge) if Plugins entry is missing.
-  const _laFromPlugins = !!(window.Capacitor?.Plugins?.LiveActivity);
-  let LiveActivity = window.Capacitor?.Plugins?.LiveActivity;
-  if (!LiveActivity && window.Capacitor?.nativePromise) {
-    LiveActivity = {
-      startActivity:  (opts) => window.Capacitor.nativePromise('LiveActivity', 'startActivity',  opts),
-      updateActivity: (opts) => window.Capacitor.nativePromise('LiveActivity', 'updateActivity', opts),
-      endActivity:    (opts) => window.Capacitor.nativePromise('LiveActivity', 'endActivity',    opts),
-    };
-  }
-  if (!LiveActivity) {
-    showToast("Live Activity plugin not available", "error");
-    return;
-  }
-
-  showToast(`Starting Live Activity… [${_laFromPlugins ? 'Plugins' : 'nativePromise'}]`, "info");
-  const _laTimeout = new Promise((_, rej) => setTimeout(() => rej(new Error('native call timed out after 5s')), 5000));
   try {
-    const result = await Promise.race([LiveActivity.startActivity({
-      homeTeam: game ? getTeamLabel(game.team) : "Home",
-      awayTeam: game && game.opponent ? game.opponent : "Away",
-      homeScore: score.team || 0,
-      awayScore: score.opp || 0,
-      clock: score.clock || "0:00",
-      quarter: String(score.period || 1)
-    }), _laTimeout]);
+    await LiveActivity.startActivity({
+      homeTeam:      game ? getTeamLabel(game.team) : "Home",
+      awayTeam:      game?.opponent || "Away",
+      homeScore:     score.team  || 0,
+      awayScore:     score.opp   || 0,
+      clock:         score.clock || "0:00",
+      quarter:       String(score.period || 1),
+      homeLogoUrl:   '',   // remote URL support TBD
+      awayLogoUrl:   '',
+      primaryColor:  primaryColor,
+      secondaryColor: secondaryColor,
+    });
 
-    showToast("Following Live! Check your lock screen for score updates.", "ok");
+    // Track so pollLiveScores can push updates
+    window._activeLA = { gameId, plugin: LiveActivity };
 
-    // Listen for push token to send to the Worker
+    // Listen for APNs push token (sent to Worker for server-side updates)
     LiveActivity.addListener('onPushTokenReceived', async (info) => {
-      console.log("Live Activity APNs Token Received:", info.token);
+      console.log('[LA] APNs push token:', info.token);
       try {
         await fetch(`${PUSH_SERVER_URL}/live-activity/sync`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            gameId: gameId,
-            pushToken: info.token
-          })
+          body: JSON.stringify({ gameId, pushToken: info.token }),
         });
       } catch (e) {
-        console.error("Failed to sync Live Activity token:", e);
+        console.error('[LA] Failed to sync push token:', e);
       }
     });
+
+    showToast("Following Live! Updates appear on your lock screen.", "ok");
   } catch (e) {
-    const errMsg = e?.message || e?.code || e?.error?.message || (typeof e === 'string' ? e : null) || JSON.stringify(e) || 'unknown error';
-    showToast("Live Activity error: " + errMsg, "error");
-  }
-  } catch (outerErr) {
-    showToast("Follow Live error: " + (outerErr?.message || String(outerErr)), "error");
+    showToast("Live activities unavailable: " + e.message, "error");
+    window._activeLA = null;
   }
 }
 
