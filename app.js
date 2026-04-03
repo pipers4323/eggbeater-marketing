@@ -7898,6 +7898,8 @@ async function toggleLiveActivity(gameId) {
       quarter: score.quarter || "1"
     });
 
+    showToast("Following Live! Check your lock screen for score updates.", "ok");
+
     // Listen for push token to send to the Worker
     LiveActivity.addListener('onPushTokenReceived', async (info) => {
       console.log("Live Activity APNs Token Received:", info.token);
@@ -7910,13 +7912,12 @@ async function toggleLiveActivity(gameId) {
             pushToken: info.token
           })
         });
-        showToast("Following Live! Updates will appear on your lock screen.", "ok");
       } catch (e) {
         console.error("Failed to sync Live Activity token:", e);
       }
     });
   } catch (e) {
-    showToast("Live activities unavailable: " + e.message, "error");
+    showToast("Live Activity error: " + (e.message || JSON.stringify(e)), "error");
   }
 }
 
