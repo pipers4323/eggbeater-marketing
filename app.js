@@ -7879,7 +7879,10 @@ async function toggleLiveActivity(gameId) {
     return;
   }
 
-  const LiveActivity = Capacitor.Plugins.LiveActivity;
+  // registerPlugin creates the JS↔native bridge for a local native plugin.
+  // Capacitor.Plugins.LiveActivity is only auto-populated for npm/SPM packages;
+  // local native-only plugins must be explicitly bridged with registerPlugin().
+  const LiveActivity = Capacitor.registerPlugin('LiveActivity');
   if (!LiveActivity) {
     showToast("Live Activity plugin not installed/registered", "error");
     return;
