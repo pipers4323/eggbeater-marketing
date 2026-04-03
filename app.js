@@ -4062,7 +4062,10 @@ async function forceAppRefresh(btn) {
       await Promise.all(keys.map(k => caches.delete(k)));
     }
   } catch (e) { /* ignore — reload anyway */ }
-  window.location.reload();
+  // Use location.replace with timestamp to bypass Android WebView HTTP disk cache
+  // (window.location.reload() does NOT bypass it — old cached content is served)
+  const base = location.pathname.replace(/\?.*$/, '');
+  location.replace(base + '?_r=' + Date.now());
 }
 
 function renderNextGameCard() {
@@ -5562,7 +5565,7 @@ function init() {
         console.info('[phase3] Active tournament changed:', _knownActiveTournId, '→', tourDoc.id);
         _knownActiveTournId = tourDoc.id;
         if (typeof showToast === 'function') showToast('New tournament activated — refreshing…');
-        setTimeout(() => window.location.reload(), 1500);
+        setTimeout(() => location.replace('/?_r=' + Date.now()), 1500);
       }
     });
   }
@@ -5619,7 +5622,8 @@ function init() {
     // Auto-reload when a new service worker activates so every device always
     // runs the latest code immediately after a deploy (no manual refresh needed).
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      window.location.reload();
+      // Use replace+timestamp to bypass Android WebView HTTP disk cache
+      location.replace('/?_r=' + Date.now());
     });
 
     navigator.serviceWorker.register('/sw.js')
@@ -5632,7 +5636,7 @@ function init() {
           }
           // SW signals that a new version just activated — reload to get fresh assets
           if (e.data?.type === 'SW_UPDATED') {
-            window.location.reload();
+            location.replace('/?_r=' + Date.now());
           }
         });
         // Register periodic background sync (Android/Chrome, best-effort)

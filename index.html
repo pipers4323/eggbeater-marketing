@@ -390,12 +390,13 @@
   <script>
     if ('serviceWorker' in navigator) {
       // Reload whenever a new SW takes control (covers both first-time and updates)
+      // Use replace+timestamp to bypass Android WebView HTTP disk cache
       navigator.serviceWorker.addEventListener('controllerchange', function() {
-        window.location.reload();
+        location.replace('/?_r=' + Date.now());
       });
       // Also reload when the SW explicitly signals it has updated
       navigator.serviceWorker.addEventListener('message', function(e) {
-        if (e.data && e.data.type === 'SW_UPDATED') window.location.reload();
+        if (e.data && e.data.type === 'SW_UPDATED') location.replace('/?_r=' + Date.now());
       });
     }
   </script>
