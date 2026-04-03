@@ -806,7 +806,10 @@ function afterScore(gameId) {
   renderNextGameCard(); // update LIVE badge on blue card
   if (state.currentTab === 'scores') renderScoresTab();
   updateLiveDot();
-  broadcastLiveScore(gameId); // fire-and-forget
+  // Broadcast score to CF Worker — reset to pre clears all viewer devices
+  const _gs = state.liveScores[gameId];
+  if (_gs && _gs.gameState === 'pre') broadcastGameReset(gameId);
+  else broadcastLiveScore(gameId); // fire-and-forget
   notifyScorePush(gameId, 'goal'); // fire-and-forget APNs push
   // Android 16 Live Update Sync
   if (typeof EggbeaterLiveUpdate !== 'undefined') {
@@ -7863,6 +7866,7 @@ function renderMyPlayerCard() {
 
 // ─── LIVE ACTIVITIES (iOS) / LIVE UPDATES (Android) ─────────────────────────
 async function toggleLiveActivity(gameId) {
+  try {
   if (!window.Capacitor || !Capacitor.isNativePlatform()) {
     showToast("Follow Live is only available in the iOS or Android app");
     return;
@@ -7952,6 +7956,9 @@ async function toggleLiveActivity(gameId) {
   } catch (e) {
     const errMsg = e?.message || e?.code || e?.error?.message || (typeof e === 'string' ? e : null) || JSON.stringify(e) || 'unknown error';
     showToast("Live Activity error: " + errMsg, "error");
+  }
+  } catch (outerErr) {
+    showToast("Follow Live error: " + (outerErr?.message || String(outerErr)), "error");
   }
 }
 
