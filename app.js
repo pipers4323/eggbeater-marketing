@@ -6707,6 +6707,11 @@ async function pollLiveScores() {
 
       // Strip worker meta fields; tag the score as remote with the source device
       const { deviceId, tournamentId, gameId: _gid, broadcastAt, ...scoreData } = remoteScore;
+      // If scorer reset the game to pre, wipe the local entry entirely
+      if (scoreData.gameState === 'pre') {
+        if (state.liveScores[gameId]) { delete state.liveScores[gameId]; changed = true; }
+        continue;
+      }
       state.liveScores[gameId] = { ...scoreData, _remote: true, _broadcastAt: broadcastAt, _deviceId: deviceId };
       changed = true;
     }
