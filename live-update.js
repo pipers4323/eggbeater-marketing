@@ -14,8 +14,8 @@
 
   function getPlugin() {
     try {
-      if (window.Capacitor && window.Capacitor.Plugins) {
-        return window.Capacitor.Plugins.LiveUpdate;
+      if (window.Capacitor && window.Capacitor.registerPlugin) {
+        return window.Capacitor.registerPlugin('LiveUpdate');
       }
     } catch (e) {
       console.warn('[live-update] Could not access LiveUpdate plugin:', e.message);

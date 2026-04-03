@@ -810,6 +810,21 @@ function afterScore(gameId) {
   if (typeof EggbeaterLiveUpdate !== 'undefined') {
     EggbeaterLiveUpdate.sync(gameId, state.liveScores[gameId]);
   }
+  // iOS Live Activity auto-update (fire-and-forget)
+  if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+    const s = state.liveScores[gameId];
+    if (s && s.gameState !== 'pre' && s.gameState !== 'final') {
+      const _la = Capacitor.registerPlugin('LiveActivity');
+      if (_la) {
+        _la.updateActivity({
+          homeScore: s.team || 0,
+          awayScore: s.opp || 0,
+          clock: s.clock || "0:00",
+          quarter: String(s.period || 1)
+        }).catch(() => {});
+      }
+    }
+  }
 }
 
 // Show/hide the pulsing red dot on the Scores nav button.
@@ -7905,7 +7920,7 @@ async function toggleLiveActivity(gameId) {
       homeScore: score.team || 0,
       awayScore: score.opp || 0,
       clock: score.clock || "0:00",
-      quarter: score.quarter || "1"
+      quarter: String(score.period || 1)
     });
 
     showToast("Following Live! Check your lock screen for score updates.", "ok");
