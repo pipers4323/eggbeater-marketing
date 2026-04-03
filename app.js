@@ -792,8 +792,10 @@ function isGameLive(gameId) {
   const s = state.liveScores[gameId];
   if (!s || !s.gameState || s.gameState === 'pre') return false;
   const myGames = getMyGames();
-  if (myGames.has(gameId) || !s._remote) return isScorerUnlocked();
-  return (Date.now() - (s._broadcastAt || 0)) < 30 * 60 * 1000;
+  // If a recent remote broadcast exists, use that regardless of myGames history
+  if (s._broadcastAt) return (Date.now() - s._broadcastAt) < 30 * 60 * 1000;
+  // Local-only score: live only while scorer is actively unlocked on this device
+  return isScorerUnlocked();
 }
 
 /** Save + re-render + broadcast after any scoring action. */
