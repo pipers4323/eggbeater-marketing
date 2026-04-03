@@ -2114,14 +2114,20 @@ function _renderPaywallCards(offerings) {
   const price = (id, fallback) => offerings?.[id]?.product?.priceString || fallback;
 
   // Club card — monthly or annual
-  const clubMonthlyId = '$rc_monthly';
-  const clubAnnualId  = '$rc_annual';
-  const clubPkg       = isMonthly ? clubMonthlyId : clubAnnualId;
-  const clubPrice     = isMonthly ? price(clubMonthlyId, '$24.99') : price(clubAnnualId, '$199.99');
-  const clubPeriod    = isMonthly ? '/month' : '/year';
-  const clubSaving    = isMonthly ? '' : '<div class="paywall-card-saving">Save ~34% vs monthly billing</div>';
-  const clubTrialLine = isMonthly ? '14-day free trial · cancel anytime' : 'Best value · cancel anytime';
-  const clubBtnText   = isMonthly ? 'Start Free Trial' : 'Subscribe Annually';
+  const clubMonthlyId      = '$rc_monthly';
+  const clubAnnualId       = '$rc_annual';
+  const clubPkg            = isMonthly ? clubMonthlyId : clubAnnualId;
+  const clubPrice          = isMonthly ? price(clubMonthlyId, '$24.99') : price(clubAnnualId, '$199.99');
+  const clubPeriod         = isMonthly ? '/month' : '/year';
+  const clubSaving         = isMonthly ? '' : '<div class="paywall-card-saving">Save ~34% vs monthly billing</div>';
+  const clubTrialLine      = isMonthly ? '14-day free trial · cancel anytime' : 'Best value · cancel anytime';
+  const clubBtnText        = isMonthly ? 'Start Free Trial' : 'Subscribe Annually';
+
+  // Stripe price IDs for web checkout
+  const STRIPE_CLUB_MONTHLY = 'price_1TIEmo0NjxFM08jKlS2kPNZp';
+  const STRIPE_CLUB_ANNUAL  = 'price_1TIEnv0NjxFM08jKAY1W5s0m';
+  const STRIPE_HOST         = 'price_1TIEp60NjxFM08jKHWtHSRJM';
+  const clubStripePriceId   = isMonthly ? STRIPE_CLUB_MONTHLY : STRIPE_CLUB_ANNUAL;
 
   // Tournament Host card
   const hostId    = 'tournament_host';
@@ -2136,7 +2142,7 @@ function _renderPaywallCards(offerings) {
       ${clubSaving}
       ${isNative
         ? `<button class="paywall-buy-btn primary" id="paywall-club-btn" onclick="_paywallPurchase('${clubPkg}')">${clubBtnText}</button>`
-        : `<div class="paywall-web-note">Open the Eggbeater app on your phone to subscribe.</div>`
+        : `<button class="paywall-buy-btn primary" id="paywall-club-btn" onclick="_paywallWebCheckout('${clubStripePriceId}','club')">${clubBtnText}</button>`
       }
     </div>
 
@@ -2146,7 +2152,7 @@ function _renderPaywallCards(offerings) {
       <div class="paywall-card-price">${hostPrice}<span> one-time</span></div>
       ${isNative
         ? `<button class="paywall-buy-btn secondary" id="paywall-host-btn" onclick="_paywallPurchase('${hostId}')">Purchase Tournament Host</button>`
-        : `<div class="paywall-web-note">Open the Eggbeater app on your phone to purchase.</div>`
+        : `<button class="paywall-buy-btn secondary" id="paywall-host-btn" onclick="_paywallWebCheckout('${STRIPE_HOST}','tournament_host')">Purchase Tournament Host</button>`
       }
     </div>`;
 
@@ -2237,6 +2243,86 @@ async function _paywallRestore() {
     showStatus('Restore failed: ' + (e.message || 'Unknown error'), 'err');
   }
 }
+
+/**
+ * Web (browser) checkout via Stripe.
+ * Calls Worker /create-web-checkout → redirects to Stripe-hosted checkout page.
+ */
+async function _paywallWebCheckout(priceId, tier) {
+  const btn = document.getElementById(
+    tier === 'tournament_host' ? 'paywall-host-btn' : 'paywall-club-btn'
+  );
+  if (btn) { btn.disabled = true; btn.textContent = 'Redirecting…'; }
+
+  try {
+    const clubId = S.currentClubId || S.clubId;
+    if (!clubId) throw new Error('No club selected — please refresh and try again.');
+
+    const res = await fetch(`${WORKER}/create-web-checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clubId,
+        priceId,
+        successUrl: `${location.origin}${location.pathname}?checkout=success`,
+        cancelUrl:  `${location.origin}${location.pathname}?checkout=cancel`,
+      }),
+    });
+    const data = await res.json();
+    if (!data.ok || !data.url) throw new Error(data.description || 'Failed to create checkout session');
+    window.location.href = data.url;
+  } catch (e) {
+    showStatus('Checkout error: ' + e.message, 'err');
+    if (btn) { btn.disabled = false; btn.textContent = tier === 'tournament_host' ? 'Purchase Tournament Host' : 'Subscribe'; }
+  }
+}
+
+/**
+ * Open Stripe Billing Portal so the user can manage / cancel their web subscription.
+ */
+async function openStripePortal() {
+  showStatus('Opening subscription management…', 'info');
+  try {
+    const clubId = S.currentClubId || S.clubId;
+    if (!clubId) throw new Error('No club selected');
+
+    const res = await fetch(`${WORKER}/create-portal-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clubId,
+        returnUrl: `${location.origin}${location.pathname}`,
+      }),
+    });
+    const data = await res.json();
+    if (!data.ok || !data.url) throw new Error(data.description || 'Failed to open portal');
+    window.location.href = data.url;
+  } catch (e) {
+    showStatus('Portal error: ' + e.message, 'err');
+  }
+}
+
+/** Handle return from Stripe Checkout (success/cancel query params). */
+(function _handleStripeReturn() {
+  const params = new URLSearchParams(location.search);
+  if (params.has('checkout')) {
+    const status = params.get('checkout');
+    // Clean the URL param without reload
+    const clean = location.pathname;
+    history.replaceState({}, '', clean);
+
+    if (status === 'success') {
+      showStatus('Payment successful! Your plan will activate shortly.', 'ok');
+      // Refresh tier after a brief delay so KV has time to update
+      setTimeout(async () => {
+        const clubId = S.currentClubId || S.clubId;
+        if (clubId) await loadClubTier(clubId);
+      }, 3000);
+    } else if (status === 'cancel') {
+      showStatus('Checkout cancelled — no charge was made.', 'info');
+    }
+  }
+})();
 
 /**
  * Attempt to log in to RevenueCat SDK with clubId as the app_user_id.
