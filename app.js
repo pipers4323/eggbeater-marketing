@@ -7918,6 +7918,7 @@ async function toggleLiveActivity(gameId) {
 
   // Capacitor 8: native bridge auto-populates Plugins for all registered native plugins.
   // Fallback to nativePromise (low-level bridge) if Plugins entry is missing.
+  const _laFromPlugins = !!(window.Capacitor?.Plugins?.LiveActivity);
   let LiveActivity = window.Capacitor?.Plugins?.LiveActivity;
   if (!LiveActivity && window.Capacitor?.nativePromise) {
     LiveActivity = {
@@ -7931,16 +7932,17 @@ async function toggleLiveActivity(gameId) {
     return;
   }
 
-  showToast("Starting Live Activity…", "info");
+  showToast(`Starting Live Activity… [${_laFromPlugins ? 'Plugins' : 'nativePromise'}]`, "info");
+  const _laTimeout = new Promise((_, rej) => setTimeout(() => rej(new Error('native call timed out after 5s')), 5000));
   try {
-    const result = await LiveActivity.startActivity({
+    const result = await Promise.race([LiveActivity.startActivity({
       homeTeam: game ? getTeamLabel(game.team) : "Home",
       awayTeam: game && game.opponent ? game.opponent : "Away",
       homeScore: score.team || 0,
       awayScore: score.opp || 0,
       clock: score.clock || "0:00",
       quarter: String(score.period || 1)
-    });
+    }), _laTimeout]);
 
     showToast("Following Live! Check your lock screen for score updates.", "ok");
 
