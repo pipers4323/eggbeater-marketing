@@ -6699,7 +6699,7 @@ async function pollLiveScores() {
     const myGames = getMyGames();
 
     for (const [gameId, remoteScore] of Object.entries(remote)) {
-      if (myGames.has(gameId)) continue; // we scored this game — never overwrite with remote
+      if (myGames.has(gameId) && isScorerUnlocked()) continue; // active scorer — don't overwrite local state
       const local = state.liveScores[gameId] || {};
       if ((remoteScore.broadcastAt || 0) <= (local._broadcastAt || 0)) continue; // not newer
 
