@@ -5984,6 +5984,7 @@ function init() {
     await loadAllSelectedTeams();
     checkTournamentChange();
     seedHistory();
+    state.roster = loadRoster(); // refresh in-memory roster from fresh TOURNAMENT.roster
     renderHeader();
     renderScheduleTab();
     renderPossibleTab();
@@ -6101,6 +6102,32 @@ function init() {
     setTimeout(() => {
       WidgetSync.syncAll(state);
     }, 2000);
+  }
+
+  // On app resume (foreground after background): immediately re-poll live scores and
+  // reload team data so Android viewers don't have to force-quit to see live games.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      pollLiveScores();
+      loadAllSelectedTeams().then(() => {
+        state.roster = loadRoster();
+        renderScheduleTab();
+        renderRosterTab();
+      }).catch(() => {});
+    }
+  });
+  // Capacitor native app resume event (fires when app comes back from background)
+  if (window.Capacitor?.Plugins?.App) {
+    window.Capacitor.Plugins.App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        pollLiveScores();
+        loadAllSelectedTeams().then(() => {
+          state.roster = loadRoster();
+          renderScheduleTab();
+          renderRosterTab();
+        }).catch(() => {});
+      }
+    });
   }
 }
 
@@ -6697,6 +6724,12 @@ async function loadTeamData(teamKey) {
       TEAM_CACHE[teamKey]  = { tournament, history: history || [] };
       window.TOURNAMENT    = tournament;
       window.HISTORY_SEED  = history || [];
+      // Clear cached roster so fresh roster from server is used on next loadRoster() call.
+      // Without this, loadRoster() returns the stale localStorage copy even after a fresh fetch.
+      localStorage.removeItem(STORE.ROSTER);
+      localStorage.removeItem(STORE.ROSTER + '-A');
+      localStorage.removeItem(STORE.ROSTER + '-B');
+      localStorage.removeItem(STORE.ROSTER + '-C');
     }
 
     // Apply branding from the team data payload (preferred source)
