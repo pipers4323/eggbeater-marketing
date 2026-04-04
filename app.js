@@ -2257,8 +2257,9 @@ function _tickAllClocks() {
     if (schedEl) schedEl.textContent = fmtTime;
     // Keep state.clock in sync so broadcasts and Live Activity updates have the current time
     s.clock = fmtTime;
-    // Push clock to iOS Live Activity once per second (only for the actively-followed game)
-    if (window._activeLA && gameId === window._activeLA.gameId) {
+    // Push clock to iOS Live Activity once per second — no _activeLA check since
+    // the LA can outlive an _activeLA reset (e.g. after a SW cache reload).
+    if (window.Capacitor?.isNativePlatform?.() && window.Capacitor?.getPlatform?.() === 'ios') {
       const now = Date.now();
       if (!window._laLastClockPush || now - window._laLastClockPush >= 1000) {
         window._laLastClockPush = now;
@@ -2392,7 +2393,9 @@ function startScoring(gameId) {
  * native Text(.timer) countdown starts/stops at exactly the right moment.
  */
 function _pushLAClockState(gameId) {
-  if (!window._activeLA || window._activeLA.gameId !== gameId) return;
+  // No _activeLA guard — the LA may still be showing even if _activeLA was reset
+  // (e.g. after a SW reload). Always attempt updateActivity; fails silently if no LA active.
+  if (!window.Capacitor?.isNativePlatform?.() || window.Capacitor?.getPlatform?.() !== 'ios') return;
   const s = getLiveScore(gameId);
   if (!s) return;
   const _la = window.Capacitor?.Plugins?.LiveActivity ||

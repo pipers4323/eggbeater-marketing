@@ -189,30 +189,29 @@ async function fbSignIn() {
       }
 
       // Use the ID token to sign in with Firebase.
-      // Firebase's JS SDK embeds window.location.href as `requestUri` in the
-      // identitytoolkit POST body. In Capacitor that URL is capacitor://localhost
-      // which Firebase rejects (auth/requests-from-referer-...-blocked).
-      // Fix: intercept fetch for the duration of signInWithCredential and replace
-      // the capacitor:// requestUri with our authorized web domain.
-      const _origFetch = window.fetch.bind(window);
-      window.fetch = function(url, opts) {
-        if (typeof url === 'string' && url.includes('identitytoolkit.googleapis.com') && opts && opts.body) {
-          try {
-            const body = JSON.parse(opts.body);
-            if (body.requestUri && body.requestUri.startsWith('capacitor:')) {
-              body.requestUri = 'https://eggbeater.app';
-              opts = Object.assign({}, opts, { body: JSON.stringify(body) });
-            }
-          } catch (_) {}
-        }
-        return _origFetch(url, opts);
-      };
-      const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
-      try {
+      // On iOS: WKWebView sends Referer: capacitor://localhost which Firebase blocks.
+      // The fetch interceptor can't suppress browser Referer headers, so we proxy
+      // through our CF Worker — the server call has no browser Referer.
+      // On Android: window.location is http://localhost which Firebase allows.
+      const isIOS = window.Capacitor?.getPlatform?.() === 'ios';
+      if (isIOS) {
+        // Worker verifies Google token, mints Firebase custom token (no Referer issue)
+        const workerUrl = typeof PUSH_SERVER_URL !== 'undefined'
+          ? PUSH_SERVER_URL : 'https://ebwp-push.sarah-new.workers.dev';
+        const resp = await fetch(`${workerUrl}/google-sign-in`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken }),
+        });
+        const { customToken, error } = await resp.json();
+        if (error || !customToken) throw new Error(error || 'Worker sign-in failed');
+        await _fbAuth.signInWithCustomToken(customToken);
+        console.info('[firebase] Signed in via Worker custom token ✓');
+      } else {
+        // Android: signInWithCredential works (http://localhost is whitelisted)
+        const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
         await _fbAuth.signInWithCredential(credential);
         console.info('[firebase] Signed in via native Google ✓');
-      } finally {
-        window.fetch = _origFetch; // always restore, even on error
       }
     } catch (e) {
       console.error('[firebase] Native sign-in error:', e);
