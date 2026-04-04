@@ -1256,7 +1256,7 @@ function buildBoxScoreHtml(events, oppName) {
     if (ev.type === 'timeout')    { teamTimeouts++; continue; }
     if (ev.side !== 'team')       continue;
     const key = ev.cap || ev.name || '_unknown';
-    if (!playerMap[key]) playerMap[key] = { cap: ev.cap||'', name: ev.name||'', G:0, SM:0, G5:0, M5:0, SOG:0, SOM:0, A:0, Excl:0, Sv:0, Blk:0 };
+    if (!playerMap[key]) playerMap[key] = { cap: ev.cap||'', name: ev.name||'', G:0, SM:0, G5:0, M5:0, SOG:0, SOM:0, A:0, Excl:0, EE:0, Sv:0, Blk:0 };
     if (ev.type === 'goal')                              playerMap[key].G++;
     if (ev.type === 'shot_miss')                         playerMap[key].SM++;
     if (ev.type === 'goal_5m')                           playerMap[key].G5++;
@@ -1265,6 +1265,7 @@ function buildBoxScoreHtml(events, oppName) {
     if (ev.type === 'so_miss')                           playerMap[key].SOM++;
     if (ev.type === 'assist')                            playerMap[key].A++;
     if (ev.type === 'exclusion' || ev.type === 'brutality') playerMap[key].Excl++;
+    if (ev.type === 'earned_excl')                       playerMap[key].EE++;
     if (ev.type === 'save')                              playerMap[key].Sv++;
     if (ev.type === 'block')                             playerMap[key].Blk++;
   }
@@ -1281,6 +1282,7 @@ function buildBoxScoreHtml(events, oppName) {
   const totalG    = fieldPlayers.reduce((s,p) => s+p.G, 0);
   const totalA    = fieldPlayers.reduce((s,p) => s+p.A, 0);
   const totalExcl = fieldPlayers.reduce((s,p) => s+p.Excl, 0);
+  const totalEE   = fieldPlayers.reduce((s,p) => s+(p.EE||0), 0);
 
   const hasShotMiss = fieldPlayers.some(p => p.SM > 0);
   const has5m     = fieldPlayers.some(p => p.G5 > 0 || p.M5 > 0);
@@ -1297,6 +1299,7 @@ function buildBoxScoreHtml(events, oppName) {
       ${hasSoGoals ? `<span class="bs-stat${p.SOM?' has-stat excl-stat':''}">${p.SOM||0}</span>` : ''}
       <span class="bs-stat${p.A?'   has-stat':''}">${p.A}</span>
       <span class="bs-stat${p.Excl?' has-stat excl-stat':''}">${p.Excl}</span>
+      <span class="bs-stat${p.EE?'   has-stat excl-stat':''}">${p.EE||0}</span>
     </div>`;
   }).join('');
 
@@ -1338,6 +1341,7 @@ function buildBoxScoreHtml(events, oppName) {
       ${hasSoGoals ? `<span class="bs-stat bs-col-hdr" title="Shootout Misses">SO✗</span>` : ''}
       <span class="bs-stat bs-col-hdr">A</span>
       <span class="bs-stat bs-col-hdr">Ex</span>
+      <span class="bs-stat bs-col-hdr" title="Earned Exclusions">EE</span>
     </div>
     ${fieldRows}
     ${fieldPlayers.length ? `<div class="bs-row bs-total-row">
@@ -1350,6 +1354,7 @@ function buildBoxScoreHtml(events, oppName) {
       ${hasSoGoals ? `<span class="bs-stat">${totalSOM}</span>` : ''}
       <span class="bs-stat">${totalA}</span>
       <span class="bs-stat">${totalExcl}</span>
+      <span class="bs-stat">${totalEE}</span>
     </div>` : ''}
     ${gkSection}
     ${toLine}
@@ -1419,10 +1424,11 @@ function shareBoxScore(gameId) {
     if (ev.type === 'timeout')  { ttls++; continue; }
     if (ev.side !== 'team')     continue;
     const k = ev.cap || ev.name || '?';
-    if (!playerMap[k]) playerMap[k] = { cap:ev.cap||'', name:ev.name||'', G:0, A:0, Excl:0, Sv:0, Blk:0 };
+    if (!playerMap[k]) playerMap[k] = { cap:ev.cap||'', name:ev.name||'', G:0, A:0, Excl:0, EE:0, Sv:0, Blk:0 };
     if (ev.type==='goal')                              playerMap[k].G++;
     if (ev.type==='assist')                            playerMap[k].A++;
     if (ev.type==='exclusion'||ev.type==='brutality')  playerMap[k].Excl++;
+    if (ev.type==='earned_excl')                       playerMap[k].EE++;
     if (ev.type==='save')                              playerMap[k].Sv++;
     if (ev.type==='block')                             playerMap[k].Blk++;
   }
@@ -1431,10 +1437,10 @@ function shareBoxScore(gameId) {
   const gkPs    = ps.filter(p =>  isGoalie(p.cap));
   if (fieldPs.length) {
     text += `── Box Score ──\n`;
-    text += `${'Player'.padEnd(15)} G  A  Ex\n`;
+    text += `${'Player'.padEnd(15)} G  A  Ex EE\n`;
     for (const p of fieldPs) {
       const n = (p.cap ? `#${p.cap} ${(p.name||'').split(' ')[0]}` : p.name||'?').padEnd(15);
-      text += `${n} ${p.G}  ${p.A}  ${p.Excl}\n`;
+      text += `${n} ${p.G}  ${p.A}  ${p.Excl}  ${p.EE||0}\n`;
     }
     if (ttls) text += `Team Timeouts: ${ttls}\n`;
   }
@@ -1684,10 +1690,11 @@ function buildBoxScoreText(gameId) {
     if (ev.type === 'opp_timeout') { oppTtls++; continue; }
     if (ev.side !== 'team')     continue;
     const k = ev.cap || ev.name || '?';
-    if (!playerMap[k]) playerMap[k] = { cap:ev.cap||'', name:ev.name||'', G:0, A:0, Excl:0, Sv:0, Blk:0 };
+    if (!playerMap[k]) playerMap[k] = { cap:ev.cap||'', name:ev.name||'', G:0, A:0, Excl:0, EE:0, Sv:0, Blk:0 };
     if (ev.type==='goal')                              playerMap[k].G++;
     if (ev.type==='assist')                            playerMap[k].A++;
     if (ev.type==='exclusion'||ev.type==='brutality')  playerMap[k].Excl++;
+    if (ev.type==='earned_excl')                       playerMap[k].EE++;
     if (ev.type==='save')                              playerMap[k].Sv++;
     if (ev.type==='block')                             playerMap[k].Blk++;
   }
@@ -1696,10 +1703,10 @@ function buildBoxScoreText(gameId) {
   const gkPs    = ps.filter(p =>  isGoalie(p.cap));
   if (fieldPs.length) {
     text += `── Box Score ──\n`;
-    text += `Player          G  A  Ex\n`;
+    text += `Player          G  A  Ex EE\n`;
     for (const p of fieldPs) {
       const n = (p.cap ? `#${p.cap} ${(p.name||'').split(' ')[0]}` : p.name||'?').padEnd(15);
-      text += `${n} ${p.G}  ${p.A}  ${p.Excl}\n`;
+      text += `${n} ${p.G}  ${p.A}  ${p.Excl}  ${p.EE||0}\n`;
     }
     if (ttls)    text += `Team Timeouts: ${ttls}\n`;
     if (oppTtls) text += `Opp Timeouts: ${oppTtls}\n`;
@@ -1923,6 +1930,7 @@ function buildPlayerLookupResult(name) {
   const G          = stats?.G          || 0;
   const A          = stats?.A          || 0;
   const Excl       = stats?.Excl       || 0;
+  const EE         = stats?.EE         || 0;
   const sixOnFive  = stats?.sixOnFive  || 0;
   const Sv         = stats?.Sv         || 0;
   const Blk        = stats?.Blk        || 0;
@@ -1962,6 +1970,7 @@ function buildPlayerLookupResult(name) {
         </div>
         <div class="mp-stat-row-3">
           <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${Excl}</span><span class="mp-stat-lbl-sm">Exclusions</span></div>
+          <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${EE}</span><span class="mp-stat-lbl-sm">Earned Excl</span></div>
           <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${SOM2}</span><span class="mp-stat-lbl-sm">SO Attempts</span></div>
           <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${gameCount}</span><span class="mp-stat-lbl-sm">Games</span></div>
         </div>
@@ -1974,7 +1983,7 @@ function buildPlayerLookupResult(name) {
     const score = (r.teamScore !== '' && r.oppScore !== '') ? `<span class="mp-game-score">${r.teamScore}–${r.oppScore}</span>` : '';
     const st    = isGK
       ? `Sv&nbsp;${r.Sv||0}&nbsp; Blk&nbsp;${r.Blk||0}&nbsp; Ex&nbsp;${r.Excl}`
-      : `G&nbsp;${r.G}&nbsp; A&nbsp;${r.A}&nbsp; Ex&nbsp;${r.Excl}`;
+      : `G&nbsp;${r.G}&nbsp; A&nbsp;${r.A}&nbsp; Ex&nbsp;${r.Excl}&nbsp; EE&nbsp;${r.EE||0}`;
     return `<div class="mp-game-row">
       <div class="mp-game-opp">${escHtml(r.opponent)}${res ? ' '+res : ''}${score ? ' '+score : ''}</div>
       <div class="mp-game-stats">${st}</div>
@@ -2470,12 +2479,13 @@ function openEventPicker(gameId, eventType) {
     _pickerSixOnFive = isSixOnFive;
 
     const TITLES = {
-      goal:      'Who scored?',
-      assist:    'Who assisted?',
-      exclusion: 'Who was excluded?',
-      brutality: 'Brutality foul — who?',
-      save:      'Who made the save?',
-      block:     'Who blocked?',
+      goal:         'Who scored?',
+      assist:       'Who assisted?',
+      exclusion:    'Who was excluded?',
+      brutality:    'Brutality foul — who?',
+      earned_excl:  'Who earned the exclusion?',
+      save:         'Who made the save?',
+      block:        'Who blocked?',
     };
 
     const titleEl = $('roster-modal-title');
@@ -4849,6 +4859,7 @@ function buildGameCard(g, viewerOnly = false) {
         <button class="stat-btn stat-assist"      onclick="openEventPicker('${gid}','assist')">Assist</button>
         <button class="stat-btn stat-attempt"     onclick="openEventPicker('${gid}','shot_miss')">Attempt</button>
         <button class="stat-btn stat-exclusion"   onclick="openEventPicker('${gid}','exclusion')">Excl</button>
+        <button class="stat-btn stat-earned-excl"  onclick="openEventPicker('${gid}','earned_excl')">Earned Excl</button>
         <button class="stat-btn stat-opp-attempt" onclick="recordEventDirect('${gid}','opp_shot_miss')">Opp Attempt</button>
         <button class="stat-btn stat-opp-excl"    onclick="recordEventDirect('${gid}','opp_exclusion')">Opp Excl</button>
       </div>
@@ -7299,11 +7310,11 @@ function getAllPlayersWithStats() {
   function processEvts(evts, gameKey) {
     for (const ev of (evts || [])) {
       if (ev.side !== 'team' || ev.type === 'game_state') continue;
-      if (!['goal','shot_miss','goal_5m','miss_5m','so_goal','so_miss','assist','exclusion','brutality','save','block'].includes(ev.type)) continue;
+      if (!['goal','shot_miss','goal_5m','miss_5m','so_goal','so_miss','assist','exclusion','brutality','earned_excl','save','block'].includes(ev.type)) continue;
       const key = nameKey(ev);
       if (!key) continue;
       const name = String(ev.name || '').trim();
-      if (!map[key]) map[key] = { name, G: 0, SM: 0, G5: 0, M5: 0, SOG: 0, SOM: 0, A: 0, Excl: 0, sixOnFive: 0, Sv: 0, Blk: 0, games: new Set() };
+      if (!map[key]) map[key] = { name, G: 0, SM: 0, G5: 0, M5: 0, SOG: 0, SOM: 0, A: 0, Excl: 0, EE: 0, sixOnFive: 0, Sv: 0, Blk: 0, games: new Set() };
       // Keep the longest / most complete name seen for this player
       if (name.length > map[key].name.length) map[key].name = name;
       map[key].games.add(gameKey);
@@ -7315,6 +7326,7 @@ function getAllPlayersWithStats() {
       if (ev.type === 'so_miss')                              map[key].SOM++;
       if (ev.type === 'assist')                               map[key].A++;
       if (ev.type === 'exclusion' || ev.type === 'brutality') map[key].Excl++;
+      if (ev.type === 'earned_excl')                          map[key].EE++;
       if (ev.type === 'save')                                 map[key].Sv++;
       if (ev.type === 'block')                                map[key].Blk++;
     }
@@ -7364,7 +7376,7 @@ function collectPlayerGameRows(name) {
   }
 
   function extractFromEvts(evts) {
-    let G = 0, SM = 0, G5 = 0, M5 = 0, SOG = 0, SOM = 0, A = 0, Excl = 0, sixOnFive = 0, Sv = 0, Blk = 0, hasAny = false;
+    let G = 0, SM = 0, G5 = 0, M5 = 0, SOG = 0, SOM = 0, A = 0, Excl = 0, EE = 0, sixOnFive = 0, Sv = 0, Blk = 0, hasAny = false;
     for (const ev of (evts || [])) {
       if (ev.type === 'game_state') continue;
       if (!matchesPlayer(ev)) continue;
@@ -7377,10 +7389,11 @@ function collectPlayerGameRows(name) {
       if (ev.type === 'so_miss')                              SOM++;
       if (ev.type === 'assist')                               A++;
       if (ev.type === 'exclusion' || ev.type === 'brutality') Excl++;
+      if (ev.type === 'earned_excl')                          EE++;
       if (ev.type === 'save')                                 Sv++;
       if (ev.type === 'block')                                Blk++;
     }
-    return { hasAny, G, SM, G5, M5, SOG, SOM, A, Excl, sixOnFive, Sv, Blk };
+    return { hasAny, G, SM, G5, M5, SOG, SOM, A, Excl, EE, sixOnFive, Sv, Blk };
   }
 
   // Current tournament
@@ -7729,7 +7742,7 @@ function renderHelpTab() {
         <li>Tap <strong>🔒 Scorer Login</strong> in the top-right corner of the viewer to switch to full scoring mode if you have the password.</li>
         <li>When a scorer is active, you'll see a <strong>🔴 LIVE</strong> badge and all updates appear within 10 seconds.</li>
         <li>The <strong>event log</strong> shows every goal 🏐, assist 🤝, exclusion ❌, and other events with clock times.</li>
-        <li>The <strong>box score</strong> shows each player's totals: Goals, Attempts, 5m Goals, 5m Attempts, SO Goals, SO Attempts, Assists, and Exclusions.</li>
+        <li>The <strong>box score</strong> shows each player's totals: Goals, Attempts, 5m Goals, 5m Attempts, SO Goals, SO Attempts, Assists, Exclusions, and Earned Exclusions.</li>
         <li>After the game, all stats are saved and flow into each player's history in the Roster tab.</li>
       </ul>`
     },
@@ -7745,6 +7758,7 @@ function renderHelpTab() {
         <li><strong>Attempt / Opp Attempt</strong> — records a shot that didn't score (used to calculate shooting %).</li>
         <li><strong>Assist</strong> — tap and pick the player who assisted.</li>
         <li><strong>Excl / Opp Excl</strong> — records an exclusion foul for either team.</li>
+        <li><strong>Earned Excl</strong> — tap and pick the player who drew the exclusion (forced the defender into the foul). Tracked separately from regular exclusions so you can see who is creating power-play opportunities.</li>
         <li><strong>5m / Opp 5m</strong> — records a 5-meter penalty shot as a goal.</li>
         <li><strong>5m Attempt / Opp 5m Attempt</strong> — records a 5-meter shot that didn't score.</li>
         <li><strong>🧤 GK Save / 🛡️ GK Block</strong> — records goalie saves and blocks.</li>
@@ -7803,7 +7817,7 @@ function renderHelpTab() {
         <li><strong>Multiple age groups selected:</strong> a "My Players" card appears for each age group — pick your child from each team's dropdown. All followed players are shown at the top of the Roster tab.</li>
         <li><strong>Row 1 (large):</strong> Goals · Assists · Attempts — the three primary stats at a glance.</li>
         <li><strong>Row 2:</strong> 6on5 Goals · 5m Goals · 5m Attempts · SO Goals — specialty scoring stats.</li>
-        <li><strong>Row 3:</strong> Exclusions · SO Attempts · Games — discipline and game count.</li>
+        <li><strong>Row 3:</strong> Exclusions · Earned Excl · SO Attempts · Games — discipline, earned power plays, and game count.</li>
         <li>Three <strong>Shooting % boxes</strong> show regular shot %, 5m shot %, and SO shot % — each with made/attempts breakdown.</li>
         <li>Recent games are listed with per-game stats and scores.</li>
         <li>The <strong>📊 Download Stats CSV</strong> button exports the full stat history as a spreadsheet.</li>

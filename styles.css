@@ -2585,8 +2585,10 @@ body.modal-open { overflow: hidden; }
 .stat-assist { border-color: #86efac; color: #15803d; background: #f0fdf4; }
 
 /* Exclusions → near-black */
-.stat-exclusion { border-color: #374151; color: #111827; background: #f9fafb; }
-.stat-opp-excl  { border-color: #374151; color: #111827; background: #f9fafb; }
+.stat-exclusion  { border-color: #374151; color: #111827; background: #f9fafb; }
+.stat-opp-excl   { border-color: #374151; color: #111827; background: #f9fafb; }
+/* Earned Exclusion → amber (offensive positive play) */
+.stat-earned-excl { border-color: #d97706; color: #92400e; background: #fffbeb; }
 
 /* T/O → neutral slate */
 .stat-timeout     { border-color: #9ca3af; color: #4b5563; background: #f3f4f6; }
@@ -3215,19 +3217,27 @@ body.modal-open { overflow: hidden; }
   margin-left: auto;
 }
 
-/* Full-width banner at top of Scores tab when live scoring active */
+/* Live-scoring banner — fixed overlay at top of screen (above header) */
 .live-tab-banner {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 900px;
+  z-index: 9990;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   background: #e53935;
   color: white;
   font-size: 0.82rem;
   font-weight: 700;
   padding: 10px 16px;
-  border-radius: 10px;
-  margin-bottom: 8px;
+  border-radius: 0;
   animation: live-pulse 2s ease-in-out infinite;
+  pointer-events: none; /* banner is informational — don't block taps */
 }
 
 /* ─── SCORER MODE ────────────────────────────────────────────────────────── */
@@ -4647,10 +4657,15 @@ details[open] .help-chevron { transform: rotate(180deg); }
     margin-right: 6px;
   }
 
-  /* Cards use tighter padding on phone */
+  /* Cards use tighter padding on phone — match next-game-wrap for consistency */
   .sched-card {
-    margin-left: 6px;
-    margin-right: 6px;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  /* Next game card matches games-section spacing on mobile */
+  .next-game-wrap {
+    margin-left: 12px;
+    margin-right: 12px;
   }
 
   .card.tab-card {
@@ -4670,6 +4685,11 @@ details[open] .help-chevron { transform: rotate(180deg); }
   }
   .games-section .sched-card {
     margin-bottom: 0;
+  }
+  /* Next game card matches games-section horizontal spacing */
+  .next-game-wrap {
+    margin-left: 12px;
+    margin-right: 12px;
   }
 
   /* Pills slightly larger with more padding */
@@ -4713,10 +4733,15 @@ details[open] .help-chevron { transform: rotate(180deg); }
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
-    padding: 0 4px;
+    padding: 0 12px;
   }
   .games-section .sched-card {
     margin-bottom: 0;
+  }
+  /* Next game card matches games-section horizontal spacing */
+  .next-game-wrap {
+    margin-left: 12px;
+    margin-right: 12px;
   }
 
   /* Modals max 600px centered */
