@@ -2799,11 +2799,13 @@ function switchTab(tab) {
   // For tabs in bottom nav, highlight them; for "more" tabs, highlight "more"
   const primaryTabs = ['schedule','scores','history'];
   document.querySelectorAll('.nav-btn').forEach(btn => {
-    if (primaryTabs.includes(tab)) {
-      btn.classList.toggle('nav-active', btn.dataset.tab === tab);
-    } else {
-      // Secondary tab (roster, possible, help, settings, tournscore) — highlight More
-      btn.classList.toggle('nav-active', btn.dataset.tab === 'more');
+    const isActive = primaryTabs.includes(tab)
+      ? btn.dataset.tab === tab
+      : btn.dataset.tab === 'more';
+    btn.classList.toggle('nav-active', isActive);
+    // Keep aria-selected in sync for the three primary tab buttons (role="tab")
+    if (btn.hasAttribute('aria-selected')) {
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
     }
   });
   // Also update desktop-only sidebar items
@@ -2823,13 +2825,20 @@ function toggleMoreDrawer() {
   const el = $('more-drawer');
   if (!el) return;
   el.classList.toggle('hidden');
+  // Sync aria-expanded on the More button
+  const moreBtn = $('more-btn');
+  if (moreBtn) moreBtn.setAttribute('aria-expanded', el.classList.contains('hidden') ? 'false' : 'true');
   updateTScoreTabVisibility();
 }
 
 /** Navigate from the More drawer — auto-closes drawer */
 function moreNavigate(tab) {
   const el = $('more-drawer');
-  if (el) el.classList.add('hidden');
+  if (el) {
+    el.classList.add('hidden');
+    const moreBtn = $('more-btn');
+    if (moreBtn) moreBtn.setAttribute('aria-expanded', 'false');
+  }
   switchTab(tab);
 }
 

@@ -94,7 +94,7 @@
   <div id="app">
 
     <!-- ── Schedule Tab ──────────────────────────────────────────────────── -->
-    <div id="view-schedule" class="tab-view">
+    <div id="view-schedule" class="tab-view" role="tabpanel" aria-labelledby="tab-schedule" tabindex="0">
       <!-- Next game highlight (pool play or projected bracket) -->
       <div id="next-game-section"></div>
       <!-- Director import removed — now in T-Score tab -->
@@ -119,7 +119,7 @@
     </div>
 
     <!-- ── History Tab ────────────────────────────────────────────────────── -->
-    <div id="view-history" class="tab-view hidden">
+    <div id="view-history" class="tab-view hidden" role="tabpanel" aria-labelledby="tab-history" tabindex="0">
       <div class="card tab-card">
         <div class="history-header-row">
           <h2>Tournament History</h2>
@@ -148,7 +148,7 @@
     </div>
 
     <!-- ── Scores Tab ─────────────────────────────────────────────────────── -->
-    <div id="view-scores" class="tab-view hidden">
+    <div id="view-scores" class="tab-view hidden" role="tabpanel" aria-labelledby="tab-scores" tabindex="0">
       <!-- Rendered by renderScoresTab() -->
     </div>
 
@@ -175,14 +175,14 @@
   </div><!-- #app -->
 
   <!-- ── Bottom Navigation (4 primary tabs) ──────────────────────────────── -->
-  <nav class="bottom-nav" id="bottom-nav">
-    <button class="nav-btn nav-active" data-tab="schedule" onclick="switchTab('schedule')">
+  <nav class="bottom-nav" id="bottom-nav" role="tablist" aria-label="Main navigation">
+    <button class="nav-btn nav-active" id="tab-schedule" role="tab" aria-selected="true" aria-controls="view-schedule" data-tab="schedule" onclick="switchTab('schedule')">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
       </svg>
       <span>Schedule</span>
     </button>
-    <button class="nav-btn" data-tab="scores" onclick="switchTab('scores')">
+    <button class="nav-btn" id="tab-scores" role="tab" aria-selected="false" aria-controls="view-scores" data-tab="scores" onclick="switchTab('scores')">
       <div class="nav-icon-wrap">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
@@ -191,13 +191,13 @@
       </div>
       <span>Scores</span>
     </button>
-    <button class="nav-btn" data-tab="history" onclick="switchTab('history')">
+    <button class="nav-btn" id="tab-history" role="tab" aria-selected="false" aria-controls="view-history" data-tab="history" onclick="switchTab('history')">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
       </svg>
       <span>History</span>
     </button>
-    <button class="nav-btn" data-tab="more" onclick="toggleMoreDrawer()">
+    <button class="nav-btn" id="more-btn" data-tab="more" onclick="toggleMoreDrawer()" aria-haspopup="dialog" aria-expanded="false" aria-label="More navigation options">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
       </svg>
@@ -233,7 +233,7 @@
   </nav>
 
   <!-- ── More Drawer (bottom sheet) ────────────────────────────────────────── -->
-  <div id="more-drawer" class="more-drawer hidden">
+  <div id="more-drawer" class="more-drawer hidden" role="dialog" aria-modal="true" aria-label="More navigation options">
     <div class="more-drawer-backdrop" onclick="toggleMoreDrawer()"></div>
     <div class="more-drawer-sheet">
       <div class="more-drawer-handle"></div>
@@ -367,7 +367,7 @@
   </div>
 
   <!-- Toast notification -->
-  <div id="toast" class="toast hidden"></div>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <!-- Firebase compat SDK (v10) — loaded before firebase.js and app.js -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
