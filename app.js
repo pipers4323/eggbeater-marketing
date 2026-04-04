@@ -7753,6 +7753,22 @@ function renderHelpTab() {
         <li>The directory is mobile-responsive and requires no login.</li>
       </ul>`
     },
+    {
+      icon: '♿',
+      title: 'Accessibility',
+      body: `<p>Eggbeater is designed to work with the accessibility features built into iOS and Android. All features listed below are fully supported.</p>
+      <ul>
+        <li><strong>VoiceOver (iOS) / TalkBack (Android)</strong> — the app is fully navigable by screen reader. The tab bar, all modals, and live score updates are all announced correctly. Say "Tap Schedule", "Tap Scores", or "Tap History" to switch tabs.</li>
+        <li><strong>Voice Control (iOS) / Voice Access (Android)</strong> — every button has a unique descriptive label matching its visible text, so you can activate any control by name.</li>
+        <li><strong>Dark Mode</strong> — go to <strong>More → Settings → Appearance</strong> to choose Light, Dark, or System. The app immediately adapts without a reload.</li>
+        <li><strong>Larger Text</strong> — all text scales with your device's system font size. Increase it in <em>iOS Settings → Display &amp; Brightness → Text Size</em> or <em>Android Settings → Display → Font size</em>.</li>
+        <li><strong>Reduce Motion</strong> — when enabled in your system settings, all animations and transitions are suppressed, including live score pulses and toast slide-ins.</li>
+        <li><strong>Increase Contrast / High Contrast Text</strong> — when enabled, secondary text is boosted to high-contrast dark tones and result pill backgrounds become solid colors.</li>
+        <li><strong>Colour Independence</strong> — no information is conveyed by colour alone. The active tab has a visible top-bar indicator; the Live badge has an accessible label; Win/Loss pills always include text.</li>
+      </ul>
+      <p style="margin-top:10px">For a full accessibility statement and step-by-step setup instructions, visit <a href="https://eggbeater.app/accessibility.html" target="_blank" style="color:var(--royal);font-weight:700">eggbeater.app/accessibility.html</a>.</p>
+      <p style="margin-top:8px">To report an accessibility issue or suggest an improvement, email <a href="mailto:hello@eggbeater.app?subject=Accessibility%20Feedback" style="color:var(--royal);font-weight:700">hello@eggbeater.app</a> — we aim to respond within 2 business days.</p>`
+    },
   ];
 
   const accordionHtml = sections.map((s, i) => `

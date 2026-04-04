@@ -8901,6 +8901,22 @@ function renderHelpTab() {
         <li>Changes here are saved to the server immediately when you tap "💾 Save Club Settings."</li>
       </ul>`
     },
+    {
+      icon: '♿',
+      title: 'Accessibility',
+      body: `<p>The Eggbeater admin panel is designed to work with the accessibility tools built into iOS and Android. All controls have descriptive labels, modals trap focus correctly and restore it when closed, and score changes are announced automatically.</p>
+      <ul>
+        <li><strong>VoiceOver (iOS) / TalkBack (Android)</strong> — all buttons, tabs, and form fields have descriptive labels. Dialogs trap focus and return it to the triggering element when closed. Score changes are read aloud automatically during live games.</li>
+        <li><strong>Voice Control (iOS) / Voice Access (Android)</strong> — every interactive element has a unique spoken label so you can navigate and activate controls by voice.</li>
+        <li><strong>Dark Mode</strong> — automatically follows your device's Dark Mode setting with a full dark color scheme.</li>
+        <li><strong>Larger Text</strong> — all text scales with your device's font size setting.</li>
+        <li><strong>Reduce Motion</strong> — transitions and animations are disabled when Reduce Motion is on.</li>
+        <li><strong>Increase Contrast / High Contrast Text</strong> — text and UI elements increase in contrast when system contrast settings are on.</li>
+        <li><strong>Colour Independence</strong> — all status information (live indicators, active tabs, result badges) uses non-colour cues in addition to colour.</li>
+      </ul>
+      <p style="margin-top:8px">Full accessibility details and tips: <a href="https://eggbeater.app/accessibility.html" target="_blank" style="color:var(--royal)">eggbeater.app/accessibility.html</a></p>
+      <p style="margin-top:4px">Feedback: <a href="mailto:hello@eggbeater.app?subject=Accessibility%20Feedback" style="color:var(--royal)">hello@eggbeater.app</a></p>`
+    },
   ];
 
   const accordionHtml = sections.map(s => `
