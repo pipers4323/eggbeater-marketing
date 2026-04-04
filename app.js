@@ -3073,6 +3073,15 @@ function renderSettingsTab() {
     <div class="settings-section">
       <div class="settings-section-title">Team Selection</div>
       <div id="settings-team-picker" class="settings-team-picker"></div>
+      ${_isNativePlatform() ? `
+      <div class="settings-item" onclick="openLASettingsModal()" style="border-top:1px solid var(--gray-100)">
+        <span class="settings-item-icon">📡</span>
+        <div class="settings-item-text">
+          <div class="settings-item-label">${window.Capacitor?.getPlatform?.() === 'ios' ? 'Live Activities' : 'Live Updates'}</div>
+          <div class="settings-item-value">Auto-start for favorited teams</div>
+        </div>
+        <span style="color:var(--gray-300);font-size:1.1rem">›</span>
+      </div>` : ''}
     </div>
 
     <div class="settings-section">
@@ -6485,6 +6494,101 @@ function toggleFavGroup(key) {
   renderTeamPicker();
 }
 
+// ── Live Activity / Live Update per-team preferences ──────────────────────────
+
+/** In-memory set of game IDs that were auto-started this session (prevents double-trigger). */
+const _laAutoStarted = new Set();
+
+function getLAPrefs() {
+  try { return JSON.parse(localStorage.getItem(`ebwp-la-prefs-${getAppClubId()}`) || '{}'); }
+  catch { return {}; }
+}
+
+function setLAPref(teamKey, enabled) {
+  const prefs = getLAPrefs();
+  prefs[teamKey] = enabled;
+  localStorage.setItem(`ebwp-la-prefs-${getAppClubId()}`, JSON.stringify(prefs));
+}
+
+function _teamLabelForKey(teamKey) {
+  if (typeof TEAM_OPTIONS !== 'undefined') {
+    const opt = TEAM_OPTIONS.find(o => o.key === teamKey);
+    if (opt?.label) return opt.label;
+  }
+  return teamKey.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function _buildLATeamListHTML() {
+  const platform = window.Capacitor?.getPlatform?.();
+  const favs = getFavGroups();
+  const prefs = getLAPrefs();
+  if (!favs.length) {
+    return `<div style="padding:12px 0;text-align:center;color:var(--gray-400);font-size:0.85rem">
+      Star a team in Team Selection to configure preferences here.
+    </div>`;
+  }
+  return favs.map(teamKey => {
+    const label = _teamLabelForKey(teamKey);
+    const enabled = prefs[teamKey] !== false; // default on
+    const thing = platform === 'ios' ? 'activity' : 'update';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--gray-100)">
+      <span style="font-size:0.95rem;font-weight:600">${escHtml(label)}</span>
+      <button onclick="toggleLAPref('${escHtml(teamKey)}')"
+              role="switch" aria-checked="${enabled}" aria-label="${escHtml(label)} live ${thing}"
+              style="width:51px;height:31px;border-radius:16px;border:none;cursor:pointer;padding:2px;
+                     background:${enabled ? 'var(--royal)' : '#ccc'};flex-shrink:0;transition:background .2s">
+        <span style="display:block;width:27px;height:27px;border-radius:50%;background:#fff;
+                     box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s;
+                     transform:translateX(${enabled ? '20px' : '0'})"></span>
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function openLASettingsModal() {
+  const platform = window.Capacitor?.getPlatform?.();
+  const title = platform === 'ios' ? 'Live Activities' : 'Live Updates';
+  const desc  = platform === 'ios'
+    ? 'Automatically add a real-time scorecard to your Lock Screen when a favorited team\'s game begins.'
+    : 'Automatically show a live score chip in your status bar when a favorited team\'s game begins.';
+
+  let modal = document.getElementById('la-settings-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'la-settings-modal';
+    modal.className = 'roster-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', `${title} Settings`);
+    modal.innerHTML = `
+      <div class="roster-modal-backdrop" onclick="closeLASettingsModal()"></div>
+      <div class="roster-modal-sheet">
+        <div class="roster-modal-header">
+          <span class="roster-modal-title">📡 ${escHtml(title)}</span>
+          <button class="roster-modal-close" onclick="closeLASettingsModal()" aria-label="Close">✕</button>
+        </div>
+        <div style="padding:16px">
+          <p style="margin:0 0 16px 0;font-size:0.85rem;color:var(--gray-500)">${escHtml(desc)}</p>
+          <div id="la-teams-list"></div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  document.getElementById('la-teams-list').innerHTML = _buildLATeamListHTML();
+  _openModal('la-settings-modal');
+}
+
+function closeLASettingsModal() {
+  _closeModal('la-settings-modal');
+}
+
+function toggleLAPref(teamKey) {
+  const prefs = getLAPrefs();
+  setLAPref(teamKey, prefs[teamKey] === false); // flip (default on → off; off → on)
+  const listEl = document.getElementById('la-teams-list');
+  if (listEl) listEl.innerHTML = _buildLATeamListHTML();
+}
+
 function toggleSelectedTeam(key) {
   const teams = getSelectedTeams();
   const idx   = teams.indexOf(key);
@@ -7197,13 +7301,36 @@ async function pollLiveScores() {
 
     // Android 16 Live Update Sync — always run so chip appears immediately when viewer opens app
     if (typeof EggbeaterLiveUpdate !== 'undefined' && Capacitor?.getPlatform?.() === 'android') {
+      const _laPrefsA = getLAPrefs();
+      const _favsA = getFavGroups();
       const liveGames = getTournamentGames().filter(g => isGameLive(g.id));
-      if (liveGames.length > 0) {
-        const gId = liveGames[0].id;
-        EggbeaterLiveUpdate.sync(gId, state.liveScores[gId]);
+      // Prefer a favorited team with LA pref enabled; fall back to first live game if no prefs set
+      const autoGame = liveGames.find(g => _favsA.includes(g.team) && _laPrefsA[g.team] !== false)
+        || (liveGames.length > 0 && !liveGames.some(g => _favsA.includes(g.team) && _laPrefsA[g.team] === false) ? liveGames[0] : null);
+      if (autoGame) {
+        EggbeaterLiveUpdate.sync(autoGame.id, state.liveScores[autoGame.id]);
       } else {
-        // No live games — clear the chip
+        // No live games (or all live games have LA disabled) — clear the chip
         EggbeaterLiveUpdate.stop();
+      }
+    }
+
+    // Auto-start Live Activity (iOS) for favorited teams when their game goes live
+    if (_isNativePlatform() && window.Capacitor?.getPlatform?.() === 'ios') {
+      const _laPrefsI = getLAPrefs();
+      const _favsI = getFavGroups();
+      const _games = getTournamentGames();
+      for (const [gId, score] of Object.entries(state.liveScores)) {
+        if (!score._remote) continue; // only auto-start for viewer, not active scorer
+        if (score.gameState === 'pre' || score.gameState === 'final') continue;
+        if (_laAutoStarted.has(gId)) continue;
+        if (window._activeLA?.gameId === gId) { _laAutoStarted.add(gId); continue; } // already active
+        const game = _games.find(g => g.id === gId);
+        if (!game || !_favsI.includes(game.team)) continue;
+        if (_laPrefsI[game.team] === false) continue; // user disabled for this team
+        _laAutoStarted.add(gId);
+        toggleLiveActivity(gId).catch(() => {});
+        break; // one at a time
       }
     }
 
