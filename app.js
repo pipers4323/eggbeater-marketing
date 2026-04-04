@@ -5800,6 +5800,13 @@ async function reloadTournamentJs() {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 
 function init() {
+  // Hide native splash screen — in remote URL mode launchAutoHide doesn't fire reliably
+  try {
+    if (window.Capacitor?.isNativePlatform?.()) {
+      window.Capacitor.nativePromise('SplashScreen', 'hide', {}).catch(() => {});
+    }
+  } catch (_) {}
+
   if (typeof TOURNAMENT === 'undefined') {
     document.body.innerHTML = '<p style="padding:2rem;color:red;">Error: tournament.js not loaded.</p>';
     return;
