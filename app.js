@@ -648,6 +648,12 @@ function formatDateGroupLabel(dateStr) {
   return dateStr;
 }
 
+/** Shows or hides the body-level live-scoring banner (position:fixed outside overflow containers). */
+function _setLiveBanner(visible) {
+  const el = document.getElementById('live-scoring-banner');
+  if (el) el.classList.toggle('hidden', !visible);
+}
+
 /** Returns today's date as a local YYYY-MM-DD string (NOT UTC — avoids UTC-midnight-shift bug). */
 function _localDateStr(d = new Date()) {
   const pad = n => String(n).padStart(2, '0');
@@ -3009,6 +3015,7 @@ function switchTab(tab) {
     btn.classList.toggle('nav-active', btn.dataset.tab === tab);
   });
   updateTScoreTabVisibility();
+  if (tab !== 'scores') _setLiveBanner(false); // hide banner when leaving scores tab
   if (tab === 'roster')      renderRosterTab();
   if (tab === 'scores')      renderScoresTab();
   if (tab === 'tournscore')  renderTournScoreTab();
@@ -3530,17 +3537,18 @@ function renderScoresTab() {
         continue;
       }
 
-      // Sort by date then game number
+      // Sort by date+time then game number (parseGameTime combines both — fixes same-day ordering)
+      const _gt = g => { const t = parseGameTime(g.dateISO, g.time); return t ? t.getTime() : (g.dateISO ? new Date(g.dateISO + 'T00:00:00').getTime() : Infinity); };
       active.sort((a, b) => {
-        const d = (a.dateISO || '').localeCompare(b.dateISO || '');
-        return d !== 0 ? d : gameNumVal(a) - gameNumVal(b);
+        const td = _gt(a) - _gt(b);
+        return td !== 0 ? td : gameNumVal(a) - gameNumVal(b);
       });
 
-      // Group by date — each date gets its own header + games-section (one card per game)
+      // Group by date — prefer dateISO as key so same-day games with/without g.date stay together
       const byDate = {};
       const dateOrder = [];
       for (const g of active) {
-        const dk = g.date || g.dateISO || 'Unknown';
+        const dk = g.dateISO || g.date || 'Unknown';
         if (!byDate[dk]) { byDate[dk] = []; dateOrder.push(dk); }
         byDate[dk].push(g);
       }
@@ -3561,9 +3569,10 @@ function renderScoresTab() {
     const games = getTournamentGames();
     const activeGames = games.filter(g => !state.results[g.id]);
     const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
+    const _gt2 = g => { const t = parseGameTime(g.dateISO, g.time); return t ? t.getTime() : (g.dateISO ? new Date(g.dateISO + 'T00:00:00').getTime() : Infinity); };
     activeGames.sort((a, b) => {
-      const d = (a.dateISO || '').localeCompare(b.dateISO || '');
-      return d !== 0 ? d : gameNumVal(a) - gameNumVal(b);
+      const td = _gt2(a) - _gt2(b);
+      return td !== 0 ? td : gameNumVal(a) - gameNumVal(b);
     });
 
     const anyLive = activeGames.some(g => isGameLive(g.id));
@@ -3579,7 +3588,7 @@ function renderScoresTab() {
       const byDate = {};
       const dateOrder = [];
       for (const g of activeGames) {
-        const d = g.date || g.dateISO || 'Unknown';
+        const d = g.dateISO || g.date || 'Unknown';
         if (!byDate[d]) { byDate[d] = []; dateOrder.push(d); }
         byDate[d].push(g);
       }
@@ -3590,12 +3599,12 @@ function renderScoresTab() {
       }
     }
 
+    _setLiveBanner(anyLive);
     el.innerHTML = dirHtml + `
         <div class="viewer-tab-bar">
           <span class="viewer-tab-label">${anyLive ? '🔴 Live Scores' : '📺 Scores'}</span>
           <button class="viewer-tab-login-btn" onclick="openScoringPasswordModal()">🔒 Scorer Login</button>
         </div>
-        ${anyLive ? `<div class="live-tab-banner">📡 Live scoring in progress — scores update every 5 seconds</div>` : ''}
         ${cardsHtml}`;
     return;
   }
@@ -3629,17 +3638,18 @@ function renderScoresTab() {
     return;
   }
 
-  // Sort by game number
+  // Sort by date+time then game number
   const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
+  const _gt3 = g => { const t = parseGameTime(g.dateISO, g.time); return t ? t.getTime() : (g.dateISO ? new Date(g.dateISO + 'T00:00:00').getTime() : Infinity); };
   activeGames.sort((a, b) => {
-    const d = (a.dateISO || '').localeCompare(b.dateISO || '');
-    return d !== 0 ? d : gameNumVal(a) - gameNumVal(b);
+    const td = _gt3(a) - _gt3(b);
+    return td !== 0 ? td : gameNumVal(a) - gameNumVal(b);
   });
 
   const byDate = {};
   const dateOrder = [];
   for (const g of activeGames) {
-    const d = g.date || g.dateISO || 'Unknown';
+    const d = g.dateISO || g.date || 'Unknown';
     if (!byDate[d]) { byDate[d] = []; dateOrder.push(d); }
     byDate[d].push(g);
   }
@@ -3650,9 +3660,7 @@ function renderScoresTab() {
     return s?._remote && s.gameState && s.gameState !== 'pre'
       && (Date.now() - (s._broadcastAt || 0)) < 30 * 60 * 1000;
   });
-  const bannerHtml = liveGames.length
-    ? `<div class="live-tab-banner">📡 Live scoring in progress — scores update every 5 seconds</div>`
-    : '';
+  _setLiveBanner(liveGames.length > 0);
 
   // Single lock bar at the top when scorer is unlocked
   const lockBar = TOURNAMENT.scoringPassword
@@ -3662,7 +3670,7 @@ function renderScoresTab() {
        </div>`
     : '';
 
-  let html = lockBar + bannerHtml;
+  let html = lockBar;
   for (const dateKey of dateOrder) {
     html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dateKey))}</div>`;
     html += `<div class="games-section">`;
@@ -4662,9 +4670,10 @@ function renderGamesList() {
 
   // Sort by date then by game number numerically (G1 < G4 < G10 < G13)
   const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
+  const _gt4 = g => { const t = parseGameTime(g.dateISO, g.time); return t ? t.getTime() : (g.dateISO ? new Date(g.dateISO + 'T00:00:00').getTime() : Infinity); };
   upcomingGames.sort((a, b) => {
-    const d = (a.dateISO || '').localeCompare(b.dateISO || '');
-    if (d !== 0) return d;
+    const td = _gt4(a) - _gt4(b);
+    if (td !== 0) return td;
     return gameNumVal(a) - gameNumVal(b);
   });
 
@@ -4678,7 +4687,7 @@ function renderGamesList() {
   const groups = {};
   const groupOrder = [];
   for (const g of listGames) {
-    const key = g.date || g.dateISO || 'TBD';
+    const key = g.dateISO || g.date || 'TBD';
     if (!groups[key]) { groups[key] = []; groupOrder.push(key); }
     groups[key].push(g);
   }
@@ -4709,7 +4718,7 @@ function buildScheduleCard(g) {
         ${g.gameNum ? `<div class="sched-game-num">${escHtml(g.gameNum)}</div>` : ''}
       </div>
       <div class="sched-meta">
-        <span>🕐 ${escHtml(g.time || 'TBD')}${g.date ? ' · ' + escHtml(g.date) : ''}</span>
+        <span>🕐 ${escHtml(g.time || 'TBD')}${(g.date || g.dateISO) ? ' · ' + escHtml(g.date || formatDateGroupLabel(g.dateISO)) : ''}</span>
         ${g.pool ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
         ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
       </div>
