@@ -6,8 +6,8 @@
  *   notifies parents when new games are added to the schedule
  */
 
-const CACHE = 'ebwp-v45';
-const VER   = '?v=123';   // bump alongside index.html script tags on every deploy
+const CACHE = 'ebwp-v46';
+const VER   = '?v=124';   // bump alongside index.html script tags on every deploy
 const ASSETS = [
   '/',
   '/index.html',
@@ -57,16 +57,19 @@ self.addEventListener('fetch', e => {
   // — the WebView loads directly from Netlify. Only pass through.
   if (url.hostname === 'eggbeater.app' && e.request.mode === 'navigate') return;
 
-  // Stale-while-revalidate for workers.dev /team-data (Phase 5E — offline mode)
+  // Network-first for workers.dev /team-data — always fetch fresh, cache as offline fallback
   if (url.hostname.includes('workers.dev') && url.pathname === '/team-data') {
     e.respondWith(
       caches.open('ebwp-team-data').then(async cache => {
-        const cached = await cache.match(e.request);
-        const fetchPromise = fetch(e.request).then(res => {
+        try {
+          const res = await fetch(e.request);
           if (res.ok) cache.put(e.request, res.clone());
           return res;
-        }).catch(() => cached); // if network fails, fall back to cached
-        return cached || fetchPromise;
+        } catch {
+          // Offline: return cached version if available
+          const cached = await cache.match(e.request);
+          return cached || new Response('{"ok":false}', { status: 503, headers: { 'Content-Type': 'application/json' } });
+        }
       })
     );
     return;

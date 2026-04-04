@@ -4294,7 +4294,11 @@ function renderRosterTab() {
   const hint = `<div style="font-size:0.78rem;color:var(--g400);padding:8px 14px 0;text-align:center">
     Roster is saved independently — names persist across tournaments.<br>
     Update cap numbers here any time; tap <strong>💾 Save Roster</strong> when done.
-  </div>`;
+  </div>
+  <button class="save-btn" style="width:100%;margin-top:8px;background:#f0fdf4;color:#166534;border:1px solid #86efac;font-size:0.8rem"
+          onclick="seedDemoRosters()" title="Seeds gender-appropriate demo rosters for all age groups (safe to re-run)">
+    🌱 Seed Demo Rosters (All Age Groups)
+  </button>`;
 
   if (isMultiTeamAdmin()) {
     // Ensure object format
@@ -4900,6 +4904,19 @@ async function saveRoster() {
     showStatus('✅ Roster saved — will be included in next deploy', 'ok');
   } catch (e) {
     showStatus('❌ Save failed: ' + e.message, 'err');
+  }
+}
+
+async function seedDemoRosters() {
+  if (!confirm('Seed gender-appropriate demo rosters for ALL age groups?\nThis overwrites existing demo rosters (safe to re-run).')) return;
+  showStatus('Seeding demo rosters…', 'info');
+  try {
+    const res = await api('POST', '/admin/seed-demo-rosters', {});
+    if (!res.ok) throw new Error('Worker returned ' + res.status);
+    const data = await res.json();
+    showStatus(`✅ Demo rosters seeded for ${data.seeded?.length || '?'} age groups — reload the parent app to see them`, 'ok');
+  } catch (e) {
+    showStatus('❌ Seed failed: ' + e.message, 'err');
   }
 }
 
