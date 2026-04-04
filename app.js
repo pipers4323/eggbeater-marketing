@@ -691,12 +691,22 @@ function findNextGameOrProjected() {
 
   // 1. Next upcoming pool play game by clock time
   // Keep showing a game as "next" until 50 min past its start time (covers typical game duration)
-  const nextPool = games
-    .filter(g => {
-      const t = parseGameTime(g.dateISO, g.time);
-      return t && t > new Date(now - 50 * 60 * 1000);
-    })
-    .sort((a, b) => parseGameTime(a.dateISO, a.time) - parseGameTime(b.dateISO, b.time))[0];
+  const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
+  const withTime = games.filter(g => {
+    const t = parseGameTime(g.dateISO, g.time);
+    return t && t > new Date(now - 50 * 60 * 1000);
+  });
+  // Fallback: if no games have a valid future dateISO (e.g. dates not yet entered),
+  // treat all unplayed games as upcoming and sort by game number.
+  const pool = withTime.length > 0 ? withTime : games.filter(g => !state.results[g.id]);
+  const nextPool = pool
+    .sort((a, b) => {
+      const ta = parseGameTime(a.dateISO, a.time), tb = parseGameTime(b.dateISO, b.time);
+      if (ta && tb) return ta - tb;
+      if (ta) return -1;
+      if (tb) return 1;
+      return gameNumVal(a) - gameNumVal(b);
+    })[0];
 
   if (nextPool) return { game: nextPool, type: 'pool' };
 
