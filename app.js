@@ -3595,7 +3595,7 @@ function renderScoresTab() {
           <span class="viewer-tab-label">${anyLive ? '🔴 Live Scores' : '📺 Scores'}</span>
           <button class="viewer-tab-login-btn" onclick="openScoringPasswordModal()">🔒 Scorer Login</button>
         </div>
-        ${anyLive ? `<div class="live-tab-banner">📡 Live scoring in progress — scores update every 30 seconds</div>` : ''}
+        ${anyLive ? `<div class="live-tab-banner">📡 Live scoring in progress — scores update every 5 seconds</div>` : ''}
         ${cardsHtml}`;
     return;
   }
@@ -3651,7 +3651,7 @@ function renderScoresTab() {
       && (Date.now() - (s._broadcastAt || 0)) < 30 * 60 * 1000;
   });
   const bannerHtml = liveGames.length
-    ? `<div class="live-tab-banner">📡 Live scoring in progress — scores update every 10 seconds</div>`
+    ? `<div class="live-tab-banner">📡 Live scoring in progress — scores update every 5 seconds</div>`
     : '';
 
   // Single lock bar at the top when scorer is unlocked
@@ -7037,7 +7037,7 @@ function lockScoring() {
 
 // ─── LIVE SCORE BROADCAST & SYNC ──────────────────────────────────────────────
 // Scorer device pushes state after every event.
-// Viewer devices poll every 10 s and merge remote state into their display.
+// Viewer devices poll every 5 s and merge remote state into their display.
 // Devices are distinguished by a random per-device ID stored in localStorage
 // so the scorer never overwrites their own live state with stale remote data.
 
@@ -7882,9 +7882,9 @@ function renderHelpTab() {
       title: 'Scores Tab — Live Scores & Box Scores',
       body: `<p>The <strong>Scores</strong> tab is where all live scoring and box scores live. Watch for a <strong>pulsing red dot</strong> on the Scores nav button — it lights up whenever a game is being actively scored.</p>
       <ul>
-        <li><strong>👁 View Live Scores</strong> — tap this button (above the scorer login) to follow a live game in real time without needing the scoring password. You'll see the live score, event log, and box score updating every 10 seconds.</li>
+        <li><strong>👁 View Live Scores</strong> — tap this button (above the scorer login) to follow a live game in real time without needing the scoring password. You'll see the live score, event log, and box score updating every 5 seconds.</li>
         <li>Tap <strong>🔒 Scorer Login</strong> in the top-right corner of the viewer to switch to full scoring mode if you have the password.</li>
-        <li>When a scorer is active, you'll see a <strong>🔴 LIVE</strong> badge and all updates appear within 10 seconds.</li>
+        <li>When a scorer is active, you'll see a <strong>🔴 LIVE</strong> badge and all updates appear within 5 seconds.</li>
         <li>The <strong>event log</strong> shows every goal 🏐, assist 🤝, exclusion ❌, and other events with clock times.</li>
         <li>The <strong>box score</strong> shows each player's totals: Goals, Attempts, 5m Goals, 5m Attempts, SO Goals, SO Attempts, Assists, Exclusions, and Earned Exclusions.</li>
         <li>After the game, all stats are saved and flow into each player's history in the Roster tab.</li>
