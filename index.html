@@ -12,7 +12,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-  <link rel="stylesheet" href="styles.css?v=121">
+  <link rel="stylesheet" href="styles.css?v=122">
   <!-- Capacitor native bridge — must load before any plugin code.
        In native iOS/Android apps this file is copied into www/ by cap sync.
        In the web browser it 404s silently (no-op). -->
@@ -379,21 +379,46 @@
   <!-- Screen-reader live region: announces score changes to VoiceOver/TalkBack -->
   <div id="score-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
+  <!-- Firebase identitytoolkit shim — MUST run before firebase-app-compat.js loads.
+       Firebase v10 captures window.fetch at module init time. This interceptor patches
+       requestUri from capacitor://localhost (rejected by Firebase) to https://eggbeater.app
+       (authorized domain) so Google Sign-In works in the native iOS/Android app. -->
+  <script>
+  (function () {
+    var _nf = window.fetch.bind(window);
+    window.fetch = function (url, opts) {
+      if (typeof url === 'string' && url.includes('identitytoolkit.googleapis.com')) {
+        opts = Object.assign({ referrerPolicy: 'no-referrer' }, opts || {});
+        if (opts.body) {
+          try {
+            var b = JSON.parse(opts.body);
+            if (b.requestUri && /^capacitor:/.test(b.requestUri)) {
+              b.requestUri = 'https://eggbeater.app';
+              opts = Object.assign({}, opts, { body: JSON.stringify(b) });
+            }
+          } catch (_) {}
+        }
+      }
+      return _nf(url, opts);
+    };
+  })();
+  </script>
+
   <!-- Firebase compat SDK (v10) — loaded before firebase.js and app.js -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="firebase.js?v=121"></script>
+  <script src="firebase.js?v=122"></script>
 
   <!-- Android 16 Live Update Bridge -->
-  <script src="live-update.js?v=121"></script>
+  <script src="live-update.js?v=122"></script>
 
   <!-- Native push notification bridge (Capacitor iOS) -->
-  <script src="capacitor-push.js?v=121"></script>
+  <script src="capacitor-push.js?v=122"></script>
 
   <!-- Data + App — query string busts any intermediate cache on every deploy -->
-  <script src="tournament.js?v=121"></script>
-  <script src="app.js?v=121"></script>
+  <script src="tournament.js?v=122"></script>
+  <script src="app.js?v=122"></script>
 
   <!-- SW auto-reload: runs before app.js initialises so every device always
        picks up new code immediately after a deploy, even on the first load. -->

@@ -935,8 +935,17 @@ function afterScore(gameId) {
   _announceScore(gameId); // VoiceOver: read updated score aloud
   // Broadcast score to CF Worker — reset to pre clears all viewer devices
   const _afterGs = state.liveScores[gameId];
-  if (_afterGs && _afterGs.gameState === 'pre') broadcastGameReset(gameId);
-  else broadcastLiveScore(gameId); // fire-and-forget
+  if (_afterGs && _afterGs.gameState === 'pre') {
+    broadcastGameReset(gameId);
+    // End iOS Live Activity and stop Android chip when game resets to pre
+    if (window._activeLA?.gameId === gameId) {
+      const _laEnd = window.Capacitor?.Plugins?.LiveActivity;
+      if (_laEnd) _laEnd.endActivity({}).catch(() => {});
+      window._activeLA = null;
+      if (window._laAutoStarted) _laAutoStarted.delete(gameId);
+    }
+    if (typeof EggbeaterLiveUpdate !== 'undefined') EggbeaterLiveUpdate.stop();
+  } else broadcastLiveScore(gameId); // fire-and-forget
   notifyScorePush(gameId, 'goal'); // fire-and-forget APNs push
   // Android 16 Live Update Sync
   if (typeof EggbeaterLiveUpdate !== 'undefined') {
@@ -1062,8 +1071,9 @@ function toggleGameState(gameId, gstate) {
     const events = s.events || [];
     const revIdx = [...events].reverse().findIndex(e => e.type === 'game_state' && e.gameState === gstate);
     if (revIdx !== -1) events.splice(events.length - 1 - revIdx, 1);
-    s.gameState = 'pre';
-    s.period    = 0;
+    s.gameState    = 'pre';
+    s.period       = 0;
+    s.timerRunning = false; // stop clock ticker so LA/chip stops updating
     state.liveScores[gameId] = s;
     afterScore(gameId);
   } else {
@@ -1074,9 +1084,10 @@ function toggleGameState(gameId, gstate) {
 // Resets the game back to Pre-Game state from any state (clears game_state events).
 function resetToPreGame(gameId) {
   const s = getLiveScore(gameId);
-  s.events    = (s.events || []).filter(e => e.type !== 'game_state');
-  s.gameState = 'pre';
-  s.period    = 0;
+  s.events       = (s.events || []).filter(e => e.type !== 'game_state');
+  s.gameState    = 'pre';
+  s.period       = 0;
+  s.timerRunning = false; // stop clock ticker so LA/chip stops updating
   state.liveScores[gameId] = s;
   afterScore(gameId);
 }
