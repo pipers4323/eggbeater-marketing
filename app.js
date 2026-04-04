@@ -6136,8 +6136,9 @@ function getAppClubId() {
   }
   const saved = localStorage.getItem('ebwp-club-id');
   if (saved) return saved;
-  if (typeof TOURNAMENT !== 'undefined' && TOURNAMENT.clubId) return TOURNAMENT.clubId;
-  return null; // null = don't send club param (use legacy un-namespaced KV)
+  // NOTE: do NOT fall back to TOURNAMENT.clubId here — that's a legacy single-club default
+  // that prevents the splash/club-picker from appearing after _returnToSplash() clears the selection.
+  return null;
 }
 
 // ─── CLUB PICKER ──────────────────────────────────────────────────────────────
