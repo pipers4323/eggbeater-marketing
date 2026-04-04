@@ -1565,7 +1565,7 @@ h2 {
   padding: 8px 0;
   border: none;
   background: transparent;
-  color: var(--gray-400);
+  color: #5c6578; /* ≈4.6:1 contrast on white — meets WCAG AA for small text */
   font-size: 0.62rem;
   font-weight: 600;
   cursor: pointer;
@@ -1573,9 +1573,24 @@ h2 {
   -webkit-tap-highlight-color: transparent;
   min-height: 56px;
   letter-spacing: 0.1px;
+  position: relative;
 }
 
-.nav-btn.nav-active { color: var(--royal); }
+.nav-btn.nav-active {
+  color: var(--royal);
+}
+/* Non-color active indicator: 3 px top bar (visible on mobile nav bar) */
+.nav-btn.nav-active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  background: var(--royal);
+  border-radius: 0 0 3px 3px;
+}
 .nav-btn:active { opacity: 0.7; }
 
 /* Live dot on Scores nav button */
@@ -5265,6 +5280,47 @@ details[open] .help-chevron { transform: rotate(180deg); }
    The :not([data-theme="light"]) guard ensures user's explicit "force light"
    preference still wins over this system-level media query.
    ═══════════════════════════════════════════════════════════════════════════ */
+/* ── High-Contrast Mode (Sufficient Contrast — WCAG 1.4.3 / 1.4.6) ──────────
+   Boosts muted grays to near-black so all secondary text clears 7:1 against
+   white backgrounds, satisfying WCAG AAA for users with poor vision or those
+   running "Increase Contrast" on iOS / "More contrast" on Android.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (prefers-contrast: more) {
+  :root {
+    --gray-400: #374151; /* ≈11:1 on white — well above 7:1 AAA */
+    --gray-600: #1f2937;
+    --gray-700: #111827;
+  }
+
+  /* Nav inactive buttons: already bumped to #5c6578 in base CSS but go further */
+  .nav-btn {
+    color: #374151;
+  }
+
+  /* Active border-indicator — thicker for clarity */
+  .nav-btn.nav-active::after {
+    height: 4px;
+    width: 30px;
+  }
+
+  /* Live dot: add explicit outline so it's not just a colour blob */
+  .scores-live-dot {
+    outline: 2px solid #991b1b;
+    outline-offset: 1px;
+  }
+
+  /* Game result pills: ensure text stands out strongly */
+  .result-pill.win,
+  .hg-result.win  { background: #14532d; color: #ffffff; }
+  .result-pill.loss,
+  .hg-result.loss { background: #7f1d1d; color: #ffffff; }
+
+  /* Borders & dividers: bump to solid gray-700 */
+  .game-card,
+  .history-game-row,
+  .settings-item { border-color: var(--gray-700); }
+}
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --royal:        #3b82f6;
