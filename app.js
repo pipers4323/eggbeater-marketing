@@ -866,6 +866,7 @@ function afterScore(gameId) {
           awayScore: _las.opp   || 0,
           clock:     _las.clock || '0:00',
           quarter:   String(_las.period || 1),
+          lastEvent: _buildLastEventStr(gameId),
         }).catch(() => {});
       }
     }
@@ -2136,11 +2137,14 @@ function _tickAllClocks() {
     anyRunning = true;
     const elapsed = (Date.now() - (s.timerStartedAt || Date.now())) / 1000;
     const remaining = Math.max(0, (s.timerSecondsLeft || 0) - elapsed);
+    const fmtTime = fmtClock(remaining);
     const el = document.getElementById('game-clock-' + gameId);
-    if (el) el.textContent = fmtClock(remaining);
+    if (el) el.textContent = fmtTime;
     // Also update the schedule page live card clock
     const schedEl = document.getElementById('next-game-clock-' + gameId);
-    if (schedEl) schedEl.textContent = fmtClock(remaining);
+    if (schedEl) schedEl.textContent = fmtTime;
+    // Keep state.clock in sync so broadcasts and Live Activity updates have the current time
+    s.clock = fmtTime;
     if (remaining <= 0 && !s._clockExpiring) {
       s._clockExpiring = true;
       _handleClockExpired(gameId);
@@ -6865,6 +6869,7 @@ async function pollLiveScores() {
                 awayScore: ls.opp   || 0,
                 clock:     ls.clock || '0:00',
                 quarter:   String(ls.period || 1),
+                lastEvent: _buildLastEventStr(laGameId),
               });
             } catch (e) {
               console.warn('[LA] updateActivity failed:', e);
@@ -8008,6 +8013,40 @@ function renderMyPlayerCard() {
 // Tracks the currently active Live Activity so pollLiveScores can update it.
 window._activeLA = null;
 
+/** Build a human-readable last-event string for the Live Activity event feed. */
+function _buildLastEventStr(gameId) {
+  const s = state.liveScores[gameId];
+  if (!s || !s.events || !s.events.length) return '';
+  const ev = [...s.events].reverse().find(e =>
+    ['goal','goal_5m','opp_goal','opp_goal_5m','so_goal','opp_so_goal',
+     'exclusion','timeout','opp_timeout','game_state'].includes(e.type)
+  );
+  if (!ev) return '';
+  const q  = ev.period ? `Q${ev.period}` : '';
+  const t  = ev.clock  ? ` ${ev.clock}`  : '';
+  const sc = `${s.team || 0}-${s.opp || 0}`;
+  const pl = [ev.cap ? `#${ev.cap}` : '', ev.name || ''].filter(Boolean).join(' ');
+  switch (ev.type) {
+    case 'goal':       return `⚽ ${pl || 'Goal'} scored${ev.sixOnFive ? ' (6 on 5)' : ''} · ${q}${t} · ${sc}`;
+    case 'goal_5m':    return `⚽ ${pl || 'Penalty'} scored (5m) · ${q}${t} · ${sc}`;
+    case 'opp_goal':   return `⚽ Opponent scored · ${q}${t} · ${sc}`;
+    case 'opp_goal_5m':return `⚽ Opponent penalty (5m) · ${q}${t} · ${sc}`;
+    case 'so_goal':    return `⚽ ${pl || 'SO goal'} · ${sc}`;
+    case 'opp_so_goal':return `⚽ Opponent SO goal · ${sc}`;
+    case 'exclusion':  return pl ? `🟡 ${pl} excluded · ${q}${t}` : '';
+    case 'timeout':    return `⏱ Timeout · ${q}${t}`;
+    case 'opp_timeout':return `⏱ Opponent timeout · ${q}${t}`;
+    case 'game_state':
+      if (ev.gameState === 'q1') return '▶ Game started';
+      if (ev.gameState === 'q2') return '▶ Q2 started';
+      if (ev.gameState === 'q3') return '▶ Q3 started';
+      if (ev.gameState === 'q4') return '▶ Q4 started';
+      if (ev.gameState === 'final') return `🏁 Final: ${sc}`;
+      return '';
+    default: return '';
+  }
+}
+
 async function toggleLiveActivity(gameId) {
   const platform = window.Capacitor?.getPlatform?.();
   const isNative = window.Capacitor?.isNativePlatform?.();
@@ -8078,8 +8117,8 @@ async function toggleLiveActivity(gameId) {
       awayScore:     score.opp   || 0,
       clock:         score.clock || "0:00",
       quarter:       String(score.period || 1),
-      homeLogoUrl:   '',   // remote URL support TBD
-      awayLogoUrl:   '',
+      homeLogoUrl:   (state.clubInfo?.logo || '').startsWith('http') ? state.clubInfo.logo : '',
+      awayLogoUrl:   '',   // opponent logo not yet stored
       primaryColor:  primaryColor,
       secondaryColor: secondaryColor,
     });
