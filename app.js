@@ -648,6 +648,12 @@ function formatDateGroupLabel(dateStr) {
   return dateStr;
 }
 
+/** Returns today's date as a local YYYY-MM-DD string (NOT UTC — avoids UTC-midnight-shift bug). */
+function _localDateStr(d = new Date()) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
 function parseGameTime(dateISO, timeStr) {
   if (!dateISO || !timeStr || timeStr === 'TBD') return null;
   try {
@@ -3513,7 +3519,7 @@ function renderScoresTab() {
       const firstTeam = cache && Array.isArray(cache.tournament.teams) ? cache.tournament.teams[0] : 'A';
       const letters = letter ? [letter] : getTeamLettersForGroup(groupKey);
       const games = allGames.filter(g => g.team ? letters.includes(g.team) : letters.includes(firstTeam));
-      const today = new Date().toISOString().split('T')[0];
+      const today = _localDateStr();
       const active = games.filter(g => (!g.dateISO || g.dateISO >= today));
 
       // Slot label — lean header row (not a full card wrapper)
@@ -4644,7 +4650,7 @@ function renderGamesList() {
 
   // Show only today + future games that haven't been completed yet
   // Completed games (with a result) move to the History tab automatically
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = _localDateStr();
   const upcomingGames = games.filter(g =>
     (!g.dateISO || g.dateISO >= todayStr) && !state.results[g.id]
   );
@@ -7291,6 +7297,16 @@ async function pollLiveScores() {
       // If scorer reset the game to pre, wipe the local entry entirely so viewer sees clean state
       if (scoreData.gameState === 'pre') {
         if (state.liveScores[gameId]) { delete state.liveScores[gameId]; changed = true; }
+        // End Live Activity / Live Update for this game if active
+        if (window._activeLA?.gameId === gameId) {
+          const _laPlugin = window.Capacitor?.Plugins?.LiveActivity;
+          if (_laPlugin) _laPlugin.endActivity({}).catch(() => {});
+          window._activeLA = null;
+          _laAutoStarted.delete(gameId); // allow re-auto-start if game resumes
+        }
+        if (typeof EggbeaterLiveUpdate !== 'undefined' && window.Capacitor?.getPlatform?.() === 'android') {
+          EggbeaterLiveUpdate.stop();
+        }
         continue;
       }
 
