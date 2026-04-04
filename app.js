@@ -6724,12 +6724,14 @@ async function loadTeamData(teamKey) {
       TEAM_CACHE[teamKey]  = { tournament, history: history || [] };
       window.TOURNAMENT    = tournament;
       window.HISTORY_SEED  = history || [];
-      // Clear cached roster so fresh roster from server is used on next loadRoster() call.
-      // Without this, loadRoster() returns the stale localStorage copy even after a fresh fetch.
+      // Clear cached roster and history so fresh data from server is used.
+      // seedHistory() only appends — it never removes stale entries, so old data
+      // from a previous fallback key (e.g. 680-drivers) would persist forever without this.
       localStorage.removeItem(STORE.ROSTER);
       localStorage.removeItem(STORE.ROSTER + '-A');
       localStorage.removeItem(STORE.ROSTER + '-B');
       localStorage.removeItem(STORE.ROSTER + '-C');
+      localStorage.removeItem(STORE.HISTORY);
     }
 
     // Apply branding from the team data payload (preferred source)
