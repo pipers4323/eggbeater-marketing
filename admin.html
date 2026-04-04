@@ -46,6 +46,8 @@
     }
     /* Ensure [hidden] attribute always wins over display:flex/block on #admin-app */
     [hidden] { display: none !important; }
+    /* Ensure .hidden class also hides (used by applyClubLogo toggle) */
+    .hidden { display: none !important; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
@@ -1199,7 +1201,7 @@
         align-items: center;
         padding: 8px 24px;
       }
-      .admin-logo-img { height: 64px; width: auto; }
+      .admin-logo-img { max-height: 52px; width: auto; height: auto; }
 
       /* Admin info bar stretches full width */
       .admin-header-bar { padding-left: 24px; padding-right: 24px; }
