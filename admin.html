@@ -2170,21 +2170,28 @@ function renderTieredNudge(tabKey) {
     </div>`;
 }
 
-/** Render or update the tier badge in the admin header. */
+/** Render or update the tier badge(s) in the admin header.
+ *  tournament_host clubs get two badges: Club + Tournament Host. */
 function updateTierBadge() {
-  let badge = document.getElementById('tier-badge');
-  if (!badge) {
-    const titleEl = document.querySelector('#admin-app .admin-header-title');
-    if (!titleEl) return;
-    badge = document.createElement('span');
-    badge.id = 'tier-badge';
-    badge.style.cssText = 'font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:20px;color:white;margin-left:6px;vertical-align:middle;letter-spacing:0.03em;cursor:default';
-    titleEl.parentNode.insertBefore(badge, titleEl.nextSibling);
-  }
+  const titleEl = document.querySelector('#admin-app .admin-header-title');
+  if (!titleEl) return;
+  // Remove any existing badges so we can re-render cleanly
+  document.querySelectorAll('#admin-app .tier-badge-item').forEach(el => el.remove());
   const tier = S.clubTier || 'free';
-  badge.textContent = TIER_LABELS[tier] || tier;
-  badge.style.background = TIER_COLORS[tier] || '#6b7280';
-  badge.title = tier === 'free' ? 'Upgrade to Club to unlock all features' : `Active: ${TIER_LABELS[tier]} plan`;
+  const badgeStyle = 'font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:20px;color:white;margin-left:6px;vertical-align:middle;letter-spacing:0.03em;cursor:default';
+  // tournament_host shows two badges: Club (blue) + Tournament Host (purple)
+  const badges = tier === 'tournament_host'
+    ? [{ label: 'Club', color: TIER_COLORS['club'] }, { label: 'Tournament Host', color: TIER_COLORS['tournament_host'] }]
+    : [{ label: TIER_LABELS[tier] || tier, color: TIER_COLORS[tier] || '#6b7280' }];
+  badges.forEach(b => {
+    const el = document.createElement('span');
+    el.className = 'tier-badge-item';
+    el.style.cssText = badgeStyle;
+    el.style.background = b.color;
+    el.textContent = b.label;
+    el.title = tier === 'free' ? 'Upgrade to Club to unlock all features' : `Active: ${b.label} plan`;
+    titleEl.parentNode.insertBefore(el, titleEl.nextSibling);
+  });
 }
 
 /**
