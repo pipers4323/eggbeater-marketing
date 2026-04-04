@@ -3076,6 +3076,13 @@ function renderSettingsTab() {
           <div class="settings-item-value">Join another club via code</div>
         </div>
       </div>
+      <div class="settings-item" onclick="_returnToSplash()" style="border-top:1px solid var(--gray-100)">
+        <span class="settings-item-icon">🏠</span>
+        <div class="settings-item-text">
+          <div class="settings-item-label">Return to splash screen</div>
+          <div class="settings-item-value">Go back to club selection</div>
+        </div>
+      </div>
     </div>
 
     <div class="settings-section">
@@ -3422,6 +3429,18 @@ function _renderSettingsTeamPicker() {
     }
     container.innerHTML = html;
   }
+}
+
+/** Clear current club selection and reload to show the club picker (splash screen) */
+function _returnToSplash() {
+  localStorage.removeItem('ebwp-club-id');
+  localStorage.removeItem('ebwp-club-name');
+  localStorage.removeItem('ebwp-club-type');
+  localStorage.removeItem('ebwp-team-keys');
+  localStorage.removeItem('ebwp-team-key');
+  localStorage.removeItem('ebwp-tournament-id');
+  localStorage.removeItem('ebwp-snapshot');
+  window.location.href = window.location.pathname;
 }
 
 /** Clear all selected age groups and re-render */
