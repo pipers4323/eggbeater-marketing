@@ -102,7 +102,16 @@ self.addEventListener('periodicsync', e => {
 // ─── BACKGROUND SYNC (Offline Score Replay) ───────────────────────────────────
 self.addEventListener('sync', e => {
   if (e.tag === 'score-sync') {
-    e.waitUntil(_replayPendingScores());
+    e.waitUntil((async () => {
+      // If the app is open in a window, delegate to it to avoid racing on the same IndexedDB store
+      const clients = await self.clients.matchAll({ type: 'window' });
+      if (clients.length > 0) {
+        clients.forEach(c => c.postMessage({ type: 'SYNC_SCORES' }));
+        return;
+      }
+      // No app windows open — replay here in the service worker
+      await _replayPendingScores();
+    })());
   }
 });
 
@@ -134,9 +143,11 @@ async function _replayPendingScores() {
         continue;
       }
       try {
+        const replayHeaders = { 'Content-Type': 'application/json' };
+        if (entry.payload._scorePw) replayHeaders['X-Score-Password'] = entry.payload._scorePw;
         const res = await fetch(`${PUSH_URL}/live-score`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: replayHeaders,
           body: JSON.stringify(entry.payload),
         });
         if (!res.ok) throw new Error('fail');

@@ -6871,16 +6871,22 @@ async function broadcastLiveScore(gameId) {
   if (!score || score.gameState === 'pre') return; // nothing worth broadcasting yet
   // Strip private tracking fields before sending
   const { _remote, _broadcastAt, _deviceId, ...cleanScore } = score;
+  const scorePw = TOURNAMENT.scoringPassword || '';
   const payload = {
     gameId,
+    clubId:       getAppClubId() || '',
+    ageGroup:     getSelectedTeam() || '',
     tournamentId: TOURNAMENT.id || '',
     deviceId:     getDeviceId(),
     score:        cleanScore,
+    _scorePw:     scorePw, // stored in offline queue so SW can authenticate replays
   };
+  const headers = { 'Content-Type': 'application/json' };
+  if (scorePw) headers['X-Score-Password'] = scorePw;
   try {
     const res = await fetch(`${PUSH_SERVER_URL}/live-score`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body:    JSON.stringify(payload),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -6948,9 +6954,11 @@ async function _syncPendingScores() {
         continue;
       }
       try {
+        const replayHeaders = { 'Content-Type': 'application/json' };
+        if (entry.payload._scorePw) replayHeaders['X-Score-Password'] = entry.payload._scorePw;
         const res = await fetch(`${PUSH_SERVER_URL}/live-score`, {
           method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: replayHeaders,
           body:    JSON.stringify(entry.payload),
         });
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -6996,6 +7004,12 @@ function _showOfflineBanner(show) {
 window.addEventListener('online', () => { _syncPendingScores(); });
 // Also try syncing on page load
 setTimeout(_syncPendingScores, 3000);
+// Handle sync delegation from service worker (when SW fires background sync but app is open)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data?.type === 'SYNC_SCORES') _syncPendingScores();
+  });
+}
 
 // ── Cache tournament data for offline fallback ───────────────────────────────
 
@@ -7025,14 +7039,20 @@ function broadcastGameReset(gameId) {
   try {
     const score = state.liveScores[gameId] || {};
     const { _remote, _broadcastAt, _deviceId, ...cleanScore } = score;
+    const scorePw = TOURNAMENT.scoringPassword || '';
+    const headers = { 'Content-Type': 'application/json' };
+    if (scorePw) headers['X-Score-Password'] = scorePw;
     fetch(`${PUSH_SERVER_URL}/live-score`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body:    JSON.stringify({
         gameId,
+        clubId:       getAppClubId() || '',
+        ageGroup:     getSelectedTeam() || '',
         tournamentId: TOURNAMENT.id || '',
         deviceId:     getDeviceId(),
         score:        { ...cleanScore, gameState: 'pre' },
+        _scorePw:     scorePw,
       }),
     }).catch(() => {});
   } catch { /* ignore */ }
