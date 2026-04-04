@@ -873,11 +873,12 @@ h2 {
 
 .game-card {
   background: white;
-  border-radius: var(--radius-sm);
-  padding: 13px 15px;
-  margin-bottom: 8px;
-  box-shadow: var(--shadow);
+  border: 1px solid var(--gray-200);
   border-left: 4px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
   transition: border-color 0.15s;
 }
 
@@ -889,25 +890,27 @@ h2 {
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .game-vs {
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 1.05rem;
+  font-weight: 800;
   color: var(--gray-900);
+  letter-spacing: -0.2px;
   flex: 1;
 }
 
 .game-num-tag {
   font-size: 0.7rem;
   font-weight: 700;
-  color: var(--royal);
-  background: var(--royal-light);
-  padding: 2px 7px;
-  border-radius: 4px;
+  color: white;
+  background: var(--royal);
+  padding: 3px 9px;
+  border-radius: 99px;
   flex-shrink: 0;
   margin-top: 2px;
+  white-space: nowrap;
 }
 
 .game-info-row {

@@ -2209,6 +2209,22 @@ function _tickAllClocks() {
     if (schedEl) schedEl.textContent = fmtTime;
     // Keep state.clock in sync so broadcasts and Live Activity updates have the current time
     s.clock = fmtTime;
+    // Push clock to iOS Live Activity once per second (only for the actively-followed game)
+    if (window._activeLA && gameId === window._activeLA.gameId) {
+      const now = Date.now();
+      if (!window._laLastClockPush || now - window._laLastClockPush >= 1000) {
+        window._laLastClockPush = now;
+        const _la = window.Capacitor?.Plugins?.LiveActivity ||
+          (window.Capacitor?.nativePromise ? { updateActivity: (o) => window.Capacitor.nativePromise('LiveActivity', 'updateActivity', o) } : null);
+        if (_la) _la.updateActivity({
+          homeScore: s.team  || 0,
+          awayScore: s.opp   || 0,
+          clock:     fmtTime,
+          quarter:   String(s.period || 1),
+          lastEvent: _buildLastEventStr(gameId),
+        }).catch(() => {});
+      }
+    }
     if (remaining <= 0 && !s._clockExpiring) {
       s._clockExpiring = true;
       _handleClockExpired(gameId);
@@ -3460,7 +3476,7 @@ function renderScoresTab() {
           <span class="viewer-tab-label">${anyLive ? '🔴 Live Scores' : '📺 Scores'}</span>
           <button class="viewer-tab-login-btn" onclick="openScoringPasswordModal()">🔒 Scorer Login</button>
         </div>
-        ${anyLive ? `<div class="live-tab-banner">📡 Live scoring in progress — scores update every 10 seconds</div>` : ''}
+        ${anyLive ? `<div class="live-tab-banner">📡 Live scoring in progress — scores update every 30 seconds</div>` : ''}
         ${cardsHtml}`;
     return;
   }
@@ -8315,7 +8331,9 @@ async function toggleLiveActivity(gameId) {
       awayScore:     score.opp   || 0,
       clock:         score.clock || "0:00",
       quarter:       String(score.period || 1),
-      homeLogoUrl:   (state.clubInfo?.logo || '').startsWith('http') ? state.clubInfo.logo : '',
+      lastEvent:     _buildLastEventStr(gameId),
+      // Use HTTPS worker URL for logo — base64 data: URLs don't load in AsyncImage
+      homeLogoUrl:   state.clubInfo?.logo ? `${PUSH_SERVER_URL}/club-logo?club=${encodeURIComponent(getAppClubId())}` : '',
       awayLogoUrl:   '',   // opponent logo not yet stored
       primaryColor:  primaryColor,
       secondaryColor: secondaryColor,
