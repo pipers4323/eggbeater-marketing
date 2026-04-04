@@ -191,11 +191,11 @@
       </div>
       <span>Scores</span>
     </button>
-    <button class="nav-btn" id="tab-history" role="tab" aria-selected="false" aria-controls="view-history" data-tab="history" onclick="switchTab('history')">
+    <button class="nav-btn" id="tab-history" role="tab" aria-selected="false" aria-controls="view-history" data-tab="history" onclick="switchTab('history')" data-parent-tab="history">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
       </svg>
-      <span>History</span>
+      <span>History<span class="nav-crown" style="display:none"> 👑</span></span>
     </button>
     <button class="nav-btn" id="more-btn" data-tab="more" onclick="toggleMoreDrawer()" aria-haspopup="dialog" aria-expanded="false" aria-label="More navigation options">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -205,11 +205,11 @@
     </button>
     <!-- Desktop-only sidebar items (hidden on mobile via CSS) -->
     <div class="desktop-nav-divider"></div>
-    <button class="desktop-nav-item" data-tab="possible" onclick="moreNavigate('possible')">
+    <button class="desktop-nav-item" data-tab="possible" data-parent-tab="possible" onclick="moreNavigate('possible')">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
       </svg>
-      <span>Bracket</span>
+      <span>Bracket<span class="nav-crown" style="display:none"> 👑</span></span>
     </button>
     <button class="desktop-nav-item" data-tab="roster" onclick="moreNavigate('roster')">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -238,11 +238,11 @@
     <div class="more-drawer-sheet">
       <div class="more-drawer-handle"></div>
       <div class="more-drawer-items">
-        <button class="more-drawer-item" onclick="moreNavigate('possible')">
+        <button class="more-drawer-item" onclick="moreNavigate('possible')" data-parent-tab="possible">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
           </svg>
-          <span>Bracket</span>
+          <span>Bracket<span class="nav-crown" style="display:none"> 👑</span></span>
           <svg class="more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
         <button class="more-drawer-item more-drawer-tscore hidden" onclick="moreNavigate('tournscore')">
