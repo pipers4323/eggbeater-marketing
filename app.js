@@ -7685,7 +7685,8 @@ function renderHelpTab() {
     {
       icon: '🏅',
       title: 'Bracket Tab',
-      body: `<p>The <strong>Bracket</strong> tab shows where the team could end up based on pool play results.</p>
+      body: `<p><strong>👑 Requires Parent Monthly subscription ($4.99/mo).</strong> Subscribe in <em>Settings → Subscription</em>.</p>
+      <p>The <strong>Bracket</strong> tab shows where the team could end up based on pool play results.</p>
       <ul>
         <li>Before the schedule is posted the tab shows <em>"Bracket Coming Soon"</em> — it activates once games are loaded.</li>
         <li>As pool play results are entered, the projected bracket path highlights automatically.</li>
@@ -7697,7 +7698,8 @@ function renderHelpTab() {
     {
       icon: '📜',
       title: 'History Tab',
-      body: `<p>The <strong>History</strong> tab keeps a running record of every completed tournament.</p>
+      body: `<p><strong>👑 Requires Parent Monthly subscription ($4.99/mo).</strong> Subscribe in <em>Settings → Subscription</em>.</p>
+      <p>The <strong>History</strong> tab keeps a running record of every completed tournament.</p>
       <ul>
         <li>When you mark a game result in the Scores tab, it moves off the Schedule and into History automatically.</li>
         <li>Full tournament results archive automatically when a new tournament loads on any device.</li>

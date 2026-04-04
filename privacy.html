@@ -159,7 +159,7 @@
   <div class="header-title-band">
     <div class="header-doc-title">Privacy Policy</div>
     <div class="header-bottom">
-      <span>Effective date: March 22, 2026 &nbsp;·&nbsp; Last updated: March 31, 2026</span>
+      <span>Effective date: March 22, 2026 &nbsp;·&nbsp; Last updated: April 4, 2026</span>
       <a href="/">← Back to App</a>
     </div>
   </div>
@@ -169,7 +169,7 @@
 <main>
 
   <div class="intro-card">
-    <p>Eggbeater is a private tournament tracking tool for water polo teams. It is not a commercial product and does not sell or share personal data.</p>
+    <p>Eggbeater is a tournament tracking tool for water polo teams and clubs. It does not sell or share personal data.</p>
     <p>This Privacy Policy describes how the <strong>Eggbeater Water Polo</strong> app ("the App") handles information when you use it at <a href="https://eggbeater.app">eggbeater.app</a> or via our native mobile applications for iOS and Android. By using the App you agree to this policy.</p>
   </div>
 
@@ -218,6 +218,13 @@
     <ul>
       <li>Club administrators may set custom branding colors (primary color, secondary color, header style) for their club. This data is stored on our Cloudflare Worker infrastructure and served publicly so all users of that club's app see the custom colors. Branding data contains no personal information.</li>
     </ul>
+    <p><strong>Subscription and payment data (if you purchase a plan):</strong></p>
+    <ul>
+      <li>Eggbeater offers optional paid plans for clubs (Club Plan) and parents (Parent Monthly) and for tournament hosting (Tournament Host). Payments are processed by <strong>RevenueCat</strong> (in-app purchases on iOS and Android via the App Store / Google Play) and <strong>Stripe</strong> (web checkout). We do not receive or store your credit card number, bank account, or payment card details — these are handled entirely by the payment processor.</li>
+      <li>When you complete a purchase, RevenueCat or Stripe provides us with a subscription status (active, expired, trial) and entitlements linked to your account or club ID. This is used solely to unlock the features included in your plan.</li>
+      <li>For club subscriptions managed through the admin panel, your club's Stripe customer ID is stored in Cloudflare KV to allow you to access the billing portal and manage your subscription.</li>
+      <li>RevenueCat may collect anonymized analytics about purchase events. See <a href="https://www.revenuecat.com/privacy" target="_blank" rel="noopener">RevenueCat's Privacy Policy</a> for details. Stripe's data practices are governed by <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe's Privacy Policy</a>.</li>
+    </ul>
     <p><strong>We do not collect</strong> your phone number, location, browsing history, or any other personally identifiable information beyond what is explicitly listed above.</p>
   </section>
 
@@ -256,8 +263,10 @@
       <li><strong>Cloudflare Workers / KV</strong> — processes push notification delivery, temporarily relays live score data, and stores club-scoped tournament data (schedules, rosters, scores, bot credentials). Admin Firebase UIDs are stored in KV for authorization checks. All data is namespaced by club ID to ensure complete isolation between clubs.</li>
       <li><strong>Google Firebase (Firestore &amp; Authentication)</strong> — if you sign in, Firebase Authentication manages your identity session and Google Firestore stores your My Players and age group preferences. Data is stored in Google's us-central region. Firebase is governed by <a href="https://firebase.google.com/terms" target="_blank" rel="noopener">Google's Firebase Terms of Service</a> and <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a>.</li>
       <li><strong>Google LLC</strong> — provides OAuth authentication and Calendar API services when you choose to enable calendar sync.</li>
-      <li><strong>Apple Inc.</strong> — provides the Apple Push Notification service (APNs) for native iOS notifications.</li>
-      <li><strong>Google LLC (Firebase Cloud Messaging)</strong> — provides push notification delivery for the native Android app.</li>
+      <li><strong>Apple Inc.</strong> — provides the Apple Push Notification service (APNs) for native iOS notifications and processes in-app purchases on iOS via the App Store.</li>
+      <li><strong>Google LLC (Firebase Cloud Messaging)</strong> — provides push notification delivery for the native Android app and processes in-app purchases on Android via Google Play.</li>
+      <li><strong>RevenueCat Inc.</strong> — manages in-app subscription entitlements and purchase events for native iOS and Android apps. RevenueCat receives anonymized purchase data and subscription status; it does not receive your payment card details. Governed by <a href="https://www.revenuecat.com/privacy" target="_blank" rel="noopener">RevenueCat's Privacy Policy</a>.</li>
+      <li><strong>Stripe Inc.</strong> — processes web-based payments for club subscriptions and tournament host purchases. Stripe handles all payment card data; we never see or store card numbers. Governed by <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe's Privacy Policy</a>.</li>
     </ul>
   </section>
 
