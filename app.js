@@ -678,10 +678,11 @@ function findNextGameOrProjected() {
   const games = getTournamentGames();
 
   // 1. Next upcoming pool play game by clock time
+  // Keep showing a game as "next" until 50 min past its start time (covers typical game duration)
   const nextPool = games
     .filter(g => {
       const t = parseGameTime(g.dateISO, g.time);
-      return t && t > now;
+      return t && t > new Date(now - 50 * 60 * 1000);
     })
     .sort((a, b) => parseGameTime(a.dateISO, a.time) - parseGameTime(b.dateISO, b.time))[0];
 
@@ -4932,7 +4933,7 @@ function buildGameCard(g, viewerOnly = false) {
       </div>
       ${liveScoreBarHtml}
       <div class="game-info-row">
-        <span class="icon-label">🕐 ${escHtml(g.time || 'TBD')}</span>
+        <span class="icon-label">🕐 ${escHtml(g.time || 'TBD')}${(g.date || g.dateISO) ? ' · ' + escHtml(g.date || g.dateISO) : ''}</span>
         ${g.pool ? `<span class="icon-label">${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span class="icon-label">${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
         ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
       </div>
