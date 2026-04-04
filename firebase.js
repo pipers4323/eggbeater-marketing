@@ -188,10 +188,32 @@ async function fbSignIn() {
         return;
       }
 
-      // Use the ID token to sign in with Firebase
+      // Use the ID token to sign in with Firebase.
+      // Firebase's JS SDK embeds window.location.href as `requestUri` in the
+      // identitytoolkit POST body. In Capacitor that URL is capacitor://localhost
+      // which Firebase rejects (auth/requests-from-referer-...-blocked).
+      // Fix: intercept fetch for the duration of signInWithCredential and replace
+      // the capacitor:// requestUri with our authorized web domain.
+      const _origFetch = window.fetch.bind(window);
+      window.fetch = function(url, opts) {
+        if (typeof url === 'string' && url.includes('identitytoolkit.googleapis.com') && opts && opts.body) {
+          try {
+            const body = JSON.parse(opts.body);
+            if (body.requestUri && body.requestUri.startsWith('capacitor:')) {
+              body.requestUri = 'https://eggbeater.app';
+              opts = Object.assign({}, opts, { body: JSON.stringify(body) });
+            }
+          } catch (_) {}
+        }
+        return _origFetch(url, opts);
+      };
       const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
-      await _fbAuth.signInWithCredential(credential);
-      console.info('[firebase] Signed in via native Google ✓');
+      try {
+        await _fbAuth.signInWithCredential(credential);
+        console.info('[firebase] Signed in via native Google ✓');
+      } finally {
+        window.fetch = _origFetch; // always restore, even on error
+      }
     } catch (e) {
       console.error('[firebase] Native sign-in error:', e);
       if (e.message && !e.message.includes('cancel')) {
