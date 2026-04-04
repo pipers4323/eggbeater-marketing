@@ -3079,7 +3079,7 @@ function renderSettingsTab() {
       <div class="settings-item" onclick="_returnToSplash()" style="border-top:1px solid var(--gray-100)">
         <span class="settings-item-icon">🏠</span>
         <div class="settings-item-text">
-          <div class="settings-item-label">Return to splash screen</div>
+          <div class="settings-item-label">Return to Splash Screen</div>
           <div class="settings-item-value">Go back to club selection</div>
         </div>
       </div>
