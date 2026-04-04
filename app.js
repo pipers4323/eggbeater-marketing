@@ -569,6 +569,21 @@ function showToast(msg, type = 'default') {
 
 // ─── TIME HELPERS ─────────────────────────────────────────────────────────────
 
+// Format a raw date key (ISO "2026-04-04" or already-human "Apr 4, 2026") for display
+// as a date-group-header label. ISO dates become "Sat · April 4"; others pass through.
+function formatDateGroupLabel(dateStr) {
+  if (!dateStr || dateStr === 'Unknown' || dateStr === 'TBD') return dateStr || 'TBD';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    try {
+      const d = new Date(dateStr + 'T00:00:00'); // local midnight
+      const day = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const md  = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+      return `${day} · ${md}`;
+    } catch (e) { /* fall through */ }
+  }
+  return dateStr;
+}
+
 function parseGameTime(dateISO, timeStr) {
   if (!dateISO || !timeStr || timeStr === 'TBD') return null;
   try {
@@ -3173,6 +3188,7 @@ function renderScoresTab() {
       ? `<div class="scorer-gate-bar"><button class="scorer-gate-btn" onclick="openScoringPasswordModal()">🔒 Scorer Login</button></div>`
       : (!isScorerUnlocked() ? '' : `<div class="scorer-gate-bar"><button class="scorer-gate-btn scorer-gate-btn-active" onclick="">✅ Scorer Active</button></div>`);
     let html = loginBar;
+    const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
     for (const { groupKey, letter } of scoreSlots) {
       const cache = TEAM_CACHE[groupKey];
       const allGames = cache ? (cache.tournament.games || []) : [];
@@ -3181,13 +3197,35 @@ function renderScoresTab() {
       const games = allGames.filter(g => g.team ? letters.includes(g.team) : letters.includes(firstTeam));
       const today = new Date().toISOString().split('T')[0];
       const active = games.filter(g => (!g.dateISO || g.dateISO >= today));
-      const rows = active.length
-        ? active.map(g => buildGameCard(g, true)).join('')
-        : `<p class="empty-msg" style="padding:14px 0">No active games.</p>`;
-      html += `<div class="card tab-card">
-        <div class="history-header-row"><h2>Scores</h2><span class="history-subtitle">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>
-        ${rows}
-      </div>`;
+
+      // Slot label — lean header row (not a full card wrapper)
+      html += `<div class="scores-slot-header"><span class="scores-slot-label">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>`;
+
+      if (!active.length) {
+        html += `<p class="empty-msg" style="padding:8px 12px 16px">No active games.</p>`;
+        continue;
+      }
+
+      // Sort by date then game number
+      active.sort((a, b) => {
+        const d = (a.dateISO || '').localeCompare(b.dateISO || '');
+        return d !== 0 ? d : gameNumVal(a) - gameNumVal(b);
+      });
+
+      // Group by date — each date gets its own header + games-section (one card per game)
+      const byDate = {};
+      const dateOrder = [];
+      for (const g of active) {
+        const dk = g.date || g.dateISO || 'Unknown';
+        if (!byDate[dk]) { byDate[dk] = []; dateOrder.push(dk); }
+        byDate[dk].push(g);
+      }
+      for (const dk of dateOrder) {
+        html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dk))}</div>`;
+        html += `<div class="games-section">`;
+        for (const g of byDate[dk]) html += buildGameCard(g, true);
+        html += `</div>`;
+      }
     }
     el.innerHTML = dirHtml + html;
     return;
@@ -3222,7 +3260,7 @@ function renderScoresTab() {
         byDate[d].push(g);
       }
       for (const dateKey of dateOrder) {
-        cardsHtml += `<div class="date-group-header">${escHtml(dateKey)}</div><div class="games-section">`;
+        cardsHtml += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dateKey))}</div><div class="games-section">`;
         for (const g of byDate[dateKey]) cardsHtml += buildGameCard(g, true);
         cardsHtml += `</div>`;
       }
@@ -3302,7 +3340,7 @@ function renderScoresTab() {
 
   let html = lockBar + bannerHtml;
   for (const dateKey of dateOrder) {
-    html += `<div class="date-group-header">${escHtml(dateKey)}</div>`;
+    html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dateKey))}</div>`;
     html += `<div class="games-section">`;
     for (const g of byDate[dateKey]) html += buildGameCard(g);
     html += `</div>`;
@@ -4321,7 +4359,7 @@ function renderGamesList() {
 
   let html = '';
   for (const dateLabel of groupOrder) {
-    html += `<div class="date-group-header">${escHtml(dateLabel)}</div>`;
+    html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dateLabel))}</div>`;
     html += `<div class="games-section">`;
     for (const g of groups[dateLabel]) html += buildScheduleCard(g);
     html += `</div>`;
@@ -7944,8 +7982,34 @@ function renderMyPlayerCard() {
 window._activeLA = null;
 
 async function toggleLiveActivity(gameId) {
-  if (!window.Capacitor || !Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'ios') {
-    showToast("Live Activities only supported on iOS App");
+  const platform = window.Capacitor?.getPlatform?.();
+  const isNative = window.Capacitor?.isNativePlatform?.();
+
+  // ── Android: route to Live Update chip (not iOS Live Activities) ──────────
+  if (isNative && platform === 'android') {
+    const game  = getTournamentGames().find(g => g.id === gameId);
+    const score = getLiveScore(gameId);
+    const gs    = score?.gameState || 'pre';
+    if (gs === 'pre') {
+      showToast("Game hasn't started yet — check back when it begins!", "info");
+      return;
+    }
+    if (gs === 'final') {
+      showToast("Game is already over.", "info");
+      return;
+    }
+    if (typeof EggbeaterLiveUpdate !== 'undefined') {
+      EggbeaterLiveUpdate.sync(gameId, score);
+      showToast("Following Live! Check your status bar for score updates.", "ok");
+    } else {
+      showToast("Live Update plugin not available.", "error");
+    }
+    return;
+  }
+
+  // ── Web / non-native ──────────────────────────────────────────────────────
+  if (!isNative || platform !== 'ios') {
+    showToast("Follow Live is available in the iOS and Android apps.");
     return;
   }
 

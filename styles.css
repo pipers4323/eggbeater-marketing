@@ -849,6 +849,23 @@ h2 {
 }
 
 /* ── Game Cards ──────────────────────────────────────────────────────────── */
+/* Scores tab: multi-slot section heading (lean, not a card wrapper) */
+.scores-slot-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 12px 2px;
+  margin-top: 4px;
+  border-top: 1.5px solid var(--gray-200);
+}
+.scores-slot-header:first-child { border-top: none; margin-top: 0; }
+.scores-slot-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--royal);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .games-section {
   padding: 0 12px;
   margin-bottom: 4px;
