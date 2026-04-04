@@ -2375,6 +2375,34 @@ function startScoring(gameId) {
   else afterScore(gameId);
 }
 
+/**
+ * Push the current clock state to the iOS Live Activity.
+ * Called whenever timerRunning or timerSecondsLeft changes so SwiftUI's
+ * native Text(.timer) countdown starts/stops at exactly the right moment.
+ */
+function _pushLAClockState(gameId) {
+  if (!window._activeLA || window._activeLA.gameId !== gameId) return;
+  const s = getLiveScore(gameId);
+  if (!s) return;
+  const _la = window.Capacitor?.Plugins?.LiveActivity ||
+    (window.Capacitor?.nativePromise
+      ? { updateActivity: (o) => window.Capacitor.nativePromise('LiveActivity', 'updateActivity', o) }
+      : null);
+  if (!_la) return;
+  const remaining = s.timerRunning
+    ? Math.max(0, (s.timerSecondsLeft || 0) - (Date.now() - (s.timerStartedAt || Date.now())) / 1000)
+    : 0;
+  _la.updateActivity({
+    homeScore: s.team  || 0,
+    awayScore: s.opp   || 0,
+    clock:     s.clock || fmtClock(s.timerSecondsLeft || 0),
+    quarter:   String(s.period || 1),
+    lastEvent: _buildLastEventStr(gameId),
+    // timerEnd non-zero → SwiftUI runs native countdown; 0 → shows frozen clockStr
+    timerEnd:  s.timerRunning && remaining > 0 ? (Date.now() / 1000 + remaining) : 0,
+  }).catch(() => {});
+}
+
 function pauseGameTimer(gameId) {
   const s = getLiveScore(gameId);
   if (!s.timerRunning) return;
@@ -2382,8 +2410,10 @@ function pauseGameTimer(gameId) {
   s.timerSecondsLeft = Math.max(0, (s.timerSecondsLeft || 0) - elapsed);
   s.timerRunning     = false;
   s.timerStartedAt   = null;
+  s.clock            = fmtClock(s.timerSecondsLeft); // freeze display time
   state.liveScores[gameId] = s;
   saveLiveScores();
+  _pushLAClockState(gameId); // tell LA to stop ticking (timerEnd → 0)
   renderGamesList();
   renderNextGameCard();
   if (state.currentTab === 'scores') renderScoresTab();
@@ -2398,6 +2428,7 @@ function resumeGameTimer(gameId) {
   state.liveScores[gameId] = s;
   saveLiveScores();
   ensureClockTicker();
+  _pushLAClockState(gameId); // tell LA to start native countdown with new timerEnd
   renderGamesList();
   renderNextGameCard();
   if (state.currentTab === 'scores') renderScoresTab();
@@ -7430,12 +7461,16 @@ async function pollLiveScores() {
             window._activeLA = null;
           } else {
             try {
+              const _lsRemaining = ls.timerRunning
+                ? Math.max(0, (ls.timerSecondsLeft || 0) - (Date.now() - (ls.timerStartedAt || Date.now())) / 1000)
+                : 0;
               await laPlugin.updateActivity({
                 homeScore: ls.team  || 0,
                 awayScore: ls.opp   || 0,
                 clock:     ls.clock || '0:00',
                 quarter:   String(ls.period || 1),
                 lastEvent: _buildLastEventStr(laGameId),
+                timerEnd:  ls.timerRunning && _lsRemaining > 0 ? (Date.now() / 1000 + _lsRemaining) : 0,
               });
             } catch (e) {
               console.warn('[LA] updateActivity failed:', e);
