@@ -404,6 +404,32 @@
   })();
   </script>
 
+  <!-- iOS: intercept ALL Firebase Auth API calls and proxy through CF Worker.
+       WKWebView sends Origin: capacitor://localhost which Firebase blocks server-side.
+       Must run before any Firebase SDK script so the SDK uses the patched fetch. -->
+  <script>
+  (function() {
+    if (!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios')) return;
+    var PROXY = 'https://ebwp-push.sarah-new.workers.dev/firebase-auth-proxy';
+    var _fetch = window.fetch.bind(window);
+    window.fetch = async function(input, init) {
+      var url = typeof input === 'string' ? input : (input && input.url) || '';
+      if (url.indexOf('identitytoolkit.googleapis.com') !== -1 || url.indexOf('securetoken.googleapis.com') !== -1) {
+        var body = (init && init.body) || null;
+        if (body && typeof body !== 'string') {
+          try { body = await new Response(body).text(); } catch(e) { body = ''; }
+        }
+        return _fetch(PROXY, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetUrl: url, method: (init && init.method) || 'POST', body: body }),
+        });
+      }
+      return _fetch(input, init);
+    };
+  })();
+  </script>
+
   <!-- Firebase compat SDK (v10) — loaded before firebase.js and app.js -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>

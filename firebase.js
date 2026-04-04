@@ -195,9 +195,10 @@ async function fbSignIn() {
       // On Android: window.location is http://localhost which Firebase allows.
       const isIOS = window.Capacitor?.getPlatform?.() === 'ios';
       if (isIOS) {
-        // Worker does the FULL Firebase token exchange server-side (no WKWebView → identitytoolkit),
-        // returning Firebase session tokens. We restore auth state via localStorage + SDK reinit
-        // so WKWebView never calls identitytoolkit directly (blocked by capacitor:// Origin check).
+        // Worker verifies Google token, mints Firebase custom token, and exchanges it
+        // for real Firebase session tokens entirely server-side (no WKWebView → identitytoolkit).
+        // A fetch interceptor in index.html additionally proxies all subsequent Firebase Auth
+        // API calls (token refresh, accounts:lookup) through the Worker so the SDK works fully.
         const workerUrl = typeof PUSH_SERVER_URL !== 'undefined'
           ? PUSH_SERVER_URL : 'https://ebwp-push.sarah-new.workers.dev';
         const resp = await fetch(`${workerUrl}/google-sign-in`, {
@@ -207,47 +208,10 @@ async function fbSignIn() {
         });
         const data = await resp.json();
         if (data.error || !data.firebaseIdToken) throw new Error(data.error || 'Worker sign-in failed');
-
-        // Write a Firebase-compatible user object to localStorage so the SDK finds it on reinit
-        const LS_KEY = `firebase:authUser:${FIREBASE_CONFIG.apiKey}:[DEFAULT]`;
-        const expiresAt = Date.now() + (parseInt(data.expiresIn, 10) || 3600) * 1000;
-        localStorage.setItem(LS_KEY, JSON.stringify({
-          uid:            data.uid,
-          email:          data.email,
-          emailVerified:  true,
-          displayName:    data.displayName || null,
-          photoURL:       data.photoURL    || null,
-          phoneNumber:    null,
-          isAnonymous:    false,
-          providerData: [{
-            uid:         data.email,
-            displayName: data.displayName || null,
-            photoURL:    data.photoURL    || null,
-            email:       data.email,
-            phoneNumber: null,
-            providerId:  'google.com',
-          }],
-          stsTokenManager: {
-            refreshToken:   data.refreshToken,
-            accessToken:    data.firebaseIdToken,
-            expirationTime: expiresAt,
-          },
-          lastLoginAt: String(Date.now()),
-          createdAt:   String(Date.now()),
-          apiKey:      FIREBASE_CONFIG.apiKey,
-          appName:     '[DEFAULT]',
-        }));
-
-        // Reinit Firebase SDK so it reads the new localStorage entry and fires onAuthStateChanged
-        const appOptions = firebase.app().options;
-        await firebase.app().delete();
-        _fbAuth = null;
-        _fbDb   = null;
-        firebase.initializeApp(appOptions);
-        _fbAuth = firebase.auth();
-        _fbDb   = firebase.firestore();
-        _fbAuth.onAuthStateChanged(user => { _fbUser = user; _onFbAuthChange(user); });
-        console.info('[firebase] Signed in via Worker full token exchange ✓');
+        // Use the Firebase custom token — the fetch interceptor proxies the signInWithCustomToken
+        // call through the Worker so WKWebView never hits identitytoolkit directly.
+        await _fbAuth.signInWithCustomToken(data.customToken || data.firebaseIdToken);
+        console.info('[firebase] Signed in via Worker proxy ✓');
       } else {
         // Android: signInWithCredential works (http://localhost is whitelisted)
         const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
