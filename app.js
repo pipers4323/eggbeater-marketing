@@ -7928,7 +7928,7 @@ function renderHelpTab() {
         <li><strong>Timeouts</strong> — separate buttons for each timeout length (e.g. <em>1 Min T/O</em> and <em>30s T/O</em>). Each button can only be used once — it grays out after use. The clock pauses automatically during a timeout.</li>
         <li><strong>↺ Reset Clock</strong> — resets the clock back to the full quarter length without changing the game state.</li>
         <li><strong>↩ Undo</strong> — removes the last logged event if you make a mistake.</li>
-        <li>All updates are visible to everyone watching the app within 10 seconds.</li>
+        <li>All updates are visible to everyone watching the app within 5 seconds.</li>
       </ul>`
     },
     {
