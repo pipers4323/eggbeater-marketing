@@ -1178,7 +1178,7 @@ h2 {
 }
 
 .history-section-heading {
-  font-size: 13px;
+  font-size: 0.8125rem; /* 13px → rem for Larger Text accessibility */
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.6px;
@@ -1222,7 +1222,7 @@ h2 {
 
 /* ── Team sub-heading within a tournament section ────────────────────────── */
 .history-team-heading {
-  font-size: 12px;
+  font-size: 0.75rem; /* 12px → rem for Larger Text accessibility */
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
@@ -5188,3 +5188,107 @@ details[open] .help-chevron { transform: rotate(180deg); }
 [data-theme="dark"] .help-feedback-title { color: #e6edf3; }
 [data-theme="dark"] .help-feedback-sub { color: #8b949e; }
 [data-theme="dark"] .help-version { color: #484f58; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACCESSIBILITY — REDUCED MOTION
+   Respects "Reduce Motion" in iOS Settings → Accessibility → Motion and
+   the equivalent Android/system setting. Stops all pulsing, sliding, and
+   spinning animations that can trigger dizziness for users with vestibular
+   disorders. Elements remain visible and functional — motion is simply
+   removed rather than removed entirely.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  /* ── Kill all animations and transitions globally ── */
+  *,
+  *::before,
+  *::after {
+    animation-duration:       0.01ms !important;
+    animation-iteration-count: 1     !important;
+    transition-duration:      0.01ms !important;
+    scroll-behavior:          auto   !important;
+  }
+
+  /* ── Live dots: stay visible but don't pulse ── */
+  .scores-live-dot,
+  .live-dot,
+  .game-live-dot,
+  .live-score-dot {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  /* ── Spinner: show a static indicator instead of spinning ── */
+  .spin,
+  [class*="spinner"],
+  [class*="loading"] {
+    animation: none !important;
+  }
+
+  /* ── Bottom sheet / more drawer: appear instantly ── */
+  .more-drawer-sheet {
+    transition: none !important;
+  }
+
+  /* ── Modals: skip slide-in, just appear ── */
+  .modal-content,
+  .pstats-modal-body,
+  .scoring-modal-content {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* ── Toast notifications: appear instantly ── */
+  .toast {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* ── Syncing badge pulse ── */
+  .badge-syncing {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  /* ── Theme toggle active scale ── */
+  .theme-toggle-btn:active {
+    transform: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACCESSIBILITY — DARK MODE CSS FALLBACK
+   The app uses JS + [data-theme="dark"] for dark mode, with an inline
+   early-init script in <head> to avoid flash. This @media block provides
+   a pure-CSS fallback for the CSS variables in case JS is slow or disabled,
+   and is the correct pattern per Apple HIG and WCAG.
+   The :not([data-theme="light"]) guard ensures user's explicit "force light"
+   preference still wins over this system-level media query.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --royal:        #3b82f6;
+    --royal-dark:   #1e3a5f;
+    --royal-mid:    #2563eb;
+    --royal-light:  #1e293b;
+    --royal-subtle: #0f172a;
+    --red:          #f87171;
+    --red-light:    #450a0a;
+    --green:        #4ade80;
+    --green-light:  #052e16;
+    --amber:        #fbbf24;
+    --amber-light:  #451a03;
+    --teal:         #2dd4bf;
+    --teal-light:   #042f2e;
+    --gray-50:      #161b22;
+    --gray-100:     #0d1117;
+    --gray-200:     #30363d;
+    --gray-400:     #8b949e;
+    --gray-600:     #c9d1d9;
+    --gray-700:     #d2dae2;
+    --gray-900:     #e6edf3;
+    --shadow:       0 2px 12px rgba(0,0,0,.3);
+    --shadow-lg:    0 8px 32px rgba(0,0,0,.4);
+    color-scheme: dark;
+  }
+}
