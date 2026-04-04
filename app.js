@@ -6873,6 +6873,7 @@ async function pollLiveScores() {
 
     let changed = false;
     const myGames = getMyGames();
+    const changedGameIds = []; // track which games updated for aria-live announcement
 
     for (const [gameId, remoteScore] of Object.entries(remote)) {
       if (myGames.has(gameId) && isScorerUnlocked()) continue; // active scorer — don't overwrite local state
@@ -6889,6 +6890,7 @@ async function pollLiveScores() {
       }
 
       state.liveScores[gameId] = { ...scoreData, _remote: true, _broadcastAt: broadcastAt, _deviceId: deviceId };
+      changedGameIds.push(gameId);
       changed = true;
     }
 
@@ -6910,6 +6912,15 @@ async function pollLiveScores() {
       renderGamesList();
       if (state.currentTab === 'scores') renderScoresTab();
       updateLiveDot();
+      // VoiceOver: announce the most recently broadcast game that changed
+      if (changedGameIds.length === 1) {
+        _announceScore(changedGameIds[0]);
+      } else if (changedGameIds.length > 1) {
+        const latest = changedGameIds.reduce((best, gid) =>
+          (state.liveScores[gid]?._broadcastAt || 0) > (state.liveScores[best]?._broadcastAt || 0) ? gid : best
+        );
+        _announceScore(latest);
+      }
       showLiveToast();
       // Widget Sync (for viewers)
       if (typeof WidgetSync !== 'undefined') {
