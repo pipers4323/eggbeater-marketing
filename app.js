@@ -830,10 +830,11 @@ function addMyGame(gameId) {
 // or another device broadcast it recently.
 function isGameLive(gameId) {
   const s = state.liveScores[gameId];
-  if (!s || !s.gameState || s.gameState === 'pre') return false;
-  const myGames = getMyGames();
-  if (myGames.has(gameId) || !s._remote) return isScorerUnlocked();
-  return (Date.now() - (s._broadcastAt || 0)) < 30 * 60 * 1000;
+  if (!s || !s.gameState || s.gameState === 'pre' || s.gameState === 'final') return false;
+  // If a recent remote broadcast exists, use that regardless of myGames history
+  if (s._broadcastAt) return (Date.now() - s._broadcastAt) < 30 * 60 * 1000;
+  // Local-only score: live only while scorer is actively unlocked on this device
+  return isScorerUnlocked();
 }
 
 /** Save + re-render + broadcast after any scoring action. */
@@ -844,11 +845,30 @@ function afterScore(gameId) {
   renderNextGameCard(); // update LIVE badge on blue card
   if (state.currentTab === 'scores') renderScoresTab();
   updateLiveDot();
-  broadcastLiveScore(gameId); // fire-and-forget
+  // Broadcast score to CF Worker — reset to pre clears all viewer devices
+  const _afterGs = state.liveScores[gameId];
+  if (_afterGs && _afterGs.gameState === 'pre') broadcastGameReset(gameId);
+  else broadcastLiveScore(gameId); // fire-and-forget
   notifyScorePush(gameId, 'goal'); // fire-and-forget APNs push
   // Android 16 Live Update Sync
   if (typeof EggbeaterLiveUpdate !== 'undefined') {
     EggbeaterLiveUpdate.sync(gameId, state.liveScores[gameId]);
+  }
+  // iOS Live Activity auto-update (fire-and-forget) — scorer's own lock screen updates on every goal
+  if (window.Capacitor?.isNativePlatform?.() && window.Capacitor?.getPlatform?.() === 'ios') {
+    const _las = state.liveScores[gameId];
+    if (_las && _las.gameState !== 'pre' && _las.gameState !== 'final') {
+      const _la = window.Capacitor?.Plugins?.LiveActivity ||
+        (window.Capacitor?.nativePromise ? { updateActivity: (o) => window.Capacitor.nativePromise('LiveActivity', 'updateActivity', o) } : null);
+      if (_la) {
+        _la.updateActivity({
+          homeScore: _las.team  || 0,
+          awayScore: _las.opp   || 0,
+          clock:     _las.clock || '0:00',
+          quarter:   String(_las.period || 1),
+        }).catch(() => {});
+      }
+    }
   }
   // Widget Sync
   if (typeof WidgetSync !== 'undefined') {
@@ -882,7 +902,7 @@ function updateLiveDot() {
   const myGames     = getMyGames();
   const hasLive = getTournamentGames().some(g => {
     const s = state.liveScores[g.id];
-    if (!s || !s.gameState || s.gameState === 'pre') return false;
+    if (!s || !s.gameState || s.gameState === 'pre' || s.gameState === 'final') return false;
     if (myGames.has(g.id) || !s._remote) return localActive;
     return (Date.now() - (s._broadcastAt || 0)) < STALE_MS;
   });
@@ -6770,12 +6790,19 @@ async function pollLiveScores() {
     const myGames = getMyGames();
 
     for (const [gameId, remoteScore] of Object.entries(remote)) {
-      if (myGames.has(gameId)) continue; // we scored this game — never overwrite with remote
+      if (myGames.has(gameId) && isScorerUnlocked()) continue; // active scorer — don't overwrite local state
       const local = state.liveScores[gameId] || {};
       if ((remoteScore.broadcastAt || 0) <= (local._broadcastAt || 0)) continue; // not newer
 
       // Strip worker meta fields; tag the score as remote with the source device
       const { deviceId, tournamentId, gameId: _gid, broadcastAt, ...scoreData } = remoteScore;
+
+      // If scorer reset the game to pre, wipe the local entry entirely so viewer sees clean state
+      if (scoreData.gameState === 'pre') {
+        if (state.liveScores[gameId]) { delete state.liveScores[gameId]; changed = true; }
+        continue;
+      }
+
       state.liveScores[gameId] = { ...scoreData, _remote: true, _broadcastAt: broadcastAt, _deviceId: deviceId };
       changed = true;
     }
