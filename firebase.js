@@ -528,7 +528,7 @@ function _fbUpdateAuthUI(user) {
 // Each tournament document holds all age groups, status, metadata.
 // ─────────────────────────────────────────────────────────────────────────────
 
-let _fbClubId = '680-drivers';  // default — overridden via fbSetClubId()
+let _fbClubId = '';  // default — overridden via fbSetClubId()
 
 /** Set the active club ID (call before any tournament operations). */
 function fbSetClubId(id) { if (id) _fbClubId = id; }
@@ -710,7 +710,7 @@ async function fbEnsureClub(clubName, adminUid) {
     const doc = await ref.get();
     if (!doc.exists) {
       await ref.set({
-        name: clubName || '680 Drivers',
+        name: clubName || 'My Club',
         adminUIDs: adminUid ? [adminUid] : [],
         superAdminUIDs: adminUid ? [adminUid] : [],
         createdAt: new Date().toISOString(),

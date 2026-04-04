@@ -242,7 +242,7 @@
     <h2><span class="num">9</span> Multi-Club &amp; Multi-Tournament Architecture</h2>
     <p>The App supports multiple water polo clubs, each operating independently with their own data, admins, and tournaments.</p>
     <ul>
-      <li>Each club is identified by a unique club ID (e.g. <code>680-drivers</code>). All data — schedules, rosters, scores, bot credentials, tournament archives, and admin access lists — is scoped to and isolated by this club ID.</li>
+      <li>Each club is identified by a unique club ID (e.g. <code>pacific-waves</code>). All data — schedules, rosters, scores, bot credentials, tournament archives, and admin access lists — is scoped to and isolated by this club ID.</li>
       <li>Admins for one club cannot access or modify another club's data. Data isolation is enforced at both the server (Cloudflare Worker) and database (Firestore security rules) levels.</li>
       <li>Each club can manage multiple tournaments. Tournaments can be created, activated, archived, and deleted through the admin panel. Only one tournament per club can be active at a time.</li>
       <li>When a tournament is archived, all age group data is automatically snapshotted to Firestore for long-term storage. Archived tournaments can be viewed in the tournament selector but are read-only.</li>

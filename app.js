@@ -4336,7 +4336,7 @@ function getExpandedTeamSlots() {
   return slots;
 }
 
-/** Section label for a specific slot: "14u Girls · 680 Red". */
+/** Section label for a specific slot: "14u Girls · Pacific Red". */
 function _groupSectionLabelFor(groupKey, letter) {
   const base = TEAM_OPTIONS.find(t => t.key === groupKey)?.label || groupKey;
   if (!letter) return base;
@@ -7821,9 +7821,9 @@ function renderHelpTab() {
         <li>Your selections are remembered between sessions.</li>
         <li>The pills scroll horizontally — swipe left or right to see all age groups.</li>
       </ul>
-      <p style="margin-top:10px"><strong>A/B team sub-selector (compound pill):</strong> when a tournament has multiple squads in the same age group (e.g. 680 Red and 680 Blue), the age group pill expands into a <em>compound pill</em>:</p>
+      <p style="margin-top:10px"><strong>A/B team sub-selector (compound pill):</strong> when a tournament has multiple squads in the same age group (e.g. Pacific Red and Pacific Blue), the age group pill expands into a <em>compound pill</em>:</p>
       <ul>
-        <li>The pill shows the age group label followed by team name buttons: <code>14u Girls · 680 Red  680 Blue</code></li>
+        <li>The pill shows the age group label followed by team name buttons: <code>14u Girls · Pacific Red  Pacific Blue</code></li>
         <li>The currently active team name(s) are highlighted with a white background inside the pill.</li>
         <li><strong>Tap a team name button</strong> to select it. Tap it again to deselect it (at least one must stay selected per age group).</li>
         <li><strong>You can select both A and B at the same time</strong> — perfect if your child plays on both squads. When both are active, every tab shows two separate labeled sections: one for each team.</li>
@@ -7836,7 +7836,7 @@ function renderHelpTab() {
       body: `<p>The app supports viewing multiple age groups and multiple team squads simultaneously across all tabs.</p>
       <ul>
         <li><strong>Multiple age groups:</strong> when two or more age group pills are active, every tab — Schedule, Scores, Bracket, Roster, History — splits into labeled sections, one per age group. Scroll to see each team's data without switching back and forth.</li>
-        <li><strong>Both A and B teams selected:</strong> when you select both team names within one age group, that group expands into two separate sections labeled "14u Girls · 680 Red" and "14u Girls · 680 Blue" — each showing only that squad's games, bracket, and roster. No mixing.</li>
+        <li><strong>Both A and B teams selected:</strong> when you select both team names within one age group, that group expands into two separate sections labeled "14u Girls · Pacific Red" and "14u Girls · Pacific Blue" — each showing only that squad's games, bracket, and roster. No mixing.</li>
         <li>Section headers always tell you exactly which squad you're looking at: <em>age group · team name</em>.</li>
         <li>Each team's history and bracket are tracked separately across all tournaments.</li>
         <li>The A/B sub-selector only appears when the admin has enabled multi-team mode for that age group.</li>
@@ -7852,6 +7852,26 @@ function renderHelpTab() {
         <li><strong>Bookmark it</strong> for quick access — tap the browser's share or bookmark icon and save it to your favorites.</li>
         <li>Your age group selections and preferences are remembered automatically in your browser.</li>
         <li>For push notifications and full-screen mode, install the app to your home screen — see <em>Installing the Web App</em> above, or download the native app from the App Store or Google Play.</li>
+      </ul>`
+    },
+    {
+      icon: '⚙️',
+      title: 'Settings — Team Selection, My Clubs & Account',
+      body: `<p>Open <strong>Settings</strong> from the More menu (or the sidebar on desktop) to manage everything about your setup.</p>
+      <ul>
+        <li><strong>Team Selection</strong> — shows all available age groups as tappable pills. Tap any pill to follow that group. Tap a second pill to follow multiple teams at once. Tap an active pill again to deselect it. Your selections are saved automatically.
+          <ul>
+            <li>Tap <em>Reset selection</em> (link below the pills) to clear all selected age groups and start fresh.</li>
+          </ul>
+        </li>
+        <li><strong>My Clubs</strong> — lists every club you've joined. Tap any non-current club to switch to it. Tap the <strong>×</strong> button on any row to remove that club from your list.
+          <ul>
+            <li>Removing your current or only club clears your selection and returns you to the Splash Screen.</li>
+          </ul>
+        </li>
+        <li><strong>Add Club</strong> — tap to enter a club code and join a new club.</li>
+        <li><strong>Return to Splash Screen</strong> — clears your current club selection and returns to the club picker. Your joined clubs list is preserved — you can rejoin any of them instantly.</li>
+        <li><strong>Account</strong> — when signed in with Google, your name and email are shown here along with a red <em>Sign Out</em> button. When not signed in, tap <em>Sign In with Google</em> to sync your preferences across devices.</li>
       </ul>`
     },
     {
