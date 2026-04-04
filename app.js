@@ -2610,7 +2610,7 @@ async function checkPlayIntegrity() {
       const nonce = _generateNonce();
       const { token } = await plugin.requestToken({ nonce });
 
-      const res = await fetch('https://eggbeater.app/api/verify-integrity', {
+      const res = await fetch('https://ebwp-push.sarah-new.workers.dev/verify-integrity', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ token }),

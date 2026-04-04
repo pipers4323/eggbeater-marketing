@@ -14,158 +14,128 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --royal:      #002868;
-      --royal-mid:  #1a3d8f;
-      --teal:       #00A693;
-      --white:      #ffffff;
-      --gray-50:    #f8f9fb;
-      --gray-100:   #f0f2f7;
-      --gray-200:   #e2e6ef;
-      --gray-600:   #4a5568;
-      --gray-900:   #1a202c;
-      --green:      #16a34a;
-      --green-bg:   #f0fdf4;
-      --amber:      #d97706;
-      --amber-bg:   #fffbeb;
-      --radius:     12px;
-      --shadow:     0 2px 12px rgba(0,0,0,.09);
+      --royal:        #1e40af;
+      --royal-dark:   #002868;
+      --royal-mid:    #1e40af;
+      --royal-light:  #dbeafe;
+      --royal-subtle: #eff6ff;
+      --teal:         #0891b2;
+      --gray-50:      #f8f9fb;
+      --gray-100:     #f0f2f7;
+      --gray-200:     #e2e6ef;
+      --gray-600:     #4a5568;
+      --gray-900:     #1a202c;
+      --green:        #16a34a;
+      --green-bg:     #f0fdf4;
+      --radius:       12px;
     }
 
     html { scroll-behavior: smooth; font-size: 100%; }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
       color: var(--gray-900);
-      background: var(--white);
-      line-height: 1.65;
+      background: var(--gray-100);
+      line-height: 1.7;
+      font-size: 16px;
     }
 
-    /* ── NAV ── */
-    nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      background: rgba(0, 40, 104, 0.97);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+    /* ── HEADER (matches privacy.html) ── */
+    header { background: var(--royal-dark); color: white; padding: 0; }
+    .header-logo-band {
+      background: var(--royal-dark);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
     }
-    .nav-inner {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 0 24px;
-      height: 64px;
+    .header-logo-band img { height: 72px; width: auto; display: block; }
+    .header-title-band {
+      background: linear-gradient(135deg, var(--royal-mid) 0%, var(--royal-dark) 100%);
+      padding: 14px 24px 0;
+      border-top: 1px solid rgba(255,255,255,.12);
+    }
+    .header-doc-title { font-size: 1.45rem; font-weight: 800; }
+    .header-bottom {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      padding: 10px 0;
+      font-size: 0.8rem;
+      opacity: 0.8;
+      flex-wrap: wrap;
+      gap: 8px;
     }
-    .nav-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
-      color: var(--white);
-      font-weight: 700;
-      font-size: 1.05rem;
-    }
-    .nav-logo img { width: 32px; height: 32px; border-radius: 8px; }
-    .nav-back {
-      color: rgba(255,255,255,0.75);
-      text-decoration: none;
-      font-size: 0.875rem;
-      font-weight: 500;
-      transition: color 0.15s;
-    }
-    .nav-back:hover { color: var(--white); }
+    .header-bottom a { color: rgba(255,255,255,.85); text-decoration: none; }
+    .header-bottom a:hover { color: white; }
+    .teal-bar { height: 3px; background: var(--teal); }
 
     /* ── CONTENT ── */
     main {
-      max-width: 900px;
+      max-width: 800px;
       margin: 0 auto;
-      padding: 104px 24px 80px;
+      padding: 28px 20px 80px;
     }
 
-    .page-header {
-      margin-bottom: 48px;
-      padding-bottom: 32px;
-      border-bottom: 2px solid var(--gray-200);
+    /* ── INTRO CARD ── */
+    .intro-card {
+      background: white;
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.07);
+      border-left: 4px solid var(--royal-mid);
     }
-    .page-header h1 {
-      font-size: clamp(1.75rem, 4vw, 2.5rem);
-      font-weight: 800;
-      color: var(--royal);
-      line-height: 1.2;
-      margin-bottom: 12px;
-    }
-    .page-header p {
-      font-size: 1.05rem;
-      color: var(--gray-600);
-      max-width: 600px;
-    }
-    .updated-badge {
-      display: inline-block;
-      margin-top: 16px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--gray-600);
-      background: var(--gray-100);
-      border-radius: 20px;
-      padding: 4px 12px;
-    }
+    .intro-card p { color: var(--gray-600); font-size: 0.93rem; margin: 0; }
+    .intro-card p + p { margin-top: 8px; }
+    .intro-card a { color: var(--royal-mid); }
 
-    /* ── CONFORMANCE BOX ── */
+    /* ── SECTIONS (card style matching privacy.html) ── */
+    .conformance-box,
+    .section,
+    .contact-box {
+      background: white;
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.07);
+    }
     .conformance-box {
-      background: linear-gradient(135deg, var(--royal) 0%, var(--royal-mid) 100%);
-      color: var(--white);
-      border-radius: var(--radius);
-      padding: 28px 32px;
-      margin-bottom: 48px;
+      border-left: 4px solid var(--teal);
     }
-    .conformance-box h2 {
-      font-size: 1.1rem;
+    .conformance-box h2,
+    .section h2,
+    .contact-box h2 {
+      font-size: 0.95rem;
       font-weight: 700;
-      margin-bottom: 8px;
-      opacity: 0.9;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      color: var(--royal-mid);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--royal-light);
     }
     .conformance-box p {
-      font-size: 1rem;
-      line-height: 1.6;
-      opacity: 0.88;
+      font-size: 0.93rem;
+      color: var(--gray-600);
+      line-height: 1.65;
+      margin: 0;
     }
-    .conformance-box a {
-      color: rgba(255,255,255,0.9);
-      text-decoration: underline;
-    }
-    .conformance-box a:hover { color: var(--white); }
-
-    /* ── SECTION ── */
-    .section {
-      margin-bottom: 48px;
-    }
-    .section h2 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--royal);
-      margin-bottom: 20px;
-      padding-bottom: 10px;
-      border-bottom: 1.5px solid var(--gray-200);
-    }
+    .conformance-box a { color: var(--royal-mid); }
 
     /* ── FEATURE LIST ── */
     .feature-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
+      list-style: none;
+      padding: 0;
+      margin: 0;
     }
     .feature-item {
       display: flex;
       align-items: flex-start;
       gap: 14px;
-      padding: 16px 18px;
-      background: var(--gray-50);
-      border-radius: var(--radius);
+      padding: 14px 16px;
+      background: var(--gray-100);
+      border-radius: 10px;
       border: 1.5px solid var(--gray-200);
     }
     .feature-item.done {
@@ -173,94 +143,85 @@
       background: var(--green-bg);
     }
     .feature-item.na {
-      border-color: var(--gray-200);
-      background: var(--gray-50);
-      opacity: 0.7;
+      opacity: 0.6;
     }
     .feature-badge {
       flex-shrink: 0;
-      width: 28px;
-      height: 28px;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: 700;
       margin-top: 1px;
     }
-    .feature-item.done  .feature-badge { background: #16a34a; color: #fff; }
-    .feature-item.na    .feature-badge { background: var(--gray-200); color: var(--gray-600); }
+    .feature-item.done .feature-badge { background: #16a34a; color: #fff; }
+    .feature-item.na   .feature-badge { background: var(--gray-200); color: var(--gray-600); }
     .feature-body { flex: 1; }
     .feature-title {
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       font-weight: 700;
       color: var(--gray-900);
       margin-bottom: 3px;
     }
     .feature-desc {
-      font-size: 0.875rem;
+      font-size: 0.85rem;
       color: var(--gray-600);
       line-height: 1.55;
     }
     .feature-item.done .feature-title { color: #14532d; }
+    .feature-desc code {
+      background: var(--royal-subtle);
+      color: var(--royal-mid);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 0.82em;
+    }
 
     /* ── TIPS ── */
     .tips-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 10px;
     }
     .tip-card {
-      padding: 20px;
-      background: var(--gray-50);
+      padding: 14px 16px;
+      background: var(--gray-100);
       border: 1.5px solid var(--gray-200);
-      border-radius: var(--radius);
+      border-radius: 10px;
     }
     .tip-card h3 {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 700;
-      color: var(--royal);
-      margin-bottom: 8px;
+      color: var(--royal-mid);
+      margin-bottom: 6px;
     }
     .tip-card p {
-      font-size: 0.855rem;
+      font-size: 0.83rem;
       color: var(--gray-600);
       line-height: 1.55;
+      margin: 0;
     }
 
     /* ── CONTACT ── */
-    .contact-box {
-      background: var(--gray-50);
-      border: 1.5px solid var(--gray-200);
-      border-radius: var(--radius);
-      padding: 28px 32px;
-    }
-    .contact-box h2 {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--royal);
-      margin-bottom: 10px;
-    }
     .contact-box p {
       color: var(--gray-600);
-      font-size: 0.95rem;
+      font-size: 0.93rem;
       line-height: 1.65;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
-    .contact-box a {
-      color: var(--royal);
-      font-weight: 600;
-      text-decoration: none;
-    }
+    .contact-box p:last-of-type { margin-bottom: 16px; }
+    .contact-box a { color: var(--royal-mid); font-weight: 600; text-decoration: none; }
     .contact-box a:hover { text-decoration: underline; }
     .contact-cta {
       display: inline-block;
-      background: var(--royal);
-      color: var(--white);
+      background: var(--royal-dark);
+      color: white;
       font-weight: 700;
-      font-size: 0.9rem;
-      padding: 10px 22px;
+      font-size: 0.88rem;
+      padding: 10px 20px;
       border-radius: 8px;
       text-decoration: none;
       transition: background 0.15s;
@@ -270,39 +231,39 @@
     /* ── FOOTER ── */
     footer {
       text-align: center;
-      padding: 32px 24px;
-      font-size: 0.8rem;
+      padding: 24px;
+      font-size: 0.78rem;
       color: var(--gray-600);
-      border-top: 1px solid var(--gray-200);
     }
     footer a { color: var(--gray-600); }
 
     @media (max-width: 600px) {
-      main { padding: 88px 16px 60px; }
-      .conformance-box { padding: 20px; }
-      .contact-box { padding: 20px; }
+      main { padding: 20px 16px 60px; }
     }
   </style>
 </head>
 <body>
 
-  <nav aria-label="Site navigation">
-    <div class="nav-inner">
-      <a href="/" class="nav-logo" aria-label="Eggbeater Water Polo home">
-        <img src="/icon-512.png" alt="" aria-hidden="true" />
-        Eggbeater
-      </a>
-      <a href="/" class="nav-back">← Back to home</a>
+  <header>
+    <div class="header-logo-band">
+      <img src="logo_large.png" alt="Eggbeater Water Polo" />
     </div>
-  </nav>
+    <div class="header-title-band">
+      <div class="header-doc-title">Accessibility</div>
+      <div class="header-bottom">
+        <span>Last reviewed: April 2026</span>
+        <a href="/">← Back to App</a>
+      </div>
+    </div>
+    <div class="teal-bar"></div>
+  </header>
 
   <main>
 
-    <header class="page-header">
-      <h1>Accessibility</h1>
+    <div class="intro-card">
       <p>We want every coach, parent, and player to be able to use Eggbeater — regardless of disability or assistive technology preference.</p>
-      <span class="updated-badge">Last reviewed: April 2026</span>
-    </header>
+      <p>This page describes the accessibility features built into the iOS app, Android app, and web interface at <a href="https://eggbeater.app">eggbeater.app</a>, and how to report issues.</p>
+    </div>
 
     <div class="conformance-box" role="region" aria-label="Conformance statement">
       <h2>WCAG Conformance</h2>
