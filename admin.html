@@ -1467,11 +1467,11 @@
     </button>
     <button class="tab-btn admin-desktop-item" data-tab="teamcomm" onclick="switchTab('teamcomm')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      Team Comm
+      Team Comm<span class="tab-crown" style="display:none"> 👑</span>
     </button>
     <button class="tab-btn admin-desktop-item" data-tab="director" onclick="switchTab('director')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="12" y1="3" x2="12" y2="17"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-      Director
+      Director<span class="tab-crown" style="display:none"> 👑</span>
     </button>
     <button class="tab-btn admin-desktop-item" data-tab="archive" onclick="switchTab('archive')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
@@ -1479,7 +1479,7 @@
     </button>
     <button class="tab-btn admin-desktop-item" data-tab="history" onclick="switchTab('history')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
-      History
+      History<span class="tab-crown" style="display:none"> 👑</span>
     </button>
     <button class="tab-btn admin-desktop-item" data-tab="settings" onclick="switchTab('settings')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -1507,14 +1507,14 @@
           <span>Raw JSON</span>
           <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
-        <button class="admin-more-item" onclick="adminMoreNav('teamcomm')">
+        <button class="admin-more-item" data-tab="teamcomm" onclick="adminMoreNav('teamcomm')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <span>Team Communication</span>
+          <span>Team Communication<span class="tab-crown" style="display:none"> 👑</span></span>
           <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
-        <button class="admin-more-item" onclick="adminMoreNav('director')">
+        <button class="admin-more-item" data-tab="director" onclick="adminMoreNav('director')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="12" y1="3" x2="12" y2="17"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          <span>Director Package</span>
+          <span>Director Package<span class="tab-crown" style="display:none"> 👑</span></span>
           <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
         <div class="admin-more-divider"></div>
@@ -1523,9 +1523,9 @@
           <span>Archive</span>
           <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
-        <button class="admin-more-item" onclick="adminMoreNav('history')">
+        <button class="admin-more-item" data-tab="history" onclick="adminMoreNav('history')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
-          <span>History</span>
+          <span>History<span class="tab-crown" style="display:none"> 👑</span></span>
           <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
         <button class="admin-more-item" onclick="adminMoreNav('settings')">
@@ -2079,6 +2079,95 @@ async function loadClubTier(clubId) {
     console.warn('[tier] Could not fetch club tier:', e.message);
   }
   updateTierBadge();
+  updateTabCrowns();
+}
+
+/**
+ * Show/hide 👑 crown on premium tab buttons based on current tier.
+ * Crown appears when ENFORCE_TIERS is true and the club doesn't have access.
+ * Disappears once the club has the required tier — positive reinforcement.
+ */
+function updateTabCrowns() {
+  const gates = { teamcomm: 'push_notify', history: 'season_stats', director: 'tournament_host' };
+  Object.entries(gates).forEach(([tab, feature]) => {
+    const locked = ENFORCE_TIERS && !tierHasFeature(feature);
+    document.querySelectorAll(`[data-tab="${tab}"] .tab-crown`).forEach(el => {
+      el.style.display = locked ? '' : 'none';
+    });
+  });
+}
+
+/**
+ * Tailored full-page upgrade nudge for each gated tab.
+ * Returns HTML string to replace the tab content when the feature is locked.
+ */
+function renderTieredNudge(tabKey) {
+  const nudges = {
+    teamcomm: {
+      icon: '📣',
+      title: 'Team Communication',
+      tier: 'Club Plan',
+      price: '$24.99/mo · $199/yr · 14-day free trial',
+      feature: 'push_notify',
+      items: [
+        'Push notifications to all subscribers — scores, schedule changes, cancellations',
+        'Automatic game reminders sent to parents X minutes before tip-off',
+        'Send custom announcements any time — team news, carpool, hotel info',
+        'Telegram, GroupMe &amp; TeamSnap integrations for your existing group chats',
+        'Schedule announcements in advance — set it and forget it',
+      ],
+      cta: 'Upgrade to Club 👑',
+    },
+    history: {
+      icon: '📊',
+      title: 'Season Stats',
+      tier: 'Club Plan',
+      price: '$24.99/mo · $199/yr · 14-day free trial',
+      feature: 'season_stats',
+      items: [
+        'Cumulative player stats tracked across every tournament all season',
+        'Goals, assists, exclusions &amp; saves per player — individual and team totals',
+        'Season-long leaderboards updated automatically after every game',
+        'Export stats for program reports, recruiting profiles, or MaxPreps (high school)',
+        'Historical record stays even when you start a new tournament',
+      ],
+      cta: 'Upgrade to Club 👑',
+    },
+    director: {
+      icon: '🏆',
+      title: 'Tournament Director Package',
+      tier: 'Tournament Host',
+      price: '$199 one-time per event',
+      feature: 'tournament_host',
+      items: [
+        'Import scores directly from tournament director — no double entry',
+        'Manage all clubs &amp; age groups from a single director dashboard',
+        'Public shareable bracket URL for spectators, coaches, and parents',
+        'Live public scoring visible to anyone — no app or login required',
+        'Exportable results &amp; standings reports for end-of-tournament packets',
+      ],
+      cta: 'Get Tournament Host 👑',
+    },
+  };
+  const n = nudges[tabKey];
+  if (!n) return renderUpgradeNudge(tabKey);
+  return `
+    <div style="padding:32px 20px;max-width:500px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:3rem;margin-bottom:10px">${n.icon}</div>
+        <div style="font-size:1.25rem;font-weight:800;color:var(--royal);margin-bottom:4px">${n.title}</div>
+        <div style="display:inline-block;background:var(--royal);color:white;font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:20px;letter-spacing:0.05em;margin-bottom:6px">${n.tier}</div>
+        <div style="font-size:0.82rem;color:var(--g400)">${n.price}</div>
+      </div>
+      <div style="background:var(--g50,#f9fafb);border:1px solid var(--g100,#f3f4f6);border-radius:14px;padding:18px 20px;margin-bottom:24px">
+        <div style="font-weight:700;font-size:0.82rem;color:var(--g500);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">What you unlock</div>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px">
+          ${n.items.map(item => `<li style="display:flex;gap:10px;font-size:0.88rem;line-height:1.45;color:var(--g800,#1f2937)"><span style="color:#16a34a;flex-shrink:0;font-size:1rem">✓</span><span>${item}</span></li>`).join('')}
+        </ul>
+      </div>
+      <button onclick="showUpgradeSheet()" style="width:100%;background:var(--royal);color:white;border:none;border-radius:12px;padding:14px 20px;font-size:1rem;font-weight:800;cursor:pointer;letter-spacing:0.01em">${n.cta}</button>
+      <p style="text-align:center;font-size:0.75rem;color:var(--g400);margin-top:12px">Questions? Email <a href="mailto:hello@eggbeater.app" style="color:var(--royal)">hello@eggbeater.app</a></p>
+    </div>`;
 }
 
 /** Render or update the tier badge in the admin header. */
@@ -2695,6 +2784,7 @@ function renderTab() {
   if (S.currentTab === 'raw')      el.innerHTML = renderRawTab();
   if (S.currentTab === 'help')     el.innerHTML = renderHelpTab();
   if (S.currentTab === 'director') {
+    if (!tierHasFeature('tournament_host')) { el.innerHTML = renderTieredNudge('director'); return; }
     if (!S.directorUnlocked) { el.innerHTML = renderDirectorLoginGate(); return; }
     el.innerHTML = renderDirectorTab(); setTimeout(() => { initDirectorPlaces(); (S.director?.ageGroups||[]).forEach((_,ai) => renderDirToLengthInputs(ai)); }, 0);
   }
@@ -5152,8 +5242,12 @@ function renderAddGamesTab() {
           </div>
           <div id="cfg-to-lengths"></div>
         </div>
-        <div class="info-field"><div class="info-label">Scoring Password</div><input class="info-input" type="text" value="${esc(t.scoringPassword||'')}" placeholder="e.g. bawl2026" autocomplete="off" oninput="S.tournament.scoringPassword=this.value"><div class="info-hint">Parents must enter this to use live scoring.</div></div>
-        <div class="info-field"><div class="info-label">Multi-team Mode</div><label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0"><input type="checkbox" id="ti-multiteam" ${!isMultiTeamAdmin()?'checked':''} onchange="toggleMultiTeam(this.checked)" style="width:18px;height:18px;cursor:pointer"><span style="font-size:0.9rem">Disable multi-team</span></label></div>
+        ${tierHasFeature('live_scoring')
+          ? `<div class="info-field"><div class="info-label">Scoring Password</div><input class="info-input" type="text" value="${esc(t.scoringPassword||'')}" placeholder="e.g. bawl2026" autocomplete="off" oninput="S.tournament.scoringPassword=this.value"><div class="info-hint">Parents must enter this to use live scoring.</div></div>`
+          : `<div class="info-field"><div class="info-label">Scoring Password</div>${renderUpgradeNudge('Live Scoring — Club Plan')}</div>`}
+        ${tierHasFeature('multi_team')
+          ? `<div class="info-field"><div class="info-label">Multi-team Mode</div><label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0"><input type="checkbox" id="ti-multiteam" ${!isMultiTeamAdmin()?'checked':''} onchange="toggleMultiTeam(this.checked)" style="width:18px;height:18px;cursor:pointer"><span style="font-size:0.9rem">Disable multi-team</span></label></div>`
+          : `<div class="info-field"><div class="info-label">Multi-team Mode</div>${renderUpgradeNudge('Multiple Teams — Club Plan')}</div>`}
         <div id="ti-team-labels" style="display:${isMultiTeamAdmin()?'contents':'none'}">
           <div class="info-field"><div class="info-label">Team A Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.A)||'')}" placeholder="Team A" oninput="setTeamLabel('A',this.value)"></div>
           <div class="info-field"><div class="info-label">Team B Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.B)||'')}" placeholder="Team B" oninput="setTeamLabel('B',this.value)"></div>
@@ -6824,9 +6918,7 @@ function botSaved(key) {
 }
 
 function renderTeamCommTab() {
-  if (!tierHasFeature('push_notify')) {
-    return renderUpgradeNudge('Push Notifications');
-  }
+  if (!tierHasFeature('push_notify')) return renderTieredNudge('teamcomm');
   const t = S.tournament;
   // Push Notification Manager section
   const pushSection = `
@@ -7355,9 +7447,7 @@ function guessSeasonFromDate(dateStr) {
 }
 
 function renderHistoryAdminTab() {
-  if (!tierHasFeature('season_stats')) {
-    return renderUpgradeNudge('Season Stats');
-  }
+  if (!tierHasFeature('season_stats')) return renderTieredNudge('history');
   const teamObj = getAdminTeams().find(t => t.key === S.team);
   const teamLabel = teamObj ? teamObj.label : S.team;
   const isHS = S.clubType === 'highschool';
