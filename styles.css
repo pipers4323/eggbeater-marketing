@@ -1513,7 +1513,7 @@ h2 {
 /* ── Toast ───────────────────────────────────────────────────────────────── */
 .toast {
   position: fixed;
-  bottom: max(80px, calc(72px + env(safe-area-inset-bottom, 0px) + 8px));
+  top: calc(env(safe-area-inset-top, 0px) + 68px);
   left: 16px;
   right: 16px;
   max-width: 448px;
@@ -1525,13 +1525,13 @@ h2 {
   text-align: center;
   z-index: 999;
   box-shadow: var(--shadow-lg);
-  animation: slideup 0.22s ease;
+  animation: slidedown 0.22s ease;
   background: var(--gray-900);
   color: white;
 }
 
-@keyframes slideup {
-  from { opacity: 0; transform: translateY(12px); }
+@keyframes slidedown {
+  from { opacity: 0; transform: translateY(-12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 

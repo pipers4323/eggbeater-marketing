@@ -6607,10 +6607,13 @@ function openLASettingsModal() {
     document.body.appendChild(modal);
   }
   document.getElementById('la-teams-list').innerHTML = _buildLATeamListHTML();
+  modal.classList.remove('hidden');
   _openModal('la-settings-modal');
 }
 
 function closeLASettingsModal() {
+  const modal = document.getElementById('la-settings-modal');
+  if (modal) modal.classList.add('hidden');
   _closeModal('la-settings-modal');
 }
 
