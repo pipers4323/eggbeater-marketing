@@ -578,7 +578,7 @@ function parseGameTime(dateISO, timeStr) {
     const m = parseInt(mStr || '0', 10);
     if (ampm === 'PM' && h !== 12) h += 12;
     if (ampm === 'AM' && h === 12) h = 0;
-    const d = new Date(dateISO);
+    const d = new Date(dateISO + 'T00:00:00'); // local midnight, not UTC — new Date('2026-04-05') parses as UTC midnight which is April 4 at 5PM Pacific
     d.setHours(h, m, 0, 0);
     return d;
   } catch { return null; }
