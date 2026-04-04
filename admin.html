@@ -478,6 +478,58 @@
       height: 1px; background: #e5e7eb; margin: 4px 20px;
     }
 
+    /* ── Setup Banner ──────────────────────────────────────────── */
+    #setup-banner {
+      display: none;
+      margin: 0 12px 4px;
+      background: linear-gradient(135deg, #002868 0%, #004aad 100%);
+      border-radius: 14px;
+      padding: 16px 16px 14px;
+      position: relative;
+      box-shadow: 0 2px 12px rgba(0,40,104,0.18);
+    }
+    #setup-banner .sb-close {
+      position: absolute; top: 10px; right: 12px;
+      background: none; border: none; cursor: pointer;
+      font-size: 1.1rem; color: rgba(255,255,255,0.55); line-height: 1;
+      padding: 2px 4px;
+    }
+    #setup-banner .sb-close:hover { color: #fff; }
+    #setup-banner .sb-title {
+      font-size: 0.8rem; font-weight: 800; color: #fff;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+    #setup-banner .sb-steps {
+      display: flex; flex-direction: column; gap: 7px;
+    }
+    #setup-banner .sb-step {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.82rem; color: rgba(255,255,255,0.85);
+      cursor: pointer; padding: 2px 0;
+    }
+    #setup-banner .sb-step:hover { color: #fff; }
+    #setup-banner .sb-step-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-weight: 700; flex-shrink: 0; color: #fff;
+    }
+    #setup-banner .sb-step.done .sb-step-num {
+      background: #00c48c; border-color: #00c48c;
+    }
+    #setup-banner .sb-step.done .sb-step-num::after { content: '✓'; }
+    #setup-banner .sb-step.done .sb-step-num span { display: none; }
+    #setup-banner .sb-step .sb-step-label { font-weight: 500; }
+    #setup-banner .sb-step.done .sb-step-label { text-decoration: line-through; opacity: 0.6; }
+    #setup-banner .sb-step-arrow { margin-left: auto; opacity: 0.45; font-size: 0.75rem; }
+    @media (min-width: 768px) {
+      #setup-banner { margin: 0 24px 8px; }
+      #setup-banner .sb-steps { flex-direction: row; gap: 0; }
+      #setup-banner .sb-step { flex: 1; padding: 4px 8px; border-right: 1px solid rgba(255,255,255,0.12); }
+      #setup-banner .sb-step:last-child { border-right: none; }
+    }
+
     /* ── Paywall Sheet ─────────────────────────────────────────── */
     .paywall-drawer {
       position: fixed; inset: 0; z-index: 300;
@@ -1488,6 +1540,29 @@
     </div>
   </div>
 
+  <!-- ── First-run setup banner ───────────────────────────────────────────── -->
+  <div id="setup-banner">
+    <button class="sb-close" onclick="dismissSetupBanner()" title="Dismiss">✕</button>
+    <div class="sb-title">👋 Welcome! Get your club set up</div>
+    <div class="sb-steps">
+      <div class="sb-step" id="sb-step-1" onclick="switchToTab('clubinfo')">
+        <div class="sb-step-num"><span>1</span></div>
+        <div class="sb-step-label">Name your club &amp; add branding</div>
+        <div class="sb-step-arrow">›</div>
+      </div>
+      <div class="sb-step" id="sb-step-2" onclick="switchToTab('games')">
+        <div class="sb-step-num"><span>2</span></div>
+        <div class="sb-step-label">Add your first game</div>
+        <div class="sb-step-arrow">›</div>
+      </div>
+      <div class="sb-step" id="sb-step-3" onclick="_showShareLink()">
+        <div class="sb-step-num"><span>3</span></div>
+        <div class="sb-step-label">Share the link with parents</div>
+        <div class="sb-step-arrow">›</div>
+      </div>
+    </div>
+  </div>
+
   <main id="tab-content"></main>
 
   <!-- ── Paywall Sheet ──────────────────────────────────────────────────────── -->
@@ -1626,7 +1701,7 @@ async function doGoogleLogin() {
     }
 
     // Determine club ID — prefer invite's club, then saved, then default
-    const savedClubId = inviteClubId || localStorage.getItem('ebadmin-clubId') || '680-drivers';
+    const savedClubId = inviteClubId || localStorage.getItem('ebadmin-clubId') || 'my-club';
     if (inviteClubId) localStorage.setItem('ebadmin-clubId', inviteClubId);
     if (typeof fbSetClubId === 'function') fbSetClubId(savedClubId);
 
@@ -1636,7 +1711,9 @@ async function doGoogleLogin() {
       if (!access.isAdmin) {
         if (!access.clubName) {
           // Club doesn't exist yet — auto-create it and make this user admin
-          await fbEnsureClub('680 Drivers', user.uid);
+          // Derive a default club name from the user's display name; admin can rename later
+          const defaultClubName = user.displayName ? user.displayName + "'s Club" : '';
+          await fbEnsureClub(defaultClubName, user.uid);
         } else {
           // Club exists but user is not admin
           setLoginErr(`You (${user.email}) are not an admin for "${access.clubName || savedClubId}". Ask an existing admin to add your UID: ${user.uid}`);
@@ -1949,7 +2026,7 @@ function getCurrentSeasonLabel() {
 }
 
 function updateAdminHeader() {
-  const clubId = localStorage.getItem('ebadmin-clubId') || '680-drivers';
+  const clubId = localStorage.getItem('ebadmin-clubId') || 'my-club';
   const clubName = clubId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
   // Update title to show club name
@@ -2358,7 +2435,7 @@ async function _doAdminLoad() {
   // Phase 3: restore club ID and load cloud tournament list from Firestore
   // We MUST do this before loadClubSettings() so the api() helper has the correct club context.
   if (!localStorage.getItem('ebadmin-clubId')) {
-    const clubId = typeof fbGetClubId === 'function' ? fbGetClubId() : '680-drivers';
+    const clubId = typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club';
     localStorage.setItem('ebadmin-clubId', clubId);
   }
   const savedClubId = localStorage.getItem('ebadmin-clubId');
@@ -2428,6 +2505,42 @@ async function _doAdminLoad() {
   renderTab();
   // Fetch status indicators for all age groups in background
   fetchAllTeamStatuses();
+  // Show first-run setup banner if club isn't fully set up yet
+  maybeShowSetupBanner();
+}
+
+// ── Setup Banner ─────────────────────────────────────────────────────────────
+
+function maybeShowSetupBanner() {
+  const banner = document.getElementById('setup-banner');
+  if (!banner) return;
+  // Don't show if user has explicitly dismissed it this session
+  if (sessionStorage.getItem('setup-banner-dismissed')) return;
+  const hasName  = !!(S.tournament?.clubName || '').trim();
+  const hasGames = !!(S.tournament?.games?.length);
+  if (hasName && hasGames) { banner.style.display = 'none'; return; }
+  // Mark step states
+  const s1 = document.getElementById('sb-step-1');
+  const s2 = document.getElementById('sb-step-2');
+  if (s1) s1.classList.toggle('done', hasName);
+  if (s2) s2.classList.toggle('done', hasGames);
+  banner.style.display = 'block';
+}
+
+function dismissSetupBanner() {
+  const banner = document.getElementById('setup-banner');
+  if (banner) banner.style.display = 'none';
+  sessionStorage.setItem('setup-banner-dismissed', '1');
+}
+
+function _showShareLink() {
+  // Navigate to Club Info tab which has the parent join link section
+  switchTab('clubinfo');
+  // Scroll to join link after tab renders
+  setTimeout(() => {
+    const el = document.querySelector('.join-url-box, [data-section="share"]');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 300);
 }
 
 // ── Team Status Indicators ───────────────────────────────────────────────────
@@ -2488,7 +2601,7 @@ async function api(method, path, body) {
   // Always append club ID for admin endpoints
   if (fullPath.startsWith('/admin/')) {
     const sep = fullPath.includes('?') ? '&' : '?';
-    const clubId = (typeof fbGetClubId === 'function' ? fbGetClubId() : null) || '680-drivers';
+    const clubId = (typeof fbGetClubId === 'function' ? fbGetClubId() : null) || 'my-club';
     fullPath += `${sep}club=${encodeURIComponent(clubId)}`;
   }
 
@@ -3062,7 +3175,7 @@ function exportResultsCSV() {
   const games = S.tournament.games || [];
   if (!games.length) { showStatus('No games to export', 'err'); return; }
 
-  const clubId = typeof fbGetClubId === 'function' ? fbGetClubId() : '680-drivers';
+  const clubId = typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club';
   const header = ['Game#', 'Opponent', 'Date', 'Time', 'Location', 'Pool', 'Cap', 'OurScore', 'OppScore', 'Result'];
   const rows = [header.join(',')];
 
@@ -3093,7 +3206,7 @@ function exportResultsCSV() {
 }
 
 function exportRosterCSV() {
-  const clubId = typeof fbGetClubId === 'function' ? fbGetClubId() : '680-drivers';
+  const clubId = typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club';
   const multi = isMultiTeamAdmin();
   const allPlayers = [];
 
@@ -3623,7 +3736,7 @@ async function clearAgeGroupData() {
     `  • Tournament schedule & games\n` +
     `  • Tournament history\n` +
     `  • Roster\n\n` +
-    `Club: ${localStorage.getItem('ebadmin-clubId') || '680-drivers'}\n\n` +
+    `Club: ${localStorage.getItem('ebadmin-clubId') || 'my-club'}\n\n` +
     `This cannot be undone. Continue?`
   );
   if (!confirmed) return;
@@ -4727,7 +4840,7 @@ function copyParentJoinLink() {
 }
 
 function renderClubInfoTab() {
-  const clubId = typeof fbGetClubId === 'function' ? fbGetClubId() : '680-drivers';
+  const clubId = typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club';
   const joinUrl = 'https://eggbeater.app?join=' + encodeURIComponent(clubId);
   const isHS = S.clubType === 'highschool';
   const t = S.tournament;
@@ -4756,12 +4869,12 @@ function renderClubInfoTab() {
         </div>
         <div class="info-field">
           <div class="info-label">Club Name <span style="color:var(--g400);font-weight:400;text-transform:none">(shown in header &amp; vs. lines)</span></div>
-          <input class="info-input" value="${esc(t.clubName||'')}" placeholder="e.g. 680 Drivers"
+          <input class="info-input" value="${esc(t.clubName||'')}" placeholder="e.g. Pacific Waves"
                  oninput="S.tournament.clubName=this.value">
         </div>
         <div class="info-field">
           <div class="info-label">Cloud Club ID <span style="color:var(--g400);font-weight:400;text-transform:none">(Firestore path)</span></div>
-          <input class="info-input" value="${esc(clubId)}" placeholder="e.g. 680-drivers"
+          <input class="info-input" value="${esc(clubId)}" placeholder="e.g. pacific-waves"
                  oninput="if(typeof fbSetClubId==='function')fbSetClubId(this.value);localStorage.setItem('ebadmin-clubId',this.value)">
           <div class="info-hint">Identifies your club in the cloud. Only change if setting up a new club.</div>
         </div>
@@ -4995,8 +5108,8 @@ function renderAddGamesTab() {
     <details class="card collapsible-card" open>
       <summary class="card-header collapsible-header">⚙️ Game / Tournament Setup <span class="collapse-icon">▾</span></summary>
       <div class="info-form">
-        <div class="info-field"><div class="info-label">Club Name <span style="color:var(--g400);font-weight:400;text-transform:none">(shown before opponent)</span></div><input class="info-input" value="${esc(t.clubName||'')}" placeholder="e.g. 680 Drivers" oninput="S.tournament.clubName=this.value"><div class="info-hint">Leave blank to show "vs. [opponent]" without a club prefix.</div></div>
-        <div class="info-field"><div class="info-label">Cloud Club ID</div><input class="info-input" value="${esc(typeof fbGetClubId==='function'?fbGetClubId():'680-drivers')}" placeholder="e.g. 680-drivers" oninput="if(typeof fbSetClubId==='function')fbSetClubId(this.value);localStorage.setItem('ebadmin-clubId',this.value)"><div class="info-hint">Identifies your club in the cloud.</div></div>
+        <div class="info-field"><div class="info-label">Club Name <span style="color:var(--g400);font-weight:400;text-transform:none">(shown before opponent)</span></div><input class="info-input" value="${esc(t.clubName||'')}" placeholder="e.g. Pacific Waves" oninput="S.tournament.clubName=this.value"><div class="info-hint">Leave blank to show "vs. [opponent]" without a club prefix.</div></div>
+        <div class="info-field"><div class="info-label">Cloud Club ID</div><input class="info-input" value="${esc(typeof fbGetClubId==='function'?fbGetClubId():'my-club')}" placeholder="e.g. pacific-waves" oninput="if(typeof fbSetClubId==='function')fbSetClubId(this.value);localStorage.setItem('ebadmin-clubId',this.value)"><div class="info-hint">Identifies your club in the cloud.</div></div>
         <div class="info-field"><div class="info-label">Tournament ID</div><input class="info-input" id="ti-id" value="${esc(t.id||'')}" oninput="S.tournament.id=this.value"><div class="info-hint red">⚠ Changing ID archives the current tournament. Only change when starting a new tournament.</div></div>
         <div class="info-field"><div class="info-label">Name</div><input class="info-input" id="ti-name" value="${esc(t.name||'')}" oninput="S.tournament.name=this.value;updateAdminHeader()"></div>
         <div class="info-field"><div class="info-label">Subtitle</div><input class="info-input" value="${esc(t.subtitle||'')}" oninput="S.tournament.subtitle=this.value"></div>
@@ -5309,7 +5422,7 @@ async function addClubAdminUid() {
     admins.push({ uid, name: name, email: '' });
     const putRes = await api('PUT', '/admin/club-admins', { adminUIDs: admins });
     if (!putRes.ok) throw new Error('Failed to save');
-    if (typeof fbAddClubAdmin === 'function') await fbAddClubAdmin(typeof fbGetClubId === 'function' ? fbGetClubId() : '680-drivers', uid);
+    if (typeof fbAddClubAdmin === 'function') await fbAddClubAdmin(typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club', uid);
     uidInput.value = '';
     nameInput.value = '';
     showStatus('✓ Admin added' + (name ? ': ' + name : ''), 'ok');
@@ -5327,7 +5440,7 @@ async function removeClubAdminUid(uid) {
     const admins = _cachedAdmins.filter(a => a.uid !== uid);
     const putRes = await api('PUT', '/admin/club-admins', { adminUIDs: admins });
     if (!putRes.ok) throw new Error('Failed to save');
-    if (typeof fbRemoveClubAdmin === 'function') await fbRemoveClubAdmin(typeof fbGetClubId === 'function' ? fbGetClubId() : '680-drivers', uid);
+    if (typeof fbRemoveClubAdmin === 'function') await fbRemoveClubAdmin(typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club', uid);
     showStatus('✓ Admin removed', 'ok');
     loadClubAdmins();
   } catch (e) {
@@ -5347,7 +5460,7 @@ async function initClubAdminList() {
     // Also ensure club doc exists in Firestore with this UID
     const user = typeof fbGetUser === 'function' ? fbGetUser() : null;
     if (user && typeof fbEnsureClub === 'function') {
-      await fbEnsureClub(S.tournament?.clubName || '680 Drivers', user.uid);
+      await fbEnsureClub(S.tournament?.clubName || (user.displayName ? user.displayName + "'s Club" : ''), user.uid);
     }
     showStatus('✓ You are now the first admin for this club!', 'ok');
     loadClubAdmins();
@@ -8507,7 +8620,7 @@ async function loadArchiveRoster(teamKey, tournId) {
     if (!roster.length) { showStatus('Archive has no roster', 'err'); return; }
 
     // Save roster to current team
-    const saveRes = await fetch(WORKER + `/admin/roster?team=${encodeURIComponent(teamKey)}&club=${encodeURIComponent(localStorage.getItem('ebadmin-clubId') || '680-drivers')}`, {
+    const saveRes = await fetch(WORKER + `/admin/roster?team=${encodeURIComponent(teamKey)}&club=${encodeURIComponent(localStorage.getItem('ebadmin-clubId') || 'my-club')}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...(S.pw ? { 'X-Admin-Password': S.pw } : { 'Authorization': 'Bearer ' + S.idToken }) },
       body: JSON.stringify({ roster })
@@ -8575,7 +8688,7 @@ function renderHelpTab() {
       title: 'Add Games Tab — Tournament Settings',
       body: `<p>Configure everything about the current tournament and how the app behaves.</p>
       <ul>
-        <li><strong>Club Name</strong> — your club's name as it should appear in game cards (e.g. <em>680 Drivers</em>). When set, games display as "680 Drivers vs. NorCal Gold" instead of just "vs. NorCal Gold". Leave blank to use the default "vs." style.</li>
+        <li><strong>Club Name</strong> — your club's name as it should appear in game cards (e.g. <em>Pacific Waves</em>). When set, games display as "Pacific Waves vs. NorCal Gold" instead of just "vs. NorCal Gold". Leave blank to use the default "vs." style.</li>
         <li><strong>Tournament ID</strong> ⚠️ — a unique key for this tournament (e.g. <code>kap7-day1-2026</code>). <em>Only change this when starting a new tournament.</em> Changing the ID archives the current tournament on every parent's device and starts fresh.</li>
         <li><strong>Name / Subtitle / Dates / Location / Pool</strong> — displayed in the app header and schedule.</li>
         <li><strong>Coming Soon message</strong> — shown on the schedule tab before games are posted. Clear this field once you've added games.</li>
@@ -8689,7 +8802,7 @@ function renderHelpTab() {
       title: 'Multi-Club Architecture',
       body: `<p>Eggbeater supports multiple clubs, each with completely isolated data and independent admin teams.</p>
       <ul>
-        <li>Each club has a unique <strong>Club ID</strong> (e.g. <code>680-drivers</code>) configured in the Add Games tab under "Cloud Club ID".</li>
+        <li>Each club has a unique <strong>Club ID</strong> (e.g. <code>pacific-waves</code>) configured in the Add Games tab under "Cloud Club ID".</li>
         <li>All server data (KV storage) is namespaced by club ID — one club's data never mixes with another's.</li>
         <li>Each club has its own admin list — admins for Club A cannot access Club B's data.</li>
         <li>The parent-facing app loads club-specific data via the <code>?club=</code> URL parameter.</li>

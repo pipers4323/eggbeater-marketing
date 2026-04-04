@@ -6755,7 +6755,7 @@ function notifyScorePush(gameId, eventType) {
   const score = state.liveScores[gameId];
   if (!score || score.gameState === 'pre' || score.gameState === 'final') return;
   const game = getTournamentGames().find(g => g.id === gameId);
-  const clubId = (typeof getAppClubId === 'function' ? getAppClubId() : null) || '680-drivers';
+  const clubId = (typeof getAppClubId === 'function' ? getAppClubId() : null) || 'my-club';
   const teamKey = (typeof getSelectedTeam === 'function') ? getSelectedTeam() : TEAM_OPTIONS[0].key;
   try {
     const headers = { 'Content-Type': 'application/json' };
@@ -7178,7 +7178,7 @@ async function openSeasonStatsModal() {
   body.innerHTML = '<div style="text-align:center;color:var(--gray-500,#6b7280);padding:24px;font-size:0.85rem">Loading season stats…</div>';
 
   try {
-    const clubId = localStorage.getItem('ebwp-club') || '680-drivers';
+    const clubId = localStorage.getItem('ebwp-club') || 'my-club';
     const team = getSelectedTeam();
     const res = await fetch(`${PUSH_SERVER_URL}/player-stats?club=${encodeURIComponent(clubId)}&team=${encodeURIComponent(team)}`);
     const data = await res.json();
@@ -7506,7 +7506,7 @@ function renderHelpTab() {
       title: 'Multi-Club Support',
       body: `<p>Eggbeater supports multiple water polo clubs, each with their own tournaments, rosters, and admin teams.</p>
       <ul>
-        <li>Each club has a unique <strong>club ID</strong> (e.g. <code>680-drivers</code>) that scopes all data — schedules, scores, rosters, and history are kept completely separate between clubs.</li>
+        <li>Each club has a unique <strong>club ID</strong> that scopes all data — schedules, scores, rosters, and history are kept completely separate between clubs.</li>
         <li>If you receive a link with <code>?club=</code> in the URL, the app automatically loads that club's data. No extra setup needed.</li>
         <li>Your age group selections and My Player picks are saved per club, so switching between clubs doesn't lose your preferences.</li>
         <li>Club admins manage their own tournaments independently — changes by one club's admin never affect another club.</li>
