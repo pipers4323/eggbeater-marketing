@@ -4676,15 +4676,9 @@ details[open] .help-chevron { transform: rotate(180deg); }
 
 /* ── iPad / Tablet (768px – 1023px) ───────────────────────────────────────── */
 @media (min-width: 768px) and (max-width: 1023px) {
-  /* Game cards in 2-column grid */
+  /* Single-column cards — 2-col looked broken when only 1 game per date group */
   .games-section {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
     padding: 0 12px;
-  }
-  .games-section .sched-card {
-    margin-bottom: 0;
   }
   /* Next game card matches games-section horizontal spacing */
   .next-game-wrap {
@@ -4728,15 +4722,9 @@ details[open] .help-chevron { transform: rotate(180deg); }
 
 /* ── Desktop (1200px+) enhancements ───────────────────────────────────────── */
 @media (min-width: 1200px) {
-  /* Game cards in 2-column grid on desktop (content area is ~700px after sidebar) */
+  /* Single-column cards — 2-col looked broken when only 1 game per date group */
   .games-section {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
     padding: 0 12px;
-  }
-  .games-section .sched-card {
-    margin-bottom: 0;
   }
   /* Next game card matches games-section horizontal spacing */
   .next-game-wrap {
