@@ -2099,10 +2099,18 @@ function updateTierBadge() {
 }
 
 /**
+ * ENFORCE_TIERS — set to true to enable paywall gates in production.
+ * While false, ALL features are available to every club regardless of tier.
+ * Flip to true when ready to start enforcing subscriptions.
+ */
+const ENFORCE_TIERS = false;
+
+/**
  * Check if the current club has access to a paid feature.
  * Returns true if the feature is available for the current tier.
  */
 function tierHasFeature(feature) {
+  if (!ENFORCE_TIERS) return true; // everything open during testing
   const tier = S.clubTier || 'free';
   switch (feature) {
     case 'multi_team':        return tier !== 'free';
@@ -6801,6 +6809,9 @@ function botSaved(key) {
 }
 
 function renderTeamCommTab() {
+  if (!tierHasFeature('push_notify')) {
+    return renderUpgradeNudge('Push Notifications');
+  }
   const t = S.tournament;
   // Push Notification Manager section
   const pushSection = `
@@ -7329,6 +7340,9 @@ function guessSeasonFromDate(dateStr) {
 }
 
 function renderHistoryAdminTab() {
+  if (!tierHasFeature('season_stats')) {
+    return renderUpgradeNudge('Season Stats');
+  }
   const teamObj = getAdminTeams().find(t => t.key === S.team);
   const teamLabel = teamObj ? teamObj.label : S.team;
   const isHS = S.clubType === 'highschool';
