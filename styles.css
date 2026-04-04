@@ -734,6 +734,12 @@ h2 {
   background: var(--gray-200);
 }
 
+/* On mobile, body bg is dark royal — make date headers white so they're visible */
+@media (max-width: 1022px) {
+  .date-group-header { color: white; }
+  .date-group-header::after { background: rgba(255,255,255,0.25); }
+}
+
 /* ── Next Game Card ──────────────────────────────────────────────────────── */
 .next-game-wrap {
   margin: 14px 12px 0;
