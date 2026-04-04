@@ -7041,7 +7041,7 @@ function lockScoring() {
 // Devices are distinguished by a random per-device ID stored in localStorage
 // so the scorer never overwrites their own live state with stale remote data.
 
-const LIVE_POLL_MS = 10_000;
+const LIVE_POLL_MS = 5_000;
 let _livePollTimer = null;
 
 function getDeviceId() {
