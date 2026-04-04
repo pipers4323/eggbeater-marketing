@@ -567,6 +567,69 @@ function showToast(msg, type = 'default') {
   t._timer = setTimeout(() => t.classList.add('hidden'), 4000);
 }
 
+// ─── ACCESSIBILITY: MODAL FOCUS MANAGEMENT (WCAG 2.4.3, 4.1.3) ───────────────
+// Provides focus trapping, trigger-restore, and score announcements so that
+// VoiceOver and Voice Control users get a complete, non-confusing experience.
+
+const _FOCUSABLE = 'button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+/**
+ * Trap Tab/Shift-Tab focus within a modal container.
+ * Immediately moves focus to the first focusable child.
+ * Returns a cleanup function that removes the keydown listener.
+ */
+function _trapFocus(container) {
+  function getFocusable() { return [...container.querySelectorAll(_FOCUSABLE)]; }
+  function onKey(e) {
+    if (e.key !== 'Tab') return;
+    const els = getFocusable();
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault(); first.focus();
+    }
+  }
+  container.addEventListener('keydown', onKey);
+  // Delay so element is visible/painted before focus
+  setTimeout(() => { const f = getFocusable(); if (f.length) f[0].focus(); }, 50);
+  return () => container.removeEventListener('keydown', onKey);
+}
+
+/** Per-modal a11y state: id → { trigger, cleanup } */
+const _modalA11y = {};
+
+/** Call when opening any modal. Saves the triggering element and arms the focus trap. */
+function _openModal(id) {
+  const container = $(id);
+  if (!container) return;
+  _modalA11y[id] = { trigger: document.activeElement, cleanup: _trapFocus(container) };
+}
+
+/** Call when closing any modal. Disarms the trap and restores focus to the trigger. */
+function _closeModal(id) {
+  const m = _modalA11y[id];
+  if (!m) return;
+  if (m.cleanup) m.cleanup();
+  setTimeout(() => m.trigger?.focus(), 50);
+  delete _modalA11y[id];
+}
+
+/** Announce a score update to screen readers via the aria-live region. */
+function _announceScore(gameId) {
+  const announcer = $('score-announcer');
+  if (!announcer) return;
+  const s = state.liveScores[gameId];
+  if (!s) return;
+  const game = (TOURNAMENT.games || []).find(g => g.id === gameId);
+  const home = TOURNAMENT.clubName || 'Us';
+  const away = game?.opponent || 'Opponent';
+  const qtr  = s.period ? ` — Quarter ${s.period}` : '';
+  const clk  = s.clock  ? ` ${s.clock}` : '';
+  announcer.textContent = `${home} ${s.team ?? 0}, ${away} ${s.opp ?? 0}${qtr}${clk}.`;
+}
+
 // ─── TIME HELPERS ─────────────────────────────────────────────────────────────
 
 // Format a raw date key (ISO "2026-04-04" or already-human "Apr 4, 2026") for display
@@ -845,6 +908,7 @@ function afterScore(gameId) {
   renderNextGameCard(); // update LIVE badge on blue card
   if (state.currentTab === 'scores') renderScoresTab();
   updateLiveDot();
+  _announceScore(gameId); // VoiceOver: read updated score aloud
   // Broadcast score to CF Worker — reset to pre clears all viewer devices
   const _afterGs = state.liveScores[gameId];
   if (_afterGs && _afterGs.gameState === 'pre') broadcastGameReset(gameId);
@@ -2342,13 +2406,15 @@ function promptClock(callback) {
   if (input) input.value = '';
   $('clock-prompt')?.classList.remove('hidden');
   document.body.classList.add('modal-open');
-  // Auto-focus after the paint so keyboard opens
+  _openModal('clock-prompt');
+  // Auto-focus input after paint (overrides _trapFocus default — both target the input)
   setTimeout(() => $('clock-prompt-input')?.focus(), 80);
 }
 
 function confirmClockPrompt(val) {
   $('clock-prompt')?.classList.add('hidden');
   document.body.classList.remove('modal-open');
+  _closeModal('clock-prompt');
   const cb = _clockCallback;
   _clockCallback = null;
   if (cb) cb((val || '').trim());
@@ -2421,6 +2487,7 @@ function openEventPicker(gameId, eventType) {
 
     $('roster-modal').classList.remove('hidden');
     document.body.classList.add('modal-open');
+    _openModal('roster-modal');
   };
   // Always use auto-clock — no manual prompt needed.
   _pendingClock = getCurrentClockStr(gameId);
@@ -2433,6 +2500,7 @@ function openRosterPicker(gameId) { openEventPicker(gameId, 'goal'); }
 function closeEventPicker() {
   $('roster-modal').classList.add('hidden');
   document.body.classList.remove('modal-open');
+  _closeModal('roster-modal');
   _pickerGameId = null;
   const cb = $('roster-6v5-checkbox');
   if (cb) cb.checked = false;
@@ -3554,12 +3622,14 @@ function openDirScoringModal() {
   const err = document.getElementById('dir-scoring-pw-error');
   if (err) err.textContent = '';
   modal.classList.remove('hidden');
+  _openModal('dir-scoring-pw-modal');
   setTimeout(() => { if (inp) inp.focus(); }, 100);
 }
 
 function closeDirScoringModal() {
   const modal = document.getElementById('dir-scoring-pw-modal');
   if (modal) modal.classList.add('hidden');
+  _closeModal('dir-scoring-pw-modal');
 }
 
 function submitDirScoringPassword() {
@@ -6528,11 +6598,13 @@ function openScoringPasswordModal() {
   $('scoring-pw-input').value = '';
   $('scoring-pw-error').textContent = '';
   modal.classList.remove('hidden');
+  _openModal('scoring-pw-modal');
   setTimeout(() => $('scoring-pw-input').focus(), 150);
 }
 
 function closeScoringPasswordModal() {
   $('scoring-pw-modal').classList.add('hidden');
+  _closeModal('scoring-pw-modal');
 }
 
 function submitScoringPassword() {
@@ -7148,19 +7220,21 @@ function openPlayerStatsModal() {
       const totals      = `<span class="pstats-totals">G&nbsp;${p.G}&nbsp;&nbsp;A&nbsp;${p.A}&nbsp;&nbsp;Ex&nbsp;${p.Excl}${gkExtra}</span>`;
       const gamesStr    = `<span class="pstats-games">${p.gameCount} game${p.gameCount !== 1 ? 's' : ''}</span>`;
       const nameEncoded = encodeURIComponent(p.name || '');
-      return `<button class="pstats-player-btn" onclick="downloadPlayerStats('${nameEncoded}')">
+      return `<button class="pstats-player-btn" onclick="downloadPlayerStats('${nameEncoded}')" aria-label="Download stats for ${displayName}">
         <div class="pstats-player-left"><span class="pstats-name">${displayName}</span></div>
-        <div class="pstats-player-right">${totals}${gamesStr}<span class="pstats-dl-icon">⬇</span></div>
+        <div class="pstats-player-right">${totals}${gamesStr}<span class="pstats-dl-icon" aria-hidden="true">⬇</span></div>
       </button>`;
     }).join('');
   }
 
   $('player-stats-modal').classList.remove('hidden');
+  _openModal('player-stats-modal');
 }
 
 /** Closes the player stats modal. */
 function closePlayerStatsModal() {
   $('player-stats-modal').classList.add('hidden');
+  _closeModal('player-stats-modal');
 }
 
 // ── Season Stats Modal (from archived tournaments) ──────────────────────────

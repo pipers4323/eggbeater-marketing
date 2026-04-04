@@ -5280,6 +5280,21 @@ details[open] .help-chevron { transform: rotate(180deg); }
    The :not([data-theme="light"]) guard ensures user's explicit "force light"
    preference still wins over this system-level media query.
    ═══════════════════════════════════════════════════════════════════════════ */
+/* ── Screen-reader-only utility (WCAG 1.3.1) ─────────────────────────────────
+   Hides element visually but keeps it in the accessibility tree.
+   Used for live-score announcer and other a11y-only content. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ── High-Contrast Mode (Sufficient Contrast — WCAG 1.4.3 / 1.4.6) ──────────
    Boosts muted grays to near-black so all secondary text clears 7:1 against
    white backgrounds, satisfying WCAG AAA for users with poor vision or those
