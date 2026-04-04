@@ -3204,6 +3204,9 @@ async function _renderSettingsClubList() {
           ${isCurrent ? '<div class="settings-item-value">Current club</div>' : ''}
         </div>
         ${checkMark}
+        <button onclick="event.stopPropagation();_settingsRemoveClub('${escHtml(club.id)}','${escHtml(club.name || club.id)}')"
+                style="background:none;border:none;color:var(--gray-300);font-size:1.1rem;cursor:pointer;padding:4px 6px;border-radius:6px;flex-shrink:0"
+                title="Remove club" aria-label="Remove ${escHtml(club.name || club.id)}">×</button>
       </div>
     `;
   }
@@ -3247,6 +3250,32 @@ function _settingsSwitchClub(clubId, clubName, clubType) {
   }
   // Reload to re-initialize with the new club
   window.location.href = window.location.pathname + '?club=' + encodeURIComponent(clubId);
+}
+
+/** Remove a club from the joined list; returns to splash if it was the only club */
+function _settingsRemoveClub(clubId, clubName) {
+  const joined = getJoinedClubs();
+  const isOnly = joined.length <= 1;
+  const isCurrent = clubId === getAppClubId();
+
+  removeJoinedClub(clubId);
+
+  if (isOnly || isCurrent) {
+    // Clear club selection — reload will show club picker if no clubs remain
+    localStorage.removeItem('ebwp-club-id');
+    localStorage.removeItem('ebwp-club-name');
+    localStorage.removeItem('ebwp-club-type');
+    localStorage.removeItem('ebwp-team-keys');
+    localStorage.removeItem('ebwp-team-key');
+    localStorage.removeItem('ebwp-tournament-id');
+    localStorage.removeItem('ebwp-snapshot');
+    window.location.href = window.location.pathname;
+    return;
+  }
+
+  // Not the current club — just refresh the list
+  if (typeof showToast === 'function') showToast(`Removed ${clubName}`);
+  _renderSettingsClubList();
 }
 
 /** Show inline add-club input in Settings */
@@ -3346,6 +3375,7 @@ function _renderSettingsTeamPicker() {
     container.innerHTML = html;
   } else {
     // Club teams: standard pill layout with A/B sub-pills for multi-team tournaments
+    const anySelected = selectedTeams.length > 0;
     let html = '<div class="age-pill-row" style="gap:6px;flex-wrap:wrap">';
     for (const opt of TEAM_OPTIONS) {
       const active = selectedTeams.includes(opt.key);
@@ -3387,8 +3417,25 @@ function _renderSettingsTeamPicker() {
       }
     }
     html += '</div>';
+    if (anySelected) {
+      html += `<button onclick="_resetTeamSelection()" style="margin-top:8px;background:none;border:none;color:var(--gray-400);font-size:0.78rem;cursor:pointer;padding:2px 0;font-family:inherit">Reset selection</button>`;
+    }
     container.innerHTML = html;
   }
+}
+
+/** Clear all selected age groups and re-render */
+function _resetTeamSelection() {
+  const clubId = getAppClubId();
+  if (clubId) {
+    localStorage.removeItem(`ebwp-team-keys-${clubId}`);
+    localStorage.removeItem(`ebwp-fav-groups-${clubId}`);
+  }
+  localStorage.removeItem('ebwp-team-keys');
+  localStorage.removeItem('ebwp-team-key');
+  localStorage.removeItem('ebwp-selected-team');
+  _renderSettingsTeamPicker();
+  renderHeader();
 }
 
 // ─── RENDER: SCORES TAB ───────────────────────────────────────────────────────
