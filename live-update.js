@@ -23,6 +23,24 @@
     return null;
   }
 
+  // Request POST_NOTIFICATIONS permission on Android 13+ (one-time, in-context)
+  let _permRequested = false;
+  async function _ensureNotifPermission() {
+    if (_permRequested) return;
+    _permRequested = true;
+    try {
+      if (!isNative()) return;
+      if (window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'android') return;
+      const push = window.Capacitor?.Plugins?.PushNotifications;
+      if (push) {
+        const result = await push.requestPermissions();
+        console.info('[live-update] POST_NOTIFICATIONS permission:', result?.receive);
+      }
+    } catch (e) {
+      console.warn('[live-update] Permission request failed:', e.message);
+    }
+  }
+
   /**
    * Sync the current live game state to the native Android 16 Status Chip.
    * @param {string} gameId
@@ -30,6 +48,7 @@
    */
   async function sync(gameId, score) {
     if (!isNative()) return;
+    await _ensureNotifPermission(); // request POST_NOTIFICATIONS on Android 13+ (no-op after first call)
     const plugin = getPlugin();
     if (!plugin) return;
 
