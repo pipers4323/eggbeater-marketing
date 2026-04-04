@@ -2560,6 +2560,94 @@ function _isNativePlatform() {
   return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 }
 
+// ─── PLAY INTEGRITY (Android only) ────────────────────────────────────────────
+// Requests a Play Integrity token from the device, then verifies it against our
+// Vercel edge function which calls Google's Play Integrity API.
+// Result is cached for 60 minutes — the token is single-use for the nonce but
+// the device/app reputation verdict doesn't change during a session.
+
+let _integrityVerdict = null;   // cached { verdict, ts } — null = not yet checked
+let _integrityPending = null;   // in-flight Promise to avoid duplicate requests
+
+/** Generate a cryptographically random base64url nonce (24 bytes = 192 bits). */
+function _generateNonce() {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+/**
+ * Check Play Integrity on Android.
+ * Returns an object: { ok: true } on PLAY_RECOGNIZED / meets device integrity,
+ *                    { ok: false, reason } on failure or unrecognized device.
+ * On iOS or web, always returns { ok: true } (not applicable).
+ * Results are cached for 60 minutes per session.
+ */
+async function checkPlayIntegrity() {
+  // Only meaningful on Android native
+  if (!_isNativePlatform() || window.Capacitor?.getPlatform?.() !== 'android') {
+    return { ok: true };
+  }
+
+  // Return cached verdict if fresh (< 60 min)
+  if (_integrityVerdict && (Date.now() - _integrityVerdict.ts) < 60 * 60 * 1000) {
+    return _integrityVerdict.result;
+  }
+
+  // Deduplicate concurrent calls
+  if (_integrityPending) return _integrityPending;
+
+  _integrityPending = (async () => {
+    try {
+      const plugin = window.Capacitor?.Plugins?.PlayIntegrity;
+      if (!plugin) {
+        console.warn('[integrity] PlayIntegrity plugin not available');
+        return { ok: true }; // fail-open so existing users aren't blocked
+      }
+
+      const nonce = _generateNonce();
+      const { token } = await plugin.requestToken({ nonce });
+
+      const res = await fetch('https://eggbeater.app/api/verify-integrity', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ token }),
+      });
+
+      if (!res.ok) {
+        console.warn('[integrity] Verification endpoint returned', res.status);
+        return { ok: true }; // fail-open on backend errors
+      }
+
+      const payload = await res.json();
+
+      // Evaluate the verdict
+      const appVerdict    = payload?.tokenPayloadExternal?.appIntegrity?.appRecognitionVerdict    || '';
+      const deviceVerdict = payload?.tokenPayloadExternal?.deviceIntegrity?.deviceRecognitionVerdict || [];
+
+      const appOk    = appVerdict === 'PLAY_RECOGNIZED';
+      const deviceOk = deviceVerdict.includes('MEETS_DEVICE_INTEGRITY');
+
+      const result = appOk && deviceOk
+        ? { ok: true }
+        : { ok: false, reason: `app=${appVerdict} device=${JSON.stringify(deviceVerdict)}` };
+
+      _integrityVerdict = { result, ts: Date.now() };
+      return result;
+
+    } catch (e) {
+      console.warn('[integrity] Check failed:', e.message);
+      return { ok: true }; // fail-open — don't block legitimate users on API errors
+    } finally {
+      _integrityPending = null;
+    }
+  })();
+
+  return _integrityPending;
+}
+
 function requestToken(callback) {
   if (_isNativePlatform()) {
     // ── Native iOS: GIS doesn't work in WKWebView ──────────────────────

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accessibility — Eggbeater Water Polo</title>
+  <meta name="description" content="Eggbeater Water Polo's accessibility commitment — features supported, WCAG conformance, and how to report issues." />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/icon-512.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --royal:      #002868;
+      --royal-mid:  #1a3d8f;
+      --teal:       #00A693;
+      --white:      #ffffff;
+      --gray-50:    #f8f9fb;
+      --gray-100:   #f0f2f7;
+      --gray-200:   #e2e6ef;
+      --gray-600:   #4a5568;
+      --gray-900:   #1a202c;
+      --green:      #16a34a;
+      --green-bg:   #f0fdf4;
+      --amber:      #d97706;
+      --amber-bg:   #fffbeb;
+      --radius:     12px;
+      --shadow:     0 2px 12px rgba(0,0,0,.09);
+    }
+
+    html { scroll-behavior: smooth; font-size: 100%; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--gray-900);
+      background: var(--white);
+      line-height: 1.65;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(0, 40, 104, 0.97);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .nav-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--white);
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+    .nav-logo img { width: 32px; height: 32px; border-radius: 8px; }
+    .nav-back {
+      color: rgba(255,255,255,0.75);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+    .nav-back:hover { color: var(--white); }
+
+    /* ── CONTENT ── */
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 104px 24px 80px;
+    }
+
+    .page-header {
+      margin-bottom: 48px;
+      padding-bottom: 32px;
+      border-bottom: 2px solid var(--gray-200);
+    }
+    .page-header h1 {
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      font-weight: 800;
+      color: var(--royal);
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .page-header p {
+      font-size: 1.05rem;
+      color: var(--gray-600);
+      max-width: 600px;
+    }
+    .updated-badge {
+      display: inline-block;
+      margin-top: 16px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--gray-600);
+      background: var(--gray-100);
+      border-radius: 20px;
+      padding: 4px 12px;
+    }
+
+    /* ── CONFORMANCE BOX ── */
+    .conformance-box {
+      background: linear-gradient(135deg, var(--royal) 0%, var(--royal-mid) 100%);
+      color: var(--white);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      margin-bottom: 48px;
+    }
+    .conformance-box h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      opacity: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .conformance-box p {
+      font-size: 1rem;
+      line-height: 1.6;
+      opacity: 0.88;
+    }
+    .conformance-box a {
+      color: rgba(255,255,255,0.9);
+      text-decoration: underline;
+    }
+    .conformance-box a:hover { color: var(--white); }
+
+    /* ── SECTION ── */
+    .section {
+      margin-bottom: 48px;
+    }
+    .section h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--royal);
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1.5px solid var(--gray-200);
+    }
+
+    /* ── FEATURE LIST ── */
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px 18px;
+      background: var(--gray-50);
+      border-radius: var(--radius);
+      border: 1.5px solid var(--gray-200);
+    }
+    .feature-item.done {
+      border-color: #bbf7d0;
+      background: var(--green-bg);
+    }
+    .feature-item.na {
+      border-color: var(--gray-200);
+      background: var(--gray-50);
+      opacity: 0.7;
+    }
+    .feature-badge {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+    .feature-item.done  .feature-badge { background: #16a34a; color: #fff; }
+    .feature-item.na    .feature-badge { background: var(--gray-200); color: var(--gray-600); }
+    .feature-body { flex: 1; }
+    .feature-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 3px;
+    }
+    .feature-desc {
+      font-size: 0.875rem;
+      color: var(--gray-600);
+      line-height: 1.55;
+    }
+    .feature-item.done .feature-title { color: #14532d; }
+
+    /* ── TIPS ── */
+    .tips-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .tip-card {
+      padding: 20px;
+      background: var(--gray-50);
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius);
+    }
+    .tip-card h3 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--royal);
+      margin-bottom: 8px;
+    }
+    .tip-card p {
+      font-size: 0.855rem;
+      color: var(--gray-600);
+      line-height: 1.55;
+    }
+
+    /* ── CONTACT ── */
+    .contact-box {
+      background: var(--gray-50);
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+    }
+    .contact-box h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--royal);
+      margin-bottom: 10px;
+    }
+    .contact-box p {
+      color: var(--gray-600);
+      font-size: 0.95rem;
+      line-height: 1.65;
+      margin-bottom: 16px;
+    }
+    .contact-box a {
+      color: var(--royal);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .contact-box a:hover { text-decoration: underline; }
+    .contact-cta {
+      display: inline-block;
+      background: var(--royal);
+      color: var(--white);
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 10px 22px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .contact-cta:hover { background: var(--royal-mid); }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      font-size: 0.8rem;
+      color: var(--gray-600);
+      border-top: 1px solid var(--gray-200);
+    }
+    footer a { color: var(--gray-600); }
+
+    @media (max-width: 600px) {
+      main { padding: 88px 16px 60px; }
+      .conformance-box { padding: 20px; }
+      .contact-box { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav aria-label="Site navigation">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo" aria-label="Eggbeater Water Polo home">
+        <img src="/icon-512.png" alt="" aria-hidden="true" />
+        Eggbeater
+      </a>
+      <a href="/" class="nav-back">← Back to home</a>
+    </div>
+  </nav>
+
+  <main>
+
+    <header class="page-header">
+      <h1>Accessibility</h1>
+      <p>We want every coach, parent, and player to be able to use Eggbeater — regardless of disability or assistive technology preference.</p>
+      <span class="updated-badge">Last reviewed: April 2026</span>
+    </header>
+
+    <div class="conformance-box" role="region" aria-label="Conformance statement">
+      <h2>WCAG Conformance</h2>
+      <p>
+        Eggbeater targets <strong>WCAG 2.1 Level AA</strong> conformance across the iOS app, Android app, and web interface at
+        <a href="https://eggbeater.app">eggbeater.app</a>.
+        We work to address gaps as they are identified.
+        This statement covers features shipped as of April 2026.
+      </p>
+    </div>
+
+    <!-- ── Supported Features ── -->
+    <section class="section" aria-labelledby="features-heading">
+      <h2 id="features-heading">Supported Accessibility Features</h2>
+      <ul class="feature-list" role="list">
+
+        <li class="feature-item done" role="listitem">
+          <div class="feature-badge" aria-hidden="true">✓</div>
+          <div class="feature-body">
+            <div class="feature-title">Dark Mode</div>
+            <div class="feature-desc">Full dark interface with a three-way toggle: Light, Dark, or follow the system setting. Applied without page reload. All components — game cards, modals, navigation — are fully styled in dark mode.</div>
+          </div>
+        </li>
+
+        <li class="feature-item done" role="listitem">
+          <div class="feature-badge" aria-hidden="true">✓</div>
+          <div class="feature-body">
+            <div class="feature-title">Larger Text</div>
+            <div class="feature-desc">All font sizes use relative units (rem/em) so they scale with your device's system font size setting. Increasing text size in iOS Settings → Display &amp; Brightness → Text Size or Android Display → Font size is fully respected.</div>
+          </div>
+        </li>
+
+        <li class="feature-item done" role="listitem">
+          <div class="feature-badge" aria-hidden="true">✓</div>
+          <div class="feature-body">
+            <div class="feature-title">Reduced Motion</div>
+            <div class="feature-desc">When "Reduce Motion" is enabled in your system settings, all animations and transitions are suppressed — including live score pulsing dots, toast slide-ins, modal animations, and the score update spinner. Interactive functionality is preserved.</div>
+          </div>
+        </li>
+
+        <li class="feature-item done" role="listitem">
+          <div class="feature-badge" aria-hidden="true">✓</div>
+          <div class="feature-body">
+            <div class="feature-title">VoiceOver &amp; TalkBack (Screen Reader)</div>
+            <div class="feature-desc">The app is navigable by screen reader. The bottom tab bar uses <code>role="tablist"</code> and <code>aria-selected</code> so VoiceOver announces the active tab. All five modals use <code>role="dialog"</code> with focus trapping — Tab/Shift-Tab cycles within the modal and focus returns to the triggering element on close. Live score changes are announced automatically via an <code>aria-live="polite"</code> region. Toast notifications are announced as status updates. All icon-only buttons have descriptive labels.</div>
+          </div>
+        </li>
+
+        <li class="feature-item done" role="listitem">
+          <div class="feature-badge" aria-hidden="true">✓</div>
+          <div class="feature-body">
+            <div class="feature-title">Voice Control</div>
+            <div class="feature-desc">Every interactive element has a unique, descriptive accessible name matching its visible label. You can say "Tap Schedule", "Tap Scores", "Tap History", "Tap More navigation options", "Tap Close", and so on. The More drawer items (Bracket, Roster, Settings, Help) are all reachable by name.</div>
+          </div>
+        </li>
+
+        <li class="feature-item done" role="listitem">
+          <div class="feature-badge" aria-hidden="true">✓</div>
+          <div class="feature-body">
+            <div class="feature-title">Differentiate Without Color Alone</div>
+            <div class="feature-desc">Information is never conveyed by color alone. The active navigation tab shows a 3 px top-border indicator in addition to the color change. The live game indicator uses <code>role="img"</code> with an accessible label ("Live game in progress") so it is announced by screen readers. Win/loss pills always include text ("WIN"/"LOSS").</div>
+          </div>
+        </li>
+
+        <li class="feature-item done" role="listitem">
+          <div class="feature-badge" aria-hidden="true">✓</div>
+          <div class="feature-body">
+            <div class="feature-title">Sufficient Contrast</div>
+            <div class="feature-desc">Navigation button labels meet WCAG AA (≥ 4.5:1) contrast against the white background. When "Increase Contrast" is enabled in system settings (<code>prefers-contrast: more</code>), secondary text is boosted to approximately 11:1, result pill backgrounds become solid dark colors, and the navigation indicator thickens for clarity.</div>
+          </div>
+        </li>
+
+        <li class="feature-item na" role="listitem">
+          <div class="feature-badge" aria-hidden="true">—</div>
+          <div class="feature-body">
+            <div class="feature-title">Captions</div>
+            <div class="feature-desc">Not applicable — Eggbeater contains no video or audio content.</div>
+          </div>
+        </li>
+
+        <li class="feature-item na" role="listitem">
+          <div class="feature-badge" aria-hidden="true">—</div>
+          <div class="feature-body">
+            <div class="feature-title">Audio Descriptions</div>
+            <div class="feature-desc">Not applicable — Eggbeater contains no video content.</div>
+          </div>
+        </li>
+
+      </ul>
+    </section>
+
+    <!-- ── Tips ── -->
+    <section class="section" aria-labelledby="tips-heading">
+      <h2 id="tips-heading">How to Enable Accessibility Features</h2>
+      <div class="tips-grid">
+        <div class="tip-card">
+          <h3>Dark Mode</h3>
+          <p>Open the app → tap <strong>More → Settings → Appearance</strong>. Choose Light, Dark, or System. The system option follows your device's display settings.</p>
+        </div>
+        <div class="tip-card">
+          <h3>Larger Text (iOS)</h3>
+          <p>Go to <strong>Settings → Display &amp; Brightness → Text Size</strong> and drag the slider. The app respects all Dynamic Type sizes.</p>
+        </div>
+        <div class="tip-card">
+          <h3>Larger Text (Android)</h3>
+          <p>Go to <strong>Settings → Display → Font size and style</strong> and increase the font size. The app uses relative font sizes throughout.</p>
+        </div>
+        <div class="tip-card">
+          <h3>VoiceOver (iOS)</h3>
+          <p>Triple-click the side button, or go to <strong>Settings → Accessibility → VoiceOver</strong> and toggle it on. Swipe right/left to move between elements, double-tap to activate.</p>
+        </div>
+        <div class="tip-card">
+          <h3>TalkBack (Android)</h3>
+          <p>Go to <strong>Settings → Accessibility → TalkBack</strong> and toggle it on. Swipe right/left to navigate, double-tap to activate.</p>
+        </div>
+        <div class="tip-card">
+          <h3>Voice Control (iOS)</h3>
+          <p>Go to <strong>Settings → Accessibility → Voice Control</strong> and turn it on. Say the name of any button to activate it — all buttons in Eggbeater have descriptive names.</p>
+        </div>
+        <div class="tip-card">
+          <h3>Reduce Motion</h3>
+          <p><strong>iOS:</strong> Settings → Accessibility → Motion → Reduce Motion.<br/><strong>Android:</strong> Settings → Accessibility → Remove animations.</p>
+        </div>
+        <div class="tip-card">
+          <h3>Increase Contrast</h3>
+          <p><strong>iOS:</strong> Settings → Accessibility → Display &amp; Text Size → Increase Contrast.<br/><strong>Android:</strong> Settings → Accessibility → Color and motion → High contrast text.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Contact ── -->
+    <div class="contact-box" role="region" aria-labelledby="contact-heading">
+      <h2 id="contact-heading">Report an Accessibility Issue</h2>
+      <p>
+        If you encounter a barrier — something that prevents you from using any part of the app — please let us know.
+        We aim to respond within 2 business days and to resolve confirmed issues in the next app update.
+      </p>
+      <p>
+        You can also suggest improvements, even if you're not blocked — your feedback helps us prioritize future accessibility work.
+      </p>
+      <a href="mailto:hello@eggbeater.app?subject=Accessibility%20Feedback" class="contact-cta">
+        Email hello@eggbeater.app
+      </a>
+    </div>
+
+  </main>
+
+  <footer>
+    <p>© 2026 Eggbeater Water Polo · <a href="/">Home</a> · <a href="/about.html">About</a> · <a href="mailto:hello@eggbeater.app">Contact</a></p>
+  </footer>
+
+</body>
+</html>
