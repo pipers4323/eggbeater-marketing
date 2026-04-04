@@ -2084,17 +2084,26 @@ async function loadClubTier(clubId) {
 
 /**
  * Show/hide 👑 crown on premium tab buttons based on current tier.
- * Crown appears when ENFORCE_TIERS is true and the club doesn't have access.
+ * Crown appears when the club doesn't have the required feature — regardless of ENFORCE_TIERS.
+ * This is a visual indicator of what's included in each plan, not a gate.
  * Disappears once the club has the required tier — positive reinforcement.
  */
 function updateTabCrowns() {
   const gates = { teamcomm: 'push_notify', history: 'season_stats', director: 'tournament_host' };
   Object.entries(gates).forEach(([tab, feature]) => {
-    const locked = ENFORCE_TIERS && !tierHasFeature(feature);
+    const locked = !tierHasFeatureByTier(feature);
     document.querySelectorAll(`[data-tab="${tab}"] .tab-crown`).forEach(el => {
       el.style.display = locked ? '' : 'none';
     });
   });
+}
+
+// Like tierHasFeature() but always checks real tier — ignores ENFORCE_TIERS flag.
+// Used for crown badges so they reflect actual club tier regardless of testing mode.
+function tierHasFeatureByTier(feature) {
+  const tier = S.clubTier || 'free';
+  const tiers = { free: [], parent: ['parent_stats'], club: ['push_notify', 'live_scoring', 'season_stats', 'multi_team'], tournament_host: ['push_notify', 'live_scoring', 'season_stats', 'multi_team', 'tournament_host'] };
+  return (tiers[tier] || []).includes(feature);
 }
 
 /**
