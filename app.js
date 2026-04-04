@@ -925,12 +925,16 @@ function afterScore(gameId) {
       const _la = window.Capacitor?.Plugins?.LiveActivity ||
         (window.Capacitor?.nativePromise ? { updateActivity: (o) => window.Capacitor.nativePromise('LiveActivity', 'updateActivity', o) } : null);
       if (_la) {
+        const _remaining = _las.timerRunning
+          ? Math.max(0, (_las.timerSecondsLeft || 0) - (Date.now() - (_las.timerStartedAt || Date.now())) / 1000)
+          : 0;
         _la.updateActivity({
           homeScore: _las.team  || 0,
           awayScore: _las.opp   || 0,
           clock:     _las.clock || '0:00',
           quarter:   String(_las.period || 1),
           lastEvent: _buildLastEventStr(gameId),
+          timerEnd:  _las.timerRunning && _remaining > 0 ? (Date.now() / 1000 + _remaining) : 0,
         }).catch(() => {});
       }
     }
@@ -2222,6 +2226,8 @@ function _tickAllClocks() {
           clock:     fmtTime,
           quarter:   String(s.period || 1),
           lastEvent: _buildLastEventStr(gameId),
+          // Native iOS countdown timer — Date.now()/1000 + remaining seconds = end timestamp
+          timerEnd:  s.timerRunning && remaining > 0 ? (Date.now() / 1000 + remaining) : 0,
         }).catch(() => {});
       }
     }
@@ -8324,6 +8330,11 @@ async function toggleLiveActivity(gameId) {
   const secondaryColor = (state.clubInfo?.secondaryColor || '#00A693').replace('#', '');
 
   try {
+    // Calculate remaining clock time for native iOS countdown timer
+    const _laRemaining = score.timerRunning
+      ? Math.max(0, (score.timerSecondsLeft || 0) - (Date.now() - (score.timerStartedAt || Date.now())) / 1000)
+      : 0;
+
     await LiveActivity.startActivity({
       homeTeam:      game ? getTeamLabel(game.team) : "Home",
       awayTeam:      game?.opponent || "Away",
@@ -8332,6 +8343,8 @@ async function toggleLiveActivity(gameId) {
       clock:         score.clock || "0:00",
       quarter:       String(score.period || 1),
       lastEvent:     _buildLastEventStr(gameId),
+      // Native iOS countdown — non-zero timerEnd makes SwiftUI tick the clock automatically
+      timerEnd:      score.timerRunning && _laRemaining > 0 ? (Date.now() / 1000 + _laRemaining) : 0,
       // Use HTTPS worker URL for logo — base64 data: URLs don't load in AsyncImage
       homeLogoUrl:   state.clubInfo?.logo ? `${PUSH_SERVER_URL}/club-logo?club=${encodeURIComponent(getAppClubId())}` : '',
       awayLogoUrl:   '',   // opponent logo not yet stored
