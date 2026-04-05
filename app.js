@@ -7384,7 +7384,7 @@ function notifyScorePush(gameId, eventType) {
 async function pollLiveScores() {
   try {
     const tid = encodeURIComponent(TOURNAMENT.id || '');
-    const res = await fetch(`${PUSH_SERVER_URL}/live-scores?t=${tid}`);
+    const res = await fetch(`${PUSH_SERVER_URL}/live-scores?t=${tid}`, { cache: 'no-store' });
     if (!res.ok) return;
     const remote = await res.json();
 
