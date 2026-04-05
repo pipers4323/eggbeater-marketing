@@ -8335,7 +8335,12 @@ function renderHelpTab() {
 
 async function _syncWidgetsAll() {
   if (!_isNativePlatform()) return;
-  const plugin = window.Capacitor?.Plugins?.LiveActivity;
+  const platform  = window.Capacitor?.getPlatform?.() || '';
+  const isAndroid = platform === 'android';
+  // iOS uses LiveActivity plugin; Android uses LiveUpdate plugin
+  const plugin = isAndroid
+    ? window.Capacitor?.Plugins?.LiveUpdate
+    : window.Capacitor?.Plugins?.LiveActivity;
   if (!plugin?.updateWidgetData) return;
   try {
     // 1. Club branding colors
@@ -8414,15 +8419,52 @@ async function _syncWidgetsAll() {
       location: nextG.location || '',
     } : null;
 
-    // Write all keys to shared UserDefaults (each call triggers WidgetCenter reload)
-    const writes = [
-      { key: 'club_primary_color',   data: primary },
-      { key: 'club_secondary_color', data: secondary },
-      { key: 'available_teams',      data: JSON.stringify(availableTeams) },
-      { key: 'all_live_scores',      data: JSON.stringify(allLiveScores) },
-      { key: 'my_players_stats',     data: JSON.stringify(myPlayersStats) },
-    ];
-    if (nextGame) writes.push({ key: 'next_game', data: JSON.stringify(nextGame) });
+    let writes;
+    if (isAndroid) {
+      // Android widget providers read specific keys in specific formats
+      // ScoreWidgetProvider reads 'score_widget_data' — flat object for the first live game
+      const liveEntries = Object.values(allLiveScores);
+      const liveGame    = liveEntries[0] || null;
+
+      // StatsWidgetProvider reads 'stats_widget_data' — {players:[{name,detail}]}
+      const statsPlayers = myPlayersStats.map(p => ({
+        name:   p.name,
+        detail: `${p.goals} G, ${p.assists} A`,
+      }));
+
+      // ScheduleWidgetProvider reads 'schedule_widget_data' — {games:[{teams,time}]}
+      const scheduleGames = upcoming.slice(0, 3).map(x => ({
+        teams: `vs ${x.game.opponent || 'TBD'}`,
+        time:  x.game.time || '',
+      }));
+
+      writes = [
+        { key: 'club_name',            data: clubName || 'Eggbeater Water Polo' },
+        { key: 'stats_widget_data',    data: JSON.stringify({ players: statsPlayers }) },
+        { key: 'schedule_widget_data', data: JSON.stringify({ games: scheduleGames }) },
+      ];
+      if (liveGame) {
+        writes.push({ key: 'score_widget_data', data: JSON.stringify({
+          homeTeam:  liveGame.homeTeam,
+          awayTeam:  liveGame.awayTeam,
+          homeScore: String(liveGame.homeScore),
+          awayScore: String(liveGame.awayScore),
+          status:    'LIVE',
+          clock:     `${liveGame.period}  ${liveGame.clock}`.trim(),
+          gameId:    liveGame.gameId,
+        })});
+      }
+    } else {
+      // iOS — write to shared UserDefaults; each call triggers WidgetCenter reload
+      writes = [
+        { key: 'club_primary_color',   data: primary },
+        { key: 'club_secondary_color', data: secondary },
+        { key: 'available_teams',      data: JSON.stringify(availableTeams) },
+        { key: 'all_live_scores',      data: JSON.stringify(allLiveScores) },
+        { key: 'my_players_stats',     data: JSON.stringify(myPlayersStats) },
+      ];
+      if (nextGame) writes.push({ key: 'next_game', data: JSON.stringify(nextGame) });
+    }
 
     // Fire all writes concurrently; failures are silent (non-critical)
     await Promise.all(writes.map(w => plugin.updateWidgetData(w).catch(() => {})));
