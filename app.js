@@ -3230,6 +3230,18 @@ function renderSettingsTab() {
       </div>
     </div>
 
+    <div class="settings-section">
+      <div class="settings-section-title">❓ Help &amp; Support</div>
+      <div class="settings-item" onclick="switchTab('help')">
+        <span class="settings-item-icon">📖</span>
+        <div class="settings-item-text">
+          <div class="settings-item-label">How to Use Eggbeater</div>
+          <div class="settings-item-value">Scoring, bracket, notifications &amp; more</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>
+
     <div class="settings-section" style="margin-bottom:24px">
       <div class="settings-section-title">Account</div>
       ${user ? `
