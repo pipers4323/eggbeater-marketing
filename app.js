@@ -933,7 +933,7 @@ function _buildLUScore(gameId) {
     ...score,
     teamName:  game ? (getTeamLabel(game.team) || game.team || '') : '',
     oppName:   game ? (game.opponent || '') : (score.oppName || ''),
-    ageGroup:  game ? (game.team || '') : '',
+    ageGroup:  game ? (getTeamLabel(game.team) || game.team || '') : '',
     lastEvent: (typeof _buildLastEventStr === 'function') ? _buildLastEventStr(gameId) : '',
   };
 }
@@ -6950,7 +6950,7 @@ function renderPushButton() {
             <label class="push-pref-row push-pref-sub">
               <input type="radio" name="score-freq" value="everyGoal" ${prefs.scoreFrequency === 'everyGoal' ? 'checked' : ''}
                      onchange="onPushPrefChange()">
-              <span>Every goal ⚽</span>
+              <span>Every goal 🟡</span>
             </label>
             <label class="push-pref-row push-pref-sub">
               <input type="radio" name="score-freq" value="endOfQuarter" ${prefs.scoreFrequency === 'endOfQuarter' ? 'checked' : ''}
@@ -7439,22 +7439,6 @@ async function pollLiveScores() {
       changed = true;
     }
 
-    // Android 16 Live Update Sync — always run so chip appears immediately when viewer opens app
-    if (typeof EggbeaterLiveUpdate !== 'undefined' && Capacitor?.getPlatform?.() === 'android') {
-      const _laPrefsA = getLAPrefs();
-      const _favsA = getFavGroups();
-      const liveGames = getTournamentGames().filter(g => isGameLive(g.id));
-      // Prefer a favorited team with LA pref enabled; fall back to first live game if no prefs set
-      const autoGame = liveGames.find(g => _favsA.includes(g.team) && _laPrefsA[g.team] !== false)
-        || (liveGames.length > 0 && !liveGames.some(g => _favsA.includes(g.team) && _laPrefsA[g.team] === false) ? liveGames[0] : null);
-      if (autoGame) {
-        EggbeaterLiveUpdate.sync(autoGame.id, _buildLUScore(autoGame.id));
-      } else {
-        // No live games (or all live games have LA disabled) — clear the chip
-        EggbeaterLiveUpdate.stop();
-      }
-    }
-
     // Auto-start Live Activity (iOS) for favorited teams when their game goes live
     if (_isNativePlatform() && window.Capacitor?.getPlatform?.() === 'ios') {
       const _laPrefsI = getLAPrefs();
@@ -7486,6 +7470,21 @@ async function pollLiveScores() {
       renderGamesList();
       if (state.currentTab === 'scores') renderScoresTab();
       updateLiveDot();
+      // Android 16 Live Update — only sync when score actually changed to prevent notification spam.
+      // state.liveScores starts empty on every app open, so the first poll is always changed=true,
+      // meaning the chip appears immediately without needing a force-quit.
+      if (typeof EggbeaterLiveUpdate !== 'undefined' && Capacitor?.getPlatform?.() === 'android') {
+        const _laPrefsA = getLAPrefs();
+        const _favsA = getFavGroups();
+        const liveGames = getTournamentGames().filter(g => isGameLive(g.id));
+        const autoGame = liveGames.find(g => _favsA.includes(g.team) && _laPrefsA[g.team] !== false)
+          || (liveGames.length > 0 && !liveGames.some(g => _favsA.includes(g.team) && _laPrefsA[g.team] === false) ? liveGames[0] : null);
+        if (autoGame) {
+          EggbeaterLiveUpdate.sync(autoGame.id, _buildLUScore(autoGame.id));
+        } else {
+          EggbeaterLiveUpdate.stop();
+        }
+      }
       // VoiceOver: announce the most recently broadcast game that changed
       if (changedGameIds.length === 1) {
         _announceScore(changedGameIds[0]);
@@ -8740,12 +8739,12 @@ function _buildLastEventStr(gameId) {
   const sc = `${s.team || 0}-${s.opp || 0}`;
   const pl = [ev.cap ? `#${ev.cap}` : '', ev.name || ''].filter(Boolean).join(' ');
   switch (ev.type) {
-    case 'goal':       return `⚽ ${pl || 'Goal'} scored${ev.sixOnFive ? ' (6 on 5)' : ''} · ${q}${t} · ${sc}`;
-    case 'goal_5m':    return `⚽ ${pl || 'Penalty'} scored (5m) · ${q}${t} · ${sc}`;
-    case 'opp_goal':   return `⚽ Opponent scored · ${q}${t} · ${sc}`;
-    case 'opp_goal_5m':return `⚽ Opponent penalty (5m) · ${q}${t} · ${sc}`;
-    case 'so_goal':    return `⚽ ${pl || 'SO goal'} · ${sc}`;
-    case 'opp_so_goal':return `⚽ Opponent SO goal · ${sc}`;
+    case 'goal':       return `🟡 ${pl || 'Goal'} scored${ev.sixOnFive ? ' (6 on 5)' : ''} · ${q}${t} · ${sc}`;
+    case 'goal_5m':    return `🟡 ${pl || 'Penalty'} scored (5m) · ${q}${t} · ${sc}`;
+    case 'opp_goal':   return `🟡 Opponent scored · ${q}${t} · ${sc}`;
+    case 'opp_goal_5m':return `🟡 Opponent penalty (5m) · ${q}${t} · ${sc}`;
+    case 'so_goal':    return `🟡 ${pl || 'SO goal'} · ${sc}`;
+    case 'opp_so_goal':return `🟡 Opponent SO goal · ${sc}`;
     case 'exclusion':  return pl ? `🟡 ${pl} excluded · ${q}${t}` : '';
     case 'timeout':    return `⏱ Timeout · ${q}${t}`;
     case 'opp_timeout':return `⏱ Opponent timeout · ${q}${t}`;
