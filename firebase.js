@@ -172,6 +172,9 @@ async function fbSignIn() {
         if (typeof showToast === 'function') showToast('Sign-in not available on this device', 'error');
         return;
       }
+      // Clear any cached Google session so the account picker always shows,
+      // letting the user choose or switch accounts each time they sign in.
+      try { await plugin.logout({ provider: 'google' }); } catch (_) {}
       const result = await plugin.login({
         provider: 'google',
         options: {
@@ -211,6 +214,21 @@ async function fbSignIn() {
         // Use the Firebase custom token — the fetch interceptor proxies the signInWithCustomToken
         // call through the Worker so WKWebView never hits identitytoolkit directly.
         await _fbAuth.signInWithCustomToken(data.customToken || data.firebaseIdToken);
+        // Update the Firebase user profile with name/photo from Google.
+        // The fetch interceptor proxies accounts:update through the Worker (no Referer block).
+        if (_fbAuth.currentUser && (data.displayName || data.photoURL)) {
+          try {
+            await _fbAuth.currentUser.updateProfile({
+              displayName: data.displayName || null,
+              photoURL:    data.photoURL    || null,
+            });
+          } catch (upErr) {
+            console.warn('[firebase] updateProfile failed:', upErr.message);
+          }
+        }
+        // Email is not set on custom-token users — store for display fallback
+        if (data.email) localStorage.setItem('ebwp-auth-email', data.email);
+        _fbUpdateAuthUI(_fbAuth.currentUser);
         console.info('[firebase] Signed in via Worker proxy ✓');
       } else {
         // Android: signInWithCredential works (http://localhost is whitelisted)
@@ -253,6 +271,7 @@ async function fbSignOut() {
   if (!_fbAuth) return;
   try {
     await _fbAuth.signOut();
+    localStorage.removeItem('ebwp-auth-email');
     if (typeof showToast === 'function') showToast('Signed out');
   } catch (e) {
     console.warn('[firebase] sign-out error:', e.message);
@@ -526,7 +545,7 @@ function _fbUpdateAuthUI(user) {
 
   if (user) {
     btn.textContent = 'Sign Out';
-    btn.title       = `Signed in as ${user.email}`;
+    btn.title       = `Signed in as ${user.email || localStorage.getItem('ebwp-auth-email') || 'your account'}`;
     btn.onclick     = fbSignOut;
     if (userInfo) {
       const firstName = (user.displayName || '').split(' ')[0] || '✓';

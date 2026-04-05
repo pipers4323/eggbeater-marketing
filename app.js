@@ -3218,7 +3218,7 @@ function renderSettingsTab() {
           <span class="settings-item-icon" style="font-size:1.3rem">☁️</span>
           <div class="settings-item-text">
             <div class="settings-item-label">${escHtml(user.displayName || 'Signed In')}</div>
-            <div class="settings-item-value">${escHtml(user.email || '')}</div>
+            <div class="settings-item-value">${escHtml(user.email || localStorage.getItem('ebwp-auth-email') || '')}</div>
           </div>
         </div>
         <div class="settings-item" onclick="fbSignOut()" style="border-top:1px solid var(--gray-100)">
