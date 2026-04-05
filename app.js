@@ -8843,6 +8843,7 @@ async function toggleLiveActivity(gameId) {
       awayLogoUrl:   '',   // opponent logo not yet stored
       primaryColor:  primaryColor,
       secondaryColor: secondaryColor,
+      ageGroup:      game?.team || '',
     });
 
     // Track so pollLiveScores can push updates
