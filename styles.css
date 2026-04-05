@@ -5510,3 +5510,48 @@ details[open] .help-chevron { transform: rotate(180deg); }
     color: #8b949e !important;
   }
 }
+
+/* ── Android: My Players + Player Lookup as individual white cards ─────── */
+.native-android .my-player-card,
+.native-android .player-lookup-card {
+  background: white !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  margin-bottom: 10px !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+}
+[data-theme="dark"] .native-android .my-player-card,
+[data-theme="dark"] .native-android .player-lookup-card {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .native-android .my-player-card,
+  :root:not([data-theme="light"]) .native-android .player-lookup-card {
+    background: #161b22 !important;
+    border-color: #30363d !important;
+  }
+}
+
+/* ── Collapse empty viewer scoring section (all platforms) ─────────────── */
+/* .scoring-section has margin+padding that creates ~42px of blank space    */
+/* when the viewer section has no live score/events to display.             */
+.scoring-viewer:not(:has(*)) {
+  display: none !important;
+  margin: 0 !important;
+}
+
+/* ── Dark mode viewer-tab-bar (Scores header, all platforms) ───────────── */
+/* Default background: var(--royal)=#002868 looks bright against #0d1117.  */
+[data-theme="dark"] .viewer-tab-bar {
+  background: rgba(0,40,104,0.55) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .viewer-tab-bar {
+    background: rgba(0,40,104,0.55) !important;
+    backdrop-filter: blur(12px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  }
+}
