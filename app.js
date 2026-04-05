@@ -8142,7 +8142,7 @@ function renderHelpTab() {
     {
       icon: '⚙️',
       title: 'Settings — Team Selection, My Clubs & Account',
-      body: `<p>Open <strong>Settings</strong> from the More menu (or the sidebar on desktop) to manage everything about your setup.</p>
+      body: `<p>Open the <strong>Settings</strong> tab to manage everything about your setup.</p>
       <ul>
         <li><strong>Team Selection</strong> — shows all available age groups as tappable pills. Tap any pill to follow that group. Tap a second pill to follow multiple teams at once. Tap an active pill again to deselect it. Your selections are saved automatically.
           <ul>
@@ -8268,7 +8268,7 @@ function renderHelpTab() {
       <ul>
         <li><strong>VoiceOver (iOS) / TalkBack (Android)</strong> — the app is fully navigable by screen reader. The tab bar, all modals, and live score updates are all announced correctly. Say "Tap Schedule", "Tap Scores", or "Tap History" to switch tabs.</li>
         <li><strong>Voice Control (iOS) / Voice Access (Android)</strong> — every button has a unique descriptive label matching its visible text, so you can activate any control by name.</li>
-        <li><strong>Dark Mode</strong> — go to <strong>More → Settings → Appearance</strong> to choose Light, Dark, or System. The app immediately adapts without a reload.</li>
+        <li><strong>Dark Mode</strong> — go to <strong>Settings → Appearance</strong> to choose Light, Dark, or System. The app immediately adapts without a reload.</li>
         <li><strong>Larger Text</strong> — all text scales with your device's system font size. Increase it in <em>iOS Settings → Display &amp; Brightness → Text Size</em> or <em>Android Settings → Display → Font size</em>.</li>
         <li><strong>Reduce Motion</strong> — when enabled in your system settings, all animations and transitions are suppressed, including live score pulses and toast slide-ins.</li>
         <li><strong>Increase Contrast / High Contrast Text</strong> — when enabled, secondary text is boosted to high-contrast dark tones and result pill backgrounds become solid colors.</li>
