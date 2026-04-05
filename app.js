@@ -111,11 +111,11 @@ function applyClubBranding(primaryColor, secondaryColor, headerStyle) {
   // Store for theme toggle to reference
   window._clubPrimaryColor = primaryColor;
 
-  // Update state for WidgetSync
+  // Update state for widget sync
   state.clubInfo = state.clubInfo || {};
   state.clubInfo.primaryColor = primaryColor;
   state.clubInfo.secondaryColor = secondaryColor;
-  if (typeof WidgetSync !== 'undefined') WidgetSync.syncAll(state);
+  _syncWidgetsAll();
 
   // Recolor all eggbeater SVG logo instances (header logo + inline "brought to you by" logo)
   function recolorEggbeaterSvg(imgEl) {
@@ -219,11 +219,10 @@ function applyClubLogo(logoDataUrl, clubName) {
       defaultLogo.classList.add('hidden');
       defaultLogo.style.display = 'none'; // Force hide
     }
-    // Update state for WidgetSync
     state.clubInfo = state.clubInfo || {};
     state.clubInfo.logo = logoDataUrl;
     state.clubInfo.name = clubName || state.clubInfo.name;
-    if (typeof WidgetSync !== 'undefined') WidgetSync.syncAll(state);
+    _syncWidgetsAll();
   } else {
     // No custom logo — show eggbeater logo, reset any stale SVG blob from a
     // previous club that had branding (avoids keeping the old club's color)
@@ -830,18 +829,7 @@ function archiveTournament(snapshot, results, bracketResults, liveScores) {
   if (idx >= 0) history[idx] = archived;
   else history.unshift(archived);
 
-  // Widget Sync - Update personalized stats for followed players
-  if (typeof WidgetSync !== 'undefined') {
-    const myPlayers = getMyPlayers();
-    const stats = myPlayers.map(p => {
-      const s = getMyPlayerSummaryStats(p.name);
-      return {
-        name: p.name.split(' ')[0],
-        detail: s ? `${s.G} G, ${s.A} A` : 'No stats yet'
-      };
-    });
-    WidgetSync.updateStats(stats);
-  }
+  _syncWidgetsAll();
 
   localStorage.setItem(STORE.HISTORY, JSON.stringify(history));
 }
@@ -992,24 +980,7 @@ function afterScore(gameId) {
       }
     }
   }
-  // Widget Sync
-  if (typeof WidgetSync !== 'undefined') {
-    const game = getTournamentGames().find(g => g.id === gameId);
-    const ls = state.liveScores[gameId];
-    if (game && ls) {
-      WidgetSync.updateScore({
-        gameId: gameId,
-        homeTeam: getTeamLabel(game.team),
-        awayTeam: game.opponent || 'Opponent',
-        homeScore: ls.team || 0,
-        awayScore: ls.opp || 0,
-        status: (ls.gameState === 'final' || ls.gameState === 'so_w' || ls.gameState === 'so_l') ? 'FINAL' : 'LIVE',
-        clock: ls.clock || '0:00',
-        homeLogo: state.clubInfo ? state.clubInfo.logo : null,
-        awayLogo: game.opponentLogo
-      });
-    }
-  }
+  _syncWidgetsAll();
 }
 
 // Show/hide the pulsing red dot on the Scores nav button.
@@ -4407,10 +4378,7 @@ function renderScheduleTab() {
     if (el) el.innerHTML = '';
   }
 
-  // Widget Sync - Update schedule widget with latest data
-  if (typeof WidgetSync !== 'undefined') {
-    WidgetSync.syncAll(state);
-  }
+  _syncWidgetsAll();
 
   // Refresh button at the bottom of the tab
   const rb = $('schedule-refresh-wrap');
@@ -4420,14 +4388,6 @@ function renderScheduleTab() {
       Force Refresh
     </button>`;
 
-  // Widget Sync - Update schedule widget
-  if (typeof WidgetSync !== 'undefined') {
-    const games = getTournamentGames().slice(0, 4).map(g => ({
-      teams: `${getTeamLabel(g.team)} vs ${g.opponent || 'TBD'}`,
-      time: g.time || 'TBD'
-    }));
-    WidgetSync.updateSchedule(games);
-  }
 }
 
 /**
@@ -6127,13 +6087,8 @@ function init() {
       .catch(() => {});
   }
 
-  // Initial Widget Sync
-  if (typeof WidgetSync !== 'undefined') {
-    // Wait a moment for team data to be potentially loaded from KV
-    setTimeout(() => {
-      WidgetSync.syncAll(state);
-    }, 2000);
-  }
+  // Initial Widget Sync — wait 2 s for team-data KV fetch before writing
+  setTimeout(() => _syncWidgetsAll(), 2000);
 
   // On app resume (foreground after background): immediately re-poll live scores and
   // reload team data so Android viewers don't have to force-quit to see live games.
@@ -7517,28 +7472,7 @@ async function pollLiveScores() {
         _announceScore(latest);
       }
       showLiveToast();
-      // Widget Sync (for viewers)
-      if (typeof WidgetSync !== 'undefined') {
-        const liveGames = getTournamentGames().filter(g => isGameLive(g.id));
-        if (liveGames.length > 0) {
-          const gId = liveGames[0].id;
-          const game = getTournamentGames().find(g => g.id === gId);
-          const ls = state.liveScores[gId];
-          if (game && ls) {
-            WidgetSync.updateScore({
-              gameId: gId,
-              homeTeam: getTeamLabel(game.team),
-              awayTeam: game.opponent || 'Opponent',
-              homeScore: ls.team || 0,
-              awayScore: ls.opp || 0,
-              status: (ls.gameState === 'final' || ls.gameState === 'so_w' || ls.gameState === 'so_l') ? 'FINAL' : 'LIVE',
-              clock: ls.clock || '0:00',
-              homeLogo: state.clubInfo ? state.clubInfo.logo : null,
-              awayLogo: game.opponentLogo
-            });
-          }
-        }
-      }
+      _syncWidgetsAll();
 
       // iOS Live Activity update
       if (window._activeLA) {
@@ -8355,6 +8289,107 @@ function renderHelpTab() {
   `;
 }
 
+// ─── WIDGET SYNC ──────────────────────────────────────────────────────────────
+// Writes all widget data to shared UserDefaults via the LiveActivity plugin.
+// Called whenever club branding, live scores, or player stats change.
+// On iOS, LiveActivityPlugin.updateWidgetData() writes to group.com.eggbeater.waterpolo
+// and calls WidgetCenter.shared.reloadAllTimelines() automatically.
+
+async function _syncWidgetsAll() {
+  if (!_isNativePlatform()) return;
+  const plugin = window.Capacitor?.Plugins?.LiveActivity;
+  if (!plugin?.updateWidgetData) return;
+  try {
+    // 1. Club branding colors
+    const primary   = (state.clubInfo?.primaryColor)   || '#002868';
+    const secondary = (state.clubInfo?.secondaryColor) || '#00A693';
+
+    // 2. Available teams — selected age group keys + human labels
+    const selectedTeamKeys = getSelectedTeams();
+    const availableTeams   = selectedTeamKeys.map(key => ({
+      key,
+      label: TEAM_OPTIONS.find(t => t.key === key)?.label || key,
+    }));
+
+    // 3. All live scores — keyed by age-group label for widget matching
+    const allLiveScores = {};
+    const games = getTournamentGames();
+    const clubName = localStorage.getItem('ebwp-club-name') || '';
+    for (const [gameId, score] of Object.entries(state.liveScores)) {
+      if (!score || score.gameState === 'pre' || score.gameState === 'final' ||
+          score.gameState === 'so_w' || score.gameState === 'so_l') continue;
+      if (!score._broadcastAt || (Date.now() - score._broadcastAt) > 30 * 60 * 1000) continue;
+      const game = games.find(g => g.id === gameId);
+      // Key by age-group label for each selected team that has a live game
+      for (const tk of selectedTeamKeys) {
+        const label = TEAM_OPTIONS.find(t => t.key === tk)?.label || tk;
+        // Match by team label in score data or by selected team (single-team mode)
+        if (score.teamName || selectedTeamKeys.length === 1) {
+          allLiveScores[label] = {
+            homeTeam:  score.teamName  || (game ? `${clubName} ${game.team || ''}`.trim() : clubName) || 'My Team',
+            awayTeam:  score.oppName   || (game?.opponent) || 'Opponent',
+            homeScore: score.team      ?? 0,
+            awayScore: score.opp       ?? 0,
+            status:    'LIVE',
+            clock:     score.clock     || '',
+            period:    score.period    ? `Q${score.period}` : '',
+            gameId,
+          };
+        }
+      }
+    }
+
+    // 4. My players stats (followed players from getMyPlayers())
+    const myPlayersList = getMyPlayers();
+    const myPlayersStats = myPlayersList.map(p => {
+      const s = getMyPlayerSummaryStats(p.name);
+      return {
+        id:               (p.name || '').toLowerCase().replace(/[^a-z0-9]/g, '_'),
+        name:             p.name || '',
+        firstName:        (p.name || '').split(' ')[0] || '',
+        goals:            s?.G     || 0,
+        assists:          s?.A     || 0,
+        exclusions:       s?.Excl  || 0,
+        earnedExclusions: s?.EE    || 0,
+      };
+    });
+
+    // 5. Next upcoming game
+    const now = Date.now();
+    const upcoming = games
+      .map(g => {
+        const dateStr = g.date || '';
+        const timeStr = g.time || '';
+        const dt = dateStr ? new Date(dateStr + 'T' + (timeStr || '00:00') + ':00') : null;
+        return { game: g, ts: dt ? dt.getTime() : Infinity };
+      })
+      .filter(x => x.ts > now)
+      .sort((a, b) => a.ts - b.ts);
+    const nextG = upcoming[0]?.game;
+    const nextGame = nextG ? {
+      opponent: nextG.opponent || 'TBD',
+      date:     nextG.date    || '',
+      time:     nextG.time    || '',
+      location: nextG.location || '',
+    } : null;
+
+    // Write all keys to shared UserDefaults (each call triggers WidgetCenter reload)
+    const writes = [
+      { key: 'club_primary_color',   data: primary },
+      { key: 'club_secondary_color', data: secondary },
+      { key: 'available_teams',      data: JSON.stringify(availableTeams) },
+      { key: 'all_live_scores',      data: JSON.stringify(allLiveScores) },
+      { key: 'my_players_stats',     data: JSON.stringify(myPlayersStats) },
+    ];
+    if (nextGame) writes.push({ key: 'next_game', data: JSON.stringify(nextGame) });
+
+    // Fire all writes concurrently; failures are silent (non-critical)
+    await Promise.all(writes.map(w => plugin.updateWidgetData(w).catch(() => {})));
+  } catch (_) {
+    // Widget sync is non-critical — never throw
+  }
+}
+
 // ─── MY PLAYER(S) ─────────────────────────────────────────────────────────────
 
 /** Returns array of followed players: [{name, teamKey}]. */
@@ -8365,8 +8400,7 @@ function saveMyPlayers(arr) {
   localStorage.setItem(STORE.MY_PLAYERS, JSON.stringify(arr));
   // Sync to Firestore if parent is signed in (Phase 1)
   if (typeof fbSavePrefs === 'function') fbSavePrefs();
-  // Sync to Widgets
-  if (typeof WidgetSync !== 'undefined') WidgetSync.syncAll(state);
+  _syncWidgetsAll();
 }
 function addMyPlayer(name, teamKey) {
   const arr = getMyPlayers();
