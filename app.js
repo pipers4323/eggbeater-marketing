@@ -8333,14 +8333,17 @@ async function _syncWidgetsAll() {
         // Match by team label in score data or by selected team (single-team mode)
         if (score.teamName || selectedTeamKeys.length === 1) {
           allLiveScores[label] = {
-            homeTeam:  score.teamName  || (game ? `${clubName} ${game.team || ''}`.trim() : clubName) || 'My Team',
-            awayTeam:  score.oppName   || (game?.opponent) || 'Opponent',
-            homeScore: score.team      ?? 0,
-            awayScore: score.opp       ?? 0,
-            status:    'LIVE',
-            clock:     score.clock     || '',
-            period:    score.period    ? `Q${score.period}` : '',
+            homeTeam:        score.teamName  || (game ? `${clubName} ${game.team || ''}`.trim() : clubName) || 'My Team',
+            awayTeam:        score.oppName   || (game?.opponent) || 'Opponent',
+            homeScore:       score.team      ?? 0,
+            awayScore:       score.opp       ?? 0,
+            status:          'LIVE',
+            clock:           score.clock     || '',
+            period:          score.period    ? `Q${score.period}` : '',
             gameId,
+            timerRunning:    !!(score.timerRunning),
+            timerSecondsLeft: score.timerSecondsLeft || 0,
+            timerStartedAt:  score.timerStartedAt   || 0,
           };
         }
       }
