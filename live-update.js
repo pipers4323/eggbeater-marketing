@@ -46,11 +46,16 @@
    * @param {string} gameId
    * @param {object} score - { team, opp, clock, period, gameState }
    */
+  function _dbg(msg) {
+    console.info('[live-update] ' + msg);
+    if (typeof showToast === 'function') showToast('[LU] ' + msg, 'info');
+  }
+
   async function sync(gameId, score) {
-    if (!isNative()) return;
-    await _ensureNotifPermission(); // request POST_NOTIFICATIONS on Android 13+ (no-op after first call)
+    if (!isNative()) { _dbg('not native'); return; }
+    await _ensureNotifPermission();
     const plugin = getPlugin();
-    if (!plugin) return;
+    if (!plugin) { _dbg('plugin null'); return; }
 
     // Stop chip if game is not active
     if (!score || score.gameState === 'pre' || score.gameState === 'final'
@@ -58,6 +63,8 @@
       try { await plugin.stopLiveUpdate(); } catch {}
       return;
     }
+
+    _dbg('posting: ' + score.gameState + ' ' + score.team + '-' + score.opp);
 
     const teamLabel = (typeof getActiveTeamLabel === 'function') ? getActiveTeamLabel() : 'Eggbeater';
     const oppLabel  = score.oppName || 'Opponent';
@@ -79,14 +86,14 @@
         body:      body,
         shortText: shortText,
       });
+      _dbg('posted ok');
     } catch (e) {
       if (e && (e.message === 'NOTIFICATIONS_DISABLED' || (e.code && e.code === 'NOTIFICATIONS_DISABLED'))) {
-        // Permission was previously denied — system won't re-prompt, user must enable in Settings
         if (typeof showToast === 'function') {
-          showToast('Enable notifications in Settings → Apps → Eggbeater → Notifications to see live scores', 'error');
+          showToast('Enable notifications in Settings → Apps → Eggbeater → Notifications', 'error');
         }
       } else {
-        console.error('[live-update] Sync failed:', e);
+        _dbg('error: ' + (e && e.message));
       }
     }
   }
