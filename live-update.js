@@ -74,21 +74,27 @@
       return;
     }
 
-    const teamLabel = (typeof getActiveTeamLabel === 'function') ? getActiveTeamLabel() : 'Eggbeater';
-    const oppLabel  = score.oppName || 'Opponent';
+    // Use server-supplied team/opp names so both scorer and viewer see real names
+    const teamLabel = score.teamName || (typeof getActiveTeamLabel === 'function' ? getActiveTeamLabel() : '') || 'Eggbeater';
+    const oppLabel  = score.oppName  || 'Opponent';
+    const ageGroup  = score.ageGroup || '';
     const qLabel    = score.period ? `Q${score.period}` : '';
     const clockStr  = score.clock || '';
     const shortText = `${qLabel} ${score.team ?? 0}-${score.opp ?? 0}`.trim();
 
-    // Body: show last scorer/event if available, otherwise clock
+    // Title: "12u Girls · 🤽 LIVE: 680 Blue 3-2"
+    const agePrefix = ageGroup ? `${ageGroup} · ` : '';
+
+    // Body: last event if available, otherwise matchup + clock
     const eventStr = score.lastEvent || '';
+    const matchup  = `${teamLabel} vs ${oppLabel}`;
     const body = eventStr
-      ? `${teamLabel} vs ${oppLabel} · ${eventStr}`
-      : `${teamLabel} vs ${oppLabel}${qLabel ? ' · ' + qLabel : ''}${clockStr ? ' ' + clockStr : ''}`;
+      ? `${matchup} · ${eventStr}`
+      : `${matchup}${qLabel ? ' · ' + qLabel : ''}${clockStr ? ' ' + clockStr : ''}`;
 
     try {
       await plugin.startLiveUpdate({
-        title:     `🤽 LIVE: ${teamLabel} ${score.team ?? 0}-${score.opp ?? 0}`,
+        title:     `${agePrefix}🤽 LIVE: ${teamLabel} ${score.team ?? 0}-${score.opp ?? 0}`,
         body:      body,
         shortText: shortText,
       });

@@ -924,6 +924,20 @@ function isGameLive(gameId) {
   return isScorerUnlocked();
 }
 
+/** Build an enriched score object for EggbeaterLiveUpdate.sync() — adds team name,
+ *  opponent name, age group, and last event so the Android notification is descriptive. */
+function _buildLUScore(gameId) {
+  const score = state.liveScores[gameId] || {};
+  const game  = getTournamentGames().find(g => g.id === gameId);
+  return {
+    ...score,
+    teamName:  game ? (getTeamLabel(game.team) || game.team || '') : '',
+    oppName:   game ? (game.opponent || '') : (score.oppName || ''),
+    ageGroup:  game ? (game.team || '') : '',
+    lastEvent: (typeof _buildLastEventStr === 'function') ? _buildLastEventStr(gameId) : '',
+  };
+}
+
 /** Save + re-render + broadcast after any scoring action. */
 function afterScore(gameId) {
   addMyGame(gameId); // remember we scored this game on this device
@@ -949,7 +963,7 @@ function afterScore(gameId) {
   notifyScorePush(gameId, 'goal'); // fire-and-forget APNs push
   // Android 16 Live Update Sync
   if (typeof EggbeaterLiveUpdate !== 'undefined') {
-    EggbeaterLiveUpdate.sync(gameId, state.liveScores[gameId]);
+    EggbeaterLiveUpdate.sync(gameId, _buildLUScore(gameId));
   }
   // iOS Live Activity auto-update (fire-and-forget) — scorer's own lock screen updates on every goal
   if (window.Capacitor?.isNativePlatform?.() && window.Capacitor?.getPlatform?.() === 'ios') {
@@ -7434,11 +7448,7 @@ async function pollLiveScores() {
       const autoGame = liveGames.find(g => _favsA.includes(g.team) && _laPrefsA[g.team] !== false)
         || (liveGames.length > 0 && !liveGames.some(g => _favsA.includes(g.team) && _laPrefsA[g.team] === false) ? liveGames[0] : null);
       if (autoGame) {
-        const _luScore = state.liveScores[autoGame.id];
-        EggbeaterLiveUpdate.sync(autoGame.id, {
-          ..._luScore,
-          lastEvent: (typeof _buildLastEventStr === 'function') ? _buildLastEventStr(autoGame.id) : '',
-        });
+        EggbeaterLiveUpdate.sync(autoGame.id, _buildLUScore(autoGame.id));
       } else {
         // No live games (or all live games have LA disabled) — clear the chip
         EggbeaterLiveUpdate.stop();
@@ -8768,7 +8778,7 @@ async function toggleLiveActivity(gameId) {
       return;
     }
     if (typeof EggbeaterLiveUpdate !== 'undefined') {
-      EggbeaterLiveUpdate.sync(gameId, score);
+      EggbeaterLiveUpdate.sync(gameId, _buildLUScore(gameId));
       showToast("Following Live! Check your status bar for score updates.", "ok");
     } else {
       showToast("Live Update plugin not available.", "error");
