@@ -442,12 +442,19 @@ async function _checkParentSubscription(uid) {
 async function fbSavePrefs() {
   if (!fbReady() || !_fbUser) return;
   try {
+    const clubId   = (typeof getAppClubId === 'function') ? getAppClubId() : null;
+    const clubName = localStorage.getItem('ebwp-club-name') || null;
+    const clubType = localStorage.getItem('ebwp-club-type') || null;
     const prefs = {
       myPlayers:    (typeof getMyPlayers    === 'function') ? getMyPlayers()    : [],
       selectedTeams:(typeof getSelectedTeams=== 'function') ? getSelectedTeams(): [],
       favGroups:    (typeof getFavGroups    === 'function') ? getFavGroups()    : [],
       savedAt:      new Date().toISOString(),
     };
+    // Save club so sign-in on splash screen can auto-restore it
+    if (clubId)   prefs.clubId   = clubId;
+    if (clubName) prefs.clubName = clubName;
+    if (clubType) prefs.clubType = clubType;
     await _fbDb.doc(`users/${_fbUser.uid}/prefs/main`).set(prefs);
   } catch (e) {
     console.warn('[firebase] fbSavePrefs error:', e.message);
@@ -476,6 +483,13 @@ async function fbLoadPrefs() {
     if (changed) {
       if (typeof renderRosterTab  === 'function') renderRosterTab();
       if (typeof renderTeamPicker === 'function') renderTeamPicker();
+    }
+
+    // Auto-navigate to saved club if we're still on the splash screen (no club selected yet)
+    const onSplash = document.getElementById('club-picker') &&
+                     !document.getElementById('club-picker').classList.contains('hidden');
+    if (onSplash && data.clubId && typeof _selectClub === 'function') {
+      _selectClub(data.clubId, data.clubName || data.clubId, data.clubType || 'club');
     }
   } catch (e) {
     console.warn('[firebase] fbLoadPrefs error:', e.message);
@@ -617,6 +631,10 @@ function _fbUpdateAuthUI(user) {
       userInfo.classList.add('hidden');
     }
   }
+  // Show/hide the splash screen sign-in section
+  const splashSignin = document.getElementById('splash-signin-section');
+  if (splashSignin) splashSignin.classList.toggle('hidden', !!user);
+
   // Also re-render the Settings tab if it's currently showing
   if (typeof renderSettingsTab === 'function' && typeof state !== 'undefined' && state.currentTab === 'settings') {
     renderSettingsTab();
@@ -632,7 +650,13 @@ function _fbUpdateAuthUI(user) {
 let _fbClubId = '';  // default — overridden via fbSetClubId()
 
 /** Set the active club ID (call before any tournament operations). */
-function fbSetClubId(id) { if (id) _fbClubId = id; }
+function fbSetClubId(id) {
+  if (id) {
+    _fbClubId = id;
+    // Save club selection to Firestore so sign-in on splash can restore it
+    fbSavePrefs();
+  }
+}
 
 /** Get the current club ID. */
 function fbGetClubId() { return _fbClubId; }
