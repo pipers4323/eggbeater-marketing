@@ -1000,6 +1000,8 @@ function updateLiveDot() {
     return (Date.now() - (s._broadcastAt || 0)) < STALE_MS;
   });
   dot.classList.toggle('hidden', !hasLive);
+  // Sync live-game indicator to native tab bar red dot (iOS only, no-op elsewhere)
+  try { window.webkit?.messageHandlers?.tabSync?.postMessage({ hasLive }); } catch(_){}
 }
 
 function loadLiveScores() {
@@ -3073,6 +3075,8 @@ function switchTab(tab) {
   });
   updateTScoreTabVisibility();
   if (tab !== 'scores') _setLiveBanner(false); // hide banner when leaving scores tab
+  // Sync selected tab to native Liquid Glass tab bar (iOS only, no-op elsewhere)
+  try { window.webkit?.messageHandlers?.tabSync?.postMessage({ tab }); } catch(_){}
   if (tab === 'roster')      renderRosterTab();
   if (tab === 'scores')      renderScoresTab();
   if (tab === 'tournscore')  renderTournScoreTab();
