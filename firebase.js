@@ -177,10 +177,17 @@ async function fbSignIn() {
       // Clear any cached Google session so the account picker always shows,
       // letting the user choose or switch accounts each time they sign in.
       try { await plugin.logout({ provider: 'google' }); } catch (_) {}
+      // Use style:'bottom' (GetGoogleIdOption) as primary on Android.
+      // GetSignInWithGoogleOption (the default) has a Credential Manager cooldown:
+      // after any cancellation, Android suppresses the UI and immediately returns
+      // TYPE_USER_CANCELED for a cooldown period. GetGoogleIdOption uses a separate
+      // code path and doesn't share that cooldown state.
+      const isAndroid = window.Capacitor?.getPlatform?.() === 'android';
       const result = await plugin.login({
         provider: 'google',
         options: {
           scopes: ['email', 'profile'],
+          ...(isAndroid ? { style: 'bottom', forcePrompt: true } : {}),
         },
       });
       console.info('[firebase] Native Google sign-in result:', JSON.stringify(result).substring(0, 200));
