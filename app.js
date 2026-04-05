@@ -7452,23 +7452,6 @@ async function pollLiveScores() {
       renderGamesList();
       if (state.currentTab === 'scores') renderScoresTab();
       updateLiveDot();
-      // Android 16 Live Update — only sync when score actually changed to prevent notification spam.
-      // state.liveScores starts empty on every app open, so the first poll is always changed=true,
-      // meaning the chip appears immediately without needing a force-quit.
-      if (typeof EggbeaterLiveUpdate !== 'undefined' && Capacitor?.getPlatform?.() === 'android') {
-        const _laPrefsA = getLAPrefs();
-        const _favsA = getFavGroups();
-        const liveGames = getTournamentGames().filter(g => isGameLive(g.id));
-        const autoGame = liveGames.find(g => _favsA.includes(g.team) && _laPrefsA[g.team] !== false)
-          || (liveGames.length > 0 && !liveGames.some(g => _favsA.includes(g.team) && _laPrefsA[g.team] === false) ? liveGames[0] : null);
-        if (autoGame) {
-          EggbeaterLiveUpdate.sync(autoGame.id, _buildLUScore(autoGame.id));
-        } else if (getTournamentGames().length > 0) {
-          // Only stop if tournament data is loaded — empty array means data hasn't arrived yet
-          // (race: pollLiveScores() can return before loadAllSelectedTeams() completes)
-          EggbeaterLiveUpdate.stop();
-        }
-      }
       // VoiceOver: announce the most recently broadcast game that changed
       if (changedGameIds.length === 1) {
         _announceScore(changedGameIds[0]);
@@ -7508,6 +7491,23 @@ async function pollLiveScores() {
             }
           }
         }
+      }
+    }
+    // Android 16 Live Update — runs on EVERY successful poll cycle (not just when changed).
+    // If the foreground service start fails silently on first detection, the 5-second poller
+    // retries automatically without needing broadcastAt to change again.
+    // Only skip if tournament data hasn't loaded yet (empty array = race condition on startup).
+    if (typeof EggbeaterLiveUpdate !== 'undefined' && Capacitor?.getPlatform?.() === 'android'
+        && getTournamentGames().length > 0) {
+      const _laPrefsA = getLAPrefs();
+      const _favsA = getFavGroups();
+      const liveGames = getTournamentGames().filter(g => isGameLive(g.id));
+      const autoGame = liveGames.find(g => _favsA.includes(g.team) && _laPrefsA[g.team] !== false)
+        || (liveGames.length > 0 && !liveGames.some(g => _favsA.includes(g.team) && _laPrefsA[g.team] === false) ? liveGames[0] : null);
+      if (autoGame) {
+        EggbeaterLiveUpdate.sync(autoGame.id, _buildLUScore(autoGame.id));
+      } else {
+        EggbeaterLiveUpdate.stop();
       }
     }
   } catch { /* ignore network errors — offline is fine */ }
