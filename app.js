@@ -7434,7 +7434,11 @@ async function pollLiveScores() {
       const autoGame = liveGames.find(g => _favsA.includes(g.team) && _laPrefsA[g.team] !== false)
         || (liveGames.length > 0 && !liveGames.some(g => _favsA.includes(g.team) && _laPrefsA[g.team] === false) ? liveGames[0] : null);
       if (autoGame) {
-        EggbeaterLiveUpdate.sync(autoGame.id, state.liveScores[autoGame.id]);
+        const _luScore = state.liveScores[autoGame.id];
+        EggbeaterLiveUpdate.sync(autoGame.id, {
+          ..._luScore,
+          lastEvent: (typeof _buildLastEventStr === 'function') ? _buildLastEventStr(autoGame.id) : '',
+        });
       } else {
         // No live games (or all live games have LA disabled) — clear the chip
         EggbeaterLiveUpdate.stop();
@@ -7462,6 +7466,12 @@ async function pollLiveScores() {
 
     if (changed) {
       saveLiveScores();
+      // Start the 250ms clock ticker if any received game has a running timer.
+      // Without this, viewer clocks never tick — ensureClockTicker() is only called
+      // on the scorer path, not after a remote poll update.
+      if (Object.values(state.liveScores).some(s => s && s.timerRunning)) {
+        ensureClockTicker();
+      }
       renderNextGameCard();  // update IN PROGRESS card + live score on Schedule tab
       renderGamesList();
       if (state.currentTab === 'scores') renderScoresTab();

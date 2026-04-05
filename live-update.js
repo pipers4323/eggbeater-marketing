@@ -61,16 +61,11 @@
    * @param {string} gameId
    * @param {object} score - { team, opp, clock, period, gameState }
    */
-  function _dbg(msg) {
-    console.info('[live-update] ' + msg);
-    if (typeof showToast === 'function') showToast('[LU] ' + msg, 'info');
-  }
-
   async function sync(gameId, score) {
-    if (!isNative()) { _dbg('not native'); return; }
+    if (!isNative()) return;
     await _ensureNotifPermission();
     const plugin = getPlugin();
-    if (!plugin) { _dbg('plugin null'); return; }
+    if (!plugin) return;
 
     // Stop chip if game is not active
     if (!score || score.gameState === 'pre' || score.gameState === 'final'
@@ -79,21 +74,17 @@
       return;
     }
 
-    _dbg('posting: ' + score.gameState + ' ' + score.team + '-' + score.opp);
-
     const teamLabel = (typeof getActiveTeamLabel === 'function') ? getActiveTeamLabel() : 'Eggbeater';
     const oppLabel  = score.oppName || 'Opponent';
-
-    // Quarter label
-    const qLabel = score.period ? `Q${score.period}` : '';
-
-    // Status Chip Text — keep short for Android chip (~9 chars)
-    // Format: "Q1 7-5" or "Q3 2-4"
+    const qLabel    = score.period ? `Q${score.period}` : '';
+    const clockStr  = score.clock || '';
     const shortText = `${qLabel} ${score.team ?? 0}-${score.opp ?? 0}`.trim();
 
-    // Clock + full notification body
-    const clockStr = score.clock || '';
-    const body = `${teamLabel} vs ${oppLabel}${qLabel ? ' · ' + qLabel : ''}${clockStr ? ' ' + clockStr : ''}`;
+    // Body: show last scorer/event if available, otherwise clock
+    const eventStr = score.lastEvent || '';
+    const body = eventStr
+      ? `${teamLabel} vs ${oppLabel} · ${eventStr}`
+      : `${teamLabel} vs ${oppLabel}${qLabel ? ' · ' + qLabel : ''}${clockStr ? ' ' + clockStr : ''}`;
 
     try {
       await plugin.startLiveUpdate({
@@ -101,14 +92,13 @@
         body:      body,
         shortText: shortText,
       });
-      _dbg('posted ok');
     } catch (e) {
       if (e && (e.message === 'NOTIFICATIONS_DISABLED' || (e.code && e.code === 'NOTIFICATIONS_DISABLED'))) {
         if (typeof showToast === 'function') {
           showToast('Enable notifications in Settings → Apps → Eggbeater → Notifications', 'error');
         }
       } else {
-        _dbg('error: ' + (e && e.message));
+        console.error('[live-update] Sync failed:', e && e.message);
       }
     }
   }
