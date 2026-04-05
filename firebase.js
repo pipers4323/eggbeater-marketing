@@ -445,10 +445,12 @@ async function fbSavePrefs() {
     const clubId   = (typeof getAppClubId === 'function') ? getAppClubId() : null;
     const clubName = localStorage.getItem('ebwp-club-name') || null;
     const clubType = localStorage.getItem('ebwp-club-type') || null;
+    const joinedClubs = JSON.parse(localStorage.getItem('ebwp-joined-clubs') || '[]');
     const prefs = {
       myPlayers:    (typeof getMyPlayers    === 'function') ? getMyPlayers()    : [],
       selectedTeams:(typeof getSelectedTeams=== 'function') ? getSelectedTeams(): [],
       favGroups:    (typeof getFavGroups    === 'function') ? getFavGroups()    : [],
+      joinedClubs,
       savedAt:      new Date().toISOString(),
     };
     // Save club so sign-in on splash screen can auto-restore it
@@ -470,6 +472,10 @@ async function fbLoadPrefs() {
 
     // Apply cloud prefs — cloud wins (they were saved from the user's last device)
     let changed = false;
+    if (Array.isArray(data.joinedClubs) && data.joinedClubs.length) {
+      localStorage.setItem('ebwp-joined-clubs', JSON.stringify(data.joinedClubs));
+      changed = true;
+    }
     if (Array.isArray(data.myPlayers) && data.myPlayers.length) {
       if (typeof saveMyPlayers === 'function') { saveMyPlayers(data.myPlayers); changed = true; }
     }
