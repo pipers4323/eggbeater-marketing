@@ -446,18 +446,35 @@ async function fbSavePrefs() {
     const clubName = localStorage.getItem('ebwp-club-name') || null;
     const clubType = localStorage.getItem('ebwp-club-type') || null;
     const joinedClubs = JSON.parse(localStorage.getItem('ebwp-joined-clubs') || '[]');
-    const prefs = {
-      myPlayers:    (typeof getMyPlayers    === 'function') ? getMyPlayers()    : [],
-      selectedTeams:(typeof getSelectedTeams=== 'function') ? getSelectedTeams(): [],
-      favGroups:    (typeof getFavGroups    === 'function') ? getFavGroups()    : [],
+
+    // Top-level prefs (not club-specific)
+    const update = {
+      myPlayers:  (typeof getMyPlayers === 'function') ? getMyPlayers() : [],
       joinedClubs,
-      savedAt:      new Date().toISOString(),
+      savedAt:    new Date().toISOString(),
     };
-    // Save club so sign-in on splash screen can auto-restore it
-    if (clubId)   prefs.clubId   = clubId;
-    if (clubName) prefs.clubName = clubName;
-    if (clubType) prefs.clubType = clubType;
-    await _fbDb.doc(`users/${_fbUser.uid}/prefs/main`).set(prefs);
+    if (clubId)   update.clubId   = clubId;
+    if (clubName) update.clubName = clubName;
+    if (clubType) update.clubType = clubType;
+
+    // Per-club team/fav selections stored under clubs.{clubId} using Firestore
+    // dot-notation paths so other clubs' data is preserved on merge.
+    if (clubId) {
+      update[`clubs.${clubId}.selectedTeams`] =
+        (typeof getSelectedTeams === 'function') ? getSelectedTeams() : [];
+      update[`clubs.${clubId}.favGroups`] =
+        (typeof getFavGroups === 'function') ? getFavGroups() : [];
+    }
+
+    const ref = _fbDb.doc(`users/${_fbUser.uid}/prefs/main`);
+    try {
+      // update() uses dot-notation to merge nested paths without clobbering other clubs
+      await ref.update(update);
+    } catch (e2) {
+      // Document doesn't exist yet (new user) — create it
+      if (e2.code === 'not-found') await ref.set(update);
+      else throw e2;
+    }
   } catch (e) {
     console.warn('[firebase] fbSavePrefs error:', e.message);
   }
@@ -479,11 +496,20 @@ async function fbLoadPrefs() {
     if (Array.isArray(data.myPlayers) && data.myPlayers.length) {
       if (typeof saveMyPlayers === 'function') { saveMyPlayers(data.myPlayers); changed = true; }
     }
-    if (Array.isArray(data.selectedTeams) && data.selectedTeams.length) {
-      if (typeof setSelectedTeams === 'function') { setSelectedTeams(data.selectedTeams); changed = true; }
+    // Restore per-club selections: prefer clubs.{clubId} (new format), fall back to
+    // top-level selectedTeams/favGroups (legacy format — migrates on next save).
+    const activeClub = (typeof getAppClubId === 'function') ? getAppClubId() : null;
+    const perClub = (activeClub && data.clubs && data.clubs[activeClub]) ? data.clubs[activeClub] : null;
+    const teamsToRestore = (perClub && Array.isArray(perClub.selectedTeams) && perClub.selectedTeams.length)
+      ? perClub.selectedTeams : data.selectedTeams;
+    const favsToRestore  = (perClub && Array.isArray(perClub.favGroups))
+      ? perClub.favGroups : data.favGroups;
+
+    if (Array.isArray(teamsToRestore) && teamsToRestore.length) {
+      if (typeof setSelectedTeams === 'function') { setSelectedTeams(teamsToRestore); changed = true; }
     }
-    if (Array.isArray(data.favGroups)) {
-      if (typeof setFavGroups === 'function') { setFavGroups(data.favGroups); changed = true; }
+    if (Array.isArray(favsToRestore)) {
+      if (typeof setFavGroups === 'function') { setFavGroups(favsToRestore); changed = true; }
     }
     // Re-render only if something actually changed
     if (changed) {

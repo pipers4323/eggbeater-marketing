@@ -5431,3 +5431,82 @@ details[open] .help-chevron { transform: rotate(180deg); }
     color-scheme: dark;
   }
 }
+
+/* ── Android native: bracket / history / calendar tab card treatment ──────────
+   .native-android is added by init() when Capacitor.getPlatform() === 'android'.
+   Mirrors the iOS ViewController.swift injection so both platforms show
+   individual section cards floating over the navy body background.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Remove outer white wrapper — let body navy show through */
+.native-android .card.tab-card {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Bracket sections as individual cards */
+.native-android .bracket-section {
+  background: white !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  margin-bottom: 10px !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+}
+[data-theme="dark"] .native-android .bracket-section,
+.native-android[data-theme="dark"] .bracket-section {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .native-android .bracket-section {
+    background: #161b22 !important;
+    border-color: #30363d !important;
+  }
+}
+
+/* Projected bracket path: navy glass accent */
+.native-android .bracket-section.projected {
+  background: rgba(0,40,104,0.72) !important;
+  border-color: rgba(255,255,255,0.22) !important;
+}
+.native-android .bracket-section.projected .bracket-title,
+.native-android .bracket-section.projected .bracket-qualifier,
+.native-android .bracket-section.projected .bracket-step-desc,
+.native-android .bracket-section.projected .bracket-step-meta {
+  color: rgba(255,255,255,0.88) !important;
+}
+
+/* History cards: dark mode treatment */
+[data-theme="dark"] .native-android .history-card,
+.native-android[data-theme="dark"] .history-card {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .native-android .history-card-header,
+.native-android[data-theme="dark"] .history-card-header {
+  background: #161b22 !important;
+}
+[data-theme="dark"] .native-android .history-tournament-name {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .native-android .history-meta {
+  color: #8b949e !important;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .native-android .history-card {
+    background: #161b22 !important;
+    border-color: #30363d !important;
+  }
+  :root:not([data-theme="light"]) .native-android .history-card-header {
+    background: #161b22 !important;
+  }
+  :root:not([data-theme="light"]) .native-android .history-tournament-name {
+    color: #e6edf3 !important;
+  }
+  :root:not([data-theme="light"]) .native-android .history-meta {
+    color: #8b949e !important;
+  }
+}

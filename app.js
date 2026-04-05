@@ -5865,6 +5865,12 @@ async function reloadTournamentJs() {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 
 function init() {
+  // Tag the HTML element with the native platform so CSS can scope native-only styles.
+  // iOS gets its styles via ViewController.swift injection; Android uses this class.
+  if (window.Capacitor?.getPlatform?.() === 'android') {
+    document.documentElement.classList.add('native-android');
+  }
+
   // Hide native splash screen — in remote URL mode launchAutoHide doesn't fire reliably
   try {
     if (window.Capacitor?.isNativePlatform?.()) {
