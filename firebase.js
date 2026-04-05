@@ -374,6 +374,31 @@ async function _onFbAuthChange(user) {
     if (typeof showToast === 'function') showToast('☁️ Preferences synced across devices');
     // Silently refresh calendar token on page reload if a calendar was previously connected
     _fbTrySilentCalendarRefresh();
+    // Phase B: check RevenueCat for active parent_monthly entitlement
+    _checkParentSubscription(user.uid);
+  }
+}
+
+/**
+ * Phase B — RevenueCat parent subscription check.
+ * Calls logIn() then getCustomerInfo() via the Capacitor Purchases plugin.
+ * Sets state.parentTier = 'parent' and re-renders settings if entitled.
+ * Silent no-op on web or when plugin is unavailable.
+ */
+async function _checkParentSubscription(uid) {
+  try {
+    const Purchases = window.Capacitor?.Plugins?.Purchases;
+    if (!Purchases) return; // web browser — no native plugin
+    await Purchases.logIn({ appUserID: uid });
+    const { customerInfo } = await Purchases.getCustomerInfo();
+    const active = customerInfo?.entitlements?.active || {};
+    const entitled = !!(active['parent_monthly'] || active['parent']);
+    if (typeof state !== 'undefined') state.parentTier = entitled ? 'parent' : 'free';
+    localStorage.setItem('ebwp-parent-tier', entitled ? 'parent' : 'free');
+    if (typeof renderSettingsTab === 'function') renderSettingsTab();
+    if (entitled) console.info('[RevenueCat] parent_monthly entitlement active ✓');
+  } catch (e) {
+    console.warn('[RevenueCat] subscription check failed:', e.message);
   }
 }
 
