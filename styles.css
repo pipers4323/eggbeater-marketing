@@ -5511,6 +5511,76 @@ details[open] .help-chevron { transform: rotate(180deg); }
   }
 }
 
+/* ── Android: tab heading text white on transparent tab-card + navy body ─ */
+/* Mirrors the iOS ViewController.swift injection for the same rules.       */
+.native-android .card.tab-card h2,
+.native-android .card.tab-card .history-header-row h2 {
+  color: rgba(255,255,255,.93) !important;
+}
+.native-android .card.tab-card p,
+.native-android .card.tab-card .step-desc,
+.native-android .card.tab-card .history-subtitle {
+  color: rgba(255,255,255,.72) !important;
+}
+/* Restore dark text inside white section cards within the transparent wrapper */
+.native-android .bracket-section:not(.projected) .bracket-title,
+.native-android .bracket-section:not(.projected) .bracket-step-desc,
+.native-android .bracket-section:not(.projected) .bracket-step-meta,
+.native-android .bracket-section:not(.projected) .bracket-step-num {
+  color: var(--gray-900) !important;
+}
+.native-android .roster-edit-row *,
+.native-android .roster-cap-input,
+.native-android .roster-name-input {
+  color: var(--gray-900) !important;
+}
+.native-android .pstats-export-btn {
+  color: var(--royal) !important;
+}
+/* My Players + Player Lookup: restore dark/muted text inside their white cards */
+.native-android .my-player-card .mp-empty-title,
+.native-android .my-player-card .mp-multi-header {
+  color: var(--gray-900) !important;
+}
+.native-android .my-player-card .mp-empty-sub {
+  color: var(--gray-500) !important;
+}
+.native-android .player-lookup-card h2 {
+  color: var(--gray-900) !important;
+}
+.native-android .player-lookup-card.card.tab-card p {
+  color: var(--gray-600) !important;
+}
+/* Dark mode overrides for the above */
+[data-theme="dark"] .native-android .my-player-card .mp-empty-title,
+[data-theme="dark"] .native-android .my-player-card .mp-multi-header {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .native-android .my-player-card .mp-empty-sub {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .native-android .player-lookup-card h2 {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .native-android .player-lookup-card.card.tab-card p {
+  color: #8b949e !important;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .native-android .my-player-card .mp-empty-title,
+  :root:not([data-theme="light"]) .native-android .my-player-card .mp-multi-header {
+    color: #e6edf3 !important;
+  }
+  :root:not([data-theme="light"]) .native-android .my-player-card .mp-empty-sub {
+    color: #8b949e !important;
+  }
+  :root:not([data-theme="light"]) .native-android .player-lookup-card h2 {
+    color: #e6edf3 !important;
+  }
+  :root:not([data-theme="light"]) .native-android .player-lookup-card.card.tab-card p {
+    color: #8b949e !important;
+  }
+}
+
 /* ── Android: My Players + Player Lookup as individual white cards ─────── */
 .native-android .my-player-card,
 .native-android .player-lookup-card {
