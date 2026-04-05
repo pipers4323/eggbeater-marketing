@@ -927,13 +927,19 @@ function isGameLive(gameId) {
 /** Build an enriched score object for EggbeaterLiveUpdate.sync() — adds team name,
  *  opponent name, age group, and last event so the Android notification is descriptive. */
 function _buildLUScore(gameId) {
-  const score = state.liveScores[gameId] || {};
-  const game  = getTournamentGames().find(g => g.id === gameId);
+  const score    = state.liveScores[gameId] || {};
+  const game     = getTournamentGames().find(g => g.id === gameId);
+  // Age group: look up the selected team key in TEAM_OPTIONS (e.g. '12u-girls' → '12u Girls')
+  const _agKey   = getSelectedTeams()[0] || '';
+  const _agLabel = TEAM_OPTIONS.find(t => t.key === _agKey)?.label || '';
+  // Team name: "Big Splash A" format — club name + team letter
+  const _club    = localStorage.getItem('ebwp-club-name') || getAppClubId() || '';
+  const _tName   = game ? (`${_club}${game.team ? ' ' + game.team : ''}`).trim() : '';
   return {
     ...score,
-    teamName:  game ? (getTeamLabel(game.team) || game.team || '') : '',
+    teamName:  _tName || '',
     oppName:   game ? (game.opponent || '') : (score.oppName || ''),
-    ageGroup:  game ? (getTeamLabel(game.team) || game.team || '') : '',
+    ageGroup:  _agLabel,
     lastEvent: (typeof _buildLastEventStr === 'function') ? _buildLastEventStr(gameId) : '',
   };
 }
@@ -8828,7 +8834,7 @@ async function toggleLiveActivity(gameId) {
       : 0;
 
     await LiveActivity.startActivity({
-      homeTeam:      game ? getTeamLabel(game.team) : "Home",
+      homeTeam:      game ? (`${localStorage.getItem('ebwp-club-name') || getAppClubId() || ''}${game.team ? ' ' + game.team : ''}`).trim() : "Home",
       awayTeam:      game?.opponent || "Away",
       homeScore:     score.team  || 0,
       awayScore:     score.opp   || 0,
@@ -8842,7 +8848,7 @@ async function toggleLiveActivity(gameId) {
       awayLogoUrl:   '',   // opponent logo not yet stored
       primaryColor:  primaryColor,
       secondaryColor: secondaryColor,
-      ageGroup:      game?.team || '',
+      ageGroup:      TEAM_OPTIONS.find(t => t.key === (getSelectedTeams()[0] || ''))?.label || '',
     });
 
     // Track so pollLiveScores can push updates
