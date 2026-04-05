@@ -80,7 +80,14 @@
         shortText: shortText,
       });
     } catch (e) {
-      console.error('[live-update] Sync failed:', e);
+      if (e && (e.message === 'NOTIFICATIONS_DISABLED' || (e.code && e.code === 'NOTIFICATIONS_DISABLED'))) {
+        // Permission was previously denied — system won't re-prompt, user must enable in Settings
+        if (typeof showToast === 'function') {
+          showToast('Enable notifications in Settings → Apps → Eggbeater → Notifications to see live scores', 'error');
+        }
+      } else {
+        console.error('[live-update] Sync failed:', e);
+      }
     }
   }
 
@@ -95,5 +102,13 @@
     sync,
     stop
   };
+
+  // Request POST_NOTIFICATIONS permission eagerly at app load on Android 13+.
+  // Showing the dialog at launch (in context) is better than mid-game.
+  if (typeof window !== 'undefined' && window.Capacitor &&
+      window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() &&
+      window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') {
+    _ensureNotifPermission();
+  }
 
 })();
