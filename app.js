@@ -3130,9 +3130,11 @@ function renderSettingsTab() {
 
   // Silently re-check RC entitlement every time the Settings tab opens.
   // This catches cases where logIn() hadn't completed yet on the first load.
+  // Pass the best available email so RC can match the dashboard grant.
   if (user && (state.parentTier || localStorage.getItem('ebwp-parent-tier') || 'free') !== 'parent') {
     if (typeof _checkParentSubscription === 'function') {
-      _checkParentSubscription(user.uid);
+      const rcId = user.email || localStorage.getItem('ebwp-auth-email') || user.uid;
+      _checkParentSubscription(rcId);
     }
   }
 
@@ -3224,7 +3226,7 @@ function renderSettingsTab() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </div>`}
       <div style="padding:6px 16px 8px;font-size:0.7rem;color:var(--gray-400)">
-        ${user ? `Subscription account: ${escHtml(user.email || user.uid)}` : 'Sign in (Account section below) to activate a subscription'}
+        ${user ? `Subscription account: ${escHtml(user.email || localStorage.getItem('ebwp-auth-email') || user.uid)}` : 'Sign in (Account section below) to activate a subscription'}
       </div>
     </div>
 

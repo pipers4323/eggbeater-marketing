@@ -402,9 +402,11 @@ async function _checkParentSubscription(uid) {
       : 'goog_HRazxrVZgjHNXPpNFqDrjwGflmW';
     await Purchases.configure({ apiKey });
     // Use email as the RC subscriber ID so entitlements can be pre-granted by email
-    // before a user's Firebase UID is known. Falls back to UID if email unavailable
-    // (e.g. Apple private relay or anonymous sign-in).
-    const rcUserId = (typeof _fbUser !== 'undefined' && _fbUser?.email) ? _fbUser.email : uid;
+    // before a user's Firebase UID is known. Falls back to cached email from
+    // localStorage (set on every sign-in), then uid as last resort (Apple private relay).
+    const rcUserId = _fbUser?.email
+      || localStorage.getItem('ebwp-auth-email')
+      || uid;
     // logIn() returns fresh customerInfo for the logged-in user — use it directly
     // to avoid a stale-cache race from a separate getCustomerInfo() call.
     const loginResult = await Purchases.logIn({ appUserID: rcUserId });
