@@ -399,8 +399,10 @@ async function _checkParentSubscription(uid) {
     // before a user's Firebase UID is known. Falls back to UID if email unavailable
     // (e.g. Apple private relay or anonymous sign-in).
     const rcUserId = (typeof _fbUser !== 'undefined' && _fbUser?.email) ? _fbUser.email : uid;
-    await Purchases.logIn({ appUserID: rcUserId });
-    const { customerInfo } = await Purchases.getCustomerInfo();
+    // logIn() returns fresh customerInfo for the logged-in user — use it directly
+    // to avoid a stale-cache race from a separate getCustomerInfo() call.
+    const loginResult = await Purchases.logIn({ appUserID: rcUserId });
+    const customerInfo = loginResult?.customerInfo;
     const active = customerInfo?.entitlements?.active || {};
     const entitled = !!(active['parent_monthly'] || active['parent']);
     if (typeof state !== 'undefined') state.parentTier = entitled ? 'parent' : 'free';
