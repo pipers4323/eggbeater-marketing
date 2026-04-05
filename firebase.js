@@ -381,7 +381,7 @@ async function _onFbAuthChange(user) {
 
 /**
  * Phase B — RevenueCat parent subscription check.
- * Calls logIn() then getCustomerInfo() via the Capacitor Purchases plugin.
+ * Configures the SDK, logs in as the Firebase UID, then checks entitlements.
  * Sets state.parentTier = 'parent' and re-renders settings if entitled.
  * Silent no-op on web or when plugin is unavailable.
  */
@@ -389,6 +389,12 @@ async function _checkParentSubscription(uid) {
   try {
     const Purchases = window.Capacitor?.Plugins?.Purchases;
     if (!Purchases) return; // web browser — no native plugin
+    // Must configure before any other SDK call
+    const isIOS = window.Capacitor?.getPlatform?.() === 'ios';
+    const apiKey = isIOS
+      ? 'appl_xrlDYgNuYWYDOboFAyxMfNNUwGf'
+      : 'goog_HRazxrVZgjHNXPpNFqDrjwGflmW';
+    await Purchases.configure({ apiKey });
     await Purchases.logIn({ appUserID: uid });
     const { customerInfo } = await Purchases.getCustomerInfo();
     const active = customerInfo?.entitlements?.active || {};
@@ -396,7 +402,7 @@ async function _checkParentSubscription(uid) {
     if (typeof state !== 'undefined') state.parentTier = entitled ? 'parent' : 'free';
     localStorage.setItem('ebwp-parent-tier', entitled ? 'parent' : 'free');
     if (typeof renderSettingsTab === 'function') renderSettingsTab();
-    if (entitled) console.info('[RevenueCat] parent_monthly entitlement active ✓');
+    console.info('[RevenueCat] entitlement check done — entitled:', entitled, 'active keys:', Object.keys(active));
   } catch (e) {
     console.warn('[RevenueCat] subscription check failed:', e.message);
   }
