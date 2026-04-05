@@ -7448,8 +7448,10 @@ async function pollLiveScores() {
       if (Object.values(state.liveScores).some(s => s && s.timerRunning)) {
         ensureClockTicker();
       }
-      renderNextGameCard();  // update IN PROGRESS card + live score on Schedule tab
-      renderGamesList();
+      // Re-render schedule tab fully (handles both single-team and multi-team paths)
+      // so the IN PROGRESS card and LIVE badges appear without a force refresh.
+      if (state.currentTab === 'schedule') renderScheduleTab();
+      else { renderNextGameCard(); renderGamesList(); }
       if (state.currentTab === 'scores') renderScoresTab();
       updateLiveDot();
       // VoiceOver: announce the most recently broadcast game that changed

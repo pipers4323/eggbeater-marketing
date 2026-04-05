@@ -404,7 +404,11 @@ async function _checkParentSubscription(uid) {
     const loginResult = await Purchases.logIn({ appUserID: rcUserId });
     const customerInfo = loginResult?.customerInfo;
     const active = customerInfo?.entitlements?.active || {};
-    const entitled = !!(active['parent_monthly'] || active['parent']);
+    // RC entitlement identifiers are case-sensitive; check both 'parent' and 'Parent'
+    // to guard against dashboard capitalization differences.
+    const entitled = Object.keys(active).some(k =>
+      k.toLowerCase() === 'parent' || k.toLowerCase() === 'parent_monthly'
+    );
     if (typeof state !== 'undefined') state.parentTier = entitled ? 'parent' : 'free';
     localStorage.setItem('ebwp-parent-tier', entitled ? 'parent' : 'free');
     if (typeof renderSettingsTab === 'function') renderSettingsTab();
