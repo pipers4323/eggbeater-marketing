@@ -6137,6 +6137,9 @@ function init() {
 
   // On app resume (foreground after background): immediately re-poll live scores and
   // reload team data so Android viewers don't have to force-quit to see live games.
+  // pollLiveScores() is called both immediately AND after loadAllSelectedTeams() because
+  // on cold start the tournament data may not be cached yet, causing the first poll to
+  // find no games. The second poll (in .then) runs once data is confirmed loaded.
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       pollLiveScores();
@@ -6144,6 +6147,7 @@ function init() {
         state.roster = loadRoster();
         renderScheduleTab();
         renderRosterTab();
+        pollLiveScores();
       }).catch(() => {});
     }
   });
@@ -6156,6 +6160,7 @@ function init() {
           state.roster = loadRoster();
           renderScheduleTab();
           renderRosterTab();
+          pollLiveScores();
         }).catch(() => {});
       }
     });
