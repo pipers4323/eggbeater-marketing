@@ -1,7 +1,7 @@
 /**
  * Eggbeater Water Polo — Tournament Data
  * ==========================================
- * Update this file before each new tournament, then re-deploy to Netlify.
+ * Update this file before each new tournament, then use the Admin panel to publish live.
  * The app will automatically archive the current tournament to History
  * on each parent's device the next time they open the app.
  *

@@ -54,7 +54,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   // In Capacitor native app (remote URL mode), don't cache-intercept the app's own pages
-  // — the WebView loads directly from Netlify. Only pass through.
+  // — the WebView loads directly from Vercel. Only pass through.
   if (url.hostname === 'eggbeater.app' && e.request.mode === 'navigate') return;
 
   // Network-first for workers.dev /team-data — always fetch fresh, cache as offline fallback

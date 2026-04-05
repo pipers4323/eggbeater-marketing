@@ -248,7 +248,7 @@ function applyClubLogo(logoDataUrl, clubName) {
 
 const CONFIG = {
   // Get this from Google Cloud Console → APIs & Services → Credentials
-  // Add your Netlify URL to Authorized JavaScript Origins
+  // Add your Vercel URL to Authorized JavaScript Origins
   CLIENT_ID: '334438983134-th4thsf0upc8pabe245d2l41fon2oun9.apps.googleusercontent.com',
 
   SCOPES:            'https://www.googleapis.com/auth/calendar',
@@ -1746,7 +1746,7 @@ function buildBoxScoreText(gameId) {
       text += `${n} ${p.Sv}  ${p.Blk}  ${p.Excl}\n`;
     }
   }
-  text += `\n— ${getActiveTeamLabel()} WP App\nhttps://eggbeater-wp.netlify.app`;
+  text += `\n— ${getActiveTeamLabel()} WP App\nhttps://eggbeater.app`;
   return text;
 }
 
@@ -8240,7 +8240,7 @@ function renderHelpTab() {
       title: 'Club Directory',
       body: `<p>A <strong>public club directory</strong> is available for discovering clubs on the Eggbeater platform.</p>
       <ul>
-        <li>Visit <a href="https://eggbeater-wp.netlify.app/directory.html" target="_blank" style="color:var(--royal);font-weight:700">the Club Directory</a> to browse all clubs.</li>
+        <li>Visit <a href="https://eggbeater.app/directory.html" target="_blank" style="color:var(--royal);font-weight:700">the Club Directory</a> to browse all clubs.</li>
         <li>Each club shows their logo, name, type (Club or High School), and number of active age groups.</li>
         <li>Use the <strong>search bar</strong> at the top to filter clubs by name.</li>
         <li>Tapping a club card loads the app with that club's schedule pre-selected.</li>
