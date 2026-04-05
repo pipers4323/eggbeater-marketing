@@ -5981,17 +5981,11 @@ function init() {
     renderPossibleTab();
     renderHistoryTab();
     renderRosterTab();
-    // Force Live Update sync now that tournament data is loaded — the very first
-    // pollLiveScores() (fired before this await) called stop() because getTournamentGames()
-    // was empty. The second poll is skipped (broadcastAt unchanged → changed=false).
-    if (typeof EggbeaterLiveUpdate !== 'undefined' && window.Capacitor?.getPlatform?.() === 'android') {
-      const _luGames = getTournamentGames().filter(g => isGameLive(g.id));
-      const _luFavs  = getFavGroups();
-      const _luPrefs = getLAPrefs();
-      const _luGame  = _luGames.find(g => _luFavs.includes(g.team) && _luPrefs[g.team] !== false)
-        || (_luGames.length > 0 && !_luGames.some(g => _luFavs.includes(g.team) && _luPrefs[g.team] === false) ? _luGames[0] : null);
-      if (_luGame) EggbeaterLiveUpdate.sync(_luGame.id, _buildLUScore(_luGame.id));
-    }
+    // Re-poll live scores now that TOURNAMENT.id is populated — the startup poll used
+    // an empty tournament ID and got no results, so state.liveScores was empty.
+    // This second poll fetches with the correct ID and triggers sync inside pollLiveScores
+    // if any game is live (changed=true path).
+    pollLiveScores();
     // Phase 2: start Firestore real-time listeners for each selected team
     if (typeof fbListenToTournament === 'function') {
       getSelectedTeams().forEach(k => fbListenToTournament(k));
@@ -6114,15 +6108,6 @@ function init() {
         renderScheduleTab();
         renderRosterTab();
         pollLiveScores();
-        // Force Live Update sync — broadcastAt may be unchanged so pollLiveScores skips it
-        if (typeof EggbeaterLiveUpdate !== 'undefined' && window.Capacitor?.getPlatform?.() === 'android') {
-          const _luGames = getTournamentGames().filter(g => isGameLive(g.id));
-          const _luFavs  = getFavGroups();
-          const _luPrefs = getLAPrefs();
-          const _luGame  = _luGames.find(g => _luFavs.includes(g.team) && _luPrefs[g.team] !== false)
-            || (_luGames.length > 0 && !_luGames.some(g => _luFavs.includes(g.team) && _luPrefs[g.team] === false) ? _luGames[0] : null);
-          if (_luGame) EggbeaterLiveUpdate.sync(_luGame.id, _buildLUScore(_luGame.id));
-        }
       }).catch(() => {});
     }
   });
@@ -6136,15 +6121,6 @@ function init() {
           renderScheduleTab();
           renderRosterTab();
           pollLiveScores();
-          // Force Live Update sync — broadcastAt may be unchanged so pollLiveScores skips it
-          if (typeof EggbeaterLiveUpdate !== 'undefined' && window.Capacitor?.getPlatform?.() === 'android') {
-            const _luGames = getTournamentGames().filter(g => isGameLive(g.id));
-            const _luFavs  = getFavGroups();
-            const _luPrefs = getLAPrefs();
-            const _luGame  = _luGames.find(g => _luFavs.includes(g.team) && _luPrefs[g.team] !== false)
-              || (_luGames.length > 0 && !_luGames.some(g => _luFavs.includes(g.team) && _luPrefs[g.team] === false) ? _luGames[0] : null);
-            if (_luGame) EggbeaterLiveUpdate.sync(_luGame.id, _buildLUScore(_luGame.id));
-          }
         }).catch(() => {});
       }
     });
