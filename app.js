@@ -3128,6 +3128,14 @@ function renderSettingsTab() {
   const fbAvailable = typeof firebase !== 'undefined' && typeof firebase.auth === 'function';
   const user = fbAvailable ? firebase.auth().currentUser : null;
 
+  // Silently re-check RC entitlement every time the Settings tab opens.
+  // This catches cases where logIn() hadn't completed yet on the first load.
+  if (user && (state.parentTier || localStorage.getItem('ebwp-parent-tier') || 'free') !== 'parent') {
+    if (typeof _checkParentSubscription === 'function') {
+      _checkParentSubscription(user.uid);
+    }
+  }
+
   // Theme preference
   const themePref = getThemePref();
   function themePill(value, label) {
@@ -3215,6 +3223,9 @@ function renderSettingsTab() {
           </div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </div>`}
+      <div style="padding:6px 16px 8px;font-size:0.7rem;color:var(--gray-400)">
+        ${user ? `Subscription account: ${escHtml(user.email || user.uid)}` : 'Sign in (Account section below) to activate a subscription'}
+      </div>
     </div>
 
     <div class="settings-section" style="margin-bottom:24px">

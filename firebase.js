@@ -145,9 +145,11 @@ async function _initSocialLogin() {
   try {
     await plugin.initialize({
       google: {
-        iOSClientId: '511455199636-35l7ilb7m2ehiveg91ho5lvgo6034fht.apps.googleusercontent.com',
-        webClientId: '511455199636-t7nimg31inbjp165p29tj0orm6v9oh8t.apps.googleusercontent.com',
+        iOSClientId:       '511455199636-35l7ilb7m2ehiveg91ho5lvgo6034fht.apps.googleusercontent.com',
+        webClientId:       '511455199636-t7nimg31inbjp165p29tj0orm6v9oh8t.apps.googleusercontent.com',
         iOSServerClientId: '511455199636-t7nimg31inbjp165p29tj0orm6v9oh8t.apps.googleusercontent.com',
+        // Android uses webClientId to request an ID token — same value as above
+        androidClientId:   '511455199636-t7nimg31inbjp165p29tj0orm6v9oh8t.apps.googleusercontent.com',
         mode: 'online',
       },
     });
@@ -231,16 +233,20 @@ async function fbSignIn() {
         _fbUpdateAuthUI(_fbAuth.currentUser);
         console.info('[firebase] Signed in via Worker proxy ✓');
       } else {
-        // Android: signInWithCredential works (http://localhost is whitelisted)
+        // Android: signInWithCredential works (http://localhost is whitelisted by Firebase)
+        console.info('[firebase] Android sign-in — idToken present:', !!idToken, 'GoogleAuthProvider available:', !!(firebase?.auth?.GoogleAuthProvider));
+        if (!firebase?.auth?.GoogleAuthProvider) {
+          throw new Error('Firebase Auth compat SDK not loaded — restart the app');
+        }
         const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
         await _fbAuth.signInWithCredential(credential);
         console.info('[firebase] Signed in via native Google ✓');
       }
     } catch (e) {
       console.error('[firebase] Native sign-in error:', e);
-      if (e.message && !e.message.includes('cancel')) {
-        if (typeof showToast === 'function') showToast('Sign-in failed — ' + e.message, 'error');
-      }
+      // Always surface the error — previously filtering out 'cancel' messages hid real failures.
+      const msg = (e?.message || String(e)).substring(0, 120);
+      if (typeof showToast === 'function') showToast('Sign-in failed: ' + msg, 'error');
     }
   } else {
     // ── Web browser: popup works fine ────────────────────────────────────
