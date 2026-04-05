@@ -1839,6 +1839,17 @@ function renderRosterTab() {
   if (slots.length > 1) { _renderRosterMulti(el, slots); return; }
   const roster = state.roster || [];
 
+  // If roster is empty, trigger a background reload (handles slow CF worker cold-start on Android).
+  // _doTeamLoad will call renderRosterTab() again once data arrives.
+  if (roster.length === 0 && !window._rosterReloading) {
+    window._rosterReloading = true;
+    loadAllSelectedTeams().then(() => {
+      state.roster = loadRoster();
+      window._rosterReloading = false;
+      renderRosterTab();
+    }).catch(() => { window._rosterReloading = false; });
+  }
+
   // Sort display order: field players 2-25 numerically, goalies (GK/1/1A) at bottom.
   // Preserve original index i so edit/delete operations target the correct state.roster slot.
   const sortedEntries = roster
