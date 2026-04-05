@@ -14,11 +14,26 @@
 
   function getPlugin() {
     try {
-      if (window.Capacitor && window.Capacitor.Plugins) {
+      // Primary: Capacitor bridge populates Plugins for registered native plugins
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LiveUpdate) {
         return window.Capacitor.Plugins.LiveUpdate;
       }
+      // Fallback: call nativePromise directly (bypasses Plugins object lookup)
+      // Works even if the plugin doesn't appear in window.Capacitor.Plugins
+      if (window.Capacitor && typeof window.Capacitor.nativePromise === 'function') {
+        _dbg('using nativePromise fallback');
+        return {
+          startLiveUpdate:  (o) => window.Capacitor.nativePromise('LiveUpdate', 'startLiveUpdate',  o || {}),
+          updateLiveUpdate: (o) => window.Capacitor.nativePromise('LiveUpdate', 'updateLiveUpdate', o || {}),
+          stopLiveUpdate:   (o) => window.Capacitor.nativePromise('LiveUpdate', 'stopLiveUpdate',   o || {}),
+        };
+      }
+      // Last resort: log what IS in Plugins for diagnostics
+      if (window.Capacitor && window.Capacitor.Plugins) {
+        _dbg('Plugins keys: ' + Object.keys(window.Capacitor.Plugins).join(','));
+      }
     } catch (e) {
-      console.warn('[live-update] Could not access LiveUpdate plugin:', e.message);
+      _dbg('getPlugin error: ' + e.message);
     }
     return null;
   }
