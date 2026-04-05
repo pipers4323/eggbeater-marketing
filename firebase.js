@@ -395,7 +395,11 @@ async function _checkParentSubscription(uid) {
       ? 'appl_xrlDYgNuYWYDOboFAyxMfNNUwGf'
       : 'goog_HRazxrVZgjHNXPpNFqDrjwGflmW';
     await Purchases.configure({ apiKey });
-    await Purchases.logIn({ appUserID: uid });
+    // Use email as the RC subscriber ID so entitlements can be pre-granted by email
+    // before a user's Firebase UID is known. Falls back to UID if email unavailable
+    // (e.g. Apple private relay or anonymous sign-in).
+    const rcUserId = (typeof _fbUser !== 'undefined' && _fbUser?.email) ? _fbUser.email : uid;
+    await Purchases.logIn({ appUserID: rcUserId });
     const { customerInfo } = await Purchases.getCustomerInfo();
     const active = customerInfo?.entitlements?.active || {};
     const entitled = !!(active['parent_monthly'] || active['parent']);
