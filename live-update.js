@@ -90,13 +90,26 @@
     const matchup  = `${teamLabel} vs ${oppLabel}`;
     const body = eventStr
       ? `${matchup} · ${eventStr}`
-      : `${matchup}${qLabel ? ' · ' + qLabel : ''}${clockStr ? ' ' + clockStr : ''}`;
+      : `${matchup}${qLabel ? ' · ' + qLabel : ''}${clockStr ? ' · ' + clockStr : ''}`;
+
+    // Native countdown chronometer for Android notification — mirrors iOS Live Activity clock.
+    // clockWhenMs = the wall-clock time when the period timer would reach 0 (if running).
+    // Android uses setWhen() + setChronometerCountDown(true) to tick natively without polling.
+    const timerRunning = !!(score.timerRunning);
+    let clockWhenMs = 0;
+    if (timerRunning && score.timerSecondsLeft > 0 && score.timerStartedAt > 0) {
+      const elapsedSec = (Date.now() - score.timerStartedAt) / 1000;
+      const remainingSec = Math.max(0, score.timerSecondsLeft - elapsedSec);
+      clockWhenMs = Date.now() + remainingSec * 1000;
+    }
 
     try {
       await plugin.startLiveUpdate({
-        title:     `${agePrefix}🤽 LIVE: ${teamLabel} ${score.team ?? 0}-${score.opp ?? 0}`,
-        body:      body,
-        shortText: shortText,
+        title:        `${agePrefix}🤽 LIVE: ${teamLabel} ${score.team ?? 0}-${score.opp ?? 0}`,
+        body:         body,
+        shortText:    shortText,
+        timerRunning: timerRunning,
+        clockWhenMs:  clockWhenMs,
       });
     } catch (e) {
       if (e && (e.message === 'NOTIFICATIONS_DISABLED' || (e.code && e.code === 'NOTIFICATIONS_DISABLED'))) {

@@ -7487,7 +7487,9 @@ async function pollLiveScores() {
           || (liveGames.length > 0 && !liveGames.some(g => _favsA.includes(g.team) && _laPrefsA[g.team] === false) ? liveGames[0] : null);
         if (autoGame) {
           EggbeaterLiveUpdate.sync(autoGame.id, _buildLUScore(autoGame.id));
-        } else {
+        } else if (getTournamentGames().length > 0) {
+          // Only stop if tournament data is loaded — empty array means data hasn't arrived yet
+          // (race: pollLiveScores() can return before loadAllSelectedTeams() completes)
           EggbeaterLiveUpdate.stop();
         }
       }
