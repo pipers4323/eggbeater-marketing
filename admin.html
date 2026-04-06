@@ -3800,7 +3800,7 @@ function renderScheduleTab() {
   const _currentAgeGroupLabel = getTeamLabel(S.team);
   let cardsHtml = `
     <div class="card" style="border: 1.5px solid var(--green)">
-      <div class="card-header" style="background:var(--green-lt);color:var(--green);border-bottom:1px solid #bbf7d0">🟢 ${esc(_currentAgeGroupLabel)} — Currently Deployed (Live)</div>
+      <div class="card-header" style="background:var(--green-lt);color:var(--green);border-bottom:1px solid var(--green)">🟢 ${esc(_currentAgeGroupLabel)} — Currently Deployed (Live)</div>
       ${renderGameList(liveGames, S.tournament)}
     </div>
   `;
@@ -3828,7 +3828,7 @@ function renderScheduleTab() {
   // Quick-edit card for upcoming tournament info — only shown in upcoming mode
   const upcomingInfoCard = S.tournament.upcomingMode ? `
     <div class="card upcoming-info-card" style="border:1.5px solid #f97316;background:#fff8f0;margin-bottom:10px">
-      <div class="card-header" style="color:#c2410c;border-bottom:1px solid #fed7aa">📅 Upcoming Tournament Info</div>
+      <div class="card-header btn-warning-lt" style="border-bottom-width:1px;border-bottom-style:solid">📅 Upcoming Tournament Info</div>
       <div class="info-form">
         <div class="info-field">
           <div class="info-label">Tournament Name</div>
@@ -3868,7 +3868,7 @@ function renderScheduleTab() {
   const _statusPill = S.tournament.upcomingMode
     ? `<div class="btn-warning-lt" style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-width:1px;border-style:solid;border-radius:8px;margin-bottom:8px;font-size:0.78rem;font-weight:700">📅 Status: <strong>Coming Soon</strong> — schedule is hidden from parents. Tap "🟢 Go Live" when ready.</div>`
     : liveGames.length
-      ? `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--green-lt);border:1px solid #bbf7d0;border-radius:8px;margin-bottom:8px;font-size:0.78rem;font-weight:700;color:var(--green)">🟢 Status: <strong>Live</strong> — parents can see this schedule in the app.</div>`
+      ? `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--green-lt);border:1px solid var(--green);border-radius:8px;margin-bottom:8px;font-size:0.78rem;font-weight:700;color:var(--green)">🟢 Status: <strong>Live</strong> — parents can see this schedule in the app.</div>`
       : `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--g50);border:1px solid var(--g200);border-radius:8px;margin-bottom:8px;font-size:0.78rem;font-weight:700;color:var(--g600)">⚫ Status: <strong>No games</strong> — add games in the Games tab, then deploy.</div>`;
 
   return `
@@ -5681,7 +5681,7 @@ function renderClubInfoTab() {
                  oninput="S.tournament.clubName=this.value">
         </div>
         <div class="info-field">
-          <div class="info-label">Cloud Club ID <span style="color:var(--g400);font-weight:400;text-transform:none">(Firestore path)</span></div>
+          <div class="info-label">Club ID</div>
           <input class="info-input" value="${esc(clubId)}" placeholder="e.g. pacific-waves"
                  oninput="if(typeof fbSetClubId==='function')fbSetClubId(this.value);localStorage.setItem('ebadmin-clubId',this.value)">
           <div class="info-hint">Identifies your club in the cloud. Only change if setting up a new club.</div>
@@ -5853,7 +5853,7 @@ function renderClubInfoTab() {
             <input id="new-admin-name" class="info-input" style="flex:1 1 140px;margin:0" placeholder="Display name">
             <button class="save-btn" onclick="addClubAdminUid()">+ Add by UID</button>
           </div>
-          <div style="font-size:0.68rem;color:var(--g400);margin-top:4px">Advanced: manually add an admin by their Firebase UID.</div>
+          <div style="font-size:0.68rem;color:var(--g400);margin-top:4px">Advanced: manually add an admin by their unique user ID.</div>
         </div>
         <div style="margin-top:12px">
           <button class="save-btn" style="background:var(--royal);color:white;border-color:var(--royal);width:100%" onclick="initClubAdminList()">
@@ -5967,7 +5967,7 @@ function renderAddGamesTab() {
     <details class="card collapsible-card">
       <summary class="card-header collapsible-header">⚙️ Game / Tournament Setup <span class="collapse-icon">▾</span></summary>
       <div class="info-form">
-        <div class="info-field"><div class="info-label">Cloud Club ID</div><input class="info-input" value="${esc(typeof fbGetClubId==='function'?fbGetClubId():'my-club')}" placeholder="e.g. pacific-waves" oninput="if(typeof fbSetClubId==='function')fbSetClubId(this.value);localStorage.setItem('ebadmin-clubId',this.value)"><div class="info-hint">Identifies your club in the cloud.</div></div>
+        <div class="info-field"><div class="info-label">Club ID</div><input class="info-input" value="${esc(typeof fbGetClubId==='function'?fbGetClubId():'my-club')}" placeholder="e.g. pacific-waves" oninput="if(typeof fbSetClubId==='function')fbSetClubId(this.value);localStorage.setItem('ebadmin-clubId',this.value)"><div class="info-hint">Identifies your club in the cloud.</div></div>
         <div class="info-field"><div class="info-label">Tournament ID</div><input class="info-input" id="ti-id" value="${esc(t.id||'')}" oninput="S.tournament.id=this.value"><div class="info-hint red">⚠ Changing ID archives the current tournament. Only change when starting a new tournament.</div></div>
         <div class="info-field"><div class="info-label">Name</div><input class="info-input" id="ti-name" value="${esc(t.name||'')}" oninput="S.tournament.name=this.value;updateAdminHeader()"></div>
         <div class="info-field"><div class="info-label">Subtitle</div><input class="info-input" value="${esc(t.subtitle||'')}" oninput="S.tournament.subtitle=this.value"></div>
@@ -9719,12 +9719,12 @@ function renderHelpTab() {
       title: 'Club Admin Management',
       body: `<p>The <strong>Club Admins</strong> card in the <strong>Club Info</strong> tab lets you control who has admin access to your club.</p>
       <ul>
-        <li><strong>Your UID</strong> — shown at the top of the card. This is your Google account's unique Firebase UID, automatically detected when you sign in with Google.</li>
+        <li><strong>Your User ID</strong> — shown at the top of the card. This is your account's unique ID, automatically detected when you sign in with Google.</li>
         <li><strong>Admin list</strong> — shows all UIDs authorized to manage this club. Each admin can sign in with Google and access the full admin panel.</li>
-        <li><strong>Add Admin</strong> — paste another person's Firebase UID to grant them admin access. They'll need to share their UID with you (visible in their own admin panel after signing in).</li>
+        <li><strong>Add Admin</strong> — paste another person's User ID to grant them admin access. They'll need to share their ID with you — it's visible in their own admin panel under Settings → Admin Access after signing in.</li>
         <li><strong>Remove Admin</strong> — tap the ✕ next to any UID to revoke their access. You cannot remove yourself.</li>
         <li><strong>Bootstrap Admin List</strong> — a one-time setup button that registers your UID as the first admin in the server's authorization list. Only works if no admin list exists yet for this club.</li>
-        <li>Admin access is enforced at both the Firestore level (security rules) and the Cloudflare Worker level (JWT verification + admin UID check).</li>
+        <li>Admin access is verified server-side on every request — only listed admins can read or write club data.</li>
       </ul>`
     },
     {
@@ -9813,7 +9813,7 @@ function renderHelpTab() {
       body: `<p><strong>👑 Requires Tournament Host ($199 one-time per event).</strong> Purchase in the <em>Subscription</em> tab.</p>
       <p>The <strong>Tournament Host</strong> tab lets you run a full multi-club tournament from one dashboard.</p>
       <ul>
-        <li><strong>Import scores from the tournament host package</strong> — enter the director code to pull official results directly, no double entry.</li>
+        <li><strong>Import scores from the tournament host package</strong> — enter the host share code to pull official results directly, no double entry.</li>
         <li><strong>Manage all clubs &amp; age groups</strong> from a single tournament host dashboard.</li>
         <li><strong>Public shareable bracket URL</strong> — share live standings and brackets with spectators, coaches, and parents without an account.</li>
         <li><strong>Live public scoring</strong> — visible to anyone with the link; no app or login required.</li>
