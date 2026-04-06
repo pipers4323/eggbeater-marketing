@@ -7498,7 +7498,13 @@ async function pollLiveScores() {
         );
         _announceScore(latest);
       }
-      showLiveToast();
+      // Only show toast if at least one changed game is actually in progress
+      // (prevents false toast when stale 'final' KV entries arrive on app load)
+      const _hasLiveGame = changedGameIds.some(gid => {
+        const _s = state.liveScores[gid];
+        return _s && _s.gameState !== 'final' && _s.gameState !== 'so_w' && _s.gameState !== 'so_l';
+      });
+      if (_hasLiveGame) showLiveToast();
       _syncWidgetsAll();
 
       // iOS Live Activity update

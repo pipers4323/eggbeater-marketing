@@ -2400,7 +2400,7 @@ h2 {
 }
 /* Goalkeeper cap — red caps in the water */
 .roster-cap-gk {
-  color: #b91c1c;
+  color: #ef4444;
   background: #fee2e2;
 }
 
@@ -2997,8 +2997,8 @@ body.modal-open { overflow: hidden; }
   background: white;
 }
 .roster-cap-input:focus { outline: none; border-color: var(--royal); }
-.roster-cap-input.roster-cap-gk { color: #b91c1c; border-color: #fca5a5; background: #fff7f7; }
-.roster-cap-input.roster-cap-gk:focus { border-color: #b91c1c; }
+.roster-cap-input.roster-cap-gk { color: #ef4444; border-color: #fca5a5; background: #fff7f7; }
+.roster-cap-input.roster-cap-gk:focus { border-color: #ef4444; }
 
 .roster-name-input {
   flex: 1;
@@ -5518,9 +5518,14 @@ details[open] .help-chevron { transform: rotate(180deg); }
   color: rgba(255,255,255,.93) !important;
 }
 .native-android .card.tab-card p,
-.native-android .card.tab-card .step-desc,
-.native-android .card.tab-card .history-subtitle {
+.native-android .card.tab-card .step-desc {
   color: rgba(255,255,255,.72) !important;
+}
+/* Native history/roster pill: frosted on dark navy (not white text on gray background) */
+.native-android .card.tab-card .history-subtitle {
+  background: rgba(255,255,255,0.15) !important;
+  color: rgba(255,255,255,0.9) !important;
+  border-radius: 99px !important;
 }
 /* Restore dark text inside white section cards within the transparent wrapper */
 .native-android .bracket-section:not(.projected) .bracket-title,
@@ -5548,6 +5553,7 @@ details[open] .help-chevron { transform: rotate(180deg); }
   overflow: hidden !important;
   margin-bottom: 10px !important;
   border: 1px solid rgba(0,0,0,0.08) !important;
+  padding: 22px 20px !important;
 }
 [data-theme="dark"] .native-android .card.tab-card.my-player-card,
 [data-theme="dark"] .native-android .card.tab-card.player-lookup-card {
