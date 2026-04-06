@@ -310,39 +310,25 @@
     .global-btn-upcoming { border-color: rgba(251,146,60,.65); color: #fed7aa; }
     .global-btn-deploy   { border-color: rgba(74,222,128,.65); color: #bbf7d0; }
 
-    .admin-team-pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      padding: 8px 14px;
-      padding-left: max(14px, env(safe-area-inset-left, 0px));
-      padding-right: max(14px, env(safe-area-inset-right, 0px));
-      background: rgba(0,0,0,.12);
-      border-top: 1px solid rgba(255,255,255,.08);
-      width: 100%;
-    }
-    .admin-team-pills::-webkit-scrollbar { display: none; }
-    .admin-pill {
-      flex: 0 0 auto;
-      text-align: center;
+    /* ── Age group selector in header bar ── */
+    #admin-team-select {
+      background: rgba(255,255,255,0.15);
+      color: white;
+      border: 1.5px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      padding: 5px 6px;
       font-size: 0.75rem;
       font-weight: 700;
-      padding: 6px 12px;
-      border-radius: 20px;
-      border: 1.5px solid rgba(255,255,255,.3);
-      background: transparent;
-      color: rgba(255,255,255,.75);
       cursor: pointer;
-      white-space: nowrap;
       flex-shrink: 0;
-      -webkit-tap-highlight-color: transparent;
-      transition: all 0.15s ease;
+      max-width: 150px;
+      -webkit-appearance: auto;
+      appearance: auto;
     }
-    .admin-pill:hover { background: rgba(255,255,255,.12); }
-    .admin-pill.active {
-      background: white;
-      color: var(--royal);
-      border-color: white;
+    #admin-team-select option {
+      background: var(--royal);
+      color: white;
+      font-weight: 600;
     }
 
     /* ── Tournament selector strip ── */
@@ -1320,21 +1306,10 @@
         padding: 4px 12px;
         min-height: 36px;
       }
-      .admin-team-pills {
-        display: flex;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        gap: 6px;
-        padding: 6px 12px;
-        scrollbar-width: none;
-      }
-      .admin-team-pills::-webkit-scrollbar { display: none; }
-      .admin-pill {
-        flex-shrink: 0;
-        padding: 4px 10px !important;
-        font-size: 0.75rem !important;
-        white-space: nowrap;
+      #admin-team-select {
+        font-size: 0.72rem;
+        max-width: 130px;
+        padding: 4px 5px;
       }
     }
 
@@ -1405,15 +1380,15 @@
     [data-theme="dark"] .btn-ghost:hover {
       background: #30363d;
     }
-    [data-theme="dark"] .admin-pill {
-      background: rgba(255,255,255,0.08);
-      color: #c9d1d9;
-      border-color: rgba(255,255,255,0.15);
+    /* Header select always looks the same in dark mode (it's on the navy header) */
+    [data-theme="dark"] #admin-team-select {
+      background: rgba(255,255,255,0.15);
+      color: white;
+      border-color: rgba(255,255,255,0.3);
     }
-    [data-theme="dark"] .admin-pill.active {
-      background: rgba(88,166,255,0.2);
-      color: #58a6ff;
-      border-color: #58a6ff;
+    [data-theme="dark"] #admin-team-select option {
+      background: #001a4a;
+      color: white;
     }
     [data-theme="dark"] .game-row,
     [data-theme="dark"] .roster-row,
@@ -1591,53 +1566,13 @@
     </div>
     <div class="admin-header-bar">
       <span class="admin-header-title">Admin</span>
+      <select id="admin-team-select" onchange="onAdminTeamChange(this.value)" title="Switch age group"></select>
       <span id="header-sub" class="admin-header-sub">Loading…</span>
       <button id="switch-club-btn" onclick="switchClub()" style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px" title="Switch Club (SuperAdmin)">🔀 Switch Club</button>
       <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">💾 Deploy</button>
     </div>
     <!-- Phase 3: Tournament selector -->
     <div class="admin-tourn-strip" id="admin-tourn-strip"></div>
-    <!-- Age group / team pill picker -->
-    <div class="admin-team-pills" id="admin-team-pills"></div>
-    <style>
-      .admin-team-pills {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        padding: 8px 12px;
-      }
-      .admin-pill {
-        flex: 0 0 auto;
-        padding: 6px 12px;
-        border-radius: 20px;
-        background: var(--royal-lt);
-        color: var(--royal);
-        font-weight: 700;
-        font-size: 0.82rem;
-        cursor: pointer;
-        border: none;
-      }
-      @media (min-width: 1024px) {
-        .admin-team-pills {
-          padding: 12px 24px;
-          gap: 6px;
-          flex-wrap: nowrap;
-          width: 100%;
-          box-sizing: border-box;
-          overflow-x: auto; /* Scroll as last resort if pills still can't fit */
-        }
-        .admin-pill {
-          flex: 1 1 0;      /* Equal share of available width */
-          min-width: 80px;  /* Never collapse below readable size */
-          text-align: center;
-          padding: 6px 4px;
-          font-size: 0.78rem;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-      }
-    </style>
     <!-- Global actions row — operates across all age groups at once -->
     <div class="admin-global-bar">
       <span class="admin-global-label">All groups:</span>
@@ -2244,18 +2179,13 @@ function updateAdminHeader() {
   const subEl = document.getElementById('header-sub');
   if (!subEl) return;
 
-  const teamLabel = S.team ? getTeamLabel(S.team) : '';
-
+  // Team label is now shown in the header select — subtitle just shows tournament info
   if (!t || t.stayTuned || !t.name || t.name === 'Stay Tuned!') {
-    // For HS clubs, show current season instead of "No tournament loaded"
-    const seasonOrEmpty = S.clubType === 'highschool' ? getCurrentSeasonLabel() : 'No tournament loaded';
-    subEl.textContent = teamLabel ? teamLabel + ' · ' + seasonOrEmpty : seasonOrEmpty;
+    subEl.textContent = S.clubType === 'highschool' ? getCurrentSeasonLabel() : 'No tournament loaded';
     return;
   }
 
-  const parts = [];
-  if (teamLabel) parts.push(teamLabel);
-  parts.push(t.name);
+  const parts = [t.name];
   if (t.location) parts.push(t.location);
   if (t.dates) parts.push(t.dates);
   subEl.textContent = parts.join(' · ');
@@ -3168,36 +3098,21 @@ function getAdminTeams() {
 }
 
 function renderAdminTeamPills() {
-  const container = document.getElementById('admin-team-pills');
-  if (!container) return;
+  const sel = document.getElementById('admin-team-select');
+  if (!sel) return;
   const teams = getAdminTeams();
   // If current team isn't in the list, switch to first valid team
   if (!teams.find(t => t.key === S.team)) {
     S.team = teams[0].key;
     refreshAdminData();
   }
-
-  if (S.clubType === 'highschool') {
-    // HS: Two main pills (Boys/Girls) + Varsity/JV sub-selector
-    const gender = S.team.startsWith('boys') ? 'boys' : 'girls';
-    const level = S.team.includes('jv') ? 'jv' : 'varsity';
-    container.innerHTML = `
-      <div style="display:flex;gap:6px;flex:1">
-        <button class="admin-pill${gender === 'boys' ? ' active' : ''}" onclick="onHSGenderChange('boys')" style="flex:1">Boys</button>
-        <button class="admin-pill${gender === 'girls' ? ' active' : ''}" onclick="onHSGenderChange('girls')" style="flex:1">Girls</button>
-      </div>
-      <div style="display:flex;gap:4px;margin-left:6px">
-        <button class="admin-pill hs-level${level === 'varsity' ? ' active' : ''}" onclick="onAdminTeamChange('${gender}-varsity')"
-                style="font-size:0.68rem;padding:4px 10px;border-radius:14px">${_statusDot(gender+'-varsity')}V</button>
-        <button class="admin-pill hs-level${level === 'jv' ? ' active' : ''}" onclick="onAdminTeamChange('${gender}-jv')"
-                style="font-size:0.68rem;padding:4px 10px;border-radius:14px">${_statusDot(gender+'-jv')}JV</button>
-      </div>`;
-  } else {
-    container.innerHTML = teams.map(t => {
-      const statusDot = _statusDot(t.key);
-      return `<button class="admin-pill${t.key === S.team ? ' active' : ''}" onclick="onAdminTeamChange('${t.key}')" style="position:relative">${statusDot}${esc(t.label)}</button>`;
-    }).join('');
-  }
+  const statusEmoji = key => {
+    const s = S.teamStatuses[key];
+    return s === 'green' ? '🟢' : s === 'yellow' ? '🟡' : '⚫';
+  };
+  sel.innerHTML = teams.map(t =>
+    `<option value="${t.key}"${t.key === S.team ? ' selected' : ''}>${statusEmoji(t.key)} ${esc(t.label)}</option>`
+  ).join('');
 }
 
 function onHSGenderChange(gender) {
