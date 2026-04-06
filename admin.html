@@ -1058,9 +1058,11 @@
     .admin-refresh-btn:disabled { opacity: 0.5; cursor: default; }
 
     .clear-data-btn {
-      display: inline-flex;
+      display: flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
+      width: 100%;
       background: none;
       border: 1px solid #dc2626;
       border-radius: 8px;
@@ -1347,8 +1349,11 @@
     /* ── Admin Dark Mode ──────────────────────────────────────────────────── */
     [data-theme="dark"] {
       --g50: #0d1117; --g100: #161b22; --g200: #21262d; --g300: #30363d;
-      --g400: #484f58; --g500: #6e7681; --g600: #8b949e; --g700: #b1bac4;
-      --g800: #c9d1d9; --g900: #e6edf3;
+      --g400: #6e7681; --g500: #8b949e; --g600: #b1bac4; --g700: #c9d1d9;
+      --g800: #e6edf3; --g900: #f0f6fc;
+      /* Green: swap light-green background for dark-green so deployed banner is readable */
+      --green-lt: #052e16;
+      --green:    #4ade80;
       color-scheme: dark;
     }
     [data-theme="dark"] body,
@@ -1492,6 +1497,66 @@
       border-color: #30363d;
     }
 
+    /* ── Dark mode: hardcoded-colour element overrides ── */
+
+    /* Upcoming Tournament Info card (orange border, cream bg) */
+    [data-theme="dark"] .upcoming-info-card {
+      background: #1a0a00 !important;
+      border-color: #c2410c !important;
+    }
+    [data-theme="dark"] .upcoming-info-card .card-header {
+      color: #fb923c !important;
+      border-bottom-color: #7c2d12 !important;
+    }
+    /* Save & Deploy Info button inside upcoming card */
+    [data-theme="dark"] .btn-save-upcoming {
+      background: #1a0a00 !important;
+      color: #fb923c !important;
+      border-color: #c2410c !important;
+    }
+    /* Set to Upcoming Mode button */
+    [data-theme="dark"] .btn-upcoming {
+      background: #1a0a00 !important;
+      color: #fb923c !important;
+      border-color: #c2410c !important;
+    }
+    /* Go Live button */
+    [data-theme="dark"] .btn-go-live {
+      background: #052e16 !important;
+      color: #4ade80 !important;
+      border-color: #16a34a !important;
+    }
+    /* Undeploy button */
+    [data-theme="dark"] .btn-undeploy {
+      background: #1a0000 !important;
+      color: #fca5a5 !important;
+      border-color: #991b1b !important;
+    }
+    /* Upgrade nudge banners (tier gate) */
+    [data-theme="dark"] .upgrade-nudge {
+      background: #161b22 !important;
+      border-color: #30363d !important;
+    }
+    [data-theme="dark"] .upgrade-nudge-title { color: #e6edf3 !important; }
+    [data-theme="dark"] .upgrade-nudge-sub   { color: #8b949e !important; }
+    /* Platform Admin section in super-admin dashboard */
+    [data-theme="dark"] .platform-admin-card {
+      background: #161b22 !important;
+      border-color: #30363d !important;
+      color: #e6edf3 !important;
+    }
+    [data-theme="dark"] .platform-admin-card input {
+      background: #0d1117 !important;
+      color: #e6edf3 !important;
+      border-color: #30363d !important;
+    }
+    [data-theme="dark"] #club-dashboard .platform-admin-label {
+      color: #e6edf3 !important;
+    }
+    [data-theme="dark"] #club-dashboard .platform-admin-heading {
+      color: #8b949e !important;
+    }
+
     /* ── Dark mode: Login screen ── */
     [data-theme="dark"] #login-screen {
       background: #0d1117;
@@ -1600,7 +1665,7 @@
       <div style="font-size:0.95rem;font-weight:700;color:var(--royal);margin-bottom:12px">⚙️ Platform Admin</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
         <!-- Add New Club -->
-        <div style="background:white;border:1px solid var(--g200);border-radius:var(--radius);padding:14px 16px">
+        <div class="platform-admin-card" style="background:white;border:1px solid var(--g200);border-radius:var(--radius);padding:14px 16px">
           <div style="font-size:0.85rem;font-weight:600;margin-bottom:8px">➕ Add New Club</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <input id="new-club-id" class="info-input" style="flex:1 1 120px;margin:0;font-size:0.82rem" placeholder="Club ID (e.g. bay-area-aquatics)">
@@ -1610,7 +1675,7 @@
         </div>
 
         <!-- Platform Stats -->
-        <div id="platform-stats" style="background:white;border:1px solid var(--g200);border-radius:var(--radius);padding:14px 16px">
+        <div id="platform-stats" class="platform-admin-card" style="background:white;border:1px solid var(--g200);border-radius:var(--radius);padding:14px 16px">
           <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px">📊 Platform Overview</div>
           <div id="platform-stats-body" style="font-size:0.82rem;color:var(--g400)">Loading…</div>
         </div>
@@ -2437,11 +2502,11 @@ function tierHasFeature(feature) {
  * Returns an HTML string for a locked feature prompt.
  */
 function renderUpgradeNudge(featureName) {
-  return `<div style="display:flex;align-items:center;gap:10px;background:var(--bg,#f9fafb);border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin:8px 0">
+  return `<div class="upgrade-nudge" style="display:flex;align-items:center;gap:10px;background:var(--g50);border:1px solid var(--g200);border-radius:10px;padding:14px 16px;margin:8px 0">
     <span style="font-size:1.4rem">🔒</span>
     <div>
-      <div style="font-weight:700;font-size:0.9rem">${featureName} — Club Plan</div>
-      <div style="font-size:0.78rem;color:#6b7280;margin-top:2px">Upgrade to unlock this feature for your club.</div>
+      <div class="upgrade-nudge-title" style="font-weight:700;font-size:0.9rem">${featureName} — Club Plan</div>
+      <div class="upgrade-nudge-sub" style="font-size:0.78rem;color:var(--g500);margin-top:2px">Upgrade to unlock this feature for your club.</div>
     </div>
     <button onclick="showUpgradeSheet()" style="margin-left:auto;background:#2563eb;color:white;border:none;border-radius:7px;padding:7px 14px;font-size:0.8rem;font-weight:700;cursor:pointer;flex-shrink:0">Upgrade ↗</button>
   </div>`;
@@ -3455,7 +3520,7 @@ function renderScheduleTab() {
 
   // Quick-edit card for upcoming tournament info — only shown in upcoming mode
   const upcomingInfoCard = S.tournament.upcomingMode ? `
-    <div class="card" style="border:1.5px solid #f97316;background:#fff8f0;margin-bottom:10px">
+    <div class="card upcoming-info-card" style="border:1.5px solid #f97316;background:#fff8f0;margin-bottom:10px">
       <div class="card-header" style="color:#c2410c;border-bottom:1px solid #fed7aa">📅 Upcoming Tournament Info</div>
       <div class="info-form">
         <div class="info-field">
@@ -3482,15 +3547,15 @@ function renderScheduleTab() {
                  placeholder="Schedule coming soon — check back closer to tournament day!"
                  oninput="S.tournament.comingSoon=this.value">
         </div>
-        <button class="add-btn" style="background:#fff8f0;color:#c2410c;border-color:#f97316;font-weight:700;margin-top:2px;width:calc(100% - 4px);margin-left:2px;margin-right:2px"
+        <button class="add-btn btn-save-upcoming" style="background:#fff8f0;color:#c2410c;border-color:#f97316;font-weight:700;margin-top:2px;width:calc(100% - 4px);margin-left:2px;margin-right:2px"
                 onclick="saveUpcomingInfo(this)">💾 Save &amp; Deploy Info</button>
       </div>
     </div>` : '';
 
   const upcomingBtnInner = S.tournament.upcomingMode
-    ? `<button class="add-btn" style="background:#f0fff4;color:#166534;border-color:#4ade80;font-weight:700;width:100%" onclick="goLive()">🟢 Go Live</button>`
+    ? `<button class="add-btn btn-go-live" style="background:#f0fff4;color:#166534;border-color:#4ade80;font-weight:700;width:100%" onclick="goLive()">🟢 Go Live</button>`
     : liveGames.length
-      ? `<button class="add-btn" style="background:#fff8f0;color:#c2410c;border-color:#f97316;width:100%" onclick="setUpcomingMode()">📅 Set to Upcoming Mode</button>`
+      ? `<button class="add-btn btn-upcoming" style="background:#fff8f0;color:#c2410c;border-color:#f97316;width:100%" onclick="setUpcomingMode()">📅 Set to Upcoming Mode</button>`
       : `<span></span>`;
 
   return `
@@ -3507,7 +3572,7 @@ function renderScheduleTab() {
       </button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid var(--g200);margin-top:16px;padding-top:12px">
-      <button class="add-btn" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;font-weight:700" onclick="undeployLiveSchedule()">🛑 Undeploy</button>
+      <button class="add-btn btn-undeploy" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;font-weight:700" onclick="undeployLiveSchedule()">🛑 Undeploy</button>
       <button class="clear-data-btn" style="margin:0" onclick="clearAgeGroupData()">🗑 Clear All Data</button>
     </div>`;
 }
