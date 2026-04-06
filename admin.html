@@ -2850,6 +2850,99 @@ async function showUpgradeSheet() {
   _renderPaywallCards(_paywallOfferings);
 }
 
+/**
+ * Tournament Host-specific upgrade sheet.
+ * Shows only the $199 one-time purchase card — no Club subscription, no monthly/annual toggle.
+ */
+async function showTournamentHostSheet() {
+  const drawer = document.getElementById('paywall-drawer');
+  if (!drawer) return;
+
+  if (tierHasFeature('tournament_host')) {
+    showStatus('Your club already has Tournament Host.', 'ok');
+    return;
+  }
+
+  // Swap header content for Tournament Host context
+  const titleEl = drawer.querySelector('.paywall-title');
+  const subEl   = drawer.querySelector('.paywall-sub');
+  const featEl  = drawer.querySelector('.paywall-features');
+  const toggle  = drawer.querySelector('.paywall-toggle');
+  if (titleEl) titleEl.textContent = '🏆 Tournament Host';
+  if (subEl)   subEl.textContent   = 'Run public tournaments — one-time purchase, no subscription';
+  if (featEl)  featEl.innerHTML = [
+    'Public shareable bracket URL — spectators see live standings with no login',
+    'Live scoring visible to anyone, any device',
+    'Unlimited age groups &amp; all clubs in one director dashboard',
+    'Import scores directly — no double entry between systems',
+    'Exportable results &amp; standings reports for end-of-tournament packets',
+  ].map(f => `<li>${f}</li>`).join('');
+  if (toggle) toggle.style.display = 'none'; // no monthly/annual for one-time
+
+  drawer.classList.remove('paywall-hidden');
+
+  // Fetch RC offerings for native price string
+  const Purchases = window.Capacitor?.Plugins?.Purchases;
+  if (Purchases) {
+    try {
+      const result = await Purchases.getOfferings();
+      const pkgs = result?.current?.availablePackages || [];
+      _paywallOfferings = {};
+      for (const p of pkgs) _paywallOfferings[p.identifier] = p;
+    } catch (e) {
+      _paywallOfferings = {};
+    }
+  } else {
+    _paywallOfferings = null;
+  }
+
+  _renderTournamentHostCard(_paywallOfferings);
+}
+
+/** Render just the Tournament Host purchase card. */
+function _renderTournamentHostCard(offerings) {
+  const el = document.getElementById('paywall-cards');
+  if (!el) return;
+
+  const isNative  = !!(window.Capacitor?.Plugins?.Purchases);
+  const hostPrice = offerings?.['tournament_host']?.product?.priceString || '$199.99';
+  const STRIPE_HOST = 'price_1TIEp60NjxFM08jKHWtHSRJM';
+
+  el.innerHTML = `
+    <div class="paywall-card featured" style="border-color:#7c3aed">
+      <div class="paywall-card-badge" style="background:#7c3aed">ONE-TIME PURCHASE</div>
+      <div class="paywall-card-title">Tournament Host</div>
+      <div class="paywall-card-desc">Unlimited age groups · public live scoring · no subscription</div>
+      <div class="paywall-card-price">${hostPrice}<span> one-time</span></div>
+      ${isNative
+        ? `<button class="paywall-buy-btn primary" id="paywall-host-btn" style="background:#7c3aed;border-color:#7c3aed" onclick="_paywallPurchase('tournament_host')">Purchase Tournament Host</button>`
+        : `<button class="paywall-buy-btn primary" id="paywall-host-btn" style="background:#7c3aed;border-color:#7c3aed" onclick="_paywallWebCheckout('${STRIPE_HOST}','tournament_host')">Purchase Tournament Host</button>`
+      }
+    </div>
+    <p style="text-align:center;font-size:0.78rem;color:var(--g400);margin-top:4px;padding:0 8px">
+      One-time purchase per event. Unlimited use during the tournament.
+      Questions? <a href="mailto:hello@eggbeater.app" style="color:var(--royal)">hello@eggbeater.app</a>
+    </p>`;
+}
+
+/** Restore header content after Tournament Host sheet was shown (called on close). */
+function _restorePaywallHeader() {
+  const drawer = document.getElementById('paywall-drawer');
+  if (!drawer) return;
+  const titleEl = drawer.querySelector('.paywall-title');
+  const subEl   = drawer.querySelector('.paywall-sub');
+  const featEl  = drawer.querySelector('.paywall-features');
+  const toggle  = drawer.querySelector('.paywall-toggle');
+  if (titleEl) titleEl.textContent = 'Unlock Eggbeater Club';
+  if (subEl)   subEl.textContent   = 'Everything your club needs, all in one app';
+  if (featEl)  featEl.innerHTML = `
+    <li>Live scoring with real-time updates</li>
+    <li>Push notifications to parents &amp; players</li>
+    <li>Multi-team management (up to 9 age groups)</li>
+    <li>Season stats &amp; player tracking</li>`;
+  if (toggle) toggle.style.display = '';
+}
+
 /** Render the pricing cards into #paywall-cards. offerings=null means web/static. */
 function _renderPaywallCards(offerings) {
   const el = document.getElementById('paywall-cards');
@@ -2924,6 +3017,7 @@ function _paywallTogglePeriod(period) {
 /** Close the paywall sheet. */
 function _closePaywall() {
   document.getElementById('paywall-drawer')?.classList.add('paywall-hidden');
+  _restorePaywallHeader(); // reset header in case Tournament Host sheet was open
 }
 
 /** Initiate a purchase for the given RC package identifier. */
@@ -3345,7 +3439,8 @@ function switchTab(tab) {
     director: 'tournament_host',
   };
   if (lockedTabs[tab] && !tierHasFeature(lockedTabs[tab])) {
-    showUpgradeSheet();
+    if (tab === 'director') showTournamentHostSheet();
+    else showUpgradeSheet();
     return;
   }
 
