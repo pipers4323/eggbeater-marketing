@@ -253,7 +253,7 @@
       border-top: 1px solid rgba(255,255,255,.1);
       width: 100%;
     }
-    .admin-header-title { font-size: 0.82rem; font-weight: 800; white-space: nowrap; }
+    .admin-header-title { font-size: 1rem; font-weight: 800; white-space: nowrap; }
     .admin-header-sub { font-size: 0.72rem; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
     .deploy-btn {
       flex-shrink: 0;
@@ -2517,7 +2517,7 @@ function updateTierBadge() {
   // Remove any existing badges so we can re-render cleanly
   document.querySelectorAll('#admin-app .tier-badge-item').forEach(el => el.remove());
   const tier = S.clubTier || 'free';
-  const badgeStyle = 'font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:20px;color:white;margin-left:6px;vertical-align:middle;letter-spacing:0.03em;cursor:default';
+  const badgeStyle = 'font-size:0.72rem;font-weight:700;padding:4px 9px;border-radius:6px;color:white;letter-spacing:0.02em;cursor:default;border:1.5px solid rgba(255,255,255,0.25);flex-shrink:0';
   // tournament_host shows two badges: Club (blue) + Tournament Host (purple)
   const badges = tier === 'tournament_host'
     ? [{ label: 'Club', color: TIER_COLORS['club'] }, { label: 'Tournament Host', color: TIER_COLORS['tournament_host'] }]
