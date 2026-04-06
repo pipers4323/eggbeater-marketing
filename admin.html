@@ -1506,6 +1506,9 @@
 
     /* ── Dark mode: hardcoded-colour element overrides ── */
 
+    /* Game number badges (G1, G2 …) — navy bg invisible on dark */
+    [data-theme="dark"] .game-num { background: #1d4ed8; }
+
     /* Base add-btn (+ Add Game, Auto-detect teams, and any unstyled add-btn) */
     [data-theme="dark"] .add-btn {
       background: #0d1829 !important;
@@ -3173,10 +3176,16 @@ function renderTab() {
 function renderAdminSettingsTab() {
   const user = typeof firebase !== 'undefined' && typeof firebase.auth === 'function'
     ? firebase.auth().currentUser : null;
-  const clubId = S.clubId || '';
-  const clubName = S.clubName || clubId;
+  // clubId lives in localStorage (S.clubId is never explicitly set)
+  const clubId = S.currentClubId || localStorage.getItem('ebadmin-clubId') || '';
+  // Club display name: prefer tournament.clubName, fall back to title-cased ID
+  const clubName = S.tournament?.clubName || S.clubName ||
+    (clubId ? clubId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '');
 
-  const isSuperAdmin = (S.club?.superAdminUIDs || []).includes(S.uid);
+  // Password login = always super admin; Google = check superAdminUIDs list
+  const uid = user?.uid || '';
+  const isSuperAdmin = S.authMode === 'password' ||
+    (S.club?.superAdminUIDs || []).includes(uid);
   let accountHtml = '';
   if (user) {
     accountHtml = `
@@ -3197,7 +3206,7 @@ function renderAdminSettingsTab() {
         <span style="font-weight:600;color:#dc2626;font-size:0.95rem">Sign Out</span>
       </div>
     `;
-  } else if (S.loginMode === 'password') {
+  } else if (S.authMode === 'password') {
     accountHtml = `
       <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--g100)">
         <div style="width:40px;height:40px;border-radius:50%;background:var(--royal);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;flex-shrink:0">🔑</div>
