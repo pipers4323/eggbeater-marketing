@@ -383,6 +383,42 @@ code {
 .site-header-logo-band { padding: 10px 24px; display: flex; align-items: center; }
 .site-header-logo-band img { height: 72px; width: auto; display: block; }
 .site-header-teal-bar { height: 3px; background: #0891b2; }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --royal:       #58a6ff;
+    --royal-dark:  #1e40af;
+    --royal-mid:   #79b8ff;
+    --royal-light: #1e3a5f;
+    --royal-subtle:#0d1d35;
+    --g50:  #0d1117;
+    --g100: #0d1117;
+    --g200: #30363d;
+    --g400: #8b949e;
+    --g600: #c9d1d9;
+    --g900: #e6edf3;
+  }
+  body { background: #0d1117; color: #e6edf3; }
+  .hero::after { background: #0d1117; }
+  .toc { background: #161b22; box-shadow: 0 4px 20px rgba(0,0,0,.4); }
+  .toc a { color: #e6edf3; }
+  .toc a:hover { background: #0d1d35; }
+  .toc a .num { background: #1e3a5f; color: #58a6ff; }
+  .section-header { border-bottom-color: #1e3a5f; }
+  .section-header h2 { color: #58a6ff; }
+  .card, .step, .feature-card, .platform-card, .tab-pill { background: #161b22; border-color: #30363d; }
+  .card h3, .step h3, .feature-card h4, .platform-card h4 { color: #e6edf3; }
+  .tab-pill { color: #c9d1d9; }
+  .callout-info { background: #0d1d35; border-color: #1e3a5f; }
+  .callout-info p { color: #79b8ff; }
+  .callout-warn { background: #2d1f00; border-color: #6b4800; }
+  .callout-warn p { color: #fcd34d; }
+  .callout-success { background: #052e16; border-color: #166534; }
+  .callout-success p { color: #86efac; }
+  code { background: #0d1d35; color: #79b8ff; }
+  .kv-row { border-bottom-color: #30363d; }
+  .footer a { color: #58a6ff; }
+}
 </style>
 </head>
 <body>

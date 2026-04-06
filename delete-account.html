@@ -127,6 +127,28 @@
     .badge-kept { background: #fef9c3; color: #92400e; }
     .footer { text-align: center; padding: 40px 20px; color: var(--gray-400); font-size: .8rem; }
     .footer a { color: var(--royal); text-decoration: none; }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --royal:        #58a6ff;
+        --royal-dark:   #1e40af;
+        --royal-light:  #1e3a5f;
+        --royal-subtle: #0d1d35;
+        --gray-100: #0d1117;
+        --gray-400: #8b949e;
+        --gray-700: #c9d1d9;
+        --gray-900: #e6edf3;
+      }
+      body { background: #0d1117; color: #e6edf3; }
+      .hero::after { background: #0d1117; }
+      .card { background: #161b22; border-color: #30363d; }
+      .card h2 { border-bottom-color: #1e3a5f; }
+      .data-table th { border-bottom-color: #30363d; color: #8b949e; }
+      .data-table td { border-bottom-color: #30363d; }
+      .badge-deleted { background: #450a0a; color: #fca5a5; }
+      .badge-kept { background: #2d1f00; color: #fcd34d; }
+      .footer a { color: #58a6ff; }
+    }
   </style>
 </head>
 <body>
@@ -168,7 +190,7 @@
         <p>We will delete your account and associated data within <strong>30 days</strong> and confirm by email.</p>
       </div>
     </div>
-    <a class="email-btn" href="mailto:pipers4323@gmail.com?subject=Eggbeater%20Account%20Deletion%20Request&body=Hi%2C%20I%20would%20like%20to%20request%20deletion%20of%20my%20Eggbeater%20account.%0A%0AName%3A%20%0AEmail%20used%20to%20sign%20in%3A%20">Email Deletion Request</a>
+    <a class="email-btn" href="mailto:hello@eggbeater.app?subject=Eggbeater%20Account%20Deletion%20Request&body=Hi%2C%20I%20would%20like%20to%20request%20deletion%20of%20my%20Eggbeater%20account.%0A%0AName%3A%20%0AEmail%20used%20to%20sign%20in%3A%20">Email Deletion Request</a>
   </div>
 
   <div class="card">
@@ -183,7 +205,7 @@
       </thead>
       <tbody>
         <tr>
-          <td>Google account sign-in (Firebase Auth UID)</td>
+          <td>Google account sign-in and account ID</td>
           <td><span class="badge badge-deleted">Deleted</span></td>
           <td>Within 30 days</td>
         </tr>
@@ -215,7 +237,7 @@
   <div class="card">
     <h2>Contact</h2>
     <p>For questions about your data or to submit a deletion request:</p>
-    <p><strong>Email:</strong> <a href="mailto:pipers4323@gmail.com" style="color:var(--royal)">pipers4323@gmail.com</a></p>
+    <p><strong>Email:</strong> <a href="mailto:hello@eggbeater.app" style="color:var(--royal)">hello@eggbeater.app</a></p>
     <p><strong>Website:</strong> <a href="https://eggbeater.app" style="color:var(--royal)">eggbeater.app</a></p>
   </div>
 
