@@ -1566,7 +1566,7 @@
     </div>
     <div class="admin-header-bar">
       <span class="admin-header-title">Admin</span>
-      <select id="admin-team-select" onchange="onAdminTeamChange(this.value)" title="Switch age group"></select>
+      <select id="admin-team-select" onchange="onAdminTeamChange(this.value)" title="Age group — 🟢 Has games · 🟡 Configured, no games yet · ⚫ Not set up"></select>
       <span id="header-sub" class="admin-header-sub">Loading…</span>
       <button id="switch-club-btn" onclick="switchClub()" style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px" title="Switch Club (SuperAdmin)">🔀 Switch Club</button>
       <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">💾 Deploy</button>
@@ -8941,7 +8941,7 @@ function renderHelpTab() {
       title: 'Getting Started — The Basics',
       body: `<p>The admin panel is your command center for everything tournament-related. Here's the typical workflow before tournament day:</p>
       <ol>
-        <li><strong>Select Age Group</strong> — use the age group dropdown in the top-right header (e.g. "14u Girls") to choose which team you're managing. Each age group has its own independent data.</li>
+        <li><strong>Select Age Group</strong> — use the age group dropdown in the top-right header (e.g. "14u Girls") to choose which team you're managing. Each age group has its own independent data. The emoji prefix shows setup status: 🟢 has games · 🟡 configured but no games yet · ⚫ not set up.</li>
         <li><strong>Add Games tab</strong> — set up the tournament (name, dates, venue, clock settings) and add/import games.</li>
         <li><strong>Schedule tab</strong> — view the current schedule in read-only mode. Export CSV or toggle upcoming mode.</li>
         <li><strong>Roster tab</strong> — add all players (or sync from a Google Sheet).</li>
