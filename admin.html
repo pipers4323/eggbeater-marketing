@@ -2973,14 +2973,9 @@ function _renderPaywallCards(offerings) {
   // Stripe price IDs for web checkout
   const STRIPE_CLUB_MONTHLY = 'price_1TIEmo0NjxFM08jKlS2kPNZp';
   const STRIPE_CLUB_ANNUAL  = 'price_1TIEnv0NjxFM08jKAY1W5s0m';
-  const STRIPE_HOST         = 'price_1TIEp60NjxFM08jKHWtHSRJM';
   const clubStripePriceId   = isMonthly ? STRIPE_CLUB_MONTHLY : STRIPE_CLUB_ANNUAL;
 
-  // Tournament Host card
-  const hostId    = 'tournament_host';
-  const hostPrice = price(hostId, '$199.99');
-
-  let html = `
+  el.innerHTML = `
     <div class="paywall-card featured">
       <div class="paywall-card-badge">MOST POPULAR</div>
       <div class="paywall-card-title">Eggbeater Club</div>
@@ -2991,19 +2986,7 @@ function _renderPaywallCards(offerings) {
         ? `<button class="paywall-buy-btn primary" id="paywall-club-btn" onclick="_paywallPurchase('${clubPkg}')">${clubBtnText}</button>`
         : `<button class="paywall-buy-btn primary" id="paywall-club-btn" onclick="_paywallWebCheckout('${clubStripePriceId}','club')">${clubBtnText}</button>`
       }
-    </div>
-
-    <div class="paywall-card">
-      <div class="paywall-card-title">Tournament Host</div>
-      <div class="paywall-card-desc">One-time purchase · unlimited age groups · public live scoring</div>
-      <div class="paywall-card-price">${hostPrice}<span> one-time</span></div>
-      ${isNative
-        ? `<button class="paywall-buy-btn secondary" id="paywall-host-btn" onclick="_paywallPurchase('${hostId}')">Purchase Tournament Host</button>`
-        : `<button class="paywall-buy-btn secondary" id="paywall-host-btn" onclick="_paywallWebCheckout('${STRIPE_HOST}','tournament_host')">Purchase Tournament Host</button>`
-      }
     </div>`;
-
-  el.innerHTML = html;
 }
 
 /** Switch between monthly and annual view. */
