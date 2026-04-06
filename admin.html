@@ -1324,6 +1324,8 @@
 
     /* ── Deploy button: short label hidden on desktop, shown on mobile ── */
     .deploy-label-short { display: none; }
+    /* ── Combined bar: short labels hidden on desktop, shown on mobile ── */
+    .cbar-short { display: none; }
 
     /* ── Mobile Header Optimization ─────────────────────────────────────── */
     @media (max-width: 600px) {
@@ -1334,8 +1336,8 @@
 
       /* Header bar: remove clutter so everything fits */
       .admin-header-bar { padding: 4px 10px; min-height: 36px; gap: 5px; }
-      .admin-header-title { display: none; }   /* hide "Admin" text on mobile */
-      #header-sub        { display: none; }    /* hide status/loading text */
+      .admin-header-title { display: none; }
+      #header-sub        { display: none; }
       #admin-team-select { font-size: 0.72rem; max-width: 130px; padding: 4px 5px; }
 
       /* Switch Club: icon only */
@@ -1347,21 +1349,48 @@
       .deploy-label-short { display: inline; }
       .deploy-btn         { padding: 5px 10px; font-size: 0.72rem; }
 
-      /* Combined bar: wrap to two rows so nothing overlaps */
+      /* Combined bar: strip gets full first row; action buttons share second row with short labels */
       .admin-combined-bar {
         flex-wrap: wrap;
         gap: 5px;
         padding: 5px 10px 6px;
         overflow-x: visible;
       }
-      .admin-tourn-strip   { width: 100%; order: 0; }
-      .admin-global-label  { display: none; }
+      .admin-tourn-strip { width: 100%; order: 0; flex: none; min-width: 0; }
+      .admin-global-label { display: none; }
+      .cbar-full  { display: none; }
+      .cbar-short { display: inline; }
       #upcoming-all-btn,
-      #deploy-all-btn      { flex: 1; text-align: center; justify-content: center; font-size: 0.68rem; padding: 4px 8px; }
+      #deploy-all-btn {
+        flex: 1;
+        min-width: 0;
+        text-align: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        padding: 5px 6px;
+        white-space: nowrap;
+      }
 
-      /* Tab bar: let header scroll normally; tabs stick at top */
+      /* Tab bar: header scrolls away, tabs stay sticky at top */
       .admin-header { position: relative !important; }
-      .admin-tabs   { position: sticky !important; top: 0 !important; z-index: 100 !important; }
+      .admin-tabs   {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 100 !important;
+        border-bottom: none !important;
+        box-shadow: 0 1px 0 var(--g200), 0 2px 6px rgba(0,0,0,0.07) !important;
+      }
+
+      /* Tab buttons: iOS-style compact layout */
+      .tab-btn {
+        padding: 9px 3px 7px;
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0;
+      }
+      .tab-btn svg { width: 20px; height: 20px; margin-bottom: 3px; }
+      /* Active tab: color-only indicator (no underline — box-shadow on bar is the separator) */
+      .tab-btn.active { border-bottom-color: transparent; background: rgba(0,40,104,0.07); border-radius: 10px; }
     }
 
     /* ── Admin Dark Mode ──────────────────────────────────────────────────── */
@@ -1801,8 +1830,8 @@
     <div class="admin-combined-bar">
       <div class="admin-tourn-strip" id="admin-tourn-strip"></div>
       <span class="admin-global-label" style="flex-shrink:0;margin-left:4px">All:</span>
-      <button class="global-btn global-btn-upcoming" id="upcoming-all-btn" onclick="setAllUpcomingMode()">📅 Set All → Upcoming</button>
-      <button class="global-btn global-btn-deploy"   id="deploy-all-btn"   onclick="deployAll()">🌐 Deploy All</button>
+      <button class="global-btn global-btn-upcoming" id="upcoming-all-btn" onclick="setAllUpcomingMode()"><span class="cbar-full">📅 Set All → Upcoming</span><span class="cbar-short">📅 Upcoming</span></button>
+      <button class="global-btn global-btn-deploy"   id="deploy-all-btn"   onclick="deployAll()"><span class="cbar-full">🌐 Deploy All</span><span class="cbar-short">🌐 Deploy</span></button>
     </div>
   </header>
 
@@ -1817,7 +1846,7 @@
     </button>
     <button class="tab-btn" data-tab="addgames" onclick="switchTab('addgames')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-      Add Games
+      Games
     </button>
     <button class="tab-btn" data-tab="more" onclick="toggleAdminMore()">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
