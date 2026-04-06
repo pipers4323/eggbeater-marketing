@@ -1506,6 +1506,31 @@
 
     /* ── Dark mode: hardcoded-colour element overrides ── */
 
+    /* Base add-btn (+ Add Game, Auto-detect teams, and any unstyled add-btn) */
+    [data-theme="dark"] .add-btn {
+      background: #0d1829 !important;
+      color: #58a6ff !important;
+      border-color: #1e3a5f !important;
+    }
+    /* Load Template button (green) */
+    [data-theme="dark"] [style*="background:#ecfdf5"] {
+      background: #052e16 !important;
+      color: #4ade80 !important;
+      border-color: #166534 !important;
+    }
+    /* Paste Schedule button (sky blue) */
+    [data-theme="dark"] [style*="background:#f0f9ff"] {
+      background: #0c1a2e !important;
+      color: #7dd3fc !important;
+      border-color: #1e4060 !important;
+    }
+    /* Auto-Populate Bracket button (indigo) */
+    [data-theme="dark"] [style*="background:#eff6ff"] {
+      background: #0f172a !important;
+      color: #818cf8 !important;
+      border-color: #3730a3 !important;
+    }
+
     /* Upcoming Tournament Info card (orange border, cream bg) */
     [data-theme="dark"] .upcoming-info-card {
       background: #1a0a00 !important;
