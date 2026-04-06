@@ -1474,7 +1474,7 @@
       border-bottom-color: #30363d;
       color: #e6edf3;
     }
-    /* Danger zone inline box — dark mode */
+    /* Danger zone inline box (Schedule tab) — dark mode */
     [data-theme="dark"] .schedule-danger-zone {
       border-color: #7f1d1d !important;
     }
@@ -1484,6 +1484,18 @@
     }
     [data-theme="dark"] .schedule-danger-zone .danger-btns {
       background: #161b22;
+    }
+    /* Settings tab Danger Zone collapsible — dark mode */
+    [data-theme="dark"] details[style*="border:1.5px solid #fca5a5"] > summary,
+    [data-theme="dark"] details[style*="border: 1.5px solid #fca5a5"] > summary {
+      background: #2c0b0b !important;
+      color: #fca5a5 !important;
+    }
+    [data-theme="dark"] details[style*="border:1.5px solid #fca5a5"] > div[style*="#fff5f5"],
+    [data-theme="dark"] details[style*="border: 1.5px solid #fca5a5"] > div[style*="#fff5f5"] {
+      background: #1c0a0a !important;
+      border-bottom-color: #7f1d1d !important;
+      color: #fca5a5 !important;
     }
     [data-theme="dark"] .collapsible-header {
       background: #161b22;
@@ -2703,6 +2715,12 @@ function renderUpgradeNudge(featureName) {
   const headline = n.headline || (featureName + ' — Club Plan');
   const desc = n.desc || 'Upgrade to Club Plan to unlock this feature for your club.';
   const cta = n.cta || 'View Upgrade Options';
+  // On web (no Capacitor), route directly to Stripe checkout for the Club monthly plan
+  const isNative = !!(window.Capacitor?.isNativePlatform?.());
+  const upgradeAction = isNative
+    ? `showUpgradeSheet()`
+    : `_paywallWebCheckout('price_1TIEmo0NjxFM08jKlS2kPNZp','club')`;
+  const ctaLabel = isNative ? `${cta} ↗` : `${cta} — $24.99/mo ↗`;
   return `<div class="upgrade-nudge" style="background:var(--g50);border:1px solid var(--g200);border-radius:10px;padding:14px 16px;margin:8px 0">
     <div style="display:flex;align-items:flex-start;gap:10px">
       <span style="font-size:1.3rem;flex-shrink:0;margin-top:1px">🔒</span>
@@ -2711,7 +2729,7 @@ function renderUpgradeNudge(featureName) {
         <div class="upgrade-nudge-sub" style="font-size:0.78rem;color:var(--g500);margin-top:3px;line-height:1.45">${desc}</div>
       </div>
     </div>
-    <button onclick="showUpgradeSheet()" style="margin-top:12px;width:100%;background:var(--royal);color:white;border:none;border-radius:8px;padding:9px 14px;font-size:0.85rem;font-weight:700;cursor:pointer;letter-spacing:0.01em">${cta} ↗</button>
+    <button onclick="${upgradeAction}" style="margin-top:12px;width:100%;background:var(--royal);color:white;border:none;border-radius:8px;padding:9px 14px;font-size:0.85rem;font-weight:700;cursor:pointer;letter-spacing:0.01em">${ctaLabel}</button>
   </div>`;
 }
 
@@ -5638,7 +5656,7 @@ function renderClubInfoTab() {
                    oninput="updateBrandingPreview()" style="width:48px;height:36px;border:1px solid var(--g200);border-radius:6px;cursor:pointer;padding:2px">
             <input class="info-input" id="brand-primary-hex" value="${S._branding?.primaryColor || '#002868'}" maxlength="7"
                    oninput="syncBrandingFromHex('primary')" style="flex:0 0 90px;margin:0;font-family:monospace;text-align:center">
-            <span id="brand-primary-swatch" style="width:24px;height:24px;border-radius:50%;background:${S._branding?.primaryColor || '#002868'};border:2px solid var(--g200);flex-shrink:0"></span>
+            <span id="brand-primary-swatch" style="width:24px;height:24px;border-radius:50%;background:${S._branding?.primaryColor || '#002868'};border:2px solid var(--g200);flex-shrink:0;outline:none;outline-offset:1px"></span>
           </div>
         </div>
         <div class="info-field">
@@ -5648,7 +5666,7 @@ function renderClubInfoTab() {
                    oninput="updateBrandingPreview()" style="width:48px;height:36px;border:1px solid var(--g200);border-radius:6px;cursor:pointer;padding:2px">
             <input class="info-input" id="brand-secondary-hex" value="${S._branding?.secondaryColor || '#0d9488'}" maxlength="7"
                    oninput="syncBrandingFromHex('secondary')" style="flex:0 0 90px;margin:0;font-family:monospace;text-align:center">
-            <span id="brand-secondary-swatch" style="width:24px;height:24px;border-radius:50%;background:${S._branding?.secondaryColor || '#0d9488'};border:2px solid var(--g200);flex-shrink:0"></span>
+            <span id="brand-secondary-swatch" style="width:24px;height:24px;border-radius:50%;background:${S._branding?.secondaryColor || '#0d9488'};border:2px solid var(--g200);flex-shrink:0;outline:none;outline-offset:1px"></span>
           </div>
         </div>
         <div class="info-field">
@@ -5665,7 +5683,7 @@ function renderClubInfoTab() {
             <div id="brand-preview-header" style="padding:14px 18px;color:white;font-weight:700;font-size:0.95rem;transition:background 0.3s">
               ${esc(S.tournament.clubName || 'Your Club Name')} — Tournament
             </div>
-            <div style="padding:10px 18px;background:white;display:flex;gap:8px;align-items:center">
+            <div id="brand-preview-body" style="padding:10px 18px;background:var(--g50);display:flex;gap:8px;align-items:center">
               <button id="brand-preview-btn" style="padding:6px 16px;border:none;border-radius:8px;color:white;font-weight:700;font-size:0.82rem;cursor:default;transition:background 0.3s">Schedule</button>
               <button id="brand-preview-btn2" style="padding:6px 16px;border:none;border-radius:8px;color:white;font-weight:700;font-size:0.82rem;cursor:default;transition:background 0.3s">Scores</button>
               <span id="brand-preview-accent" style="font-weight:700;font-size:0.85rem;transition:color 0.3s">🏆 Live</span>
@@ -5851,7 +5869,7 @@ function renderAddGamesTab() {
         <div class="info-field"><div class="info-label">Coming Soon Message</div><input class="info-input" value="${esc(t.comingSoon||'')}" placeholder="Schedule coming week of April 20" oninput="S.tournament.comingSoon=this.value"><div class="info-hint">Clear once you've added games.</div></div>
         ${tierHasFeature('live_scoring')
           ? `<div class="info-field"><div class="info-label">Scoring Password</div><input class="info-input" type="text" value="${esc(t.scoringPassword||'')}" placeholder="e.g. bawl2026" autocomplete="off" oninput="S.tournament.scoringPassword=this.value"><div class="info-hint">Parents must enter this to use live scoring.</div></div>`
-          : `<div class="info-field"><div class="info-label">Scoring Password</div>${renderUpgradeNudge('Live Scoring — Club Plan')}</div>`}
+          : `<div class="info-field"><div class="info-label">Scoring Password <span style="font-size:0.68rem;font-weight:700;background:var(--royal);color:white;padding:1px 7px;border-radius:10px;margin-left:4px;vertical-align:middle">Club Plan</span></div><input class="info-input" disabled placeholder="Requires Club Plan" style="opacity:0.45;cursor:not-allowed"><div class="info-hint" style="cursor:pointer;color:var(--royal)" onclick="showUpgradeSheet()">🔒 Upgrade to set a scoring password ↗</div></div>`}
       </div>
     </details>
 
@@ -8869,6 +8887,17 @@ async function loadClubSettings() {
 
 // ─── BRANDING ─────────────────────────────────────────────────────────────────
 
+/** Returns perceived luminance 0–1 for a hex color. */
+function _hexLuminance(hex) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c+c).join('');
+  const r = parseInt(hex.slice(0,2),16)/255;
+  const g = parseInt(hex.slice(2,4),16)/255;
+  const b = parseInt(hex.slice(4,6),16)/255;
+  // sRGB weighted luminance
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
 function updateBrandingPreview() {
   const primary = document.getElementById('brand-primary')?.value || '#002868';
   const secondary = document.getElementById('brand-secondary')?.value || '#0d9488';
@@ -8881,8 +8910,17 @@ function updateBrandingPreview() {
   if (sHex) sHex.value = secondary;
   const pSwatch = document.getElementById('brand-primary-swatch');
   const sSwatch = document.getElementById('brand-secondary-swatch');
-  if (pSwatch) pSwatch.style.background = primary;
-  if (sSwatch) sSwatch.style.background = secondary;
+  if (pSwatch) {
+    pSwatch.style.background = primary;
+    // Add white ring when color is very dark so it's visible on dark backgrounds
+    pSwatch.style.outline = _hexLuminance(primary) < 0.12 ? '2px solid rgba(255,255,255,0.45)' : 'none';
+    pSwatch.style.outlineOffset = '1px';
+  }
+  if (sSwatch) {
+    sSwatch.style.background = secondary;
+    sSwatch.style.outline = _hexLuminance(secondary) < 0.12 ? '2px solid rgba(255,255,255,0.45)' : 'none';
+    sSwatch.style.outlineOffset = '1px';
+  }
 
   // Compute a darker shade for gradient
   function darken(hex, amount) {
@@ -9411,31 +9449,30 @@ function renderHelpTab() {
   const sections = [
     {
       icon: '🚀',
-      title: 'Getting Started — The Basics',
-      body: `<p>The admin panel is your command center for everything tournament-related. Here's the typical workflow before tournament day:</p>
-      <ol>
-        <li><strong>Select Age Group</strong> — use the age group dropdown in the top-right header (e.g. "14u Girls") to choose which team you're managing. Each age group has its own independent data. The emoji prefix shows setup status: 🟢 has games · 🟡 configured but no games yet · ⚫ not set up.</li>
-        <li><strong>Games tab</strong> — set up the tournament (name, dates, venue, clock settings, multi-team mode) and add/import games.</li>
-        <li><strong>Schedule tab</strong> — view the current schedule in read-only mode. Toggle upcoming mode, undeploy, or clear data from here.</li>
-        <li><strong>Roster tab</strong> — add all players (or sync from a Google Sheet).</li>
-        <li><strong>💾 Save & Deploy</strong> — hit the Deploy button in the top-right to push everything live to the app.</li>
-        <li><strong>Team Communication</strong> tab — send push notifications and configure Telegram, GroupMe, or TeamSnap messaging.</li>
+      title: 'Getting Started',
+      body: `<p style="font-weight:600;color:var(--royal)">Your five-step pre-tournament checklist.</p>
+      <ol style="margin-top:8px">
+        <li><strong>Pick your age group</strong> — use the dropdown in the top-right header (e.g. "14u Girls"). Each age group is managed independently. 🟢 = has games · 🟡 = set up, no games yet · ⚫ = not started.</li>
+        <li><strong>Games tab</strong> — enter the tournament name, dates, venue, and add your game schedule.</li>
+        <li><strong>Roster tab</strong> — add your players. Only needed once per season — rosters carry over between tournaments.</li>
+        <li><strong>Schedule tab</strong> — preview what parents will see before you go live.</li>
+        <li><strong>💾 Save &amp; Deploy</strong> — the blue button in the top-right corner. Tap it to push everything live to parents. Nothing is visible to parents until you do this.</li>
       </ol>
-      <p style="margin-top:8px">The <strong>💾 Save & Deploy</strong> button in the header saves and publishes <em>all</em> changes at once. Nothing is live until you deploy.</p>`
+      <p style="margin-top:10px;padding:10px 12px;background:var(--g50);border-radius:8px;font-size:0.82rem;border-left:3px solid var(--royal)">💡 <strong>Nothing goes live automatically.</strong> You control exactly when parents see changes by tapping Save &amp; Deploy.</p>`
     },
     {
       icon: '📅',
-      title: 'Games Tab — Edit Games / Tournament',
-      body: `<p>Add, edit, and delete pool play games here.</p>
-      <ul>
-        <li><strong>+ Add Game</strong> — tap to create a new game and fill in the fields: Game # (e.g. G1), Opponent, Time, Date, Location, Pool, Cap Color, and Team (if multi-team).</li>
-        <li><strong>Editing a game</strong> — tap any game row to expand it and edit its fields inline. Tap <strong>✓ Save</strong> to confirm or <strong>✗ Cancel</strong> to discard.</li>
-        <li><strong>Cap Color</strong> — toggle between White Caps ⚪ and Dark Caps ⚫. This tells parents which color the team is wearing.</li>
-        <li><strong>Team</strong> — in multi-team mode, assign each game to A Team, B Team, or C Team (when C Team is enabled) using the dropdown.</li>
-        <li><strong>Deleting a game</strong> — tap the 🗑 icon on any game row. This is permanent.</li>
-        <li><strong>Sync from Google Sheets</strong> — paste a publicly shared Google Sheet URL and tap <strong>Sync Games</strong>. The sheet must have columns: <code>Game, Opponent, Date, Time, Location, Pool, Cap, Team</code>. Existing games are replaced.</li>
+      title: 'Adding &amp; Editing Games',
+      body: `<p style="font-weight:600;color:var(--royal)">Build your game schedule in the Games tab.</p>
+      <ul style="margin-top:8px">
+        <li><strong>+ Add Game</strong> — fills in: Game # (e.g. G1), Opponent, Time, Date, Location, Pool, and Cap Color.</li>
+        <li><strong>Tap any game row</strong> to expand it and edit inline. Tap ✓ Done to save or Cancel to discard.</li>
+        <li><strong>Cap Color</strong> — ⚪ White or ⚫ Dark. Tells parents which color your team is wearing.</li>
+        <li><strong>🗑 Delete</strong> — tap the trash icon on any game. Cannot be undone.</li>
+        <li><strong>📋 Paste Schedule</strong> — paste rows directly from Excel or Google Sheets. Fastest way to import a full schedule.</li>
+        <li><strong>Sync from Google Sheets</strong> — paste a public Sheet URL. Columns needed: <code>Game, Opponent, Date, Time, Location, Pool, Cap</code>.</li>
       </ul>
-      <p style="margin-top:8px">💡 <strong>Tip:</strong> Always hit <strong>💾 Save & Deploy</strong> after making schedule changes so the app updates for parents.</p>`
+      <p style="margin-top:10px;padding:10px 12px;background:var(--g50);border-radius:8px;font-size:0.82rem;border-left:3px solid var(--royal)">💡 Tap <strong>💾 Save &amp; Deploy</strong> after any changes — games are only visible to parents after you publish.</p>`
     },
     {
       icon: '👥',
@@ -9453,18 +9490,15 @@ function renderHelpTab() {
     },
     {
       icon: 'ℹ️',
-      title: 'Games Tab — Tournament Settings',
-      body: `<p>Configure everything about the current tournament and how the app behaves.</p>
-      <ul>
-        <li><strong>Club Name</strong> — your club's name as it should appear in game cards (e.g. <em>Pacific Waves</em>). When set, games display as "Pacific Waves vs. NorCal Gold" instead of just "vs. NorCal Gold". Leave blank to use the default "vs." style.</li>
-        <li><strong>Tournament ID</strong> ⚠️ — a unique key for this tournament (e.g. <code>kap7-day1-2026</code>). <em>Only change this when starting a new tournament.</em> Changing the ID archives the current tournament on every parent's device and starts fresh.</li>
-        <li><strong>Name / Subtitle / Dates / Location / Pool</strong> — displayed in the app header and schedule.</li>
-        <li><strong>Coming Soon message</strong> — shown on the schedule tab before games are posted. Clear this field once you've added games.</li>
-        <li><strong>Scoring Password</strong> — when set, parents must enter this password to use live scoring controls. Leave blank to allow anyone to score. Recommended: set a simple word (e.g. <em>bawl2026</em>).</li>
-        <li><strong>Age Group</strong> — select the age group (10u Co-Ed through 18u Boys) at the top. Each age group stores its own tournament data, roster, and history independently.</li>
-        <li><strong>Sync Games from Sheet</strong> — import the schedule from a Google Sheet in the <strong>Games</strong> tab.</li>
-      </ul>
-      <p style="margin-top:8px">Hit <strong>💾 Save & Deploy</strong> (top-right header) to push changes live.</p>`
+      title: 'Tournament Setup — Name, Dates &amp; Settings',
+      body: `<p style="font-weight:600;color:var(--royal)">Fill in the tournament details parents see in the app.</p>
+      <ul style="margin-top:8px">
+        <li><strong>Name / Subtitle / Dates / Location</strong> — shown in the app header and on each game card.</li>
+        <li><strong>Club Name</strong> — how your club appears in matchup lines (e.g. "Pacific Waves vs. NorCal Gold"). Leave blank for "vs." only.</li>
+        <li><strong>Coming Soon message</strong> — what parents see before you post games. Clear it once games are added.</li>
+        <li><strong>Scoring Password</strong> — parents need this to submit live scores from poolside. Set a simple word like <em>bawl2026</em>. Leave blank to let anyone score.</li>
+        <li><strong>Tournament ID</strong> ⚠️ — a unique code for this tournament. <em>Only change this when starting a brand-new tournament</em> — changing it archives the current schedule for all parents and resets to a blank slate.</li>
+      </ul>`
     },
     {
       icon: '🏊',
@@ -9479,26 +9513,26 @@ function renderHelpTab() {
     },
     {
       icon: '⏱',
-      title: 'Games Tab — Clock Settings',
-      body: `<p>These settings control the auto-running game clock used by the scorer. Set them correctly for each age group and tournament before game day.</p>
-      <ul>
-        <li><strong>Quarter Length (min)</strong> — how long each quarter runs. E.g. 6 for 14U, 7 for 18U. The scorer's clock counts down from this value.</li>
-        <li><strong>Quarter Break (min)</strong> — rest time between quarters (not halftime). Usually 2 minutes.</li>
-        <li><strong>Halftime (min)</strong> — halftime length. Usually 3–5 minutes depending on the tournament.</li>
-        <li><strong>Number of Timeouts per Team</strong> — how many timeouts each team gets per game. Changing this number adds or removes timeout length fields below.</li>
-        <li><strong>Timeout Length fields</strong> — one field per timeout. Enter the duration in minutes. Use decimals: <code>1</code> = 1 minute, <code>0.5</code> = 30 seconds, <code>0.25</code> = 15 seconds. These create separate <em>"1 Min T/O"</em> and <em>"30s T/O"</em> buttons in the scorer — each grays out after it's been used.</li>
+      title: 'Game Clock Settings',
+      body: `<p style="font-weight:600;color:var(--royal)">Set these before game day so the live scorer's clock is correct for your age group.</p>
+      <ul style="margin-top:8px">
+        <li><strong>Quarter Length (min)</strong> — how long each quarter runs (e.g. 6 min for 14U, 7 min for 18U).</li>
+        <li><strong>Quarter Break (min)</strong> — rest between quarters. Usually 2 minutes.</li>
+        <li><strong>Halftime (min)</strong> — halftime duration. Usually 3–5 minutes.</li>
+        <li><strong>Timeouts per Team</strong> — how many each team gets per game. This adds/removes timeout buttons in the scorer.</li>
+        <li><strong>Timeout Length</strong> — duration of each timeout (e.g. <code>1</code> = 1 min, <code>0.5</code> = 30 sec). Each button grays out after it's been used so the scorer knows what's left.</li>
       </ul>
-      <p style="margin-top:8px">💡 <strong>Example for 14U Futures:</strong> Quarter = 6, Break = 2, Halftime = 3, Timeouts = 2, Lengths = 1 and 0.5.</p>`
+      <p style="margin-top:10px;padding:10px 12px;background:var(--g50);border-radius:8px;font-size:0.82rem;border-left:3px solid var(--royal)">💡 <strong>14U Futures example:</strong> Quarter = 6, Break = 2, Halftime = 3, Timeouts = 2, Lengths = 1 and 0.5</p>`
     },
     {
       icon: '</>',
-      title: 'Raw Tab — Deploying from Claude',
-      body: `<p>The Raw tab is used for two advanced scenarios — you won't need it often.</p>
-      <ul>
-        <li><strong>Deploy tournament.js from Claude</strong> — if Claude generates a complete <code>tournament.js</code> file for a new tournament, paste it here and tap <strong>Parse &amp; Deploy</strong>. The admin panel will validate it, save it to the server, and push it live automatically.</li>
-        <li><strong>Bootstrap File Manifest</strong> — a one-time setup step used after deploying from a laptop. Paste the JSON manifest (a list of filenames and their content hashes) and tap <strong>Save Manifest</strong>. This tells the admin panel which files are currently on Vercel so it can do incremental deploys from this panel. Only needed if the manifest gets out of sync.</li>
+      title: 'Advanced: Raw Data Tab',
+      body: `<p style="font-weight:600;color:var(--royal)">Power-user tab — most admins never need this.</p>
+      <ul style="margin-top:8px">
+        <li><strong>Deploy from file</strong> — if you've been given a pre-built tournament file, paste it here and tap <strong>Parse &amp; Deploy</strong>. The panel validates and publishes it automatically.</li>
+        <li><strong>Bootstrap File Manifest</strong> — a one-time setup step only needed during initial club onboarding. If you're seeing this mentioned in a setup guide, follow those specific instructions.</li>
       </ul>
-      <p style="margin-top:8px">💡 <strong>Normal workflow:</strong> You won't use the Raw tab day-to-day. Use the Schedule, Add Games, and Roster tabs and the main Deploy button instead.</p>`
+      <p style="margin-top:10px;padding:10px 12px;background:var(--amber-lt);border-radius:8px;font-size:0.82rem;border-left:3px solid var(--amber)">⚠️ Day-to-day: use the Schedule, Games, and Roster tabs and the main Save &amp; Deploy button. You won't need the Raw tab for normal operation.</p>`
     },
     {
       icon: '🤖',
@@ -9527,41 +9561,39 @@ function renderHelpTab() {
     },
     {
       icon: '💾',
-      title: 'The Deploy Button — When & Why',
-      body: `<p>The <strong>💾 Save & Deploy</strong> button in the top-right header publishes all your changes to the live app at once.</p>
-      <ul>
-        <li><strong>What it does</strong> — saves tournament data to the server (Cloudflare KV) and pushes updated files to Vercel so every parent's app sees the changes within seconds.</li>
-        <li><strong>When to use it</strong> — after adding or editing games, changing tournament info, or updating the roster. Nothing is visible to parents until you deploy.</li>
-        <li>The main <strong>💾 Save & Deploy</strong> button in the header is the primary way to push changes. Use it after making any changes.</li>
-        <li><strong>Deploy time</strong> — usually 5–10 seconds. The button shows a spinner while deploying and a ✓ confirmation when done.</li>
-        <li><strong>Parents see updates</strong> — within about 10 seconds on most devices. If a parent doesn't see changes, they can use the <strong>↻ Force Refresh</strong> button at the bottom of their Schedule tab.</li>
-      </ul>`
+      title: 'Publishing Your Schedule to Parents',
+      body: `<p style="font-weight:600;color:var(--royal)">The <strong>💾 Save &amp; Deploy</strong> button (top-right) is how you push everything live. Nothing is visible to parents until you tap it.</p>
+      <ul style="margin-top:8px">
+        <li><strong>Use it after:</strong> adding games, editing the schedule, updating the tournament name/dates, or changing the roster.</li>
+        <li><strong>How fast?</strong> Usually 5–10 seconds. The button shows a spinner, then a ✓ when done.</li>
+        <li><strong>Parents see changes</strong> within about 10 seconds. If a parent doesn't see your update, they can pull down to refresh their schedule.</li>
+        <li><strong>🌐 Deploy All</strong> (Schedule tab, top bar) — pushes live schedules for all age groups at once. Useful on tournament day when all groups are running simultaneously.</li>
+      </ul>
+      <p style="margin-top:10px;padding:10px 12px;background:var(--g50);border-radius:8px;font-size:0.82rem;border-left:3px solid var(--royal)">💡 You can make multiple changes before deploying — they all go live together when you tap Save &amp; Deploy.</p>`
     },
     {
       icon: '🔐',
-      title: 'Login & Security — Google Sign-In',
-      body: `<p>The admin panel supports two login methods: <strong>Google Sign-In</strong> (recommended) and legacy password.</p>
-      <ul>
-        <li><strong>Google Sign-In (recommended)</strong> — tap "Sign in with Google" to authenticate with your Google account. Your Google UID must be listed as an authorized admin for your club. This is more secure than a shared password and lets you manage who has admin access.</li>
-        <li><strong>Legacy password</strong> — the old password login still works during migration. Use this as a fallback if Google Sign-In isn't configured yet.</li>
-        <li>Google Sign-In uses Firebase Authentication with JWT token verification — your identity is cryptographically verified on every API call to the server.</li>
-        <li>Your session auto-refreshes the ID token every 50 minutes so you stay logged in during long tournament days.</li>
-        <li>The admin panel URL is <strong>not linked</strong> from the main app — keep it private to people managing the tournament.</li>
-        <li>The <strong>scoring password</strong> (set in the Games tab) is separate — that's for parents who want to enter live scores in the main app.</li>
+      title: 'Login &amp; Security',
+      body: `<p style="font-weight:600;color:var(--royal)">Sign in with Google — it's faster and more secure than a shared password.</p>
+      <ul style="margin-top:8px">
+        <li><strong>Google Sign-In (recommended)</strong> — sign in with your Google account. Your account is verified on every action, so only authorized admins can make changes.</li>
+        <li><strong>Password login</strong> — a shared password fallback, still supported if Google Sign-In isn't configured yet for your club.</li>
+        <li>Your session stays active all day — you won't get logged out mid-tournament.</li>
+        <li>The admin panel URL is not public — keep it private to your coaching staff and tournament managers.</li>
+        <li>The <strong>Scoring Password</strong> (in Games → Tournament Setup) is a separate, simpler password just for parents who want to enter live scores poolside. It has nothing to do with admin access.</li>
       </ul>`
     },
     {
       icon: '🏆',
-      title: 'Tournament Selector — Multi-Tournament Management',
-      body: `<p>The tournament selector strip below the header lets you manage multiple tournaments for your club.</p>
-      <ul>
-        <li><strong>Dropdown</strong> — switch between tournaments. The currently active tournament is marked with a green "Active" badge; archived ones show a gray "Archived" badge.</li>
-        <li><strong>+ New</strong> — create a new tournament. Enter a name and it's added to your club's tournament list in the cloud and assigned an auto-generated ID.</li>
-        <li><strong>Activate / Archive</strong> — toggle a tournament between active and archived. Only one tournament can be active at a time per club. When you archive a tournament, all age group data is automatically snapshotted to the cloud before archiving.</li>
-        <li><strong>Delete</strong> — permanently remove a tournament from the cloud. This cannot be undone.</li>
-        <li>When you select a tournament, the admin panel loads that tournament's data from the cloud and overlays it on the current KV data. Changes you make and deploy are saved to both the server and the cloud.</li>
-        <li>Tournament data is stored in Firestore under <code>clubs/{clubId}/tournaments/{tournamentId}</code> — completely separate per club.</li>
-      </ul>`
+      title: 'Managing Multiple Tournaments',
+      body: `<p style="font-weight:600;color:var(--royal)">The tournament bar below the header lets you switch between and manage all your club's tournaments.</p>
+      <ul style="margin-top:8px">
+        <li><strong>Dropdown</strong> — switch tournaments. Green "Active" badge = currently live; gray "Archived" = past tournament.</li>
+        <li><strong>+ New</strong> — creates a new blank tournament. All your age groups start fresh.</li>
+        <li><strong>Activate / Archive</strong> — archive a tournament to put it in read-only history. Only one tournament can be active at a time. Archiving saves a full snapshot automatically.</li>
+        <li><strong>Delete</strong> — permanently removes a tournament. Cannot be undone.</li>
+      </ul>
+      <p style="margin-top:10px;padding:10px 12px;background:var(--g50);border-radius:8px;font-size:0.82rem;border-left:3px solid var(--royal)">💡 To start a new season or tournament day, tap <strong>+ New</strong> rather than overwriting your existing data.</p>`
     },
     {
       icon: '👥',
@@ -9578,15 +9610,14 @@ function renderHelpTab() {
     },
     {
       icon: '🏢',
-      title: 'Multi-Club Architecture',
-      body: `<p>Eggbeater supports multiple clubs, each with completely isolated data and independent admin teams.</p>
-      <ul>
-        <li>Each club has a unique <strong>Club ID</strong> (e.g. <code>pacific-waves</code>) configured in the Games tab under "Cloud Club ID".</li>
-        <li>All server data (KV storage) is namespaced by club ID — one club's data never mixes with another's.</li>
-        <li>Each club has its own admin list — admins for Club A cannot access Club B's data.</li>
-        <li>The parent-facing app loads club-specific data via the <code>?club=</code> URL parameter.</li>
-        <li>Tournaments, rosters, scores, bot credentials, and deploy manifests are all scoped per club.</li>
-        <li>To onboard a new club: create a Firestore club document, have the first admin sign in and bootstrap, then share the club-specific app URL with parents.</li>
+      title: 'Managing Multiple Clubs',
+      body: `<p style="font-weight:600;color:var(--royal)">Each club is completely independent — separate rosters, schedules, admins, and scores.</p>
+      <ul style="margin-top:8px">
+        <li>Each club has a unique <strong>Club Code</strong> (e.g. <code>pacific-waves</code>) set in Games → Tournament Setup. Parents use this to find your club in the app.</li>
+        <li>All data is strictly separated per club — one club's data never mixes with another's.</li>
+        <li>Each club has its own admin list — an admin for Club A cannot see or edit Club B's data.</li>
+        <li>Parents open the app and enter your Club Code (or use the join link you share) to connect to your specific club.</li>
+        <li>To set up a new club: set the Club Code in Games → Tournament Setup, sign in with Google, and tap <strong>Bootstrap Admin List</strong> in Club Info to register yourself as the first admin.</li>
       </ul>`
     },
     {
