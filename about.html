@@ -563,12 +563,26 @@
       text-decoration: none;
       color: var(--white);
       transition: background 0.15s;
+      position: relative;
     }
     .store-badge:hover { background: rgba(255,255,255,0.16); }
     .store-badge-icon { font-size: 22px; }
     .store-badge-text { display: flex; flex-direction: column; }
     .store-badge-sub { font-size: 9px; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: 0.5px; }
     .store-badge-name { font-size: 14px; font-weight: 700; }
+    .store-beta-tag {
+      position: absolute;
+      top: -9px; right: -9px;
+      background: #f59e0b;
+      color: #000;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      white-space: nowrap;
+    }
 
     /* ── FOOTER ── */
     footer {
@@ -613,13 +627,15 @@
 <!-- NAV -->
 <nav>
   <div class="nav-inner">
-    <a href="#" class="nav-logo">
+    <a href="/" class="nav-logo">
       <img src="logo_large.png" alt="Eggbeater Water Polo" class="nav-logo-img" />
     </a>
     <ul class="nav-links">
       <li><a href="#how-it-works">How It Works</a></li>
       <li><a href="#features">Features</a></li>
       <li><a href="#pricing">Pricing</a></li>
+      <li><a href="/" style="color:rgba(255,255,255,0.6);">Parent App</a></li>
+      <li><a href="/admin.html" style="color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:6px 12px;">Admin Login</a></li>
       <li><a href="#get-started" class="nav-cta">Get Started</a></li>
     </ul>
   </div>
@@ -645,7 +661,7 @@
         </div>
         <div style="display:flex;align-items:center;gap:7px;font-size:0.82rem;color:rgba(255,255,255,0.6)">
           <span style="font-size:1rem">👨‍👩‍👧</span>
-          <span><strong style="color:rgba(255,255,255,0.9)">Parents &amp; fans:</strong> download free — <a href="https://apps.apple.com/us/app/eggbeater-water-polo/id6761336789" target="_blank" rel="noopener" style="color:#22d3ee;text-decoration:none">App Store</a> · <a href="https://play.google.com/store/apps/details?id=com.eggbeater.waterpolo" target="_blank" rel="noopener" style="color:#22d3ee;text-decoration:none">Google Play</a></span>
+          <span><strong style="color:rgba(255,255,255,0.9)">Parents &amp; fans:</strong> download free — <a href="https://apps.apple.com/us/app/eggbeater-water-polo/id6761336789" target="_blank" rel="noopener" style="color:#22d3ee;text-decoration:none">App Store</a> · <a href="https://play.google.com/store/apps/details?id=com.eggbeater.waterpolo" target="_blank" rel="noopener" style="color:#22d3ee;text-decoration:none">Google Play</a> · <a href="/" style="color:#22d3ee;text-decoration:none">web app</a></span>
         </div>
       </div>
     </div>
@@ -890,17 +906,17 @@
       <p style="color:rgba(255,255,255,0.65); font-size:0.95rem;">We'll reach out within 24 hours to get your club set up.</p>
     </div>
     <p class="cta-note" id="access-note">No spam. No credit card required to start.</p>
-    <!-- App store badges: unhide when App Store / Play Store listings are live -->
-    <!--
     <div class="store-badges">
-      <a href="#" class="store-badge">
+      <a href="https://apps.apple.com/us/app/eggbeater-water-polo/id6761336789" target="_blank" rel="noopener" class="store-badge">
+        <span class="store-beta-tag">Beta</span>
         <span class="store-badge-icon">🍎</span>
         <div class="store-badge-text">
           <span class="store-badge-sub">Download on the</span>
           <span class="store-badge-name">App Store</span>
         </div>
       </a>
-      <a href="#" class="store-badge">
+      <a href="https://play.google.com/store/apps/details?id=com.eggbeater.waterpolo" target="_blank" rel="noopener" class="store-badge">
+        <span class="store-beta-tag">Beta</span>
         <span class="store-badge-icon">▶</span>
         <div class="store-badge-text">
           <span class="store-badge-sub">Get it on</span>
@@ -908,7 +924,6 @@
         </div>
       </a>
     </div>
-    -->
   </div>
 </section>
 
