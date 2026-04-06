@@ -1374,13 +1374,15 @@
       background: #161b22;
       border-bottom-color: #30363d;
     }
-    [data-theme="dark"] .admin-tab-btn {
-      color: #8b949e;
-    }
-    [data-theme="dark"] .admin-tab-btn.active {
-      color: #e6edf3;
-      border-bottom-color: #58a6ff;
-    }
+    [data-theme="dark"] .admin-tab-btn { color: #8b949e; }
+    [data-theme="dark"] .admin-tab-btn.active { color: #e6edf3; border-bottom-color: #58a6ff; }
+    /* Fix: HTML uses .tab-btn not .admin-tab-btn */
+    [data-theme="dark"] .tab-btn { color: #9ca3af; }
+    [data-theme="dark"] .tab-btn.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+    /* Drawer icons use CSS rule (not inline style) so need explicit override */
+    [data-theme="dark"] .admin-more-item svg:first-child { color: #58a6ff; }
+    /* Roster cap numbers (#1, #2 …) */
+    [data-theme="dark"] .roster-cap { color: #58a6ff; }
     [data-theme="dark"] .admin-more-drawer {
       background: #161b22;
       border-color: #30363d;
