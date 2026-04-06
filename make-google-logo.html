@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; background: #f0f0f0; display: flex; flex-direction: column; align-items: center; padding: 20px; gap: 20px; font-family: sans-serif; }
+  canvas { border: 1px solid #ccc; background: white; }
+  button { padding: 10px 20px; font-size: 14px; cursor: pointer; background: #002868; color: white; border: none; border-radius: 6px; }
+</style>
+</head>
+<body>
+<h2>Google Workspace Logo Generator</h2>
+<canvas id="c" width="480" height="144"></canvas>
+<button onclick="download()">Download logo-google.png</button>
+
+<script>
+const ballSVG = `<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="ballFill" cx="36%" cy="30%" r="72%">
+      <stop offset="0%"   stop-color="#FFF9C4"/>
+      <stop offset="12%"  stop-color="#FFE000"/>
+      <stop offset="40%"  stop-color="#FFAB00"/>
+      <stop offset="75%"  stop-color="#F57C00"/>
+      <stop offset="100%" stop-color="#BF360C"/>
+    </radialGradient>
+    <radialGradient id="rimDark" cx="62%" cy="68%" r="52%">
+      <stop offset="0%"   stop-color="rgba(80,20,0,0.45)"/>
+      <stop offset="100%" stop-color="rgba(80,20,0,0)"/>
+    </radialGradient>
+    <radialGradient id="specular" cx="33%" cy="26%" r="38%">
+      <stop offset="0%"   stop-color="rgba(255,255,255,0.88)"/>
+      <stop offset="45%"  stop-color="rgba(255,255,255,0.22)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+    <clipPath id="ballClip">
+      <circle cx="200" cy="200" r="184"/>
+    </clipPath>
+  </defs>
+  <circle cx="200" cy="200" r="184" fill="url(#ballFill)"/>
+  <path d="M 20,202 C 72,152 148,234 200,197 C 252,162 330,237 380,202" stroke="rgba(160,60,0,0.65)" stroke-width="10" fill="none" stroke-linecap="round" clip-path="url(#ballClip)"/>
+  <path d="M 150,27 C 112,108 172,162 197,242 C 220,312 258,367 332,377" stroke="rgba(160,60,0,0.65)" stroke-width="10" fill="none" stroke-linecap="round" clip-path="url(#ballClip)"/>
+  <path d="M 250,27 C 288,108 228,162 203,242 C 180,312 142,367 68,377" stroke="rgba(160,60,0,0.65)" stroke-width="10" fill="none" stroke-linecap="round" clip-path="url(#ballClip)"/>
+  <path d="M 20,200 C 72,150 148,232 200,195 C 252,160 330,235 380,200" stroke="white" stroke-width="5.5" fill="none" stroke-linecap="round" clip-path="url(#ballClip)"/>
+  <path d="M 148,25 C 110,106 170,160 195,240 C 218,310 256,365 330,375" stroke="white" stroke-width="5.5" fill="none" stroke-linecap="round" clip-path="url(#ballClip)"/>
+  <path d="M 252,25 C 290,106 230,160 205,240 C 182,310 144,365 70,375" stroke="white" stroke-width="5.5" fill="none" stroke-linecap="round" clip-path="url(#ballClip)"/>
+  <circle cx="200" cy="200" r="184" fill="url(#rimDark)"/>
+  <circle cx="200" cy="200" r="184" fill="url(#specular)"/>
+  <circle cx="200" cy="200" r="184" fill="none" stroke="rgba(160,60,0,0.25)" stroke-width="3"/>
+</svg>`;
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+function draw() {
+  // White background
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw ball from SVG
+  const img = new Image();
+  const blob = new Blob([ballSVG], {type: 'image/svg+xml'});
+  const url = URL.createObjectURL(blob);
+  img.onload = () => {
+    const ballSize = 110;
+    const ballX = 18;
+    const ballY = (canvas.height - ballSize) / 2;
+    ctx.drawImage(img, ballX, ballY, ballSize, ballSize);
+    URL.revokeObjectURL(url);
+
+    // "eggbeater" text
+    ctx.fillStyle = '#002868';
+    ctx.font = 'bold 58px "Segoe UI", Arial, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('eggbeater', 142, 62);
+
+    // Subtitle
+    ctx.fillStyle = '#00A693';
+    ctx.font = '600 15px "Segoe UI", Arial, sans-serif';
+    ctx.letterSpacing = '3px';
+    ctx.fillText('WATER POLO TRACKER', 145, 104);
+  };
+  img.src = url;
+}
+
+draw();
+
+function download() {
+  const link = document.createElement('a');
+  link.download = 'logo-google.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+</script>
+</body>
+</html>
