@@ -1332,11 +1332,11 @@
     @media (max-width: 600px) {
       /* Logo */
       .admin-logo-wrap { padding: 6px 12px; }
-      .admin-logo-img { height: 56px !important; width: auto !important; }
+      .admin-logo-img { height: 40px !important; width: auto !important; }
       .admin-custom-logo-img { height: 28px !important; width: auto !important; }
 
       /* Header bar: remove clutter so everything fits */
-      .admin-header-bar { padding: 4px 10px; min-height: 36px; gap: 5px; }
+      .admin-header-bar { padding: 2px 8px; min-height: 32px; gap: 4px; }
       .admin-header-title { display: none; }
       #header-sub        { display: none; }
       /* Show compact club name in place of the hidden title */
@@ -1408,7 +1408,7 @@
         justify-content: center;
         gap: 3px;
         padding: 8px 2px 7px;
-        font-size: 0.6rem;
+        font-size: 0.65rem;
         font-weight: 500;
         letter-spacing: 0;
         border-bottom: none;
@@ -1419,6 +1419,38 @@
         color: var(--royal);
         border-bottom-color: transparent;
         background: transparent;
+      }
+
+      /* CHANGE 2: bump label/meta font sizes for readability */
+      .form-label, .info-label, .bot-label { font-size: 0.76rem !important; }
+      .game-meta, .game-title { font-size: 0.8rem !important; }
+      .card-header { font-size: 0.82rem !important; }
+      .status-pill, .tier-badge, .admin-pill { font-size: 0.7rem !important; }
+
+      /* CHANGE 4: sticky Done/Save button above keyboard */
+      .form-actions, .edit-actions {
+        position: sticky;
+        bottom: 0;
+        background: var(--g50);
+        padding: 10px 0 6px;
+        margin: 0 -4px;
+        z-index: 10;
+        border-top: 1px solid var(--g200);
+      }
+
+      /* CHANGE 7: modals → bottom sheets on mobile */
+      .modal-box, .modal-inner, .modal-content {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 18px 18px 0 0 !important;
+        max-height: 88vh !important;
+        overflow-y: auto !important;
+        margin: 0 !important;
       }
     }
 
@@ -1909,7 +1941,7 @@
       <select id="admin-team-select" onchange="onAdminTeamChange(this.value)" title="Age group — 🟢 Has games · 🟡 Configured, no games yet · ⚫ Not set up"></select>
       <span id="header-sub" class="admin-header-sub">Loading…</span>
       <button id="switch-club-btn" onclick="switchClub()" style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px" title="Switch Club (SuperAdmin)">🔀 <span class="switch-club-text">Switch Club</span></button>
-      <button onclick="switchTab('help')" aria-label="Help" title="Help &amp; documentation" style="background:rgba(255,255,255,.15);color:white;border:1.5px solid rgba(255,255,255,.35);border-radius:50%;width:28px;height:28px;font-size:0.88rem;font-weight:800;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">?</button>
+      <button onclick="switchTab('help')" aria-label="Help" title="Help &amp; documentation" style="background:rgba(255,255,255,.15);color:white;border:1.5px solid rgba(255,255,255,.35);border-radius:50%;width:28px;height:28px;min-width:40px;min-height:40px;font-size:0.88rem;font-weight:800;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">?</button>
       <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()"><span class="deploy-label-full">💾 Save & Deploy</span><span class="deploy-label-short">☁️ Deploy</span></button>
     </div>
     <!-- Phase 3: Tournament selector + All-groups actions (single row) -->
@@ -3348,6 +3380,30 @@ function adminMoreNav(tab) {
   switchTab(tab);
 }
 
+// CHANGE 6: Swipe-down-to-close for More drawer
+(function() {
+  function _initMoreDrawerSwipe() {
+    const sheet = document.querySelector('.admin-more-sheet');
+    if (!sheet) return;
+    let startY = 0, isDragging = false;
+    sheet.addEventListener('touchstart', function(e) {
+      startY = e.touches[0].clientY;
+      isDragging = true;
+    }, { passive: true });
+    sheet.addEventListener('touchend', function(e) {
+      if (!isDragging) return;
+      isDragging = false;
+      const delta = e.changedTouches[0].clientY - startY;
+      if (delta > 60) toggleAdminMore(); // swipe down 60px+ closes
+    }, { passive: true });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _initMoreDrawerSwipe);
+  } else {
+    _initMoreDrawerSwipe();
+  }
+})();
+
 function syncAdminHeaderHeight() {
   // Scope to #admin-app header only — not the #club-dashboard header
   const adminApp = document.getElementById('admin-app');
@@ -3906,6 +3962,9 @@ function _scheduleGameRow(g) {
         <div class="game-meta">${esc(meta)}</div>
       </div>
       ${scoreHtml}
+      <button class="sched-edit-btn" onclick="event.stopPropagation();switchTab('addgames');setTimeout(()=>toggleEditGame('${esc(g.id)}'),120)" title="Edit game" aria-label="Edit game" style="flex-shrink:0;width:28px;height:28px;border:1.5px solid var(--g200);border-radius:7px;background:var(--g50);color:var(--g500);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;margin-left:4px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
     </div>
   </div>`;
 }
