@@ -260,10 +260,10 @@
       background: white;
       color: var(--royal);
       border: none;
-      border-radius: 8px;
-      padding: 8px 14px;
-      font-size: 0.82rem;
-      font-weight: 800;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       white-space: nowrap;
@@ -1706,7 +1706,7 @@
       <select id="admin-team-select" onchange="onAdminTeamChange(this.value)" title="Age group — 🟢 Has games · 🟡 Configured, no games yet · ⚫ Not set up"></select>
       <span id="header-sub" class="admin-header-sub">Loading…</span>
       <button id="switch-club-btn" onclick="switchClub()" style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px" title="Switch Club (SuperAdmin)">🔀 Switch Club</button>
-      <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">💾 Deploy</button>
+      <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">💾 Save & Deploy</button>
     </div>
     <!-- Phase 3: Tournament selector + All-groups actions (single row) -->
     <div class="admin-combined-bar">
@@ -6707,8 +6707,8 @@ async function syncGamesFromSheet() {
 
     // Auto-save tournament data to KV
     const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
-    if (!saveRes.ok) throw new Error('Games synced but KV save failed — tap 💾 Deploy to retry');
-    statusEl.textContent = `✅ ${games.length} game(s) synced${teamSummary} — tap 💾 Deploy to go live!`;
+    if (!saveRes.ok) throw new Error('Games synced but KV save failed — tap 💾 Save & Deploy to retry');
+    statusEl.textContent = `✅ ${games.length} game(s) synced${teamSummary} — tap 💾 Save & Deploy to go live!`;
 
     // Switch to Schedule tab so user can review
     switchTab('schedule');
@@ -6915,7 +6915,7 @@ async function saveAndDeploy() {
     showStatus('❌ ' + e.message, 'err');
   } finally {
     btn.disabled = false;
-    btn.textContent = '💾 Deploy Live Workspace';
+    btn.textContent = '💾 Save & Deploy';
   }
 }
 
@@ -9110,10 +9110,10 @@ function renderHelpTab() {
         <li><strong>Add Games tab</strong> — set up the tournament (name, dates, venue, clock settings) and add/import games.</li>
         <li><strong>Schedule tab</strong> — view the current schedule in read-only mode. Export CSV or toggle upcoming mode.</li>
         <li><strong>Roster tab</strong> — add all players (or sync from a Google Sheet).</li>
-        <li><strong>💾 Deploy</strong> — hit the Deploy button in the top-right to push everything live to the app.</li>
+        <li><strong>💾 Save & Deploy</strong> — hit the Deploy button in the top-right to push everything live to the app.</li>
         <li><strong>Team Communication</strong> tab — send push notifications and configure Telegram, GroupMe, or TeamSnap messaging.</li>
       </ol>
-      <p style="margin-top:8px">The <strong>💾 Deploy</strong> button in the header saves and publishes <em>all</em> changes at once. Nothing is live until you deploy.</p>`
+      <p style="margin-top:8px">The <strong>💾 Save & Deploy</strong> button in the header saves and publishes <em>all</em> changes at once. Nothing is live until you deploy.</p>`
     },
     {
       icon: '📅',
@@ -9127,7 +9127,7 @@ function renderHelpTab() {
         <li><strong>Deleting a game</strong> — tap the 🗑 icon on any game row. This is permanent.</li>
         <li><strong>Sync from Google Sheets</strong> — paste a publicly shared Google Sheet URL and tap <strong>Sync Games</strong>. The sheet must have columns: <code>Game, Opponent, Date, Time, Location, Pool, Cap, Team</code>. Existing games are replaced.</li>
       </ul>
-      <p style="margin-top:8px">💡 <strong>Tip:</strong> Always hit <strong>💾 Deploy</strong> after making schedule changes so the app updates for parents.</p>`
+      <p style="margin-top:8px">💡 <strong>Tip:</strong> Always hit <strong>💾 Save & Deploy</strong> after making schedule changes so the app updates for parents.</p>`
     },
     {
       icon: '👥',
@@ -9210,11 +9210,11 @@ function renderHelpTab() {
     {
       icon: '💾',
       title: 'The Deploy Button — When & Why',
-      body: `<p>The <strong>💾 Deploy</strong> button in the top-right header publishes all your changes to the live app at once.</p>
+      body: `<p>The <strong>💾 Save & Deploy</strong> button in the top-right header publishes all your changes to the live app at once.</p>
       <ul>
         <li><strong>What it does</strong> — saves tournament data to the server (Cloudflare KV) and pushes updated files to Vercel so every parent's app sees the changes within seconds.</li>
         <li><strong>When to use it</strong> — after adding or editing games, changing tournament info, or updating the roster. Nothing is visible to parents until you deploy.</li>
-        <li>The main <strong>💾 Deploy</strong> button in the header is the primary way to push changes. Use it after making any changes.</li>
+        <li>The main <strong>💾 Save & Deploy</strong> button in the header is the primary way to push changes. Use it after making any changes.</li>
         <li><strong>Deploy time</strong> — usually 5–10 seconds. The button shows a spinner while deploying and a ✓ confirmation when done.</li>
         <li><strong>Parents see updates</strong> — within about 10 seconds on most devices. If a parent doesn't see changes, they can use the <strong>↻ Force Refresh</strong> button at the bottom of their Schedule tab.</li>
       </ul>`
