@@ -1211,9 +1211,9 @@
       }
     }
 
-    /* Desktop-only sidebar extras: hidden on mobile */
+    /* Desktop-only sidebar extras: hidden on mobile — !important beats .tab-btn{display:flex} in media queries */
     .admin-desktop-divider,
-    .admin-desktop-item { display: none; }
+    .admin-desktop-item { display: none !important; }
 
     /* ── Desktop (1024px+) ────────────────────────────────────────────────── */
     @media (min-width: 1024px) {
@@ -1297,9 +1297,8 @@
       .admin-combined-bar { padding: 6px 24px; gap: 10px; }
       .global-btn { font-size: 0.78rem; padding: 5px 14px; }
 
-      /* Hide More button and mobile-only Club tab; show all items directly in sidebar */
+      /* Hide More button; show all items directly in sidebar */
       .tab-btn[data-tab="more"] { display: none; }
-      .tab-mobile-clubinfo { display: none; }
       .admin-desktop-divider {
         display: block;
         height: 1px;
@@ -1327,8 +1326,6 @@
     .deploy-label-short { display: none; }
     /* ── Mobile club name: hidden on desktop (admin-header-title shows there) ── */
     .mobile-club-name { display: none; }
-    /* ── Mobile-only Club tab: hidden by default, shown only in mobile media query ── */
-    .tab-mobile-clubinfo { display: none; }
     /* ── Combined bar: short labels hidden on desktop, shown on mobile ── */
     .cbar-short { display: none; }
 
@@ -1420,8 +1417,6 @@
         border-bottom-color: transparent;
         background: transparent;
       }
-      /* Mobile-only Club Info tab: hidden on desktop (sidebar shows it there) */
-      .tab-mobile-clubinfo { display: flex; }
     }
 
     /* ── Admin Dark Mode ──────────────────────────────────────────────────── */
@@ -1879,10 +1874,6 @@
     <button class="tab-btn" data-tab="addgames" onclick="switchTab('addgames')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       Games
-    </button>
-    <button class="tab-btn tab-mobile-clubinfo" data-tab="clubinfo" onclick="switchTab('clubinfo')">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
-      Club
     </button>
     <button class="tab-btn" data-tab="more" onclick="toggleAdminMore()">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
