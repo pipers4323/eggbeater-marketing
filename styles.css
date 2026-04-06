@@ -5081,6 +5081,27 @@ details[open] .help-chevron { transform: rotate(180deg); }
   color: #e6edf3;
 }
 
+/* ── Live Activities / Roster modal sheet (dark mode) ───────────────────── */
+[data-theme="dark"] .roster-modal-sheet {
+  background: #161b22;
+  color: #e6edf3;
+}
+[data-theme="dark"] .roster-modal-header {
+  border-bottom-color: #30363d;
+}
+[data-theme="dark"] .roster-modal-title {
+  color: #e6edf3;
+}
+[data-theme="dark"] .roster-modal-close {
+  background: #30363d;
+  color: #e6edf3;
+}
+
+/* ── Favorite star — outline visible in dark mode ───────────────────────── */
+[data-theme="dark"] .age-star {
+  color: rgba(255,255,255,0.55);
+}
+
 /* ── Theme Toggle Button ───────────────────────────────────────────────── */
 .theme-toggle-btn {
   position: absolute;
