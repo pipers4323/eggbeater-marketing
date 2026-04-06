@@ -192,9 +192,9 @@
     }
     .admin-logo-wrap {
       padding-top: env(safe-area-inset-top, 0px);
-      padding-bottom: 7px;
-      padding-left: env(safe-area-inset-left, 14px);
-      padding-right: env(safe-area-inset-right, 14px);
+      padding-bottom: 14px;
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
       max-width: none;
       margin: 0;
       width: 100%;
@@ -236,7 +236,7 @@
       border-top: 1px solid rgba(255,255,255,.08);
     }
     .eggbeater-inline-logo {
-      height: 13px;
+      height: 26px;
       width: auto;
       border-radius: 2px;
       display: inline-block;
@@ -271,17 +271,17 @@
     .deploy-btn:active { opacity: 0.75; }
     .deploy-btn:disabled { opacity: 0.5; cursor: default; }
 
-    /* ── Global action bar (second header row) ── */
-    .admin-global-bar {
+    /* ── Combined bar: Tournament selector + All-groups actions ── */
+    .admin-combined-bar {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 5px 12px 8px;
-      padding-left: max(12px, env(safe-area-inset-left, 0px));
-      padding-right: max(12px, env(safe-area-inset-right, 0px));
-      background: rgba(0,0,0,.14);
+      gap: 6px;
+      padding: 5px max(12px, env(safe-area-inset-right, 0px)) 6px max(12px, env(safe-area-inset-left, 0px));
+      background: rgba(0,0,0,.18);
       border-top: 1px solid rgba(255,255,255,.08);
       width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
     .admin-global-label {
       font-size: 0.65rem;
@@ -310,6 +310,37 @@
     .global-btn-upcoming { border-color: rgba(251,146,60,.65); color: #fed7aa; }
     .global-btn-deploy   { border-color: rgba(74,222,128,.65); color: #bbf7d0; }
 
+    /* ── Theme pills (Appearance settings) ── */
+    .theme-pill {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 20px;
+      border: 1.5px solid var(--g200);
+      background: var(--g50);
+      color: var(--g600);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .theme-pill.active {
+      background: var(--royal);
+      color: white;
+      border-color: var(--royal);
+    }
+    [data-theme="dark"] .theme-pill {
+      border-color: #30363d;
+      background: #0d1117;
+      color: #8b949e;
+    }
+    [data-theme="dark"] .theme-pill.active {
+      background: #58a6ff;
+      color: #0d1117;
+      border-color: #58a6ff;
+    }
+
     /* ── Age group selector in header bar ── */
     #admin-team-select {
       background: rgba(255,255,255,0.15);
@@ -331,20 +362,20 @@
       font-weight: 600;
     }
 
-    /* ── Tournament selector strip ── */
+    /* ── Tournament selector strip (inside admin-combined-bar) ── */
     .admin-tourn-strip {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 7px 14px;
-      padding-left: max(14px, env(safe-area-inset-left, 0px));
-      padding-right: max(14px, env(safe-area-inset-right, 0px));
-      background: rgba(0,0,0,.22);
-      border-top: 1px solid rgba(255,255,255,.08);
-      width: 100%;
-      overflow-x: auto;
+      flex: 1;
+      min-width: 0;
+      background: transparent;
+      border: none;
+      padding: 0;
+      overflow-x: visible;
       flex-wrap: nowrap;
       -webkit-overflow-scrolling: touch;
+      width: auto;
     }
     .admin-tourn-strip::-webkit-scrollbar { display: none; }
     .admin-tourn-pill {
@@ -1261,7 +1292,7 @@
       .deploy-btn:hover { background: rgba(255,255,255,.12); }
       .deploy-btn:active { background: rgba(255,255,255,.2); opacity: 1; }
 
-      .admin-global-bar { padding: 6px 24px 9px; gap: 10px; }
+      .admin-combined-bar { padding: 6px 24px; gap: 10px; }
       .global-btn { font-size: 0.78rem; padding: 5px 14px; }
 
       /* Hide More button, show all items directly in sidebar */
@@ -1460,6 +1491,47 @@
       background: #161b22;
       border-color: #30363d;
     }
+
+    /* ── Dark mode: Login screen ── */
+    [data-theme="dark"] #login-screen {
+      background: #0d1117;
+    }
+    [data-theme="dark"] .login-body {
+      background: #0d1117;
+    }
+    [data-theme="dark"] .login-title {
+      color: #e6edf3;
+    }
+    [data-theme="dark"] .login-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+    [data-theme="dark"] .login-card input:not([type="checkbox"]) {
+      background: #0d1117;
+      color: #e6edf3;
+      border-color: #30363d;
+    }
+    [data-theme="dark"] .login-divider {
+      color: #484f58;
+    }
+    [data-theme="dark"] .login-btn-google {
+      background: #21262d;
+      color: #e6edf3;
+      border-color: #30363d;
+    }
+    [data-theme="dark"] .login-btn-google:hover { background: #30363d; }
+
+    /* ── Dark mode: Super Admin club picker ── */
+    [data-theme="dark"] #club-dashboard {
+      background: #0d1117;
+      color: #e6edf3;
+    }
+    [data-theme="dark"] #club-dashboard-list > div {
+      background: #161b22 !important;
+      border-color: #30363d !important;
+      color: #e6edf3 !important;
+    }
     @media (prefers-color-scheme: dark) {
       html:not([data-theme]) body,
       html:not([data-theme]) .admin-outer { background: #0d1117; color: #e6edf3; }
@@ -1571,11 +1643,10 @@
       <button id="switch-club-btn" onclick="switchClub()" style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px" title="Switch Club (SuperAdmin)">🔀 Switch Club</button>
       <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">💾 Deploy</button>
     </div>
-    <!-- Phase 3: Tournament selector -->
-    <div class="admin-tourn-strip" id="admin-tourn-strip"></div>
-    <!-- Global actions row — operates across all age groups at once -->
-    <div class="admin-global-bar">
-      <span class="admin-global-label">All groups:</span>
+    <!-- Phase 3: Tournament selector + All-groups actions (single row) -->
+    <div class="admin-combined-bar">
+      <div class="admin-tourn-strip" id="admin-tourn-strip"></div>
+      <span class="admin-global-label" style="flex-shrink:0;margin-left:4px">All:</span>
       <button class="global-btn global-btn-upcoming" id="upcoming-all-btn" onclick="setAllUpcomingMode()">📅 Set All → Upcoming</button>
       <button class="global-btn global-btn-deploy"   id="deploy-all-btn"   onclick="deployAll()">🌐 Deploy All</button>
     </div>
@@ -2886,9 +2957,10 @@ function applyAdminTheme(t) {
   localStorage.setItem('ebwp-admin-theme', t);
   const dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme:dark)').matches);
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-  // Update selector if visible
-  const sel = document.getElementById('admin-theme-select');
-  if (sel) sel.value = t;
+  // Sync pill active states if visible
+  document.querySelectorAll('.theme-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.val === t);
+  });
 }
 // Apply on OS theme change
 window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', () => {
@@ -3005,14 +3077,36 @@ function renderAdminSettingsTab() {
     `;
   } else if (S.loginMode === 'password') {
     accountHtml = `
-      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px">
-        <span style="font-size:1.1rem">🔑</span>
-        <div style="flex:1">
-          <div style="font-weight:700;font-size:0.95rem">SuperAdmin (Password)</div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--g100)">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--royal);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;flex-shrink:0">🔑</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-weight:700;font-size:0.95rem;color:var(--royal)">SuperAdmin</span>
+            ${isSuperAdmin ? '<span style="font-size:0.72rem;font-weight:700;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:10px;padding:1px 8px;white-space:nowrap">⭐ Super Admin</span>' : ''}
+          </div>
           <div style="font-size:0.8rem;color:var(--g400)">Logged in via shared password</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;border-top:1px solid var(--g100)" onclick="doLogout()">
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent" onclick="doLogout()">
+        <span style="font-size:1.1rem">🚪</span>
+        <span style="font-weight:600;color:#dc2626;font-size:0.95rem">Sign Out</span>
+      </div>
+    `;
+  } else if (S.uid) {
+    // Logged in via proxy auth (Firebase currentUser not yet available)
+    accountHtml = `
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--g100)">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--royal);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;flex-shrink:0">
+          ${esc(S.uid[0].toUpperCase())}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-weight:700;font-size:0.95rem;color:var(--royal)">Admin</span>
+            ${isSuperAdmin ? '<span style="font-size:0.72rem;font-weight:700;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:10px;padding:1px 8px;white-space:nowrap">⭐ Super Admin</span>' : ''}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent" onclick="doLogout()">
         <span style="font-size:1.1rem">🚪</span>
         <span style="font-weight:600;color:#dc2626;font-size:0.95rem">Sign Out</span>
       </div>
@@ -3027,13 +3121,13 @@ function renderAdminSettingsTab() {
 
     <div class="card" style="margin-bottom:12px">
       <div class="card-header">🎨 Appearance</div>
-      <div style="padding:14px 16px;display:flex;align-items:center;gap:12px">
-        <label style="font-weight:600;color:var(--g600);min-width:80px">Theme</label>
-        <select id="admin-theme-select" onchange="applyAdminTheme(this.value)" style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--g300);background:var(--g50);color:var(--g900);font-size:0.9rem">
-          <option value="system">System Default</option>
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
-        </select>
+      <div style="padding:14px 16px">
+        <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--g400);margin-bottom:10px">Theme</div>
+        <div style="display:flex;gap:8px">
+          <button class="theme-pill" onclick="applyAdminTheme('system')" data-val="system">⚙️ System</button>
+          <button class="theme-pill" onclick="applyAdminTheme('light')" data-val="light">☀️ Light</button>
+          <button class="theme-pill" onclick="applyAdminTheme('dark')" data-val="dark">🌙 Dark</button>
+        </div>
       </div>
     </div>
 
@@ -3048,7 +3142,7 @@ function renderAdminSettingsTab() {
         <span style="font-size:1.1rem">🤽‍♀️</span>
         <div style="flex:1">
           <div style="font-weight:700;font-size:0.95rem">${esc(clubName)}</div>
-          <div style="font-size:0.8rem;color:var(--g400)">Current club · ${esc(clubId)}</div>
+          <div style="font-size:0.8rem;color:var(--g400)">${isSuperAdmin ? '⭐ Super Admin · ' : ''}${esc(clubId)}</div>
         </div>
         <span style="color:var(--royal);font-weight:800">✓</span>
       </div>
@@ -3393,24 +3487,28 @@ function renderScheduleTab() {
       </div>
     </div>` : '';
 
+  const upcomingBtnInner = S.tournament.upcomingMode
+    ? `<button class="add-btn" style="background:#f0fff4;color:#166534;border-color:#4ade80;font-weight:700;width:100%" onclick="goLive()">🟢 Go Live</button>`
+    : liveGames.length
+      ? `<button class="add-btn" style="background:#fff8f0;color:#c2410c;border-color:#f97316;width:100%" onclick="setUpcomingMode()">📅 Set to Upcoming Mode</button>`
+      : `<span></span>`;
+
   return `
     ${upcomingInfoCard}
     ${cardsHtml}
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-      <button class="add-btn" style="flex:1;background:var(--g50);color:var(--g600);border:1px solid var(--g200)" onclick="exportResultsCSV()">📥 Export Results CSV</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <button class="add-btn" style="background:var(--g50);color:var(--g600);border:1px solid var(--g200)" onclick="exportResultsCSV()">📥 Export Results CSV</button>
+      ${upcomingBtnInner}
     </div>
-    ${upcomingBtn}
     <div style="display:flex;justify-content:center;padding:4px 0 8px;margin-top:8px">
       <button class="admin-refresh-btn" id="admin-refresh-btn" onclick="refreshAdminData(this)">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         Refresh Data
       </button>
     </div>
-    <div style="display:flex;justify-content:center;padding:16px 0 8px;border-top:1px solid var(--g200);margin-top:16px">
-      <button class="add-btn" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;font-weight:700" onclick="undeployLiveSchedule()">🛑 Undeploy Live Schedule</button>
-    </div>
-    <div style="display:flex;justify-content:center;padding:4px 0 8px">
-      <button class="clear-data-btn" onclick="clearAgeGroupData()">🗑 Clear All Data for ${esc(ADMIN_TEAMS.find(t=>t.key===S.team)?.label || S.team)}</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid var(--g200);margin-top:16px;padding-top:12px">
+      <button class="add-btn" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;font-weight:700" onclick="undeployLiveSchedule()">🛑 Undeploy</button>
+      <button class="clear-data-btn" style="margin:0" onclick="clearAgeGroupData()">🗑 Clear All Data</button>
     </div>`;
 }
 
@@ -4400,7 +4498,10 @@ function getRosterArray(teamKey) {
 
 function renderRosterTab() {
   const savedSheetUrl = localStorage.getItem('ebadmin-sheets-url') || '';
-  const saveBtn = `<button class="save-btn" style="width:100%;margin-top:10px" onclick="saveRoster()">💾 Save Roster</button>`;
+  const saveBtn = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+    <button class="add-btn" style="background:var(--g50);color:var(--g600);border:1px solid var(--g200)" onclick="exportRosterCSV()">📥 Export Roster CSV</button>
+    <button class="save-btn" style="margin:0" onclick="saveRoster()">💾 Save Roster</button>
+  </div>`;
   const sheetCard = `
     <details class="card collapsible-card" style="margin-top:8px" open>
       <summary class="card-header collapsible-header">📊 Google Sheets Sync <span class="collapse-icon">▾</span></summary>
@@ -4482,6 +4583,7 @@ function renderRosterTab() {
         ${buildRosterRows(rB, 'B') || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No players yet</div>'}
       </details>
       <button class="add-btn" onclick="addRosterPlayer('B')">+ Add Player to ${esc(labelB)}</button>
+      <!-- Export Roster CSV + Save Roster are side-by-side in saveBtn at the bottom -->
       ${S.tournament.enableCTeam ? (() => {
     const rC = (S.roster && S.roster.C) || [];
     const labelC = (S.tournament.teamLabels && S.tournament.teamLabels.C) || 'Team C';
@@ -4496,7 +4598,6 @@ function renderRosterTab() {
   </details>
   <button class="add-btn" onclick="addRosterPlayer('C')">+ Add Player to ${esc(labelC)}</button>`;
   })() : ''}
-      <button class="add-btn" style="background:var(--g50);color:var(--g600);border:1px solid var(--g200);margin-top:2px" onclick="exportRosterCSV()">📥 Export Roster CSV</button>
       <details class="card collapsible-card" style="margin-top:8px" open>
         <summary class="card-header collapsible-header" style="display:flex;align-items:center;justify-content:space-between">
           <span>📊 Season Player Stats</span>
@@ -4528,7 +4629,6 @@ function renderRosterTab() {
       ${rows || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No players yet — sync from sheet, upload a CSV, or tap Add Player</div>'}
     </details>
     <button class="add-btn" onclick="addRosterPlayer(null)">+ Add Player</button>
-    <button class="add-btn" style="background:var(--g50);color:var(--g600);border:1px solid var(--g200);margin-top:2px" onclick="exportRosterCSV()">📥 Export Roster CSV</button>
     <details class="card collapsible-card" style="margin-top:8px" open>
       <summary class="card-header collapsible-header" style="display:flex;align-items:center;justify-content:space-between">
         <span>📊 Season Player Stats</span>
