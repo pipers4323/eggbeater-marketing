@@ -11,6 +11,14 @@
   <link rel="manifest" href="admin-manifest.json">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-admin.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-admin-512.png">
+  <script>
+(function(){
+  var t = localStorage.getItem('ebwp-admin-theme') || 'system';
+  if(t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme:dark)').matches)) {
+    document.documentElement.setAttribute('data-theme','dark');
+  }
+})();
+</script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1294,6 +1302,202 @@
     .bracket-team { padding: 6px 10px; font-size: 0.82rem; font-weight: 600; }
     .bracket-team-top { border-bottom: 1px solid var(--g100); }
     .bracket-empty { color: var(--g400); font-style: italic; font-size: 0.82rem; }
+
+    /* ── Mobile Header Optimization ─────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .admin-logo-wrap {
+        padding: 6px 12px;
+      }
+      .admin-logo-img {
+        height: 28px !important;
+        width: auto !important;
+      }
+      .admin-custom-logo-img {
+        height: 28px !important;
+        width: auto !important;
+      }
+      .admin-header-bar {
+        padding: 4px 12px;
+        min-height: 36px;
+      }
+      .admin-team-pills {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 6px;
+        padding: 6px 12px;
+        scrollbar-width: none;
+      }
+      .admin-team-pills::-webkit-scrollbar { display: none; }
+      .admin-pill {
+        flex-shrink: 0;
+        padding: 4px 10px !important;
+        font-size: 0.75rem !important;
+        white-space: nowrap;
+      }
+    }
+
+    /* ── Admin Dark Mode ──────────────────────────────────────────────────── */
+    [data-theme="dark"] {
+      --g50: #0d1117; --g100: #161b22; --g200: #21262d; --g300: #30363d;
+      --g400: #484f58; --g500: #6e7681; --g600: #8b949e; --g700: #b1bac4;
+      --g800: #c9d1d9; --g900: #e6edf3;
+      color-scheme: dark;
+    }
+    [data-theme="dark"] body,
+    [data-theme="dark"] .admin-outer {
+      background: #0d1117;
+      color: #e6edf3;
+    }
+    [data-theme="dark"] .admin-header {
+      background: #001a4a;
+      border-bottom-color: #30363d;
+    }
+    [data-theme="dark"] .admin-tabs {
+      background: #161b22;
+      border-bottom-color: #30363d;
+    }
+    [data-theme="dark"] .admin-tab-btn {
+      color: #8b949e;
+    }
+    [data-theme="dark"] .admin-tab-btn.active {
+      color: #e6edf3;
+      border-bottom-color: #58a6ff;
+    }
+    [data-theme="dark"] .admin-more-drawer {
+      background: #161b22;
+      border-color: #30363d;
+    }
+    [data-theme="dark"] .card {
+      background: #161b22;
+      border-color: #30363d;
+      color: #e6edf3;
+    }
+    [data-theme="dark"] .card-header {
+      background: #161b22;
+      border-bottom-color: #30363d;
+      color: #e6edf3;
+    }
+    [data-theme="dark"] .collapsible-header {
+      background: #161b22;
+      color: #e6edf3;
+    }
+    [data-theme="dark"] .collapsible-header:hover {
+      background: #21262d;
+    }
+    [data-theme="dark"] input,
+    [data-theme="dark"] textarea,
+    [data-theme="dark"] select {
+      background: #0d1117;
+      color: #e6edf3;
+      border-color: #30363d;
+    }
+    [data-theme="dark"] input::placeholder,
+    [data-theme="dark"] textarea::placeholder {
+      color: #484f58;
+    }
+    [data-theme="dark"] .btn-ghost {
+      background: #21262d;
+      color: #e6edf3;
+      border-color: #30363d;
+    }
+    [data-theme="dark"] .btn-ghost:hover {
+      background: #30363d;
+    }
+    [data-theme="dark"] .admin-pill {
+      background: rgba(255,255,255,0.08);
+      color: #c9d1d9;
+      border-color: rgba(255,255,255,0.15);
+    }
+    [data-theme="dark"] .admin-pill.active {
+      background: rgba(88,166,255,0.2);
+      color: #58a6ff;
+      border-color: #58a6ff;
+    }
+    [data-theme="dark"] .game-row,
+    [data-theme="dark"] .roster-row,
+    [data-theme="dark"] .history-row {
+      border-bottom-color: #21262d;
+      color: #e6edf3;
+    }
+    [data-theme="dark"] .game-row:hover,
+    [data-theme="dark"] .roster-row:hover {
+      background: #21262d;
+    }
+    [data-theme="dark"] label {
+      color: #c9d1d9;
+    }
+    [data-theme="dark"] .form-group label,
+    [data-theme="dark"] .field-label {
+      color: #8b949e;
+    }
+    [data-theme="dark"] .section-label,
+    [data-theme="dark"] .card-subhead {
+      color: #8b949e;
+    }
+    [data-theme="dark"] .badge {
+      background: #21262d;
+      color: #c9d1d9;
+    }
+    [data-theme="dark"] .activity-log-entry {
+      border-bottom-color: #21262d;
+      color: #8b949e;
+    }
+    [data-theme="dark"] .archive-entry {
+      background: #161b22;
+      border-color: #30363d;
+      color: #e6edf3;
+    }
+    [data-theme="dark"] .season-group-header {
+      background: #21262d;
+      color: #e6edf3;
+      border-color: #30363d;
+    }
+    [data-theme="dark"] .stat-bar-fill {
+      background: #58a6ff;
+    }
+    [data-theme="dark"] .stat-bar-bg {
+      background: #21262d;
+    }
+    [data-theme="dark"] .deployed-banner {
+      background: #0d2b1a !important;
+      border-color: #1a4731 !important;
+      color: #4ade80 !important;
+    }
+    [data-theme="dark"] .draft-card {
+      background: #161b22;
+      border-color: #30363d;
+    }
+    [data-theme="dark"] hr {
+      border-color: #30363d;
+    }
+    [data-theme="dark"] .help-accordion summary {
+      color: #c9d1d9;
+    }
+    [data-theme="dark"] .admin-header-logo-bar {
+      border-bottom-color: #30363d;
+    }
+    [data-theme="dark"] details summary {
+      color: #e6edf3;
+    }
+    [data-theme="dark"] details {
+      background: #161b22;
+      border-color: #30363d;
+    }
+    @media (prefers-color-scheme: dark) {
+      html:not([data-theme]) body,
+      html:not([data-theme]) .admin-outer { background: #0d1117; color: #e6edf3; }
+      html:not([data-theme]) .admin-header { background: #001a4a; border-bottom-color: #30363d; }
+      html:not([data-theme]) .admin-tabs { background: #161b22; border-bottom-color: #30363d; }
+      html:not([data-theme]) .card { background: #161b22; border-color: #30363d; color: #e6edf3; }
+      html:not([data-theme]) .card-header { background: #161b22; border-bottom-color: #30363d; color: #e6edf3; }
+      html:not([data-theme]) input, html:not([data-theme]) textarea, html:not([data-theme]) select { background: #0d1117; color: #e6edf3; border-color: #30363d; }
+      html:not([data-theme]) .admin-pill { background: rgba(255,255,255,0.08); color: #c9d1d9; border-color: rgba(255,255,255,0.15); }
+      html:not([data-theme]) .admin-pill.active { background: rgba(88,166,255,0.2); color: #58a6ff; border-color: #58a6ff; }
+      html:not([data-theme]) .deployed-banner { background: #0d2b1a !important; border-color: #1a4731 !important; color: #4ade80 !important; }
+      html:not([data-theme]) .collapsible-header { background: #161b22; color: #e6edf3; }
+    }
   </style>
 </head>
 <body>
@@ -2745,6 +2949,22 @@ async function refreshIdToken() {
 // Auto-refresh token every 50 minutes
 setInterval(refreshIdToken, 50 * 60 * 1000);
 
+// ─── THEME ────────────────────────────────────────────────────────────────────
+
+function applyAdminTheme(t) {
+  t = t || localStorage.getItem('ebwp-admin-theme') || 'system';
+  localStorage.setItem('ebwp-admin-theme', t);
+  const dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme:dark)').matches);
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  // Update selector if visible
+  const sel = document.getElementById('admin-theme-select');
+  if (sel) sel.value = t;
+}
+// Apply on OS theme change
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', () => {
+  if ((localStorage.getItem('ebwp-admin-theme') || 'system') === 'system') applyAdminTheme('system');
+});
+
 // ─── TABS ─────────────────────────────────────────────────────────────────────
 
 function switchTab(tab) {
@@ -2822,6 +3042,7 @@ function renderTab() {
   }
   if (S.currentTab === 'settings') {
     el.innerHTML = renderAdminSettingsTab();
+    setTimeout(() => applyAdminTheme(), 0);
   }
 }
 
@@ -2831,6 +3052,7 @@ function renderAdminSettingsTab() {
   const clubId = S.clubId || '';
   const clubName = S.clubName || clubId;
 
+  const isSuperAdmin = (S.club?.superAdminUIDs || []).includes(S.uid);
   let accountHtml = '';
   if (user) {
     accountHtml = `
@@ -2839,7 +3061,10 @@ function renderAdminSettingsTab() {
           ${esc((user.displayName || user.email || '?')[0].toUpperCase())}
         </div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:0.95rem;color:var(--royal)">${esc(user.displayName || 'Admin')}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-weight:700;font-size:0.95rem;color:var(--royal)">${esc(user.displayName || 'Admin')}</span>
+            ${isSuperAdmin ? '<span style="font-size:0.72rem;font-weight:700;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:10px;padding:1px 8px;white-space:nowrap">⭐ Super Admin</span>' : ''}
+          </div>
           <div style="font-size:0.8rem;color:var(--g400);overflow:hidden;text-overflow:ellipsis">${esc(user.email || '')}</div>
         </div>
       </div>
@@ -2868,6 +3093,18 @@ function renderAdminSettingsTab() {
     <div class="card" style="margin-bottom:12px">
       <div class="card-header">Settings</div>
       <div style="padding:10px 16px;font-size:0.85rem;color:var(--g400)">Manage your account and club.</div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-header">🎨 Appearance</div>
+      <div style="padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <label style="font-weight:600;color:var(--g600);min-width:80px">Theme</label>
+        <select id="admin-theme-select" onchange="applyAdminTheme(this.value)" style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--g300);background:var(--g50);color:var(--g900);font-size:0.9rem">
+          <option value="system">System Default</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
     </div>
 
     <div class="card" style="margin-bottom:12px">
@@ -3179,9 +3416,10 @@ function renderScheduleTab() {
 
   const liveGames = [...(S.tournament.games || [])].sort((a, b) => gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum));
   
+  const _currentAgeGroupLabel = getTeamLabel(S.team);
   let cardsHtml = `
     <div class="card" style="border: 1.5px solid var(--green)">
-      <div class="card-header" style="background:var(--green-lt);color:var(--green);border-bottom:1px solid #bbf7d0">🟢 Currently Deployed (Live)</div>
+      <div class="card-header" style="background:var(--green-lt);color:var(--green);border-bottom:1px solid #bbf7d0">🟢 ${esc(_currentAgeGroupLabel)} — Currently Deployed (Live)</div>
       ${renderGameList(liveGames, S.tournament)}
     </div>
   `;
@@ -4249,8 +4487,8 @@ function renderRosterTab() {
   const savedSheetUrl = localStorage.getItem('ebadmin-sheets-url') || '';
   const saveBtn = `<button class="save-btn" style="width:100%;margin-top:10px" onclick="saveRoster()">💾 Save Roster</button>`;
   const sheetCard = `
-    <div class="card" style="margin-top:8px">
-      <div class="card-header">📊 Google Sheets Sync</div>
+    <details class="card collapsible-card" style="margin-top:8px" open>
+      <summary class="card-header collapsible-header">📊 Google Sheets Sync <span class="collapse-icon">▾</span></summary>
       <div style="padding:10px 14px">
         <div style="font-size:0.78rem;color:var(--g400);margin-bottom:8px">
           Paste your Google Sheet link — sheet must be shared as <em>Anyone with link can view</em>.<br>
@@ -4267,10 +4505,10 @@ function renderRosterTab() {
         </div>
         <div id="sheets-status" style="font-size:0.8rem;margin-top:6px;color:var(--g400)"></div>
       </div>
-    </div>`;
+    </details>`;
   const bulkImportCard = `
-    <div class="card" style="margin-top:8px" id="bulk-import-card">
-      <div class="card-header">📋 Bulk Import</div>
+    <details class="card collapsible-card" style="margin-top:8px" id="bulk-import-card" open>
+      <summary class="card-header collapsible-header">📋 Bulk Import <span class="collapse-icon">▾</span></summary>
       <div style="padding:10px 14px">
         <div style="font-size:0.78rem;color:var(--g400);margin-bottom:8px">
           Paste from Google Sheets / Excel or upload a CSV. Auto-detects columns by header row.
@@ -4290,7 +4528,7 @@ function renderRosterTab() {
         </div>
         <div id="bulk-preview" style="display:none;margin-top:8px"></div>
       </div>
-    </div>`;
+    </details>`;
   const hint = `<div style="font-size:0.78rem;color:var(--g400);padding:8px 14px 0;text-align:center">
     Roster is saved independently — names persist across tournaments.<br>
     Update cap numbers here any time; tap <strong>💾 Save Roster</strong> when done.
@@ -4311,48 +4549,51 @@ function renderRosterTab() {
       ${hint}
       ${sheetCard}
       ${bulkImportCard}
-      <div class="card" style="margin-top:8px">
-        <div class="card-header">${esc(labelA)} Roster (${rA.length} players)</div>
+      <details class="card collapsible-card" style="margin-top:8px" open>
+        <summary class="card-header collapsible-header">${esc(labelA)} Roster (${rA.length} players) <span class="collapse-icon">▾</span></summary>
         <div style="padding:8px 14px;border-bottom:1px solid var(--g100)">
           <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--g400);display:block;margin-bottom:4px">Upload CSV (cap,first,last)</label>
           <input type="file" accept=".csv" onchange="uploadRosterCSV(event,'A')" style="font-size:0.82rem">
         </div>
         ${buildRosterRows(rA, 'A') || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No players yet</div>'}
-      </div>
+      </details>
       <button class="add-btn" onclick="addRosterPlayer('A')">+ Add Player to ${esc(labelA)}</button>
-      <div class="card" style="margin-top:10px">
-        <div class="card-header">${esc(labelB)} Roster (${rB.length} players)</div>
+      <details class="card collapsible-card" style="margin-top:10px" open>
+        <summary class="card-header collapsible-header">${esc(labelB)} Roster (${rB.length} players) <span class="collapse-icon">▾</span></summary>
         <div style="padding:8px 14px;border-bottom:1px solid var(--g100)">
           <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--g400);display:block;margin-bottom:4px">Upload CSV (cap,first,last)</label>
           <input type="file" accept=".csv" onchange="uploadRosterCSV(event,'B')" style="font-size:0.82rem">
         </div>
         ${buildRosterRows(rB, 'B') || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No players yet</div>'}
-      </div>
+      </details>
       <button class="add-btn" onclick="addRosterPlayer('B')">+ Add Player to ${esc(labelB)}</button>
       ${S.tournament.enableCTeam ? (() => {
     const rC = (S.roster && S.roster.C) || [];
     const labelC = (S.tournament.teamLabels && S.tournament.teamLabels.C) || 'Team C';
     return `
-  <div class="card" style="margin-top:10px">
-    <div class="card-header">${esc(labelC)} Roster (${rC.length} players)</div>
+  <details class="card collapsible-card" style="margin-top:10px" open>
+    <summary class="card-header collapsible-header">${esc(labelC)} Roster (${rC.length} players) <span class="collapse-icon">▾</span></summary>
     <div style="padding:8px 14px;border-bottom:1px solid var(--g100)">
       <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--g400);display:block;margin-bottom:4px">Upload CSV (cap,first,last)</label>
       <input type="file" accept=".csv" onchange="uploadRosterCSV(event,'C')" style="font-size:0.82rem">
     </div>
     ${buildRosterRows(rC, 'C') || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No players yet</div>'}
-  </div>
+  </details>
   <button class="add-btn" onclick="addRosterPlayer('C')">+ Add Player to ${esc(labelC)}</button>`;
   })() : ''}
       <button class="add-btn" style="background:var(--g50);color:var(--g600);border:1px solid var(--g200);margin-top:2px" onclick="exportRosterCSV()">📥 Export Roster CSV</button>
-      <div class="card" style="margin-top:8px">
-        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+      <details class="card collapsible-card" style="margin-top:8px" open>
+        <summary class="card-header collapsible-header" style="display:flex;align-items:center;justify-content:space-between">
           <span>📊 Season Player Stats</span>
-          <button style="font-size:0.72rem;background:none;border:none;color:var(--royal);cursor:pointer;font-weight:600" onclick="loadPlayerStats()">🔄 Refresh</button>
-        </div>
+          <span style="display:flex;align-items:center;gap:8px">
+            <button style="font-size:0.72rem;background:none;border:none;color:var(--royal);cursor:pointer;font-weight:600" onclick="event.stopPropagation();loadPlayerStats()">🔄 Refresh</button>
+            <span class="collapse-icon">▾</span>
+          </span>
+        </summary>
         <div id="player-stats-container" style="padding:10px 14px">
           <button class="save-btn" style="width:100%" onclick="loadPlayerStats()">📊 Load Season Stats</button>
         </div>
-      </div>
+      </details>
       ${saveBtn}`;
   }
 
@@ -4363,25 +4604,28 @@ function renderRosterTab() {
     ${hint}
     ${sheetCard}
     ${bulkImportCard}
-    <div class="card" style="margin-top:8px">
-      <div class="card-header">Roster (${(S.roster||[]).length} players)</div>
+    <details class="card collapsible-card" style="margin-top:8px" open>
+      <summary class="card-header collapsible-header">Roster (${(S.roster||[]).length} players) <span class="collapse-icon">▾</span></summary>
       <div style="padding:8px 14px;border-bottom:1px solid var(--g100)">
         <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--g400);display:block;margin-bottom:4px">Upload CSV (cap,first,last)</label>
         <input type="file" accept=".csv" onchange="uploadRosterCSV(event,null)" style="font-size:0.82rem">
       </div>
       ${rows || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No players yet — sync from sheet, upload a CSV, or tap Add Player</div>'}
-    </div>
+    </details>
     <button class="add-btn" onclick="addRosterPlayer(null)">+ Add Player</button>
     <button class="add-btn" style="background:var(--g50);color:var(--g600);border:1px solid var(--g200);margin-top:2px" onclick="exportRosterCSV()">📥 Export Roster CSV</button>
-    <div class="card" style="margin-top:8px">
-      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+    <details class="card collapsible-card" style="margin-top:8px" open>
+      <summary class="card-header collapsible-header" style="display:flex;align-items:center;justify-content:space-between">
         <span>📊 Season Player Stats</span>
-        <button style="font-size:0.72rem;background:none;border:none;color:var(--royal);cursor:pointer;font-weight:600" onclick="loadPlayerStats()">🔄 Refresh</button>
-      </div>
+        <span style="display:flex;align-items:center;gap:8px">
+          <button style="font-size:0.72rem;background:none;border:none;color:var(--royal);cursor:pointer;font-weight:600" onclick="event.stopPropagation();loadPlayerStats()">🔄 Refresh</button>
+          <span class="collapse-icon">▾</span>
+        </span>
+      </summary>
       <div id="player-stats-container" style="padding:10px 14px">
         <button class="save-btn" style="width:100%" onclick="loadPlayerStats()">📊 Load Season Stats</button>
       </div>
-    </div>
+    </details>
     ${saveBtn}`;
 }
 
@@ -4994,8 +5238,8 @@ function renderClubInfoTab() {
   const t = S.tournament;
   return `
     <!-- ═══════ CLUB SETTINGS ═══════ -->
-    <div class="card" style="margin-bottom:12px">
-      <div class="card-header" style="background:var(--royal);color:white;font-size:0.82rem">🏫 Club Settings</div>
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header" style="background:var(--royal);color:white;font-size:0.82rem">🏫 Club Settings <span class="collapse-icon" style="color:rgba(255,255,255,0.7)">▾</span></summary>
       <div class="info-form">
         <div class="info-field">
           <div class="info-label">Organization Type</div>
@@ -5029,12 +5273,12 @@ function renderClubInfoTab() {
         <button class="save-btn" style="width:100%;margin-top:8px;background:var(--royal);color:white;border-color:var(--royal);font-weight:700" onclick="saveClubSettings()">💾 Save Club Settings</button>
         <div id="club-settings-status" style="font-size:0.78rem;margin-top:4px;min-height:16px"></div>
       </div>
-    </div>
+    </details>
 
     ${isHS ? `
     <!-- ═══════ SEASON (HS Only) ═══════ -->
-    <div class="card" style="margin-bottom:12px">
-      <div class="card-header">🗓 Current Season</div>
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header">🗓 Current Season <span class="collapse-icon">▾</span></summary>
       <div class="info-form">
         <div class="info-field" style="background:var(--g50);padding:10px;border-radius:8px">
           <div class="info-label">Season Year <span style="color:var(--g400);font-weight:400;text-transform:none">(applies to all groups)</span></div>
@@ -5048,12 +5292,12 @@ function renderClubInfoTab() {
           <div class="info-hint" style="margin-top:4px">Changing the year archives the current season for all groups (Varsity + JV).</div>
         </div>
       </div>
-    </div>
+    </details>
     ` : ''}
 
     <!-- ═══════ PARENT JOIN LINK ═══════ -->
-    <div class="card" style="margin-bottom:12px">
-      <div class="card-header">🔗 Parent Join Link</div>
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header">🔗 Parent Join Link <span class="collapse-icon">▾</span></summary>
       <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
         <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">Share this link with parents so they can see your club in the app.</div>
         <div style="display:flex;gap:8px;align-items:center">
@@ -5064,11 +5308,11 @@ function renderClubInfoTab() {
         </div>
         <div style="font-size:0.72rem;color:var(--g400)">Club code: <strong>${esc(clubId)}</strong> — parents can also type this into the join screen.</div>
       </div>
-    </div>
+    </details>
 
     <!-- ═══════ CLUB LOGO ═══════ -->
-    <div class="card" style="margin-bottom:12px">
-      <div class="card-header">🖼 Club Logo</div>
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header">🖼 Club Logo <span class="collapse-icon">▾</span></summary>
       <div style="padding:14px">
         <div id="club-logo-preview" style="margin-bottom:10px;text-align:left;padding:10px;border-radius:8px;background:repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 0 0 / 16px 16px;border:1px solid var(--g200)"></div>
         <input type="file" id="club-logo-file" accept="image/*" style="display:none" onchange="previewClubLogo(event)">
@@ -5079,11 +5323,11 @@ function renderClubInfoTab() {
         <div id="logo-upload-status" style="font-size:0.78rem;margin-top:6px"></div>
         <div class="info-hint" style="margin-top:4px">Max 150KB. Shown in the parent app header.</div>
       </div>
-    </div>
+    </details>
 
     <!-- ═══════ CLUB BRANDING ═══════ -->
-    <div class="card" style="margin-bottom:12px">
-      <div class="card-header" style="background:var(--royal);color:white;font-size:0.82rem">🎨 Club Branding</div>
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header" style="background:var(--royal);color:white;font-size:0.82rem">🎨 Club Branding <span class="collapse-icon" style="color:rgba(255,255,255,0.7)">▾</span></summary>
       <div class="info-form">
         <div style="font-size:0.82rem;color:var(--g600);line-height:1.5;margin-bottom:10px">
           Customize your club's colors in the parent app. All parents will see these colors automatically.
@@ -5135,11 +5379,11 @@ function renderClubInfoTab() {
         </div>
         <div id="branding-status" style="font-size:0.78rem;margin-top:4px;min-height:16px"></div>
       </div>
-    </div>
+    </details>
 
     <!-- ═══════ ADMIN MANAGEMENT ═══════ -->
-    <div class="card" style="margin-bottom:12px">
-      <div class="card-header">👥 Club Admin Management</div>
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header">👥 Club Admin Management <span class="collapse-icon">▾</span></summary>
       <div style="padding:10px 14px">
         <p style="font-size:0.82rem;color:var(--g400);margin-bottom:10px;line-height:1.5">
           Manage who can access this club's admin panel.
@@ -5188,18 +5432,21 @@ function renderClubInfoTab() {
           <button class="save-btn" style="width:100%" onclick="loadClubAdmins()">🔄 Refresh Admin List</button>
         </div>
       </div>
-    </div>
+    </details>
 
     <!-- ═══════ ANALYTICS ═══════ -->
-    <div class="card" style="margin-bottom:12px">
-      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header" style="display:flex;align-items:center;justify-content:space-between">
         <span>📊 Analytics</span>
-        <button style="font-size:0.72rem;background:none;border:none;color:var(--royal);cursor:pointer;font-weight:600" onclick="loadAnalytics()">🔄 Refresh</button>
-      </div>
+        <span style="display:flex;align-items:center;gap:8px">
+          <button style="font-size:0.72rem;background:none;border:none;color:var(--royal);cursor:pointer;font-weight:600" onclick="event.stopPropagation();loadAnalytics()">🔄 Refresh</button>
+          <span class="collapse-icon">▾</span>
+        </span>
+      </summary>
       <div id="analytics-container" style="padding:10px 14px">
         <button class="save-btn" style="width:100%" onclick="loadAnalytics()">📊 Load Analytics</button>
       </div>
-    </div>`;
+    </details>`;
 }
 
 function renderAddGamesTab() {
@@ -5235,7 +5482,7 @@ function renderAddGamesTab() {
 
   return `
     <details class="card collapsible-card" open>
-      <summary class="card-header collapsible-header">📚 Tournament Library <span class="collapse-icon">▾</span></summary>
+      <summary class="card-header collapsible-header">📚 Game / Tournament Library <span class="collapse-icon">▾</span></summary>
       <div style="padding:10px 14px">
         <div style="font-size:0.78rem;color:var(--g400);margin-bottom:8px">Drafts save both your **games schedule** and your **current roster**. Use this to prepare multiple tournaments for the same club in advance.</div>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
@@ -5256,7 +5503,6 @@ function renderAddGamesTab() {
     <details class="card collapsible-card" open>
       <summary class="card-header collapsible-header">⚙️ Game / Tournament Setup <span class="collapse-icon">▾</span></summary>
       <div class="info-form">
-        <div class="info-field"><div class="info-label">Club Name <span style="color:var(--g400);font-weight:400;text-transform:none">(shown before opponent)</span></div><input class="info-input" value="${esc(t.clubName||'')}" placeholder="e.g. Pacific Waves" oninput="S.tournament.clubName=this.value"><div class="info-hint">Leave blank to show "vs. [opponent]" without a club prefix.</div></div>
         <div class="info-field"><div class="info-label">Cloud Club ID</div><input class="info-input" value="${esc(typeof fbGetClubId==='function'?fbGetClubId():'my-club')}" placeholder="e.g. pacific-waves" oninput="if(typeof fbSetClubId==='function')fbSetClubId(this.value);localStorage.setItem('ebadmin-clubId',this.value)"><div class="info-hint">Identifies your club in the cloud.</div></div>
         <div class="info-field"><div class="info-label">Tournament ID</div><input class="info-input" id="ti-id" value="${esc(t.id||'')}" oninput="S.tournament.id=this.value"><div class="info-hint red">⚠ Changing ID archives the current tournament. Only change when starting a new tournament.</div></div>
         <div class="info-field"><div class="info-label">Name</div><input class="info-input" id="ti-name" value="${esc(t.name||'')}" oninput="S.tournament.name=this.value;updateAdminHeader()"></div>
@@ -5265,16 +5511,6 @@ function renderAddGamesTab() {
         <div class="info-field"><div class="info-label">Venue Name</div><input id="info-venue-input" class="info-input" value="${esc(t.location||'')}" placeholder="Start typing…" spellcheck="false" oninput="S.tournament.location=this.value"><div class="info-hint">Type to search via Google Places.</div></div>
         <div class="info-field"><div class="info-label">Venue Address</div><input id="info-address-input" class="info-input" value="${esc(t.address||'')}" placeholder="Full address" oninput="S.tournament.address=this.value"><div class="info-hint">Displayed on game cards.</div></div>
         <div class="info-field"><div class="info-label">Coming Soon Message</div><input class="info-input" value="${esc(t.comingSoon||'')}" placeholder="Schedule coming week of April 20" oninput="S.tournament.comingSoon=this.value"><div class="info-hint">Clear once you've added games.</div></div>
-        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #fed7aa">
-          <div class="info-label" style="font-weight:700;color:#c2410c;margin-bottom:8px">⏱ Clock Settings</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-            <div class="info-field"><div class="info-label">Quarter Length (min)</div><input class="info-input" type="number" min="1" max="20" step="0.5" value="${esc((t.clockSettings||{}).quarterMins??7)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).quarterMins=+this.value"></div>
-            <div class="info-field"><div class="info-label">Quarter Break (min)</div><input class="info-input" type="number" min="0" max="10" step="0.5" value="${esc((t.clockSettings||{}).breakMins??2)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).breakMins=+this.value"></div>
-            <div class="info-field"><div class="info-label">Halftime (min)</div><input class="info-input" type="number" min="1" max="20" step="0.5" value="${esc((t.clockSettings||{}).halftimeMins??5)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).halftimeMins=+this.value"></div>
-            <div class="info-field"><div class="info-label"># Timeouts</div><input class="info-input" type="number" min="0" max="5" step="1" id="cfg-to-count" value="${esc((t.clockSettings||{}).timeoutsPerTeam??2)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).timeoutsPerTeam=+this.value;renderToLengthInputs()"></div>
-          </div>
-          <div id="cfg-to-lengths"></div>
-        </div>
         ${tierHasFeature('live_scoring')
           ? `<div class="info-field"><div class="info-label">Scoring Password</div><input class="info-input" type="text" value="${esc(t.scoringPassword||'')}" placeholder="e.g. bawl2026" autocomplete="off" oninput="S.tournament.scoringPassword=this.value"><div class="info-hint">Parents must enter this to use live scoring.</div></div>`
           : `<div class="info-field"><div class="info-label">Scoring Password</div>${renderUpgradeNudge('Live Scoring — Club Plan')}</div>`}
@@ -5287,6 +5523,19 @@ function renderAddGamesTab() {
           <div class="info-field"><div class="info-label">C Team</div><label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0"><input type="checkbox" id="ti-cteam" ${t.enableCTeam?'checked':''} onchange="toggleCTeam(this.checked)" style="width:18px;height:18px;cursor:pointer"><span style="font-size:0.9rem">Enable C Team</span></label></div>
           <div id="ti-cteam-fields" style="display:${t.enableCTeam?'contents':'none'}"><div class="info-field"><div class="info-label">Team C Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.C)||'')}" placeholder="Team C" oninput="setTeamLabel('C',this.value)"></div></div>
         </div>
+      </div>
+    </details>
+
+    <details class="card collapsible-card" open>
+      <summary class="card-header collapsible-header">⏱ Clock Settings <span class="collapse-icon">▾</span></summary>
+      <div class="info-form">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div class="info-field"><div class="info-label">Quarter Length (min)</div><input class="info-input" type="number" min="1" max="20" step="0.5" value="${esc((t.clockSettings||{}).quarterMins??7)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).quarterMins=+this.value"></div>
+          <div class="info-field"><div class="info-label">Quarter Break (min)</div><input class="info-input" type="number" min="0" max="10" step="0.5" value="${esc((t.clockSettings||{}).breakMins??2)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).breakMins=+this.value"></div>
+          <div class="info-field"><div class="info-label">Halftime (min)</div><input class="info-input" type="number" min="1" max="20" step="0.5" value="${esc((t.clockSettings||{}).halftimeMins??5)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).halftimeMins=+this.value"></div>
+          <div class="info-field"><div class="info-label"># Timeouts</div><input class="info-input" type="number" min="0" max="5" step="1" id="cfg-to-count" value="${esc((t.clockSettings||{}).timeoutsPerTeam??2)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).timeoutsPerTeam=+this.value;renderToLengthInputs()"></div>
+        </div>
+        <div id="cfg-to-lengths"></div>
       </div>
     </details>
 
@@ -6955,8 +7204,8 @@ function renderTeamCommTab() {
   const t = S.tournament;
   // Push Notification Manager section
   const pushSection = `
-    <div class="card" style="margin-bottom:12px">
-      <div class="card-header" style="display:flex;align-items:center;gap:8px">📱 Push Notification Manager</div>
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header">📱 Push Notification Manager <span class="collapse-icon">▾</span></summary>
       <div style="padding:10px 14px">
         <div style="font-size:0.78rem;color:var(--g400);margin-bottom:10px">View subscriber stats and send announcements to your users.</div>
 
@@ -7020,7 +7269,7 @@ function renderTeamCommTab() {
           <div id="scheduled-list" style="margin-top:10px;border-top:1px solid var(--g100);padding-top:8px"></div>
         </div>
       </div>
-    </div>`;
+    </details>`;
 
   // Bots section from existing renderBotsTab
   const botsSection = renderBotsTab();
@@ -7040,14 +7289,8 @@ function renderBotsTab() {
 
   return `
     <!-- ── Send Update ────────────────────────────────────────── -->
-    <div class="card bot-card">
-      <div class="bot-header">
-        <div class="bot-logo bot-logo-send">📣</div>
-        <div>
-          <div class="bot-title">Send Score Update</div>
-          <div class="bot-sub">Compose a message and send to any configured channel</div>
-        </div>
-      </div>
+    <details class="card collapsible-card bot-card" open>
+      <summary class="card-header collapsible-header">📣 Send Score Update <span class="collapse-icon">▾</span></summary>
       <div class="bot-body">
         <div class="bot-field">
           <div class="bot-label">Message</div>
@@ -7061,17 +7304,12 @@ function renderBotsTab() {
         </div>
         <div id="bot-send-status" class="bot-status"></div>
       </div>
-    </div>
+    </details>
 
     <!-- ── Telegram ───────────────────────────────────────────── -->
-    <div class="card bot-card">
-      <div class="bot-header">
-        <div class="bot-logo bot-logo-tg">✈️</div>
-        <div>
-          <div class="bot-title">Telegram Bot ${tgToken && tgChat ? '<span class="bot-saved-badge">✓ configured</span>' : ''}</div>
-          <div class="bot-sub">Posts score updates to a Telegram group or channel</div>
-        </div>
-      </div>
+    <details class="card collapsible-card bot-card" open>
+      <summary class="card-header collapsible-header">✈️ Telegram Bot ${tgToken && tgChat ? '<span class="bot-saved-badge">✓ configured</span>' : ''} <span class="collapse-icon">▾</span></summary>
+      <div style="padding:4px 16px 2px;font-size:0.78rem;color:var(--g400)">Posts score updates to a Telegram group or channel</div>
       <div class="bot-body">
         <div class="bot-field">
           <div class="bot-label">Bot Token ${botSaved(BOT_KEYS.TG_TOKEN)}</div>
@@ -7101,17 +7339,11 @@ function renderBotsTab() {
           5. Paste both above and tap <strong>💾 Save</strong>
         </div>
       </div>
-    </div>
+    </details>
 
     <!-- ── GroupMe ────────────────────────────────────────────── -->
-    <div class="card bot-card">
-      <div class="bot-header">
-        <div class="bot-logo bot-logo-gm">💬</div>
-        <div>
-          <div class="bot-title">GroupMe Bot ${gmBotId ? '<span class="bot-saved-badge">✓ configured</span>' : ''}</div>
-          <div class="bot-sub">Posts score updates to a GroupMe group</div>
-        </div>
-      </div>
+    <details class="card collapsible-card bot-card" open>
+      <summary class="card-header collapsible-header">💬 GroupMe Bot ${gmBotId ? '<span class="bot-saved-badge">✓ configured</span>' : ''} <span class="collapse-icon">▾</span></summary>
       <div class="bot-body">
         <div class="bot-field">
           <div class="bot-label">Bot ID ${botSaved(BOT_KEYS.GM_BOT_ID)}</div>
@@ -7136,17 +7368,11 @@ function renderBotsTab() {
           Parents in the group can also message: <code>score</code>, <code>schedule</code>, or <code>help</code>
         </div>
       </div>
-    </div>
+    </details>
 
     <!-- ── TeamSnap ───────────────────────────────────────────── -->
-    <div class="card bot-card">
-      <div class="bot-header">
-        <div class="bot-logo bot-logo-ts">🏆</div>
-        <div>
-          <div class="bot-title">TeamSnap ${tsConn ? '<span class="bot-saved-badge">✓ connected</span>' : ''}</div>
-          <div class="bot-sub">Sends a broadcast alert to your TeamSnap team</div>
-        </div>
-      </div>
+    <details class="card collapsible-card bot-card" open>
+      <summary class="card-header collapsible-header">🏆 TeamSnap ${tsConn ? '<span class="bot-saved-badge">✓ connected</span>' : ''} <span class="collapse-icon">▾</span></summary>
       <div class="bot-body">
 
         ${tsConn ? `
@@ -7192,7 +7418,7 @@ function renderBotsTab() {
           That's it — no manual ID hunting needed!
         </div>
       </div>
-    </div>`;
+    </details>`;
 }
 
 // ── Default message builder ────────────────────────────────────────────────
@@ -7489,8 +7715,8 @@ function renderHistoryAdminTab() {
   // ── MaxPreps Import for HS clubs ──
   if (isHS) {
     html += `
-    <div class="card" style="margin-bottom:10px">
-      <div class="card-header">📊 Import from MaxPreps</div>
+    <details class="card collapsible-card" style="margin-bottom:10px" open>
+      <summary class="card-header collapsible-header">📊 Import from MaxPreps <span class="collapse-icon">▾</span></summary>
       <div style="padding:10px 14px">
         <div style="font-size:0.82rem;color:var(--g400);margin-bottom:8px;line-height:1.5">
           Import a season's W/L history from MaxPreps.
@@ -7516,13 +7742,13 @@ function renderHistoryAdminTab() {
         </details>
         <div id="maxpreps-import-status" style="font-size:0.78rem;margin-top:6px;min-height:16px"></div>
       </div>
-    </div>`;
+    </details>`;
   }
 
   // ── Add History Entry form ──
   html += `
-    <div class="card">
-      <div class="card-header">📝 Add Tournament Result — ${esc(teamLabel)}</div>
+    <details class="card collapsible-card" open>
+      <summary class="card-header collapsible-header">📝 Add Tournament Result — ${esc(teamLabel)} <span class="collapse-icon">▾</span></summary>
       <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
         <div class="form-row">
           <div class="form-group">
@@ -7577,12 +7803,12 @@ function renderHistoryAdminTab() {
         </div>
         <button class="btn-save" onclick="addHistoryEntry()" style="margin-top:4px">➕ Add Tournament Result</button>
       </div>
-    </div>`;
+    </details>`;
 
   // ── CSV Upload card ──
   html += `
-    <div class="card">
-      <div class="card-header">📊 Import from Spreadsheet — ${esc(teamLabel)}</div>
+    <details class="card collapsible-card" open>
+      <summary class="card-header collapsible-header">📊 Import from Spreadsheet — ${esc(teamLabel)} <span class="collapse-icon">▾</span></summary>
       <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
         <div style="font-size:0.82rem;color:var(--g600);line-height:1.55">
           Upload a CSV with columns: <strong>Name, Dates, Location, Wins, Losses, Ties, Points, Placement, Season, Notes</strong><br>
@@ -7597,7 +7823,7 @@ function renderHistoryAdminTab() {
         </div>
         <div id="csv-preview" style="display:none;font-size:0.82rem;color:var(--green)"></div>
       </div>
-    </div>`;
+    </details>`;
 
   // ── Existing History entries ──
   const entries = S.history || [];
@@ -7611,8 +7837,8 @@ function renderHistoryAdminTab() {
       bySeason[s].push(h);
     }
 
-    html += `<div class="card">
-      <div class="card-header">📋 Tournament History — ${esc(teamLabel)} (${entries.length})</div>`;
+    html += `<details class="card collapsible-card" open>
+      <summary class="card-header collapsible-header">📋 Tournament History — ${esc(teamLabel)} (${entries.length}) <span class="collapse-icon">▾</span></summary>`;
 
     for (const season of seasonOrder) {
       const seasonEntries = bySeason[season];
@@ -7639,15 +7865,15 @@ function renderHistoryAdminTab() {
         </div>`;
       }
     }
-    html += `</div>`;
+    html += `</details>`;
   } else {
-    html += `<div class="card">
-      <div class="card-header">📋 Tournament History — ${esc(teamLabel)}</div>
+    html += `<details class="card collapsible-card" open>
+      <summary class="card-header collapsible-header">📋 Tournament History — ${esc(teamLabel)} <span class="collapse-icon">▾</span></summary>
       <div style="padding:20px;text-align:center;color:var(--g400)">
         <div style="font-size:1.5rem;margin-bottom:6px">📭</div>
         No history entries yet. Add one manually or import a CSV above.
       </div>
-    </div>`;
+    </details>`;
   }
 
   return html;
@@ -8591,8 +8817,8 @@ async function loadArchiveTab() {
       const pctColor = (p) => p >= 70 ? '#16a34a' : p >= 50 ? '#ca8a04' : p >= 30 ? '#ea580c' : '#dc2626';
       const pctBg = (p) => p >= 70 ? '#dcfce7' : p >= 50 ? '#fef9c3' : p >= 30 ? '#fff7ed' : '#fef2f2';
 
-      dashHtml += `<div class="card" style="margin-bottom:12px">
-        <div class="card-header" style="display:flex;align-items:center;gap:8px">📊 Season Dashboard</div>
+      dashHtml += `<details class="card collapsible-card" style="margin-bottom:12px" open>
+        <summary class="card-header collapsible-header">📊 Season Dashboard <span class="collapse-icon">▾</span></summary>
         <div style="padding:12px 14px">`;
 
       // Overall club record banner
@@ -8625,11 +8851,11 @@ async function loadArchiveTab() {
           <div style="width:36px;text-align:right;font-size:0.78rem;font-weight:700;color:${pctColor(gs.pct)};flex-shrink:0">${gs.pct}%</div>
         </div>`;
       }
-      dashHtml += `</div></div>`;
+      dashHtml += `</div></details>`;
     }
 
     let html = dashHtml;
-    html += '<div class="card"><div class="card-header">📦 Tournament Archive</div><div style="padding:10px 14px">';
+    html += '<details class="card collapsible-card" open><summary class="card-header collapsible-header">📦 Tournament Archive <span class="collapse-icon">▾</span></summary><div style="padding:10px 14px">';
     html += '<p style="font-size:0.82rem;color:var(--g400);margin-bottom:12px">Tournaments are automatically archived on every deploy. Click to view details or load a past roster.</p>';
 
     let groupIdx = 0;
@@ -8671,7 +8897,7 @@ async function loadArchiveTab() {
       html += '</div></div>';
     }
 
-    html += '</div></div>';
+    html += '</div></details>';
     el.innerHTML = html;
   } catch (e) {
     el.innerHTML = `<div class="card"><div style="padding:20px;color:var(--red)">Error loading archive: ${esc(e.message)}</div></div>`;
