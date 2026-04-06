@@ -1945,14 +1945,10 @@
     <div class="admin-more-sheet">
       <div class="admin-more-handle"></div>
       <div class="admin-more-items">
+        <div style="padding:6px 20px 2px;font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--g400)">Setup &amp; Club</div>
         <button class="admin-more-item" onclick="adminMoreNav('clubinfo')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
           <span>Club Info</span>
-          <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-        <button class="admin-more-item" onclick="adminMoreNav('raw')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          <span>Raw JSON</span>
           <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
         <button class="admin-more-item" data-tab="teamcomm" onclick="adminMoreNav('teamcomm')">
@@ -1966,6 +1962,7 @@
           <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
         <div class="admin-more-divider"></div>
+        <div style="padding:6px 20px 2px;font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--g400)">History &amp; Data</div>
         <button class="admin-more-item" onclick="adminMoreNav('archive')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
           <span>Archive</span>
@@ -1973,9 +1970,16 @@
         </button>
         <button class="admin-more-item" data-tab="history" onclick="adminMoreNav('history')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
-          <span>History<span class="tab-crown" style="display:none"> 👑</span></span>
+          <span>Season Stats &amp; History<span class="tab-crown" style="display:none"> 👑</span></span>
           <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
+        <button class="admin-more-item" onclick="adminMoreNav('raw')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          <span>Raw Data (Advanced)</span>
+          <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="admin-more-divider"></div>
+        <div style="padding:6px 20px 2px;font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--g400)">Account</div>
         <button class="admin-more-item" onclick="adminMoreNav('settings')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span>Settings</span>
@@ -2013,6 +2017,7 @@
     </div>
   </div>
 
+  <div id="unsaved-bar" style="display:none;position:sticky;top:0;z-index:95;background:#d97706;color:white;font-size:0.78rem;font-weight:700;padding:6px 16px;text-align:center;letter-spacing:0.01em">● Unsaved changes — tap 💾 Save &amp; Deploy to push live to parents</div>
   <main id="tab-content"></main>
 
   <!-- ── Paywall Sheet ──────────────────────────────────────────────────────── -->
@@ -2084,6 +2089,7 @@ const S = {
   dirSelectedTeam: '',  // selected team name within age group
   teamStatuses: {},     // { 'teamKey': 'green'|'yellow'|'gray' } for status dots
   clubTier:     'free', // current subscription tier: 'free' | 'club' | 'tournament_host' | 'parent'
+  _dirty:       false,  // true when there are unsaved changes
 };
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
@@ -3309,6 +3315,20 @@ function syncAdminHeaderHeight() {
 }
 window.addEventListener('resize', syncAdminHeaderHeight);
 
+// Track unsaved changes via event delegation on the tab content area
+document.addEventListener('DOMContentLoaded', () => {
+  const tc = document.getElementById('tab-content');
+  if (tc) {
+    tc.addEventListener('input', _markDirty);
+    tc.addEventListener('change', _markDirty);
+  }
+});
+
+// Warn on unload if there are unsaved changes
+window.addEventListener('beforeunload', e => {
+  if (S._dirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
 function renderTab() {
   const el = document.getElementById('tab-content');
   // Restrict scorer-role users to Schedule tab only
@@ -3319,7 +3339,7 @@ function renderTab() {
   if (S.currentTab === 'clubinfo') { loadClubSettings().then(() => { el.innerHTML = renderClubInfoTab(); loadClubAdmins(); loadPendingInvites(); initBrandingPreview(); }); return; }
   if (S.currentTab === 'schedule') { el.innerHTML = renderScheduleTab(); }
   if (S.currentTab === 'roster') el.innerHTML = renderRosterTab();
-  if (S.currentTab === 'addgames') { el.innerHTML = renderAddGamesTab(); renderToLengthInputs(); setTimeout(initPlacesAutocomplete, 0); if (S.editingGame) setTimeout(initGamePlaces, 0); setTimeout(loadActivityLog, 300); }
+  if (S.currentTab === 'addgames') { el.innerHTML = renderAddGamesTab(); renderToLengthInputs(); setTimeout(initPlacesAutocomplete, 0); if (S.editingGame) setTimeout(initGamePlaces, 0); }
   if (S.currentTab === 'raw')      el.innerHTML = renderRawTab();
   if (S.currentTab === 'help')     el.innerHTML = renderHelpTab();
   if (S.currentTab === 'director') {
@@ -3435,6 +3455,7 @@ function renderAdminSettingsTab() {
           <button class="theme-pill" onclick="applyAdminTheme('light')" data-val="light">☀️ Light</button>
           <button class="theme-pill" onclick="applyAdminTheme('dark')" data-val="dark">🌙 Dark</button>
         </div>
+        <div style="font-size:0.72rem;color:var(--g400);margin-top:8px">Your choice is saved automatically and applied across all sessions on this device.</div>
       </div>
     </div>
 
@@ -3803,14 +3824,21 @@ function renderScheduleTab() {
       ? `<button class="add-btn btn-upcoming" style="background:#fff8f0;color:#c2410c;border-color:#f97316;width:100%" onclick="setUpcomingMode()">📅 Set to Upcoming Mode</button>`
       : '';
 
+  const _statusPill = S.tournament.upcomingMode
+    ? `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:#fff8f0;border:1px solid #fed7aa;border-radius:8px;margin-bottom:8px;font-size:0.78rem;font-weight:700;color:#c2410c">📅 Status: <strong>Coming Soon</strong> — schedule is hidden from parents. Tap "🟢 Go Live" when ready.</div>`
+    : liveGames.length
+      ? `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--green-lt);border:1px solid #bbf7d0;border-radius:8px;margin-bottom:8px;font-size:0.78rem;font-weight:700;color:var(--green)">🟢 Status: <strong>Live</strong> — parents can see this schedule in the app.</div>`
+      : `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--g50);border:1px solid var(--g200);border-radius:8px;margin-bottom:8px;font-size:0.78rem;font-weight:700;color:var(--g600)">⚫ Status: <strong>No games</strong> — add games in the Games tab, then deploy.</div>`;
+
   return `
+    ${_statusPill}
     ${upcomingInfoCard}
     ${cardsHtml}
     ${upcomingBtnInner ? `<div style="margin-top:8px">${upcomingBtnInner}</div>` : ''}
     <div class="schedule-danger-zone" style="margin-top:10px;border:1.5px solid #fecaca;border-radius:10px;overflow:hidden">
       <div class="danger-label" style="background:#fff5f5;padding:8px 12px;font-size:0.72rem;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:0.05em">⚠️ Danger Zone</div>
       <div class="danger-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px">
-        <button class="add-btn btn-undeploy" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;font-weight:700;margin:0" onclick="undeployLiveSchedule()">🛑 Undeploy</button>
+        <button class="add-btn btn-undeploy" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;font-weight:700;margin:0" onclick="undeployLiveSchedule()">🛑 Take Offline</button>
         <button class="clear-data-btn" style="margin:0" onclick="clearAgeGroupData()">🗑 Clear All Data</button>
       </div>
     </div>
@@ -4395,18 +4423,18 @@ function applyBracketSeedings(rankedNames) {
  * Deletes from both KV (via worker) and Firestore, then resets local state.
  */
 async function undeployLiveSchedule() {
-  const teamLabel = ADMIN_TEAMS.find(t => t.key === S.team)?.label || S.team;
+  const teamLabel = getAdminTeams().find(t => t.key === S.team)?.label || S.team;
   _adminConfirm({
-    title: '🛑 Undeploy Schedule',
-    body: `Remove all live games for <strong>${teamLabel}</strong> from the parent app and set it back to "Upcoming" mode.<br><br>Your saved drafts and age group settings will remain safe.`,
-    confirmText: '🛑 Undeploy',
+    title: '🛑 Take Schedule Offline',
+    body: `Remove all live games for <strong>${teamLabel}</strong> from the parent app and set it back to "Coming Soon" mode.<br><br>Your saved games and settings will remain safe.`,
+    confirmText: '🛑 Take Offline',
     dangerConfirm: true,
     onConfirm: _doUndeployLiveSchedule,
   });
 }
 
 async function _doUndeployLiveSchedule() {
-  const teamLabel = ADMIN_TEAMS.find(t => t.key === S.team)?.label || S.team;
+  const teamLabel = getAdminTeams().find(t => t.key === S.team)?.label || S.team;
   showStatus('Undeploying…', 'info');
   try {
     S.tournament.games = [];
@@ -4430,7 +4458,7 @@ async function _doUndeployLiveSchedule() {
 }
 
 async function clearAgeGroupData() {
-  const teamLabel = ADMIN_TEAMS.find(t => t.key === S.team)?.label || S.team;
+  const teamLabel = getAdminTeams().find(t => t.key === S.team)?.label || S.team;
   const clubId = localStorage.getItem('ebadmin-clubId') || 'my-club';
   _adminConfirm({
     title: '🗑 Clear All Data',
@@ -4443,7 +4471,7 @@ async function clearAgeGroupData() {
 }
 
 async function _doClearAgeGroupData() {
-  const teamLabel = ADMIN_TEAMS.find(t => t.key === S.team)?.label || S.team;
+  const teamLabel = getAdminTeams().find(t => t.key === S.team)?.label || S.team;
   showStatus('Clearing data…', 'info');
 
   try {
@@ -4538,6 +4566,7 @@ function autoDetectAllTeams() {
 }
 
 function saveGame(id) {
+  _markDirty();
   const g = S.tournament.games.find(x => x.id === id);
   if (!g) return;
   const dateISO  = document.getElementById('ge-date').value.trim();
@@ -4573,6 +4602,7 @@ function setGameField(id, field, val) {
 }
 
 function deleteGame(id) {
+  _markDirty();
   if (!confirm('Delete this game?')) return;
   S.tournament.games = S.tournament.games.filter(g => g.id !== id);
   S.editingGame = null;
@@ -4665,6 +4695,7 @@ async function syncScheduleFromSheet() {
 }
 
 function addGame() {
+  _markDirty();
   const id = 'g' + Date.now().toString(36);
   S.tournament.games.push({
     id, gameNum: '', opponent: '', time: '', dateISO: '', date: '', location: '', pool: '', cap: 'White',
@@ -4820,7 +4851,7 @@ function renderRosterTab() {
     <button class="save-btn" style="margin:0" onclick="saveRoster()">💾 Save Roster</button>
   </div>`;
   const sheetCard = `
-    <details class="card collapsible-card" style="margin-top:8px" open>
+    <details class="card collapsible-card" style="margin-top:8px">
       <summary class="card-header collapsible-header">📊 Google Sheets Sync <span class="collapse-icon">▾</span></summary>
       <div style="padding:10px 14px">
         <div style="font-size:0.78rem;color:var(--g400);margin-bottom:8px">
@@ -4840,7 +4871,7 @@ function renderRosterTab() {
       </div>
     </details>`;
   const bulkImportCard = `
-    <details class="card collapsible-card" style="margin-top:8px" id="bulk-import-card" open>
+    <details class="card collapsible-card" style="margin-top:8px" id="bulk-import-card">
       <summary class="card-header collapsible-header">📋 Bulk Import <span class="collapse-icon">▾</span></summary>
       <div style="padding:10px 14px">
         <div style="font-size:0.78rem;color:var(--g400);margin-bottom:8px">
@@ -4880,6 +4911,8 @@ function renderRosterTab() {
     const labelB = (S.tournament.teamLabels && S.tournament.teamLabels.B) || 'Team B';
     return `
       ${hint}
+      ${sheetCard}
+      ${bulkImportCard}
       <details class="card collapsible-card" style="margin-top:8px" open>
         <summary class="card-header collapsible-header">${esc(labelA)} Roster (${rA.length} players) <span class="collapse-icon">▾</span></summary>
         <div style="padding:8px 14px;border-bottom:1px solid var(--g100)">
@@ -4898,8 +4931,6 @@ function renderRosterTab() {
         ${buildRosterRows(rB, 'B') || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No players yet</div>'}
       </details>
       <button class="add-btn" onclick="addRosterPlayer('B')">+ Add Player to ${esc(labelB)}</button>
-      ${sheetCard}
-      ${bulkImportCard}
       <!-- Export Roster CSV + Save Roster are side-by-side in saveBtn at the bottom -->
       ${S.tournament.enableCTeam ? (() => {
     const rC = (S.roster && S.roster.C) || [];
@@ -4935,6 +4966,8 @@ function renderRosterTab() {
   const rows = buildRosterRows(S.roster, null);
   return `
     ${hint}
+    ${sheetCard}
+    ${bulkImportCard}
     <details class="card collapsible-card" style="margin-top:8px" open>
       <summary class="card-header collapsible-header">Roster (${(S.roster||[]).length} players) <span class="collapse-icon">▾</span></summary>
       <div style="padding:8px 14px;border-bottom:1px solid var(--g100)">
@@ -4944,8 +4977,6 @@ function renderRosterTab() {
       ${rows || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No players yet — sync from sheet, upload a CSV, or tap Add Player</div>'}
     </details>
     <button class="add-btn" onclick="addRosterPlayer(null)">+ Add Player</button>
-    ${sheetCard}
-    ${bulkImportCard}
     <details class="card collapsible-card" style="margin-top:8px" open>
       <summary class="card-header collapsible-header" style="display:flex;align-items:center;justify-content:space-between">
         <span>📊 Season Player Stats</span>
@@ -5853,6 +5884,13 @@ function renderAddGamesTab() {
           <button class="add-btn" style="flex:1;background:var(--g100);color:var(--g700);border:1px solid var(--g300)" onclick="resetWorkspace()">✨ Start Fresh (Clear Workspace)</button>
           <button class="add-btn" style="flex:1;background:var(--royal);color:white;border:none" onclick="saveToLibrary()">💾 Save Current Workspace to Library</button>
         </div>
+        <div style="border-top:1px solid var(--g100);margin-top:10px;padding-top:10px">
+          <div style="font-size:0.78rem;color:var(--g400);margin-bottom:6px">📐 <strong>Templates</strong> — save/load reusable game structures (without scores or dates).</div>
+          <div style="display:flex;gap:8px">
+            <button class="add-btn" style="flex:1;background:#fef3c7;color:#92400e;border:1px solid #fcd34d" onclick="saveAsTemplate()">💾 Save as Template</button>
+            <button class="add-btn" style="flex:1;background:#ecfdf5;color:#065f46;border:1px solid #6ee7b7" onclick="loadTemplate()">📐 Load Template</button>
+          </div>
+        </div>
       </div>
     </details>
 
@@ -5899,7 +5937,6 @@ function renderAddGamesTab() {
           <button class="add-btn" onclick="cloneFromArchive()" style="flex:1;background:var(--g100);color:var(--g700);border:1px solid var(--g300)">📋 Clone from Archive</button>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-          <button class="add-btn" style="flex:1;background:#ecfdf5;color:#065f46;border:1px solid #6ee7b7" onclick="loadTemplate()">📐 Load Template</button>
           <button class="add-btn" style="flex:1;background:#f0f9ff;color:#0c4a6e;border:1px solid #7dd3fc" onclick="openPasteSchedule()">📋 Paste Schedule</button>
         </div>
         <div style="border-top:1px solid var(--g100);margin-top:8px;padding-top:8px">
@@ -5917,23 +5954,18 @@ function renderAddGamesTab() {
       </div>
     </details>
 
-    <div class="card" style="margin-top:0">
-      <div class="card-header">💾 Save Template</div>
-      <div style="padding:10px 14px">
-        <div style="font-size:0.78rem;color:var(--g400);margin-bottom:8px">Save the current game structure as a reusable template.</div>
-        <button class="add-btn" style="width:100%;background:#fef3c7;color:#92400e;border:1px solid #fcd34d" onclick="saveAsTemplate()">💾 Save Current Games as Template</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+    <details class="card collapsible-card" id="activity-log-card">
+      <summary class="card-header collapsible-header" style="display:flex;align-items:center;justify-content:space-between" onclick="if(this.parentElement.open)loadActivityLog()">
         <span>📋 Activity Log</span>
-        <button style="font-size:0.72rem;background:none;border:none;color:var(--royal);cursor:pointer;font-weight:600" onclick="loadActivityLog()">🔄 Refresh</button>
-      </div>
+        <span style="display:flex;align-items:center;gap:8px">
+          <button style="font-size:0.72rem;background:none;border:none;color:var(--royal);cursor:pointer;font-weight:600" onclick="event.stopPropagation();loadActivityLog()">🔄 Refresh</button>
+          <span class="collapse-icon">▾</span>
+        </span>
+      </summary>
       <div id="activity-log-container" style="padding:10px 14px">
-        <div style="text-align:center;color:var(--g400);font-size:0.85rem;padding:8px">Loading activity log…</div>
+        <div style="text-align:center;color:var(--g400);font-size:0.85rem;padding:8px">Tap to load activity log…</div>
       </div>
-    </div>`;
+    </details>`;
 }
 function renderInfoTab() { return renderAddGamesTab(); }
 
@@ -7178,6 +7210,7 @@ async function saveAndDeploy() {
       throw new Error(txt);
     }
     showStatus('✅ Deployed! Live at eggbeater.app', 'ok');
+    _clearDirty();
   } catch (e) {
     showStatus('❌ ' + e.message, 'err');
   } finally {
@@ -7325,6 +7358,23 @@ function getAllTeamKeys() {
  * Deploy All — saves the current team's in-memory state; all teams' KV data
  * is live immediately since the app reads from CF KV at runtime.
  */
+
+// ─── UNSAVED CHANGES TRACKING ─────────────────────────────────────────────────
+
+/** Call whenever the admin mutates tournament or roster data. */
+function _markDirty() {
+  if (S._dirty) return;
+  S._dirty = true;
+  const bar = document.getElementById('unsaved-bar');
+  if (bar) bar.style.display = 'block';
+}
+
+/** Call after a successful deploy to clear dirty state. */
+function _clearDirty() {
+  S._dirty = false;
+  const bar = document.getElementById('unsaved-bar');
+  if (bar) bar.style.display = 'none';
+}
 
 /**
  * Lightweight confirmation bottom-sheet.
@@ -9537,7 +9587,7 @@ function renderHelpTab() {
     {
       icon: '🤖',
       title: 'Team Communication — Messaging Integrations',
-      body: `<p><strong>👑 Requires Club Plan ($24.99/mo · $199/yr).</strong> Upgrade in the <em>Subscription</em> tab.</p>
+      body: `<p><strong>👑 Requires Club Plan.</strong> Tap the upgrade button on any locked feature, or visit <a href="https://eggbeater.app" target="_blank" style="color:var(--royal)">eggbeater.app</a> to see current pricing.</p>
       <p>Set up automated messaging so you can send score updates and alerts directly from the app to your team channels.</p>
       <p><strong>Send Score Update (top section)</strong> — compose a message and send it to any configured channel. A default message with tournament info and game results is pre-filled — you can edit it or reset it.</p>
       <p><strong>Telegram Bot:</strong></p>
@@ -9744,16 +9794,6 @@ function renderHelpTab() {
     },
   ];
 
-  const accordionHtml = sections.map(s => `
-    <details class="admin-help-item">
-      <summary class="admin-help-summary">
-        <span class="admin-help-icon">${s.icon}</span>
-        <span class="admin-help-title">${s.title}</span>
-        <svg class="admin-help-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </summary>
-      <div class="admin-help-body">${s.body}</div>
-    </details>`).join('');
-
   return `
     <div class="card" style="padding:16px 16px 8px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
@@ -9765,13 +9805,34 @@ function renderHelpTab() {
       </div>
     </div>
 
-    <div class="card" style="padding:0;overflow:hidden">
-      ${accordionHtml}
+    <div style="padding:4px 0 12px">
+      <input id="help-search" type="search" placeholder="Search help…" autocomplete="off" spellcheck="false"
+        style="width:100%;padding:10px 14px;border:1.5px solid var(--g200);border-radius:10px;font-size:0.88rem;font-family:inherit;background:var(--g50);color:var(--g900);outline:none"
+        oninput="filterHelp(this.value)">
+    </div>
+    <div id="help-sections">
+      ${sections.map(s => `
+        <details class="card collapsible-card help-section" style="margin-bottom:8px" data-title="${s.title.toLowerCase()}" data-body="${(s.body||'').toLowerCase().replace(/"/g,'&quot;')}">
+          <summary class="card-header collapsible-header">
+            <span style="margin-right:8px">${s.icon}</span>${s.title} <span class="collapse-icon">▾</span>
+          </summary>
+          <div style="padding:14px 16px;font-size:0.88rem;line-height:1.6;color:var(--g600)">${s.body}</div>
+        </details>`).join('')}
     </div>
 
     <div style="text-align:center;padding:8px 0 16px;font-size:0.75rem;color:var(--g400)">
       Eggbeater Water Polo · Admin Panel · Built with ❤️
     </div>`;
+}
+
+function filterHelp(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.help-section').forEach(el => {
+    if (!q) { el.style.display = ''; return; }
+    const title = el.dataset.title || '';
+    const body  = el.dataset.body  || '';
+    el.style.display = (title.includes(q) || body.includes(q)) ? '' : 'none';
+  });
 }
 
 // ─── PLACES AUTOCOMPLETE ──────────────────────────────────────────────────────
