@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="512x512" href="icon-admin-512.png">
   <script>
 (function(){
-  var t = localStorage.getItem('ebwp-admin-theme') || 'system';
+  var t = localStorage.getItem('ebwp-admin-theme') || 'light';
   if(t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme:dark)').matches)) {
     document.documentElement.setAttribute('data-theme','dark');
   }
@@ -1305,7 +1305,7 @@
         background: var(--g200);
         margin: 6px 0;
       }
-      .admin-desktop-item { display: flex; }
+      .admin-desktop-item { display: flex !important; }
     }
 
     /* ── Bracket preview ── */
@@ -1854,7 +1854,7 @@
     <div class="admin-header-bar">
       <span class="admin-header-title">Super Admin Dashboard</span>
       <span class="admin-header-sub">Select a club to manage</span>
-      <button id="dashboard-theme-toggle" onclick="applyAdminTheme((localStorage.getItem('ebwp-admin-theme')||'system')==='dark'||(localStorage.getItem('ebwp-admin-theme')!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches)?'light':'dark')" style="background:none;border:1px solid var(--g200);border-radius:8px;padding:4px 10px;font-size:1rem;cursor:pointer;line-height:1">🌙</button>
+      <button id="dashboard-theme-toggle" onclick="applyAdminTheme((localStorage.getItem('ebwp-admin-theme')||'light')==='dark'?'light':'dark')" style="background:none;border:1px solid var(--g200);border-radius:8px;padding:4px 10px;font-size:1rem;cursor:pointer;line-height:1">🌙</button>
       <button class="save-btn" style="background:var(--red);color:white;border-color:var(--red);padding:4px 14px;font-size:0.78rem" onclick="doLogout()">🚪 Logout</button>
     </div>
   </header>
@@ -3281,7 +3281,7 @@ setInterval(refreshIdToken, 50 * 60 * 1000);
 // ─── THEME ────────────────────────────────────────────────────────────────────
 
 function applyAdminTheme(t) {
-  t = t || localStorage.getItem('ebwp-admin-theme') || 'system';
+  t = t || localStorage.getItem('ebwp-admin-theme') || 'light';
   localStorage.setItem('ebwp-admin-theme', t);
   const dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme:dark)').matches);
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
@@ -3298,13 +3298,13 @@ function applyAdminTheme(t) {
 }
 
 function toggleLoginTheme() {
-  const cur = localStorage.getItem('ebwp-admin-theme') || 'system';
+  const cur = localStorage.getItem('ebwp-admin-theme') || 'light';
   const isDark = cur === 'dark' || (cur === 'system' && window.matchMedia('(prefers-color-scheme:dark)').matches);
   applyAdminTheme(isDark ? 'light' : 'dark');
 }
 // Apply on OS theme change
 window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', () => {
-  if ((localStorage.getItem('ebwp-admin-theme') || 'system') === 'system') applyAdminTheme('system');
+  if ((localStorage.getItem('ebwp-admin-theme') || 'light') === 'system') applyAdminTheme('system');
 });
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
