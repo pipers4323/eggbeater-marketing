@@ -1322,28 +1322,46 @@
     .bracket-team-top { border-bottom: 1px solid var(--g100); }
     .bracket-empty { color: var(--g400); font-style: italic; font-size: 0.82rem; }
 
+    /* ── Deploy button: short label hidden on desktop, shown on mobile ── */
+    .deploy-label-short { display: none; }
+
     /* ── Mobile Header Optimization ─────────────────────────────────────── */
     @media (max-width: 600px) {
-      .admin-logo-wrap {
-        padding: 6px 12px;
+      /* Logo */
+      .admin-logo-wrap { padding: 6px 12px; }
+      .admin-logo-img { height: 56px !important; width: auto !important; }
+      .admin-custom-logo-img { height: 28px !important; width: auto !important; }
+
+      /* Header bar: remove clutter so everything fits */
+      .admin-header-bar { padding: 4px 10px; min-height: 36px; gap: 5px; }
+      .admin-header-title { display: none; }   /* hide "Admin" text on mobile */
+      #header-sub        { display: none; }    /* hide status/loading text */
+      #admin-team-select { font-size: 0.72rem; max-width: 130px; padding: 4px 5px; }
+
+      /* Switch Club: icon only */
+      .switch-club-text { display: none; }
+      #switch-club-btn  { padding: 4px 8px; margin-right: 0; }
+
+      /* Deploy button: short label on mobile */
+      .deploy-label-full  { display: none; }
+      .deploy-label-short { display: inline; }
+      .deploy-btn         { padding: 5px 10px; font-size: 0.72rem; }
+
+      /* Combined bar: wrap to two rows so nothing overlaps */
+      .admin-combined-bar {
+        flex-wrap: wrap;
+        gap: 5px;
+        padding: 5px 10px 6px;
+        overflow-x: visible;
       }
-      .admin-logo-img {
-        height: 56px !important;
-        width: auto !important;
-      }
-      .admin-custom-logo-img {
-        height: 28px !important;
-        width: auto !important;
-      }
-      .admin-header-bar {
-        padding: 4px 12px;
-        min-height: 36px;
-      }
-      #admin-team-select {
-        font-size: 0.72rem;
-        max-width: 130px;
-        padding: 4px 5px;
-      }
+      .admin-tourn-strip   { width: 100%; order: 0; }
+      .admin-global-label  { display: none; }
+      #upcoming-all-btn,
+      #deploy-all-btn      { flex: 1; text-align: center; justify-content: center; font-size: 0.68rem; padding: 4px 8px; }
+
+      /* Tab bar: let header scroll normally; tabs stick at top */
+      .admin-header { position: relative !important; }
+      .admin-tabs   { position: sticky !important; top: 0 !important; z-index: 100 !important; }
     }
 
     /* ── Admin Dark Mode ──────────────────────────────────────────────────── */
@@ -1722,6 +1740,7 @@
     <div class="admin-header-bar">
       <span class="admin-header-title">Super Admin Dashboard</span>
       <span class="admin-header-sub">Select a club to manage</span>
+      <button id="dashboard-theme-toggle" onclick="applyAdminTheme((localStorage.getItem('ebwp-admin-theme')||'system')==='dark'||(localStorage.getItem('ebwp-admin-theme')!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches)?'light':'dark')" style="background:none;border:1px solid var(--g200);border-radius:8px;padding:4px 10px;font-size:1rem;cursor:pointer;line-height:1">🌙</button>
       <button class="save-btn" style="background:var(--red);color:white;border-color:var(--red);padding:4px 14px;font-size:0.78rem" onclick="doLogout()">🚪 Logout</button>
     </div>
   </header>
@@ -1775,8 +1794,8 @@
       <span class="admin-header-title">Admin</span>
       <select id="admin-team-select" onchange="onAdminTeamChange(this.value)" title="Age group — 🟢 Has games · 🟡 Configured, no games yet · ⚫ Not set up"></select>
       <span id="header-sub" class="admin-header-sub">Loading…</span>
-      <button id="switch-club-btn" onclick="switchClub()" style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px" title="Switch Club (SuperAdmin)">🔀 Switch Club</button>
-      <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">💾 Save & Deploy</button>
+      <button id="switch-club-btn" onclick="switchClub()" style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px" title="Switch Club (SuperAdmin)">🔀 <span class="switch-club-text">Switch Club</span></button>
+      <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()"><span class="deploy-label-full">💾 Save & Deploy</span><span class="deploy-label-short">☁️ Deploy</span></button>
     </div>
     <!-- Phase 3: Tournament selector + All-groups actions (single row) -->
     <div class="admin-combined-bar">
@@ -3099,6 +3118,9 @@ function applyAdminTheme(t) {
   // Sync login screen toggle emoji
   const loginToggle = document.getElementById('login-theme-toggle');
   if (loginToggle) loginToggle.textContent = dark ? '☀️' : '🌙';
+  // Sync dashboard (club picker) toggle emoji
+  const dashToggle = document.getElementById('dashboard-theme-toggle');
+  if (dashToggle) dashToggle.textContent = dark ? '☀️' : '🌙';
 }
 
 function toggleLoginTheme() {
@@ -4710,8 +4732,6 @@ function renderRosterTab() {
     const labelB = (S.tournament.teamLabels && S.tournament.teamLabels.B) || 'Team B';
     return `
       ${hint}
-      ${sheetCard}
-      ${bulkImportCard}
       <details class="card collapsible-card" style="margin-top:8px" open>
         <summary class="card-header collapsible-header">${esc(labelA)} Roster (${rA.length} players) <span class="collapse-icon">▾</span></summary>
         <div style="padding:8px 14px;border-bottom:1px solid var(--g100)">
@@ -4730,6 +4750,8 @@ function renderRosterTab() {
         ${buildRosterRows(rB, 'B') || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No players yet</div>'}
       </details>
       <button class="add-btn" onclick="addRosterPlayer('B')">+ Add Player to ${esc(labelB)}</button>
+      ${sheetCard}
+      ${bulkImportCard}
       <!-- Export Roster CSV + Save Roster are side-by-side in saveBtn at the bottom -->
       ${S.tournament.enableCTeam ? (() => {
     const rC = (S.roster && S.roster.C) || [];
@@ -4765,8 +4787,6 @@ function renderRosterTab() {
   const rows = buildRosterRows(S.roster, null);
   return `
     ${hint}
-    ${sheetCard}
-    ${bulkImportCard}
     <details class="card collapsible-card" style="margin-top:8px" open>
       <summary class="card-header collapsible-header">Roster (${(S.roster||[]).length} players) <span class="collapse-icon">▾</span></summary>
       <div style="padding:8px 14px;border-bottom:1px solid var(--g100)">
@@ -4776,6 +4796,8 @@ function renderRosterTab() {
       ${rows || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No players yet — sync from sheet, upload a CSV, or tap Add Player</div>'}
     </details>
     <button class="add-btn" onclick="addRosterPlayer(null)">+ Add Player</button>
+    ${sheetCard}
+    ${bulkImportCard}
     <details class="card collapsible-card" style="margin-top:8px" open>
       <summary class="card-header collapsible-header" style="display:flex;align-items:center;justify-content:space-between">
         <span>📊 Season Player Stats</span>
@@ -5472,21 +5494,6 @@ function renderClubInfoTab() {
       </div>
     </details>
 
-    <!-- ═══════ CLUB LOGO ═══════ -->
-    <details class="card collapsible-card" style="margin-bottom:12px" open>
-      <summary class="card-header collapsible-header">🖼 Club Logo <span class="collapse-icon">▾</span></summary>
-      <div style="padding:14px">
-        <div id="club-logo-preview" style="margin-bottom:10px;text-align:left;padding:10px;border-radius:8px;background:repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 0 0 / 16px 16px;border:1px solid var(--g200)"></div>
-        <input type="file" id="club-logo-file" accept="image/*" style="display:none" onchange="previewClubLogo(event)">
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="save-btn" style="flex:1" onclick="document.getElementById('club-logo-file').click()">📷 Choose Image</button>
-          <button class="save-btn" style="flex:1;background:var(--green);color:white" onclick="uploadClubLogo()" id="upload-logo-btn" disabled>⬆️ Upload Logo</button>
-        </div>
-        <div id="logo-upload-status" style="font-size:0.78rem;margin-top:6px"></div>
-        <div class="info-hint" style="margin-top:4px">Max 150KB. Shown in the parent app header.</div>
-      </div>
-    </details>
-
     <!-- ═══════ CLUB BRANDING ═══════ -->
     <details class="card collapsible-card" style="margin-bottom:12px" open>
       <summary class="card-header collapsible-header" style="background:var(--royal);color:white;font-size:0.82rem">🎨 Club Branding <span class="collapse-icon" style="color:rgba(255,255,255,0.7)">▾</span></summary>
@@ -5540,6 +5547,21 @@ function renderClubInfoTab() {
           <button class="save-btn" style="flex:0 0 auto" onclick="resetBranding()">↩ Reset to Default</button>
         </div>
         <div id="branding-status" style="font-size:0.78rem;margin-top:4px;min-height:16px"></div>
+      </div>
+    </details>
+
+    <!-- ═══════ CLUB LOGO ═══════ -->
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header">🖼 Club Logo <span class="collapse-icon">▾</span></summary>
+      <div style="padding:14px">
+        <div id="club-logo-preview" style="margin-bottom:10px;text-align:left;padding:10px;border-radius:8px;background:repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 0 0 / 16px 16px;border:1px solid var(--g200)"></div>
+        <input type="file" id="club-logo-file" accept="image/*" style="display:none" onchange="previewClubLogo(event)">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="save-btn" style="flex:1" onclick="document.getElementById('club-logo-file').click()">📷 Choose Image</button>
+          <button class="save-btn" style="flex:1;background:var(--green);color:white" onclick="uploadClubLogo()" id="upload-logo-btn" disabled>⬆️ Upload Logo</button>
+        </div>
+        <div id="logo-upload-status" style="font-size:0.78rem;margin-top:6px"></div>
+        <div class="info-hint" style="margin-top:4px">Max 150KB. Shown in the parent app header.</div>
       </div>
     </details>
 
@@ -5676,15 +5698,6 @@ function renderAddGamesTab() {
         ${tierHasFeature('live_scoring')
           ? `<div class="info-field"><div class="info-label">Scoring Password</div><input class="info-input" type="text" value="${esc(t.scoringPassword||'')}" placeholder="e.g. bawl2026" autocomplete="off" oninput="S.tournament.scoringPassword=this.value"><div class="info-hint">Parents must enter this to use live scoring.</div></div>`
           : `<div class="info-field"><div class="info-label">Scoring Password</div>${renderUpgradeNudge('Live Scoring — Club Plan')}</div>`}
-        ${tierHasFeature('multi_team')
-          ? `<div class="info-field"><div class="info-label">Multi-team Mode</div><label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0"><input type="checkbox" id="ti-multiteam" ${!isMultiTeamAdmin()?'checked':''} onchange="toggleMultiTeam(this.checked)" style="width:18px;height:18px;cursor:pointer"><span style="font-size:0.9rem">Disable multi-team</span></label></div>`
-          : `<div class="info-field"><div class="info-label">Multi-team Mode</div>${renderUpgradeNudge('Multiple Teams — Club Plan')}</div>`}
-        <div id="ti-team-labels" style="display:${isMultiTeamAdmin()?'contents':'none'}">
-          <div class="info-field"><div class="info-label">Team A Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.A)||'')}" placeholder="Team A" oninput="setTeamLabel('A',this.value)"></div>
-          <div class="info-field"><div class="info-label">Team B Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.B)||'')}" placeholder="Team B" oninput="setTeamLabel('B',this.value)"></div>
-          <div class="info-field"><div class="info-label">C Team</div><label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0"><input type="checkbox" id="ti-cteam" ${t.enableCTeam?'checked':''} onchange="toggleCTeam(this.checked)" style="width:18px;height:18px;cursor:pointer"><span style="font-size:0.9rem">Enable C Team</span></label></div>
-          <div id="ti-cteam-fields" style="display:${t.enableCTeam?'contents':'none'}"><div class="info-field"><div class="info-label">Team C Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.C)||'')}" placeholder="Team C" oninput="setTeamLabel('C',this.value)"></div></div>
-        </div>
       </div>
     </details>
 
@@ -5701,8 +5714,30 @@ function renderAddGamesTab() {
       </div>
     </details>
 
+    ${tierHasFeature('multi_team') ? `
     <details class="card collapsible-card" open>
-      <summary class="card-header collapsible-header">📅 Add Games / Tournament <span class="collapse-icon">▾</span></summary>
+      <summary class="card-header collapsible-header">🏊 Multi-Team Mode <span class="collapse-icon">▾</span></summary>
+      <div class="info-form">
+        <div class="info-field"><div class="info-label">Multi-team Mode</div><label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0"><input type="checkbox" id="ti-multiteam" ${!isMultiTeamAdmin()?'checked':''} onchange="toggleMultiTeam(this.checked)" style="width:18px;height:18px;cursor:pointer"><span style="font-size:0.9rem">Disable multi-team</span></label></div>
+        <div id="ti-team-labels" style="display:${isMultiTeamAdmin()?'contents':'none'}">
+          <div class="info-field"><div class="info-label">Team A Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.A)||'')}" placeholder="Team A" oninput="setTeamLabel('A',this.value)"></div>
+          <div class="info-field"><div class="info-label">Team B Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.B)||'')}" placeholder="Team B" oninput="setTeamLabel('B',this.value)"></div>
+          <div class="info-field"><div class="info-label">C Team</div><label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0"><input type="checkbox" id="ti-cteam" ${t.enableCTeam?'checked':''} onchange="toggleCTeam(this.checked)" style="width:18px;height:18px;cursor:pointer"><span style="font-size:0.9rem">Enable C Team</span></label></div>
+          <div id="ti-cteam-fields" style="display:${t.enableCTeam?'contents':'none'}"><div class="info-field"><div class="info-label">Team C Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.C)||'')}" placeholder="Team C" oninput="setTeamLabel('C',this.value)"></div></div>
+        </div>
+      </div>
+    </details>
+    ` : `
+    <details class="card collapsible-card" open>
+      <summary class="card-header collapsible-header">🏊 Multi-Team Mode <span class="tier-badge" style="background:var(--amber);color:white;font-size:0.65rem;padding:2px 6px;border-radius:8px;margin-left:6px;font-weight:700">Club Plan</span> <span class="collapse-icon">▾</span></summary>
+      <div style="padding:14px">
+        ${renderUpgradeNudge('Multiple Teams — Club Plan')}
+      </div>
+    </details>
+    `}
+
+    <details class="card collapsible-card" open>
+      <summary class="card-header collapsible-header">📅 Edit Games / Tournament <span class="collapse-icon">▾</span></summary>
       <div style="padding:10px 14px">
         <div style="margin:0 0 10px;border-bottom:1px solid var(--g100);padding-bottom:8px">
           <div style="font-size:0.78rem;font-weight:700;color:var(--g600);margin-bottom:4px">${isHS?'Season Schedule':'Games'} (${games.length})</div>
