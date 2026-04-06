@@ -14,9 +14,8 @@
   <script>
 (function(){
   var t = localStorage.getItem('ebwp-admin-theme') || 'light';
-  if(t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme:dark)').matches)) {
-    document.documentElement.setAttribute('data-theme','dark');
-  }
+  if (t === 'system') { t = 'light'; localStorage.setItem('ebwp-admin-theme', 'light'); }
+  if (t === 'dark') { document.documentElement.setAttribute('data-theme','dark'); }
 })();
 </script>
   <style>
@@ -3282,8 +3281,9 @@ setInterval(refreshIdToken, 50 * 60 * 1000);
 
 function applyAdminTheme(t) {
   t = t || localStorage.getItem('ebwp-admin-theme') || 'light';
+  if (t === 'system') t = 'light'; // system option retired; treat as light
   localStorage.setItem('ebwp-admin-theme', t);
-  const dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme:dark)').matches);
+  const dark = t === 'dark';
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   // Sync pill active states if visible
   document.querySelectorAll('.theme-pill').forEach(p => {
@@ -3303,9 +3303,7 @@ function toggleLoginTheme() {
   applyAdminTheme(isDark ? 'light' : 'dark');
 }
 // Apply on OS theme change
-window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', () => {
-  if ((localStorage.getItem('ebwp-admin-theme') || 'light') === 'system') applyAdminTheme('system');
-});
+// OS theme-change listener removed — admin theme is explicit (light/dark only, no system follow)
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
 
@@ -3487,7 +3485,6 @@ function renderAdminSettingsTab() {
       <div style="padding:14px 16px">
         <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--g400);margin-bottom:10px">Theme</div>
         <div style="display:flex;gap:8px">
-          <button class="theme-pill" onclick="applyAdminTheme('system')" data-val="system">⚙️ System</button>
           <button class="theme-pill" onclick="applyAdminTheme('light')" data-val="light">☀️ Light</button>
           <button class="theme-pill" onclick="applyAdminTheme('dark')" data-val="dark">🌙 Dark</button>
         </div>
