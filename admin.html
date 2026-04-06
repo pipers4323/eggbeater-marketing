@@ -1324,6 +1324,8 @@
 
     /* ── Deploy button: short label hidden on desktop, shown on mobile ── */
     .deploy-label-short { display: none; }
+    /* ── Mobile club name: hidden on desktop (admin-header-title shows there) ── */
+    .mobile-club-name { display: none; }
     /* ── Combined bar: short labels hidden on desktop, shown on mobile ── */
     .cbar-short { display: none; }
 
@@ -1338,6 +1340,19 @@
       .admin-header-bar { padding: 4px 10px; min-height: 36px; gap: 5px; }
       .admin-header-title { display: none; }
       #header-sub        { display: none; }
+      /* Show compact club name in place of the hidden title */
+      .mobile-club-name {
+        display: inline;
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: white;
+        opacity: 0.92;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 85px;
+        flex-shrink: 1;
+      }
       #admin-team-select { font-size: 0.72rem; max-width: 130px; padding: 4px 5px; }
 
       /* Switch Club: icon only */
@@ -1821,6 +1836,7 @@
     </div>
     <div class="admin-header-bar">
       <span class="admin-header-title">Admin</span>
+      <span id="mobile-club-name" class="mobile-club-name"></span>
       <select id="admin-team-select" onchange="onAdminTeamChange(this.value)" title="Age group — 🟢 Has games · 🟡 Configured, no games yet · ⚫ Not set up"></select>
       <span id="header-sub" class="admin-header-sub">Loading…</span>
       <button id="switch-club-btn" onclick="switchClub()" style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px" title="Switch Club (SuperAdmin)">🔀 <span class="switch-club-text">Switch Club</span></button>
@@ -2427,6 +2443,9 @@ function updateAdminHeader() {
   // Update title to show club name
   const titleEl = document.querySelector('.admin-header-title');
   if (titleEl) titleEl.textContent = clubName + ' Admin';
+  // Mobile compact club name (shown instead of the hidden full title)
+  const mobileNameEl = document.getElementById('mobile-club-name');
+  if (mobileNameEl) mobileNameEl.textContent = clubName;
 
   // Build subtitle from tournament data
   const t = S.tournament;
@@ -9253,7 +9272,7 @@ function renderHelpTab() {
       body: `<p>The admin panel is your command center for everything tournament-related. Here's the typical workflow before tournament day:</p>
       <ol>
         <li><strong>Select Age Group</strong> — use the age group dropdown in the top-right header (e.g. "14u Girls") to choose which team you're managing. Each age group has its own independent data. The emoji prefix shows setup status: 🟢 has games · 🟡 configured but no games yet · ⚫ not set up.</li>
-        <li><strong>Add Games tab</strong> — set up the tournament (name, dates, venue, clock settings) and add/import games.</li>
+        <li><strong>Games tab</strong> — set up the tournament (name, dates, venue, clock settings, multi-team mode) and add/import games.</li>
         <li><strong>Schedule tab</strong> — view the current schedule in read-only mode. Toggle upcoming mode, undeploy, or clear data from here.</li>
         <li><strong>Roster tab</strong> — add all players (or sync from a Google Sheet).</li>
         <li><strong>💾 Save & Deploy</strong> — hit the Deploy button in the top-right to push everything live to the app.</li>
@@ -9263,7 +9282,7 @@ function renderHelpTab() {
     },
     {
       icon: '📅',
-      title: 'Add Games Tab — Managing the Schedule',
+      title: 'Games Tab — Edit Games / Tournament',
       body: `<p>Add, edit, and delete pool play games here.</p>
       <ul>
         <li><strong>+ Add Game</strong> — tap to create a new game and fill in the fields: Game # (e.g. G1), Opponent, Time, Date, Location, Pool, Cap Color, and Team (if multi-team).</li>
@@ -9291,7 +9310,7 @@ function renderHelpTab() {
     },
     {
       icon: 'ℹ️',
-      title: 'Add Games Tab — Tournament Settings',
+      title: 'Games Tab — Tournament Settings',
       body: `<p>Configure everything about the current tournament and how the app behaves.</p>
       <ul>
         <li><strong>Club Name</strong> — your club's name as it should appear in game cards (e.g. <em>Pacific Waves</em>). When set, games display as "Pacific Waves vs. NorCal Gold" instead of just "vs. NorCal Gold". Leave blank to use the default "vs." style.</li>
@@ -9300,14 +9319,24 @@ function renderHelpTab() {
         <li><strong>Coming Soon message</strong> — shown on the schedule tab before games are posted. Clear this field once you've added games.</li>
         <li><strong>Scoring Password</strong> — when set, parents must enter this password to use live scoring controls. Leave blank to allow anyone to score. Recommended: set a simple word (e.g. <em>bawl2026</em>).</li>
         <li><strong>Age Group</strong> — select the age group (10u Co-Ed through 18u Boys) at the top. Each age group stores its own tournament data, roster, and history independently.</li>
-        <li><strong>Multi-Team Mode</strong> — enabled by default. Check "Disable multi-team" for single-team tournaments. You can also set custom labels for each team (e.g. "Team A" / "Team B"). Enable <strong>C Team</strong> to add a third team for tournaments where three squads are entered — this can be toggled on/off without losing any C Team data.</li>
-        <li><strong>Sync Games from Sheet</strong> — import the schedule from a Google Sheet in the Add Games tab.</li>
+        <li><strong>Sync Games from Sheet</strong> — import the schedule from a Google Sheet in the <strong>Games</strong> tab.</li>
       </ul>
-      <p style="margin-top:8px">Hit <strong>💾 Save &amp; Deploy Info</strong> at the bottom of this tab (or the main Deploy button) to push changes live.</p>`
+      <p style="margin-top:8px">Hit <strong>💾 Save & Deploy</strong> (top-right header) to push changes live.</p>`
+    },
+    {
+      icon: '🏊',
+      title: 'Games Tab — Multi-Team Mode',
+      body: `<p><strong>👑 Requires Club Plan.</strong> The Multi-Team Mode section is its own collapsible card in the <strong>Games</strong> tab.</p>
+      <ul>
+        <li><strong>Enable / Disable</strong> — multi-team is on by default for Club plan clubs. Check "Disable multi-team" to run a single-team tournament.</li>
+        <li><strong>Team A / Team B Labels</strong> — set custom labels (e.g. "Red" / "Blue") that appear throughout the app instead of the default "A" / "B".</li>
+        <li><strong>C Team</strong> — enable a third team for tournaments where three squads are entered. Can be toggled on/off without losing any C Team data.</li>
+      </ul>
+      <p style="margin-top:8px">Free and Parent tier users do not see team labels or multi-team controls — upgrade to Club plan to unlock.</p>`
     },
     {
       icon: '⏱',
-      title: 'Add Games Tab — Clock Settings',
+      title: 'Games Tab — Clock Settings',
       body: `<p>These settings control the auto-running game clock used by the scorer. Set them correctly for each age group and tournament before game day.</p>
       <ul>
         <li><strong>Quarter Length (min)</strong> — how long each quarter runs. E.g. 6 for 14U, 7 for 18U. The scorer's clock counts down from this value.</li>
@@ -9375,7 +9404,7 @@ function renderHelpTab() {
         <li>Google Sign-In uses Firebase Authentication with JWT token verification — your identity is cryptographically verified on every API call to the server.</li>
         <li>Your session auto-refreshes the ID token every 50 minutes so you stay logged in during long tournament days.</li>
         <li>The admin panel URL is <strong>not linked</strong> from the main app — keep it private to people managing the tournament.</li>
-        <li>The <strong>scoring password</strong> (set in the Add Games tab) is separate — that's for parents who want to enter live scores in the main app.</li>
+        <li>The <strong>scoring password</strong> (set in the Games tab) is separate — that's for parents who want to enter live scores in the main app.</li>
       </ul>`
     },
     {
@@ -9409,7 +9438,7 @@ function renderHelpTab() {
       title: 'Multi-Club Architecture',
       body: `<p>Eggbeater supports multiple clubs, each with completely isolated data and independent admin teams.</p>
       <ul>
-        <li>Each club has a unique <strong>Club ID</strong> (e.g. <code>pacific-waves</code>) configured in the Add Games tab under "Cloud Club ID".</li>
+        <li>Each club has a unique <strong>Club ID</strong> (e.g. <code>pacific-waves</code>) configured in the Games tab under "Cloud Club ID".</li>
         <li>All server data (KV storage) is namespaced by club ID — one club's data never mixes with another's.</li>
         <li>Each club has its own admin list — admins for Club A cannot access Club B's data.</li>
         <li>The parent-facing app loads club-specific data via the <code>?club=</code> URL parameter.</li>
@@ -9425,7 +9454,7 @@ function renderHelpTab() {
         <li><strong>💾 Save as Template</strong> — saves the current tournament structure (opponents, locations, pools) as a reusable template. Scores, dates, and times are stripped out.</li>
         <li><strong>📐 Load Template</strong> — opens a picker with saved templates and 3 built-in templates: "3-Game Saturday," "Round Robin 4-Team," and "8-Team Bracket."</li>
         <li>Each template shows name, description, and number of games.</li>
-        <li>Loading a template pre-populates the Add Games tab — similar to cloning but from a template.</li>
+        <li>Loading a template pre-populates the Games tab — similar to cloning but from a template.</li>
         <li>Templates are stored per club and shared across all admins for that club.</li>
         <li>Delete templates you no longer need from the template picker modal.</li>
       </ul>`
@@ -9435,7 +9464,7 @@ function renderHelpTab() {
       title: 'Paste Schedule — Bulk Game Entry',
       body: `<p>Quickly import a full schedule from a spreadsheet by pasting or uploading a CSV/TSV file.</p>
       <ul>
-        <li><strong>📋 Paste Schedule</strong> button is in the Add Games tab.</li>
+        <li><strong>📋 Paste Schedule</strong> button is in the Games tab.</li>
         <li>Paste rows from Excel, Google Sheets, or any spreadsheet app. Expected columns: <code>Date, Time, Opponent, Location, Pool</code>.</li>
         <li><strong>Auto-detects delimiter</strong> — tabs (from copy-paste) or commas (CSV).</li>
         <li><strong>Smart column mapping</strong> — recognizes header rows like "Date," "Time," "Opponent/Vs/Team," "Location/Venue/Site," "Pool." If no header row, assumes the column order listed above.</li>
@@ -9450,7 +9479,7 @@ function renderHelpTab() {
       title: 'Admin Roles — Admin vs. Scorer',
       body: `<p>Granular role levels let you give full admin access or limited scoring-only access.</p>
       <ul>
-        <li><strong>Admin role</strong> — full access to all tabs and features: Schedule, Roster, Add Games, Settings, Deploy, etc.</li>
+        <li><strong>Admin role</strong> — full access to all tabs and features: Schedule, Roster, Games, Settings, Deploy, etc.</li>
         <li><strong>Scorer role</strong> — can only access the Schedule tab for live scoring. All other tabs show a "🔒 Scorer Access Only" message.</li>
         <li>Roles are set per admin in the <strong>Club Info → Admin Management</strong> section using the role dropdown next to each admin.</li>
         <li>When inviting a new admin, you can set their role at invite time.</li>
