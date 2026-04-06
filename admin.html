@@ -236,7 +236,7 @@
       border-top: 1px solid rgba(255,255,255,.08);
     }
     .eggbeater-inline-logo {
-      height: 26px;
+      height: 39px;
       width: auto;
       border-radius: 2px;
       display: inline-block;
@@ -1354,6 +1354,11 @@
       /* Green: swap light-green background for dark-green so deployed banner is readable */
       --green-lt: #052e16;
       --green:    #4ade80;
+      /* Amber/red: dark-safe replacements for warning and info banners */
+      --amber-lt: #1a1200;
+      --amber:    #fbbf24;
+      --red-lt:   #1a0000;
+      --red:      #f87171;
       color-scheme: dark;
     }
     [data-theme="dark"] body,
@@ -1597,6 +1602,31 @@
       border-color: #30363d !important;
       color: #e6edf3 !important;
     }
+    /* ── Dark mode: bottom sheet drawer ── */
+    [data-theme="dark"] .admin-more-sheet {
+      background: #161b22;
+    }
+    [data-theme="dark"] .admin-more-handle { background: #30363d; }
+    [data-theme="dark"] .admin-more-divider { background: #30363d; }
+    [data-theme="dark"] .admin-more-item { color: #e6edf3; }
+    [data-theme="dark"] .admin-more-item:active { background: #21262d; }
+
+    /* ── Dark mode: royal-blue inline text → readable blue ── */
+    /* Catches club name in picker, ✓ checkmark in settings, stat numbers, etc. */
+    [data-theme="dark"] [style*="color:var(--royal)"] { color: #58a6ff !important; }
+
+    /* ── Dark mode: amber badge (Super Admin, Save Template button) ── */
+    [data-theme="dark"] [style*="background:#fef3c7"] {
+      background: #1a1200 !important;
+      color: #fbbf24 !important;
+      border-color: #92400e !important;
+    }
+    /* Role selector badge in admin list (scorer = amber, admin = green) */
+    [data-theme="dark"] select[style*="background:#fef3c7"] {
+      background: #1a1200 !important;
+      color: #fbbf24 !important;
+    }
+
     @media (prefers-color-scheme: dark) {
       html:not([data-theme]) body,
       html:not([data-theme]) .admin-outer { background: #0d1117; color: #e6edf3; }
