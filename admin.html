@@ -1950,7 +1950,7 @@
     </button>
     <button class="tab-btn admin-desktop-item" data-tab="director" onclick="switchTab('director')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="12" y1="3" x2="12" y2="17"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-      Director<span class="tab-crown" style="display:none"> 👑</span>
+      Tournament Host<span class="tab-crown" style="display:none"> 👑</span>
     </button>
     <button class="tab-btn admin-desktop-item" data-tab="archive" onclick="switchTab('archive')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
@@ -1993,7 +1993,7 @@
         </button>
         <button class="admin-more-item" data-tab="director" onclick="adminMoreNav('director')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="12" y1="3" x2="12" y2="17"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          <span>Director Package<span class="tab-crown" style="display:none"> 👑</span></span>
+          <span>Tournament Host<span class="tab-crown" style="display:none"> 👑</span></span>
           <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
         <div class="admin-more-divider"></div>
@@ -2115,7 +2115,6 @@ const S = {
   tournamentId:   null,   // Phase 3: currently selected Firestore tournament ID
   tournamentList: [],     // Phase 3: [{id, name, dates, status, location, ...}]
   director:     null,   // Tournament Director state (lazily init'd in renderDirectorTab)
-  directorUnlocked: false,
   idToken:      null,   // Firebase ID token for Worker API auth
   authMode:     '',     // 'google' or 'password'
   dirPkg:       null,   // imported Tournament Director package (for Sync from Director)
@@ -2265,7 +2264,6 @@ async function doLogin() {
     S.roster     = data.roster     || null;
     S.role       = data.adminRole  || 'admin';
     S.director   = JSON.parse(localStorage.getItem('ebadmin-director-' + S.team) || 'null');
-    if (localStorage.getItem('ebadmin-director-pw') === pw) S.directorUnlocked = true;
     if (S.tournament.singleTeam !== true) {
       if (!Array.isArray(S.tournament.teams) || S.tournament.teams.length < 2) {
         S.tournament.teams = ['A', 'B'];
@@ -2631,7 +2629,7 @@ function renderTieredNudge(tabKey) {
     },
     director: {
       icon: '🏆',
-      title: 'Tournament Director Package',
+      title: 'Tournament Host',
       tier: 'Tournament Host',
       price: '$199 one-time per event',
       feature: 'tournament_host',
@@ -3389,7 +3387,6 @@ function renderTab() {
   if (S.currentTab === 'help')     el.innerHTML = renderHelpTab();
   if (S.currentTab === 'director') {
     if (!tierHasFeature('tournament_host')) { el.innerHTML = renderTieredNudge('director'); return; }
-    if (!S.directorUnlocked) { el.innerHTML = renderDirectorLoginGate(); return; }
     el.innerHTML = renderDirectorTab(); setTimeout(() => { initDirectorPlaces(); (S.director?.ageGroups||[]).forEach((_,ai) => renderDirToLengthInputs(ai)); }, 0);
   }
   if (S.currentTab === 'teamcomm') {
@@ -5901,8 +5898,8 @@ function renderClubInfoTab() {
           <li><strong>Season Stats &amp; History</strong> — player and team stats across tournaments</li>
           <li><strong>Team Communication</strong> — Telegram, GroupMe, and custom messaging</li>
         </ul>
-        <button onclick="${!!(window.Capacitor?.isNativePlatform?.()) ? 'showUpgradeSheet()' : "_paywallWebCheckout('price_1TIEmo0NjxFM08jKlS2kPNZp','club')"}" style="width:100%;background:var(--royal);color:white;border:none;border-radius:8px;padding:10px 14px;font-size:0.88rem;font-weight:700;cursor:pointer;letter-spacing:0.01em">
-          ${!!(window.Capacitor?.isNativePlatform?.()) ? 'Upgrade to Club Plan ↗' : 'Upgrade to Club Plan — $24.99/mo ↗'}
+        <button onclick="window.Capacitor?.isNativePlatform?.() ? showUpgradeSheet() : _paywallWebCheckout('price_1TIEmo0NjxFM08jKlS2kPNZp','club')" style="width:100%;background:var(--royal);color:white;border:none;border-radius:8px;padding:10px 14px;font-size:0.88rem;font-weight:700;cursor:pointer;letter-spacing:0.01em">
+          Upgrade to Club Plan ↗
         </button>
         <div style="text-align:center;font-size:0.72rem;color:var(--g400);margin-top:6px">14-day free trial · cancel anytime</div>
       </div>
@@ -6019,7 +6016,7 @@ function renderAddGamesTab() {
           <div id="games-sheet-status" style="font-size:0.8rem;color:var(--g400)"></div>
         </div>
         <div style="border-top:1px solid var(--g100);margin-top:8px;padding-top:8px">
-          <div style="font-size:0.78rem;color:var(--g400);margin-bottom:6px">🏆 <strong>Sync from Tournament Director</strong></div>
+          <div style="font-size:0.78rem;color:var(--g400);margin-bottom:6px">🏆 <strong>Sync from Tournament Host</strong></div>
           <div style="display:flex;gap:8px;margin-bottom:6px"><input class="info-input" id="dir-sync-code" type="text" maxlength="6" value="${esc(S.dirPkgCode||'')}" placeholder="ABC123" style="flex:1;text-transform:uppercase;letter-spacing:2px;font-weight:700;font-size:0.95rem;margin:0" autocomplete="off" spellcheck="false" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')" onkeydown="if(event.key==='Enter')importDirSync()"><button class="save-btn" onclick="importDirSync()">📥 Import</button></div>
           <div id="dir-sync-status" style="font-size:0.8rem;color:var(--g400)"></div>
           ${renderDirSyncResult()}
@@ -6900,7 +6897,6 @@ async function pushDirSyncToApp(btn) {
 
     // Store the share code + scoring password for the main app
     S.tournament.directorCode = S.dirPkgCode;
-    S.tournament.directorScoringPassword = pkg.directorScoringPassword || '';
 
     // Save & deploy
     const res = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
@@ -9814,15 +9810,15 @@ function renderHelpTab() {
     },
     {
       icon: '🏆',
-      title: 'Tournament Director Package',
+      title: 'Tournament Host',
       body: `<p><strong>👑 Requires Tournament Host ($199 one-time per event).</strong> Purchase in the <em>Subscription</em> tab.</p>
-      <p>The <strong>Director</strong> tab lets you run a full multi-club tournament from one dashboard.</p>
+      <p>The <strong>Tournament Host</strong> tab lets you run a full multi-club tournament from one dashboard.</p>
       <ul>
-        <li><strong>Import scores from the director package</strong> — enter the director code to pull official results directly, no double entry.</li>
-        <li><strong>Manage all clubs &amp; age groups</strong> from a single director dashboard.</li>
+        <li><strong>Import scores from the tournament host package</strong> — enter the director code to pull official results directly, no double entry.</li>
+        <li><strong>Manage all clubs &amp; age groups</strong> from a single tournament host dashboard.</li>
         <li><strong>Public shareable bracket URL</strong> — share live standings and brackets with spectators, coaches, and parents without an account.</li>
         <li><strong>Live public scoring</strong> — visible to anyone with the link; no app or login required.</li>
-        <li><strong>Director scoring password</strong> — separate from the club scoring password; controls who can submit official results.</li>
+        <li><strong>Score entry password</strong> — separate from the club scoring password; controls who can submit official results.</li>
       </ul>`
     },
     {
@@ -10261,7 +10257,6 @@ async function publishDirectorPkg(btn) {
       dates:                   S.tournament.dates     || '',
       location:                S.tournament.location  || '',
       address:                 S.tournament.address   || '',
-      directorScoringPassword: (S.director.directorScoringPassword || '').trim(),
       directorGames,
       ageGroups: S.director.ageGroups.map(ag => ({
         name: ag.name,
@@ -10486,7 +10481,6 @@ async function _doSheetsExport(token, btn) {
   infoRows.push(['Venue Name', t.location || '']);
   infoRows.push(['Venue Address', t.address || '']);
   infoRows.push(['Scorer Password', t.scoringPassword || '']);
-  infoRows.push(['Score Entry Password', d.directorScoringPassword || '']);
   infoRows.push([]);
   infoRows.push(['AGE GROUP SETTINGS']);
   infoRows.push(['Age Group', 'Pool', 'Quarter (min)', 'Break (min)', 'Halftime (min)', 'Timeouts', 'Timeout Lengths']);
@@ -10583,40 +10577,6 @@ async function _doSheetsExport(token, btn) {
   window.open(sheet.spreadsheetUrl, '_blank');
 }
 
-function renderDirectorLoginGate() {
-  return `
-    <div class="card" style="max-width:400px;margin:40px auto">
-      <div class="card-header">🔒 Tournament Director</div>
-      <div style="padding:16px 20px">
-        <p style="font-size:0.88rem;color:var(--g600);margin-bottom:14px;line-height:1.6">
-          The Tournament Director is a premium feature. Enter the director password to continue.
-        </p>
-        <input id="dir-gate-pw" type="password" class="info-input" placeholder="Director password"
-               autocomplete="off" style="margin-bottom:10px"
-               onkeydown="if(event.key==='Enter')unlockDirectorTab()">
-        <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer;font-size:0.85rem;color:var(--g600)">
-          <input type="checkbox" id="dir-gate-remember" style="width:16px;height:16px;cursor:pointer"> Remember me
-        </label>
-        <div id="dir-gate-err" style="color:var(--red);font-size:0.82rem;margin-bottom:8px"></div>
-        <button class="add-btn" style="background:var(--royal);color:white;border-color:var(--royal);width:100%;justify-content:center;padding:10px;font-size:0.9rem;font-weight:700"
-                onclick="unlockDirectorTab()">Unlock</button>
-      </div>
-    </div>`;
-}
-
-function unlockDirectorTab() {
-  const pw = document.getElementById('dir-gate-pw')?.value.trim();
-  if (!pw) return;
-  if (pw !== S.pw) {
-    document.getElementById('dir-gate-err').textContent = 'Incorrect password.';
-    return;
-  }
-  S.directorUnlocked = true;
-  if (document.getElementById('dir-gate-remember')?.checked) {
-    localStorage.setItem('ebadmin-director-pw', pw);
-  }
-  renderTab();
-}
 
 function renderDirectorTab() {
   if (!S.director) { S.director = defaultDirector(); saveDirectorLocally(); }
@@ -10867,16 +10827,6 @@ function renderDirectorTab() {
   );
 
   // ── Publish section ──
-  const scoringPwField = `
-    <div class="info-field" style="margin-bottom:12px">
-      <div class="info-label">Score Entry Password</div>
-      <input class="info-input" type="text" autocomplete="off" spellcheck="false"
-             placeholder="Password scorers use to submit live game scores"
-             value="${esc(d.directorScoringPassword||'')}"
-             oninput="S.director.directorScoringPassword=this.value;saveDirectorLocally()">
-      <div class="info-hint" style="margin-top:4px">Share this with the person entering scores on game day. Different from the stat-entry password.</div>
-    </div>`;
-
   // publishSection removed — publish UI is now inline in the Brackets & Publishing card
 
   const t = S.tournament || {};
@@ -10924,7 +10874,7 @@ function renderDirectorTab() {
   return `
     ${tournamentInfoCard}
     <div class="card">
-      <div class="card-header">🏆 Tournament Director — Age Groups &amp; Divisions</div>
+      <div class="card-header">🏆 Tournament Host — Age Groups &amp; Divisions</div>
       <div style="padding:6px 14px 12px">
         <div class="info-hint" style="margin-bottom:10px">Configure each age group, then add division sections. Each section is an independent bracket with its own seeding grid and game formats.</div>
         ${ageGroupCards}
@@ -10947,7 +10897,6 @@ function renderDirectorTab() {
           </button>
         </div>
         ${S.bracketPreviewOpen ? '<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--g100)">' + buildBracketPreviewHtml() + '</div>' : ''}
-        ${scoringPwField}
         ${d.publishedCode ? `
           <div style="background:var(--green-lt);border:1.5px solid var(--green);border-radius:8px;padding:14px 16px;margin-bottom:12px">
             <div style="font-weight:700;color:var(--green);font-size:0.9rem;margin-bottom:8px">✅ Published — Share this code with other team admins:</div>
@@ -10960,7 +10909,7 @@ function renderDirectorTab() {
                       onclick="exportDirectorToSheets(this)">📊 Export All Brackets to Google Sheets</button>
             </div>
             <div style="font-size:0.78rem;color:var(--g600);margin-top:8px;line-height:1.5">
-              Other teams enter this code in the parent app under <strong>Sync from Tournament Director</strong> to import tournament info.
+              Other teams enter this code in the parent app under <strong>Sync from Tournament Host</strong> to import tournament info.
               Expires in 30 days. ·
               <a href="#" onclick="S.director.publishedCode=null;saveDirectorLocally();renderTab();return false" style="color:var(--red)">Clear</a>
             </div>
