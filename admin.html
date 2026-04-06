@@ -1474,6 +1474,17 @@
       border-bottom-color: #30363d;
       color: #e6edf3;
     }
+    /* Danger zone inline box — dark mode */
+    [data-theme="dark"] .schedule-danger-zone {
+      border-color: #7f1d1d !important;
+    }
+    [data-theme="dark"] .schedule-danger-zone .danger-label {
+      background: #1c0a0a !important;
+      color: #fca5a5 !important;
+    }
+    [data-theme="dark"] .schedule-danger-zone .danger-btns {
+      background: #161b22;
+    }
     [data-theme="dark"] .collapsible-header {
       background: #161b22;
       color: #e6edf3;
@@ -1855,6 +1866,7 @@
       <select id="admin-team-select" onchange="onAdminTeamChange(this.value)" title="Age group — 🟢 Has games · 🟡 Configured, no games yet · ⚫ Not set up"></select>
       <span id="header-sub" class="admin-header-sub">Loading…</span>
       <button id="switch-club-btn" onclick="switchClub()" style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px" title="Switch Club (SuperAdmin)">🔀 <span class="switch-club-text">Switch Club</span></button>
+      <button onclick="switchTab('help')" aria-label="Help" title="Help &amp; documentation" style="background:rgba(255,255,255,.15);color:white;border:1.5px solid rgba(255,255,255,.35);border-radius:50%;width:28px;height:28px;font-size:0.88rem;font-weight:800;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">?</button>
       <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()"><span class="deploy-label-full">💾 Save & Deploy</span><span class="deploy-label-short">☁️ Deploy</span></button>
     </div>
     <!-- Phase 3: Tournament selector + All-groups actions (single row) -->
@@ -1862,7 +1874,7 @@
       <div class="admin-tourn-strip" id="admin-tourn-strip"></div>
       <span class="admin-global-label" style="flex-shrink:0;margin-left:4px">All:</span>
       <button class="global-btn global-btn-upcoming" id="upcoming-all-btn" onclick="setAllUpcomingMode()"><span class="cbar-full">📅 Set All → Upcoming</span><span class="cbar-short">📅 Upcoming</span></button>
-      <button class="global-btn global-btn-deploy"   id="deploy-all-btn"   onclick="deployAll()"><span class="cbar-full">🌐 Deploy All</span><span class="cbar-short">🌐 Deploy</span></button>
+      <button class="global-btn global-btn-deploy"   id="deploy-all-btn"   onclick="confirmDeployAll()"><span class="cbar-full">🌐 Deploy All</span><span class="cbar-short">🌐 Deploy</span></button>
     </div>
   </header>
 
@@ -2654,13 +2666,52 @@ function tierHasFeature(feature) {
  * Returns an HTML string for a locked feature prompt.
  */
 function renderUpgradeNudge(featureName) {
-  return `<div class="upgrade-nudge" style="display:flex;align-items:center;gap:10px;background:var(--g50);border:1px solid var(--g200);border-radius:10px;padding:14px 16px;margin:8px 0">
-    <span style="font-size:1.4rem">🔒</span>
-    <div>
-      <div class="upgrade-nudge-title" style="font-weight:700;font-size:0.9rem">${featureName} — Club Plan</div>
-      <div class="upgrade-nudge-sub" style="font-size:0.78rem;color:var(--g500);margin-top:2px">Upgrade to unlock this feature for your club.</div>
+  const nudgeData = {
+    'live_scoring': {
+      headline: 'Live Scoring — Club Plan',
+      desc: 'Let parents or sideline scorers submit real-time scores from poolside. Every goal updates live in the parent app instantly.',
+      cta: 'Unlock Live Scoring',
+    },
+    'multi_team': {
+      headline: 'Multi-Team Mode — Club Plan',
+      desc: 'Run A Team and B Team from one dashboard with separate rosters, games, and live scores for each squad.',
+      cta: 'Unlock Multi-Team',
+    },
+    'push_notify': {
+      headline: 'Push Notifications — Club Plan',
+      desc: 'Automatically alert parents when scores change, games are added, or schedules shift — no manual texts needed.',
+      cta: 'Unlock Push Notifications',
+    },
+    'season_stats': {
+      headline: 'Season Stats — Club Plan',
+      desc: 'Track goals, assists, and saves across every tournament all season. Individual and team leaderboards update automatically.',
+      cta: 'Unlock Season Stats',
+    },
+    // Legacy string call-sites
+    'Live Scoring — Club Plan': {
+      headline: 'Live Scoring — Club Plan',
+      desc: 'Let parents or sideline scorers submit real-time scores from poolside. Every goal updates live in the parent app instantly.',
+      cta: 'Unlock Live Scoring',
+    },
+    'Multiple Teams — Club Plan': {
+      headline: 'Multi-Team Mode — Club Plan',
+      desc: 'Run A Team and B Team from one dashboard with separate rosters, games, and live scores for each squad.',
+      cta: 'Unlock Multi-Team',
+    },
+  };
+  const n = nudgeData[featureName] || {};
+  const headline = n.headline || (featureName + ' — Club Plan');
+  const desc = n.desc || 'Upgrade to Club Plan to unlock this feature for your club.';
+  const cta = n.cta || 'View Upgrade Options';
+  return `<div class="upgrade-nudge" style="background:var(--g50);border:1px solid var(--g200);border-radius:10px;padding:14px 16px;margin:8px 0">
+    <div style="display:flex;align-items:flex-start;gap:10px">
+      <span style="font-size:1.3rem;flex-shrink:0;margin-top:1px">🔒</span>
+      <div style="flex:1;min-width:0">
+        <div class="upgrade-nudge-title" style="font-size:0.88rem;font-weight:700;color:var(--g900)">${headline}</div>
+        <div class="upgrade-nudge-sub" style="font-size:0.78rem;color:var(--g500);margin-top:3px;line-height:1.45">${desc}</div>
+      </div>
     </div>
-    <button onclick="showUpgradeSheet()" style="margin-left:auto;background:#2563eb;color:white;border:none;border-radius:7px;padding:7px 14px;font-size:0.8rem;font-weight:700;cursor:pointer;flex-shrink:0">Upgrade ↗</button>
+    <button onclick="showUpgradeSheet()" style="margin-top:12px;width:100%;background:var(--royal);color:white;border:none;border-radius:8px;padding:9px 14px;font-size:0.85rem;font-weight:700;cursor:pointer;letter-spacing:0.01em">${cta} ↗</button>
   </div>`;
 }
 
@@ -3202,6 +3253,9 @@ function switchTab(tab) {
   S.currentTab   = tab;
   S.editingGame  = null;
   S.editingRoster = null;
+  // Combined bar is only relevant on the Schedule tab
+  const bar = document.querySelector('#admin-app .admin-combined-bar');
+  if (bar) bar.style.display = tab === 'schedule' ? '' : 'none';
   // Update tab button active states
   const primaryTabs = ['schedule', 'roster', 'addgames'];
   document.querySelectorAll('.tab-btn').forEach(b => {
@@ -3387,8 +3441,11 @@ function renderAdminSettingsTab() {
       </div>
     </div>
 
-    <div class="card" style="margin-bottom:12px;border:1px solid #fca5a5">
-      <div class="card-header" style="color:#dc2626">Danger Zone</div>
+    <details class="card collapsible-card" style="margin-bottom:12px;border:1.5px solid #fca5a5">
+      <summary class="card-header collapsible-header" style="color:#dc2626;background:#fff5f5">⚠️ Danger Zone <span class="collapse-icon" style="color:#fca5a5">▾</span></summary>
+      <div style="padding:10px 14px 6px;background:#fff5f5;border-bottom:1px solid #fecaca">
+        <div style="font-size:0.78rem;color:#991b1b;line-height:1.5">These actions are permanent and cannot be undone. Proceed with caution.</div>
+      </div>
       <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent" onclick="deleteClub('${esc(clubId)}','${esc(clubName)}')">
         <span style="font-size:1.1rem">🗑️</span>
         <div style="flex:1">
@@ -3396,7 +3453,7 @@ function renderAdminSettingsTab() {
           <div style="font-size:0.78rem;color:var(--g400)">Permanently removes all tournaments, rosters, and admin data. Cannot be undone.</div>
         </div>
       </div>
-    </div>
+    </details>
   `;
 }
 
@@ -3726,15 +3783,18 @@ function renderScheduleTab() {
     ? `<button class="add-btn btn-go-live" style="background:#f0fff4;color:#166534;border-color:#4ade80;font-weight:700;width:100%" onclick="goLive()">🟢 Go Live</button>`
     : liveGames.length
       ? `<button class="add-btn btn-upcoming" style="background:#fff8f0;color:#c2410c;border-color:#f97316;width:100%" onclick="setUpcomingMode()">📅 Set to Upcoming Mode</button>`
-      : `<span></span>`;
+      : '';
 
   return `
     ${upcomingInfoCard}
     ${cardsHtml}
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
-      ${upcomingBtnInner}
-      <button class="add-btn btn-undeploy" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;font-weight:700" onclick="undeployLiveSchedule()">🛑 Undeploy</button>
-      <button class="clear-data-btn" style="margin:0" onclick="clearAgeGroupData()">🗑 Clear All Data</button>
+    ${upcomingBtnInner ? `<div style="margin-top:8px">${upcomingBtnInner}</div>` : ''}
+    <div class="schedule-danger-zone" style="margin-top:10px;border:1.5px solid #fecaca;border-radius:10px;overflow:hidden">
+      <div class="danger-label" style="background:#fff5f5;padding:8px 12px;font-size:0.72rem;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:0.05em">⚠️ Danger Zone</div>
+      <div class="danger-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px">
+        <button class="add-btn btn-undeploy" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;font-weight:700;margin:0" onclick="undeployLiveSchedule()">🛑 Undeploy</button>
+        <button class="clear-data-btn" style="margin:0" onclick="clearAgeGroupData()">🗑 Clear All Data</button>
+      </div>
     </div>
     <div style="display:flex;justify-content:center;padding:4px 0 8px;margin-top:8px">
       <button class="admin-refresh-btn" id="admin-refresh-btn" onclick="refreshAdminData(this)">
@@ -4318,22 +4378,31 @@ function applyBracketSeedings(rankedNames) {
  */
 async function undeployLiveSchedule() {
   const teamLabel = ADMIN_TEAMS.find(t => t.key === S.team)?.label || S.team;
-  if (!confirm(`🛑 Undeploy Live Schedule for ${teamLabel}?\n\nThis will:\n  • Clear all games from the live app\n  • Set app back to "Upcoming" mode\n\nYour saved drafts and age group configurations will remain safe.`)) return;
+  _adminConfirm({
+    title: '🛑 Undeploy Schedule',
+    body: `Remove all live games for <strong>${teamLabel}</strong> from the parent app and set it back to "Upcoming" mode.<br><br>Your saved drafts and age group settings will remain safe.`,
+    confirmText: '🛑 Undeploy',
+    dangerConfirm: true,
+    onConfirm: _doUndeployLiveSchedule,
+  });
+}
 
+async function _doUndeployLiveSchedule() {
+  const teamLabel = ADMIN_TEAMS.find(t => t.key === S.team)?.label || S.team;
   showStatus('Undeploying…', 'info');
   try {
     S.tournament.games = [];
     S.tournament.upcomingMode = true;
     S.tournament.comingSoon = S.tournament.comingSoon || 'Schedule coming soon — check back closer to tournament day!';
-    
+
     // Save state
     const res = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
     if (!res.ok) throw new Error('KV save failed: ' + res.status);
-    
+
     // Deploy cleared state
     const dep = await api('POST', '/admin/deploy');
     if (!dep.ok) throw new Error('Deploy failed');
-    
+
     showStatus('✅ Live schedule undeployed!', 'ok');
     renderTab();
   } catch (e) {
@@ -4344,21 +4413,19 @@ async function undeployLiveSchedule() {
 
 async function clearAgeGroupData() {
   const teamLabel = ADMIN_TEAMS.find(t => t.key === S.team)?.label || S.team;
-  const confirmed = confirm(
-    `⚠️ Clear ALL data for ${teamLabel}?\n\n` +
-    `This will permanently delete:\n` +
-    `  • Tournament schedule & games\n` +
-    `  • Tournament history\n` +
-    `  • Roster\n\n` +
-    `Club: ${localStorage.getItem('ebadmin-clubId') || 'my-club'}\n\n` +
-    `This cannot be undone. Continue?`
-  );
-  if (!confirmed) return;
+  const clubId = localStorage.getItem('ebadmin-clubId') || 'my-club';
+  _adminConfirm({
+    title: '🗑 Clear All Data',
+    body: `Permanently delete all tournament data, game history, and roster for <strong>${teamLabel}</strong> (${clubId}).<br><br>This <strong>cannot be undone.</strong>`,
+    confirmText: 'Delete Everything',
+    dangerConfirm: true,
+    requireType: 'DELETE',
+    onConfirm: _doClearAgeGroupData,
+  });
+}
 
-  // Double-confirm for safety
-  const doubleConfirm = confirm(`Are you sure? Type OK to confirm clearing ${teamLabel} data.`);
-  if (!doubleConfirm) return;
-
+async function _doClearAgeGroupData() {
+  const teamLabel = ADMIN_TEAMS.find(t => t.key === S.team)?.label || S.team;
   showStatus('Clearing data…', 'info');
 
   try {
@@ -5613,6 +5680,30 @@ function renderClubInfoTab() {
       </div>
     </details>
 
+    <!-- ═══════ MULTI-TEAM MODE ═══════ -->
+    ${tierHasFeature('multi_team') ? `
+    <details class="card collapsible-card" style="margin-bottom:12px">
+      <summary class="card-header collapsible-header">🏊 Multi-Team Mode <span class="collapse-icon">▾</span></summary>
+      <div class="info-form">
+        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5;margin-bottom:8px">Run A Team and B Team from one dashboard — separate rosters, games, and scores for each squad.</div>
+        <div class="info-field"><div class="info-label">Multi-team Mode</div><label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0"><input type="checkbox" id="ti-multiteam" ${!isMultiTeamAdmin()?'checked':''} onchange="toggleMultiTeam(this.checked)" style="width:18px;height:18px;cursor:pointer"><span style="font-size:0.9rem">Disable multi-team</span></label></div>
+        <div id="ti-team-labels" style="display:${isMultiTeamAdmin()?'contents':'none'}">
+          <div class="info-field"><div class="info-label">Team A Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.A)||'')}" placeholder="Team A" oninput="setTeamLabel('A',this.value)"></div>
+          <div class="info-field"><div class="info-label">Team B Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.B)||'')}" placeholder="Team B" oninput="setTeamLabel('B',this.value)"></div>
+          <div class="info-field"><div class="info-label">C Team</div><label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0"><input type="checkbox" id="ti-cteam" ${t.enableCTeam?'checked':''} onchange="toggleCTeam(this.checked)" style="width:18px;height:18px;cursor:pointer"><span style="font-size:0.9rem">Enable C Team</span></label></div>
+          <div id="ti-cteam-fields" style="display:${t.enableCTeam?'contents':'none'}"><div class="info-field"><div class="info-label">Team C Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.C)||'')}" placeholder="Team C" oninput="setTeamLabel('C',this.value)"></div></div>
+        </div>
+      </div>
+    </details>
+    ` : `
+    <details class="card collapsible-card" style="margin-bottom:12px">
+      <summary class="card-header collapsible-header">🏊 Multi-Team Mode <span style="font-size:0.68rem;font-weight:700;background:var(--royal);color:white;padding:1px 7px;border-radius:10px;margin-left:6px">Club Plan</span> <span class="collapse-icon">▾</span></summary>
+      <div style="padding:14px">
+        ${renderUpgradeNudge('multi_team')}
+      </div>
+    </details>
+    `}
+
     <!-- ═══════ CLUB LOGO ═══════ -->
     <details class="card collapsible-card" style="margin-bottom:12px" open>
       <summary class="card-header collapsible-header">🖼 Club Logo <span class="collapse-icon">▾</span></summary>
@@ -5728,7 +5819,7 @@ function renderAddGamesTab() {
   const autoBtn = isMultiTeamAdmin() ? `<button class="add-btn" style="background:#dce5f5;color:#002868;border:1.5px solid #b8c9e5;margin-bottom:4px" onclick="autoDetectAllTeams()">🔍 Auto-detect teams</button>` : '';
 
   return `
-    <details class="card collapsible-card" open>
+    <details class="card collapsible-card">
       <summary class="card-header collapsible-header">📚 Game / Tournament Library <span class="collapse-icon">▾</span></summary>
       <div style="padding:10px 14px">
         <div style="font-size:0.78rem;color:var(--g400);margin-bottom:8px">Drafts save both your **games schedule** and your **current roster**. Use this to prepare multiple tournaments for the same club in advance.</div>
@@ -5747,7 +5838,7 @@ function renderAddGamesTab() {
       </div>
     </details>
 
-    <details class="card collapsible-card" open>
+    <details class="card collapsible-card">
       <summary class="card-header collapsible-header">⚙️ Game / Tournament Setup <span class="collapse-icon">▾</span></summary>
       <div class="info-form">
         <div class="info-field"><div class="info-label">Cloud Club ID</div><input class="info-input" value="${esc(typeof fbGetClubId==='function'?fbGetClubId():'my-club')}" placeholder="e.g. pacific-waves" oninput="if(typeof fbSetClubId==='function')fbSetClubId(this.value);localStorage.setItem('ebadmin-clubId',this.value)"><div class="info-hint">Identifies your club in the cloud.</div></div>
@@ -5764,7 +5855,7 @@ function renderAddGamesTab() {
       </div>
     </details>
 
-    <details class="card collapsible-card" open>
+    <details class="card collapsible-card">
       <summary class="card-header collapsible-header">⏱ Clock Settings <span class="collapse-icon">▾</span></summary>
       <div class="info-form">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
@@ -5777,30 +5868,8 @@ function renderAddGamesTab() {
       </div>
     </details>
 
-    ${tierHasFeature('multi_team') ? `
     <details class="card collapsible-card" open>
-      <summary class="card-header collapsible-header">🏊 Multi-Team Mode <span class="collapse-icon">▾</span></summary>
-      <div class="info-form">
-        <div class="info-field"><div class="info-label">Multi-team Mode</div><label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0"><input type="checkbox" id="ti-multiteam" ${!isMultiTeamAdmin()?'checked':''} onchange="toggleMultiTeam(this.checked)" style="width:18px;height:18px;cursor:pointer"><span style="font-size:0.9rem">Disable multi-team</span></label></div>
-        <div id="ti-team-labels" style="display:${isMultiTeamAdmin()?'contents':'none'}">
-          <div class="info-field"><div class="info-label">Team A Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.A)||'')}" placeholder="Team A" oninput="setTeamLabel('A',this.value)"></div>
-          <div class="info-field"><div class="info-label">Team B Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.B)||'')}" placeholder="Team B" oninput="setTeamLabel('B',this.value)"></div>
-          <div class="info-field"><div class="info-label">C Team</div><label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0"><input type="checkbox" id="ti-cteam" ${t.enableCTeam?'checked':''} onchange="toggleCTeam(this.checked)" style="width:18px;height:18px;cursor:pointer"><span style="font-size:0.9rem">Enable C Team</span></label></div>
-          <div id="ti-cteam-fields" style="display:${t.enableCTeam?'contents':'none'}"><div class="info-field"><div class="info-label">Team C Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.C)||'')}" placeholder="Team C" oninput="setTeamLabel('C',this.value)"></div></div>
-        </div>
-      </div>
-    </details>
-    ` : `
-    <details class="card collapsible-card" open>
-      <summary class="card-header collapsible-header">🏊 Multi-Team Mode <span class="collapse-icon">▾</span></summary>
-      <div style="padding:14px">
-        ${renderUpgradeNudge('Multiple Teams — Club Plan')}
-      </div>
-    </details>
-    `}
-
-    <details class="card collapsible-card" open>
-      <summary class="card-header collapsible-header">📅 Edit Games / Tournament <span class="collapse-icon">▾</span></summary>
+      <summary class="card-header collapsible-header">📅 Games <span class="collapse-icon">▾</span></summary>
       <div style="padding:10px 14px">
         <div style="margin:0 0 10px;border-bottom:1px solid var(--g100);padding-bottom:8px">
           <div style="font-size:0.78rem;font-weight:700;color:var(--g600);margin-bottom:4px">${isHS?'Season Schedule':'Games'} (${games.length})</div>
@@ -7238,6 +7307,65 @@ function getAllTeamKeys() {
  * Deploy All — saves the current team's in-memory state; all teams' KV data
  * is live immediately since the app reads from CF KV at runtime.
  */
+
+/**
+ * Lightweight confirmation bottom-sheet.
+ * opts: { title, body (HTML), confirmText, dangerConfirm, requireType, onConfirm }
+ * requireType: if set (e.g. 'DELETE'), the confirm button is disabled until the user types that word.
+ */
+function _adminConfirm({ title, body, confirmText = 'Confirm', dangerConfirm = false, requireType = null, onConfirm }) {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const bgCard     = isDark ? '#1c2128' : 'white';
+  const textColor  = isDark ? '#e6edf3' : '#111827';
+  const bodyColor  = isDark ? '#8b949e' : '#374151';
+  const cancelBg   = isDark ? '#2d333b' : 'white';
+  const cancelBdr  = isDark ? '#444c56' : '#e5e7eb';
+  const inputBg    = isDark ? '#0d1117' : '#f9fafb';
+  const inputBdr   = isDark ? '#30363d' : '#d1d5db';
+  const typeHtml = requireType ? `
+    <div style="margin-bottom:16px">
+      <div style="font-size:0.78rem;color:${bodyColor};margin-bottom:6px">Type <strong style="font-family:monospace;color:${textColor}">${requireType}</strong> to confirm:</div>
+      <input id="_conf-type" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+        style="width:100%;padding:10px 12px;border:1.5px solid ${inputBdr};border-radius:8px;font-size:0.95rem;font-family:monospace;background:${inputBg};color:${textColor};letter-spacing:0.08em;outline:none"
+        placeholder="${requireType}">
+    </div>` : '';
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;inset:0;z-index:400;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(3px)';
+  el.innerHTML = `
+    <div style="background:${bgCard};border-radius:18px 18px 0 0;padding:22px 20px calc(26px + env(safe-area-inset-bottom,0));width:100%;max-width:480px;box-shadow:0 -8px 32px rgba(0,0,0,.25)">
+      <div style="font-size:1.05rem;font-weight:800;color:${textColor};margin-bottom:8px">${title}</div>
+      <div style="font-size:0.88rem;color:${bodyColor};margin-bottom:18px;line-height:1.5">${body}</div>
+      ${typeHtml}
+      <div style="display:flex;gap:10px">
+        <button id="_conf-cancel" style="flex:1;padding:13px;border:1.5px solid ${cancelBdr};border-radius:10px;background:${cancelBg};font-size:0.9rem;font-weight:700;cursor:pointer;color:${textColor}">Cancel</button>
+        <button id="_conf-ok" ${requireType ? 'disabled' : ''} style="flex:1;padding:13px;border:none;border-radius:10px;background:${dangerConfirm ? '#dc2626' : 'var(--royal)'};color:white;font-size:0.9rem;font-weight:700;cursor:pointer;opacity:${requireType ? '0.35' : '1'};transition:opacity 0.15s">${confirmText}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+  const okBtn = el.querySelector('#_conf-ok');
+  if (requireType) {
+    el.querySelector('#_conf-type').addEventListener('input', function() {
+      const match = this.value === requireType;
+      okBtn.disabled = !match;
+      okBtn.style.opacity = match ? '1' : '0.35';
+    });
+  }
+  el.querySelector('#_conf-cancel').onclick = () => el.remove();
+  okBtn.onclick = () => { el.remove(); onConfirm(); };
+  el.addEventListener('click', e => { if (e.target === el) el.remove(); });
+}
+
+function confirmDeployAll() {
+  const teamKeys = getAllTeamKeys();
+  const label = S.clubType === 'highschool' ? 'all groups' : 'all age groups';
+  _adminConfirm({
+    title: '🌐 Deploy All',
+    body: `Push live schedules for <strong>all ${teamKeys.length} ${label}</strong> to parents right now?<br><br>This publishes scores and games for every group simultaneously.`,
+    confirmText: '🌐 Deploy All',
+    onConfirm: deployAll,
+  });
+}
+
 async function deployAll() {
   const teamKeys = getAllTeamKeys();
   const label = S.clubType === 'highschool' ? 'all groups' : 'ALL age groups';
@@ -9340,8 +9468,8 @@ function renderHelpTab() {
     },
     {
       icon: '🏊',
-      title: 'Games Tab — Multi-Team Mode',
-      body: `<p><strong>👑 Requires Club Plan.</strong> The Multi-Team Mode section is its own collapsible card in the <strong>Games</strong> tab.</p>
+      title: 'Multi-Team Mode',
+      body: `<p><strong>👑 Requires Club Plan.</strong> The Multi-Team Mode section is a collapsible card in the <strong>Club Info</strong> tab (under More → Club Info).</p>
       <ul>
         <li><strong>Enable / Disable</strong> — multi-team is on by default for Club plan clubs. Check "Disable multi-team" to run a single-team tournament.</li>
         <li><strong>Team A / Team B Labels</strong> — set custom labels (e.g. "Red" / "Blue") that appear throughout the app instead of the default "A" / "B".</li>
