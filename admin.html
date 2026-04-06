@@ -3308,6 +3308,17 @@ function toggleLoginTheme() {
 // ─── TABS ─────────────────────────────────────────────────────────────────────
 
 function switchTab(tab) {
+  // Intercept locked tabs — open upgrade sheet directly instead of loading a locked page
+  const lockedTabs = {
+    teamcomm: 'push_notify',
+    history:  'season_stats',
+    director: 'tournament_host',
+  };
+  if (lockedTabs[tab] && !tierHasFeature(lockedTabs[tab])) {
+    showUpgradeSheet();
+    return;
+  }
+
   S.currentTab   = tab;
   S.editingGame  = null;
   S.editingRoster = null;
@@ -5789,14 +5800,7 @@ function renderClubInfoTab() {
         </div>
       </div>
     </details>
-    ` : `
-    <details class="card collapsible-card" style="margin-bottom:12px">
-      <summary class="card-header collapsible-header">🏊 Multi-Team Mode <span style="font-size:0.68rem;font-weight:700;background:var(--royal);color:white;padding:1px 7px;border-radius:10px;margin-left:6px">Club Plan</span> <span class="collapse-icon">▾</span></summary>
-      <div style="padding:14px">
-        ${renderUpgradeNudge('multi_team')}
-      </div>
-    </details>
-    `}
+    ` : ''}
 
     <!-- ═══════ CLUB LOGO ═══════ -->
     <details class="card collapsible-card" style="margin-bottom:12px" open>
@@ -5878,7 +5882,32 @@ function renderClubInfoTab() {
       <div id="analytics-container" style="padding:10px 14px">
         <button class="save-btn" style="width:100%" onclick="loadAnalytics()">📊 Load Analytics</button>
       </div>
-    </details>`;
+    </details>
+
+    ${!tierHasFeature('multi_team') ? `
+    <div class="card" style="border:1.5px solid var(--royal-lt);margin-top:4px">
+      <div style="padding:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="font-size:1.5rem">👑</span>
+          <div>
+            <div style="font-weight:800;font-size:0.95rem;color:var(--royal)">Unlock Club Features</div>
+            <div style="font-size:0.78rem;color:var(--g400);margin-top:2px">Everything your club needs to run like a pro</div>
+          </div>
+        </div>
+        <ul style="font-size:0.84rem;color:var(--g600);line-height:1.8;padding-left:18px;margin-bottom:12px">
+          <li><strong>Multi-Team Mode</strong> — A, B &amp; C team rosters, games and scores</li>
+          <li><strong>Live Scoring</strong> — real-time scoreboard for parents in the app</li>
+          <li><strong>Push Notifications</strong> — score alerts and schedule updates</li>
+          <li><strong>Season Stats &amp; History</strong> — player and team stats across tournaments</li>
+          <li><strong>Team Communication</strong> — Telegram, GroupMe, and custom messaging</li>
+        </ul>
+        <button onclick="${!!(window.Capacitor?.isNativePlatform?.()) ? 'showUpgradeSheet()' : "_paywallWebCheckout('price_1TIEmo0NjxFM08jKlS2kPNZp','club')"}" style="width:100%;background:var(--royal);color:white;border:none;border-radius:8px;padding:10px 14px;font-size:0.88rem;font-weight:700;cursor:pointer;letter-spacing:0.01em">
+          ${!!(window.Capacitor?.isNativePlatform?.()) ? 'Upgrade to Club Plan ↗' : 'Upgrade to Club Plan — $24.99/mo ↗'}
+        </button>
+        <div style="text-align:center;font-size:0.72rem;color:var(--g400);margin-top:6px">14-day free trial · cancel anytime</div>
+      </div>
+    </div>` : ''}`;
+}
 }
 
 function renderAddGamesTab() {
@@ -5952,7 +5981,7 @@ function renderAddGamesTab() {
         <div class="info-field"><div class="info-label">Coming Soon Message</div><input class="info-input" value="${esc(t.comingSoon||'')}" placeholder="Schedule coming week of April 20" oninput="S.tournament.comingSoon=this.value"><div class="info-hint">Clear once you've added games.</div></div>
         ${tierHasFeature('live_scoring')
           ? `<div class="info-field"><div class="info-label">Scoring Password</div><input class="info-input" type="text" value="${esc(t.scoringPassword||'')}" placeholder="e.g. bawl2026" autocomplete="off" oninput="S.tournament.scoringPassword=this.value"><div class="info-hint">Parents must enter this to use live scoring.</div></div>`
-          : `<div class="info-field"><div class="info-label">Scoring Password <span style="font-size:0.68rem;font-weight:700;background:var(--royal);color:white;padding:1px 7px;border-radius:10px;margin-left:4px;vertical-align:middle">Club Plan</span></div><input class="info-input" disabled placeholder="Requires Club Plan" style="opacity:0.45;cursor:not-allowed"><div class="info-hint" style="cursor:pointer;color:var(--royal)" onclick="showUpgradeSheet()">🔒 Upgrade to set a scoring password ↗</div></div>`}
+          : ''}
       </div>
     </details>
 
