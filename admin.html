@@ -6110,6 +6110,8 @@ function renderAddGamesTab() {
 
     ${bsWizardHtml()}
 
+    ${njoWizardHtml()}
+
     <details class="card collapsible-card">
       <summary class="card-header collapsible-header">⚙️ Game / Tournament Setup <span class="collapse-icon">▾</span></summary>
       <div class="info-form">
@@ -7706,6 +7708,649 @@ async function bsAutoPoll() {
   } catch (e) {
     console.warn('[bsync] Auto-poll error:', e.message);
   }
+}
+
+// ─── NJO MODE — National Junior Olympics Bracket Wizard ─────────────────────
+// Reads the USA Water Polo MASTER BY DIVISION sheet (contains ALL games in one tab).
+// Columns: Date(0) Time(1) Type(2) Location(3) Gm#(4) White(5) S(6) Dark(7) S(8) Wto(9) Lto(10) GMID(11)
+
+function njoWizardHtml() {
+  if (!S.njo) S.njo = { step: 1, sheetUrl: localStorage.getItem('ebadmin-njo-url') || '', sheetId: '', masterGid: '1188696082',
+    gmidA: '', teamNameA: '', gmidB: '', teamNameB: '', enableTeamB: false,
+    detectedGmids: [], gmidCol: 11, pollMins: 5, allRows: [], gamesA: [], gamesB: [], bracketA: [], bracketB: [] };
+  var n = S.njo;
+  var step = n.step || 1;
+  var stepLabels = ['', 'Sheet URL', 'Team A', 'Team B', 'Sync Frequency', 'Review & Deploy'];
+  var dots = [1,2,3,4,5].map(function(s){
+    return '<div id="njo-dot-'+s+'" style="flex:1;height:5px;border-radius:3px;background:'+(step>=s?'#7e22ce':'var(--g200)')+'"></div>';
+  }).join('');
+  var gmidOpts = n.detectedGmids.map(function(g){
+    return '<option value="'+g+'"'+(n.gmidA===g?' selected':'')+'>'+esc(g)+' — '+njoGmidLabel(g)+'</option>';
+  }).join('') || '<option value="">— paste URL first to detect divisions —</option>';
+  var gmidOptsB = n.detectedGmids.map(function(g){
+    return '<option value="'+g+'"'+(n.gmidB===g?' selected':'')+'>'+esc(g)+' — '+njoGmidLabel(g)+'</option>';
+  }).join('') || '<option value="">— paste URL first to detect divisions —</option>';
+  var pollOpts = [5,10,30,0].map(function(m){
+    return '<option value="'+m+'"'+((n.pollMins===undefined?5:n.pollMins)===m?' selected':'')+'>'+(m?m+' minutes':'Manual only')+'</option>';
+  }).join('');
+  var tbYesBg = n.enableTeamB ? '#7e22ce' : 'var(--g100)';
+  var tbYesCo = n.enableTeamB ? 'white' : 'var(--g600)';
+  var tbNoBg  = !n.enableTeamB ? 'var(--royal)' : 'var(--g100)';
+  var tbNoCo  = !n.enableTeamB ? 'white' : 'var(--g600)';
+  var s2Next  = (n.gamesA && n.gamesA.length) ? '' : ' disabled';
+  return '<details class="card collapsible-card" id="njo-card">'
+    + '<summary class="card-header collapsible-header" style="background:linear-gradient(135deg,#4c1d95,#7e22ce);color:white">&#x1f3c6; NJO Mode — National Junior Olympics <span class="collapse-icon" style="color:rgba(255,255,255,.75)">&#9662;</span></summary>'
+    + '<div style="padding:10px 14px">'
+    + '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#7e22ce;margin-bottom:8px">USA WATER POLO NATIONAL JUNIOR OLYMPICS BRACKET WIZARD</div>'
+    + '<div style="display:flex;gap:3px;margin-bottom:8px">'+dots+'</div>'
+    + '<div id="njo-step-lbl" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--g400);margin-bottom:10px">Step '+step+' — '+stepLabels[step]+'</div>'
+
+    // Step 1 — URL
+    + '<div id="njo-s1" style="display:'+(step===1?'block':'none')+'">'
+    + '<div class="info-label" style="margin-bottom:4px">Paste the NJO Master Bracket Sheet URL</div>'
+    + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">USA Water Polo posts a <strong>MASTER BY DIVISION</strong> sheet each year with all NJO games in one tab. Paste its link here. The sheet must be publicly viewable.</div>'
+    + '<input class="info-input" id="njo-url" type="url" value="'+esc(n.sheetUrl||'')+'" placeholder="https://docs.google.com/spreadsheets/d/\u2026" autocomplete="off" spellcheck="false" style="margin-bottom:8px" onkeydown="if(event.key===\'Enter\')njoStep1Next()">'
+    + '<button class="save-btn" style="width:100%;background:linear-gradient(135deg,#4c1d95,#7e22ce)" onclick="njoStep1Next()">Detect NJO Format &rarr;</button>'
+    + '<div id="njo-s1-err" style="font-size:.8rem;color:#dc2626;margin-top:6px;min-height:1em"></div>'
+    + '</div>'
+
+    // Step 2 — Team A
+    + '<div id="njo-s2" style="display:'+(step===2?'block':'none')+'">'
+    + '<div class="info-label" style="margin-bottom:4px">Team A — Division &amp; Name</div>'
+    + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">Select the division code (GMID) for Team A. E.g. <code style="background:var(--g100);padding:1px 4px;border-radius:3px">12G</code> = 12U Girls Championship, <code style="background:var(--g100);padding:1px 4px;border-radius:3px">12GX</code> = 12U Girls Classic.</div>'
+    + '<select class="info-input" id="njo-gmidA" style="margin-bottom:8px" onchange="S.njo.gmidA=this.value">'+gmidOpts+'</select>'
+    + '<div class="info-label" style="margin-bottom:4px">Team A name (as listed on the NJO sheet)</div>'
+    + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">Enter the team name exactly as it appears in the White/Dark columns — you can leave off the pool prefix (e.g. just <em>San Clemente Red</em>)</div>'
+    + '<input class="info-input" id="njo-teamA" value="'+esc(n.teamNameA||'')+'" placeholder="e.g. San Clemente Red" autocomplete="off" style="margin-bottom:8px" onkeydown="if(event.key===\'Enter\')njoFindTeamA()">'
+    + '<button class="save-btn" style="width:100%;background:linear-gradient(135deg,#4c1d95,#7e22ce)" onclick="njoFindTeamA()">Find Team A &amp; Scan All Games &rarr;</button>'
+    + '<div id="njo-s2-status" style="font-size:.8rem;margin-top:6px;min-height:1em"></div>'
+    + '<div id="njo-s2-preview" style="max-height:180px;overflow-y:auto;font-size:.8rem;margin-top:6px;border:1px solid var(--g100);border-radius:6px;padding:4px 8px;display:none"></div>'
+    + '<div style="display:flex;gap:8px;margin-top:10px">'
+    + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g200)" onclick="njoStep(1)">&larr; Back</button>'
+    + '<button class="save-btn" id="njo-s2-next" style="flex:2;background:linear-gradient(135deg,#4c1d95,#7e22ce)"'+s2Next+' onclick="njoToStep3()">Continue &rarr;</button>'
+    + '</div></div>'
+
+    // Step 3 — Team B
+    + '<div id="njo-s3" style="display:'+(step===3?'block':'none')+'">'
+    + '<div class="info-label" style="margin-bottom:6px">Do you have a second team at this tournament?</div>'
+    + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:8px">E.g. Team A = 14G Championship, Team B = 14GX Classic. Each team gets its own bracket in the app.</div>'
+    + '<div style="display:flex;gap:8px;margin-bottom:10px">'
+    + '<button id="njo-tb-yes" class="save-btn" style="flex:1;background:'+tbYesBg+';color:'+tbYesCo+'" onclick="njoToggleTeamB(true)">Yes — add Team B</button>'
+    + '<button id="njo-tb-no" class="save-btn" style="flex:1;background:'+tbNoBg+';color:'+tbNoCo+'" onclick="njoToggleTeamB(false)">No, just Team A</button>'
+    + '</div>'
+    + '<div id="njo-tb-fields" style="display:'+(n.enableTeamB?'block':'none')+'">'
+    + '<div class="info-label" style="margin-bottom:4px">Team B — Division (GMID)</div>'
+    + '<select class="info-input" id="njo-gmidB" style="margin-bottom:8px" onchange="S.njo.gmidB=this.value">'+gmidOptsB+'</select>'
+    + '<div class="info-label" style="margin-bottom:4px">Team B name</div>'
+    + '<input class="info-input" id="njo-teamB" value="'+esc(n.teamNameB||'')+'" placeholder="e.g. San Clemente Blue" autocomplete="off" style="margin-bottom:8px" onkeydown="if(event.key===\'Enter\')njoFindTeamB()">'
+    + '<button class="save-btn" style="width:100%;background:linear-gradient(135deg,#4c1d95,#7e22ce);margin-bottom:6px" onclick="njoFindTeamB()">Find Team B &amp; Scan All Games &rarr;</button>'
+    + '<div id="njo-s3-status" style="font-size:.8rem;margin-top:6px;min-height:1em"></div>'
+    + '<div id="njo-s3-preview" style="max-height:140px;overflow-y:auto;font-size:.8rem;margin-top:6px;border:1px solid var(--g100);border-radius:6px;padding:4px 8px;display:none"></div>'
+    + '</div>'
+    + '<div style="display:flex;gap:8px;margin-top:10px">'
+    + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g200)" onclick="njoStep(2)">&larr; Back</button>'
+    + '<button class="save-btn" style="flex:2;background:linear-gradient(135deg,#4c1d95,#7e22ce)" onclick="njoToStep4()">Continue &rarr;</button>'
+    + '</div></div>'
+
+    // Step 4 — Sync frequency
+    + '<div id="njo-s4" style="display:'+(step===4?'block':'none')+'">'
+    + '<div class="info-label" style="margin-bottom:4px">How often should we check for updates?</div>'
+    + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:8px">During NJO, bracket opponents get confirmed as pool play finishes. Every 5 minutes is recommended so parents see updates quickly.</div>'
+    + '<select class="info-input" id="njo-poll" style="margin-bottom:10px">'+pollOpts+'</select>'
+    + '<div style="display:flex;gap:8px">'
+    + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g200)" onclick="njoStep(3)">&larr; Back</button>'
+    + '<button class="save-btn" style="flex:2;background:linear-gradient(135deg,#4c1d95,#7e22ce)" onclick="njoStep5Next()">Review &amp; Deploy &rarr;</button>'
+    + '</div></div>'
+
+    // Step 5 — Deploy
+    + '<div id="njo-s5" style="display:'+(step===5?'block':'none')+'">'
+    + '<div id="njo-s5-summary" style="background:var(--g50);border:1px solid var(--g200);border-radius:8px;padding:10px 12px;font-size:.82rem;line-height:1.9;margin-bottom:12px">'+njoDeploySummary()+'</div>'
+    + '<button class="save-btn" style="width:100%;background:linear-gradient(135deg,#4c1d95,#7e22ce);font-size:1rem;padding:12px;margin-bottom:8px;border-radius:8px" onclick="njoDeploy()">&#x1f3c6; Deploy NJO to App</button>'
+    + '<div id="njo-deploy-status" style="font-size:.85rem;text-align:center;margin-bottom:8px;min-height:1em;color:var(--g500)"></div>'
+    + '<div style="display:flex;gap:8px">'
+    + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g200)" onclick="njoStep(4)">&larr; Back</button>'
+    + '<button class="add-btn" style="flex:1;background:#fef3c7;color:#92400e;border:1px solid #fcd34d" onclick="njoReset()">&#8617; Start Over</button>'
+    + '</div></div>'
+    + '</div></details>';
+}
+
+function njoDeploySummary() {
+  var n = S.njo || {};
+  if (!n.teamNameA) return '<em style="color:var(--g400)">Complete steps 1–4 to see summary</em>';
+  return '<strong>&#x1f3c6; NJO Mode — Ready to Deploy</strong><br>'
+    + '&#x1f7e3; <strong>Team A:</strong> '+esc(n.teamNameA||'—')+' ('+esc(n.gmidA||'—')+') — '+(n.gamesA&&n.gamesA.length||0)+' group games, '+(n.bracketA&&n.bracketA.length||0)+' bracket days<br>'
+    + (n.enableTeamB ? ('&#x1f535; <strong>Team B:</strong> '+esc(n.teamNameB||'—')+' ('+esc(n.gmidB||'—')+') — '+(n.gamesB&&n.gamesB.length||0)+' group games, '+(n.bracketB&&n.bracketB.length||0)+' bracket days<br>') : '')
+    + '&#x1f504; <strong>Auto-sync:</strong> '+(n.pollMins?'every '+n.pollMins+' min':'manual only')+'<br>'
+    + '<em style="color:var(--g400)">Schedule tab: group play games. Bracket tab: all possible bracket paths by day.</em>';
+}
+
+function njoStep(n) {
+  if (!S.njo) return;
+  S.njo.step = n;
+  for (var i = 1; i <= 5; i++) {
+    var el = document.getElementById('njo-s' + i);
+    if (el) el.style.display = (i === n) ? 'block' : 'none';
+  }
+  for (var i = 1; i <= 5; i++) {
+    var dot = document.getElementById('njo-dot-' + i);
+    if (dot) dot.style.background = (n >= i) ? '#7e22ce' : 'var(--g200)';
+  }
+  var lbl = document.getElementById('njo-step-lbl');
+  var stepLabels = ['', 'Sheet URL', 'Team A', 'Team B', 'Sync Frequency', 'Review & Deploy'];
+  if (lbl) lbl.textContent = 'Step ' + n + ' — ' + (stepLabels[n] || '');
+}
+
+async function njoStep1Next() {
+  var url = (document.getElementById('njo-url')?.value || '').trim();
+  var err = document.getElementById('njo-s1-err');
+  if (!url) { if (err) err.textContent = '⚠️ Paste the NJO master sheet URL first'; return; }
+  var m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if (!m) { if (err) { err.style.color='#dc2626'; err.textContent='❌ Could not find sheet ID — paste the full Google Sheets URL'; } return; }
+  if (!S.njo) S.njo = {};
+  S.njo.sheetUrl = url;
+  S.njo.sheetId  = m[1];
+  localStorage.setItem('ebadmin-njo-url', url);
+  // Use gid from URL if present, otherwise default to known NJO master tab GID
+  var gidM = url.match(/[#?&]gid=(\d+)/);
+  S.njo.masterGid = gidM ? gidM[1] : '1188696082';
+  if (err) { err.style.color='var(--g400)'; err.textContent='⏳ Fetching sheet and detecting NJO format…'; }
+  try {
+    var csvUrl = 'https://docs.google.com/spreadsheets/d/'+S.njo.sheetId+'/gviz/tq?tqx=out:csv&gid='+S.njo.masterGid;
+    var resp = await fetch(csvUrl);
+    if (!resp.ok) throw new Error('HTTP '+resp.status+' — make sure the sheet is set to "Anyone with the link can view"');
+    var text = await resp.text();
+    var rows = parseCSV(text);
+    if (!rows.length) throw new Error('Sheet appears empty — check the URL and that the correct tab GID is in the URL');
+
+    // Detect GMID column — check header row and first data rows
+    var header = rows[0].map(function(c){ return (c||'').trim().toLowerCase(); });
+    var gmidCol = header.findIndex(function(h){ return h === 'gmid'; });
+    if (gmidCol < 0) {
+      // Try last column of first data row for GMID-like values (e.g. "12G", "14GX", "10C")
+      var lastColSamples = rows.slice(1,15).map(function(r){ return (r[r.length-1]||'').trim(); }).filter(Boolean).join(' ');
+      if (/^\d+[A-Z]+X?$/.test((rows[1]||[])[rows[0].length-1]||'') || /\d{2}[A-Z]/.test(lastColSamples)) {
+        gmidCol = rows[0].length - 1;
+      } else {
+        throw new Error('This doesn\'t look like an NJO Master By Division sheet — no GMID column found. Use the regular Bracket Sheet Sync wizard instead.');
+      }
+    }
+
+    // Collect unique GMIDs
+    var gmidSet = {};
+    for (var i = 1; i < rows.length; i++) {
+      var g = (rows[i][gmidCol] || '').trim();
+      if (g && /^\d+[A-Z]+X?$/.test(g)) gmidSet[g] = true;
+    }
+    var gmidList = Object.keys(gmidSet).sort(function(a,b){
+      var na=parseInt(a), nb=parseInt(b); return na!==nb ? na-nb : a.localeCompare(b);
+    });
+    if (!gmidList.length) throw new Error('No GMID division codes found — check the sheet tab or URL');
+
+    S.njo.detectedGmids = gmidList;
+    S.njo.gmidCol = gmidCol;
+    S.njo.allRows = rows;
+    if (!S.njo.gmidA && gmidList.length) S.njo.gmidA = gmidList[0];
+    if (!S.njo.gmidB && gmidList.length > 1) S.njo.gmidB = gmidList[1];
+
+    // Rebuild GMID dropdowns
+    var optHtml = gmidList.map(function(g){
+      return '<option value="'+esc(g)+'">'+esc(g)+' — '+njoGmidLabel(g)+'</option>';
+    }).join('');
+    var selA = document.getElementById('njo-gmidA'); if (selA) { selA.innerHTML=optHtml; selA.value=S.njo.gmidA||gmidList[0]; }
+    var selB = document.getElementById('njo-gmidB'); if (selB) { selB.innerHTML=optHtml; selB.value=S.njo.gmidB||gmidList[1]||gmidList[0]; }
+
+    if (err) { err.style.color='#059669'; err.textContent='✅ NJO format detected — '+gmidList.length+' divisions found: '+gmidList.join(', '); }
+    njoStep(2);
+  } catch(e) {
+    if (err) { err.style.color='#dc2626'; err.textContent='❌ '+e.message; }
+  }
+}
+
+function njoGmidLabel(gmid) {
+  var m = (gmid||'').match(/^(\d+)([A-Za-z]+?)(X?)$/);
+  if (!m) return gmid;
+  var age = m[1], gender = m[2].toUpperCase(), isClassic = m[3]==='X';
+  var bracket = isClassic ? 'Classic' : 'Championship';
+  var gLabel = {G:'Girls', B:'Boys', C:'Coed', M:'Mixed'}[gender] || gender;
+  return age+'U '+gLabel+' '+bracket;
+}
+
+async function njoFindTeamA() { await njoFindTeam('A'); }
+async function njoFindTeamB() { await njoFindTeam('B'); }
+
+async function njoFindTeam(which) {
+  var isA = which === 'A';
+  var nameId   = 'njo-team'+(isA?'A':'B');
+  var gmidId   = 'njo-gmid'+(isA?'A':'B');
+  var statusId = 'njo-s'+(isA?'2':'3')+'-status';
+  var prevId   = 'njo-s'+(isA?'2':'3')+'-preview';
+  var nextId   = isA ? 'njo-s2-next' : null;
+
+  var teamName = (document.getElementById(nameId)?.value||'').trim();
+  var gmid     = (document.getElementById(gmidId)?.value||'').trim();
+  var statusEl = document.getElementById(statusId);
+  var prevEl   = document.getElementById(prevId);
+  var nextEl   = nextId ? document.getElementById(nextId) : null;
+
+  if (!teamName) { if (statusEl) { statusEl.style.color='#dc2626'; statusEl.textContent='⚠️ Enter the team name'; } return; }
+  if (!gmid)     { if (statusEl) { statusEl.style.color='#dc2626'; statusEl.textContent='⚠️ Select a division (GMID) first'; } return; }
+  if (!S.njo?.allRows?.length) { if (statusEl) { statusEl.style.color='#dc2626'; statusEl.textContent='⚠️ Go back to Step 1 and detect the sheet format first'; } return; }
+
+  if (isA) { S.njo.teamNameA=teamName; S.njo.gmidA=gmid; }
+  else      { S.njo.teamNameB=teamName; S.njo.gmidB=gmid; }
+
+  if (statusEl) { statusEl.style.color='var(--g400)'; statusEl.textContent='⏳ Scanning '+gmid+' games for "'+teamName+'"…'; }
+  if (prevEl)   { prevEl.style.display='none'; prevEl.innerHTML=''; }
+
+  try {
+    var result = njoParseTeam(S.njo.allRows, gmid, S.njo.gmidCol||11, teamName);
+    if (isA) { S.njo.gamesA=result.groupGames; S.njo.bracketA=result.bracketPaths; }
+    else      { S.njo.gamesB=result.groupGames; S.njo.bracketB=result.bracketPaths; }
+
+    var nBracket = result.allReachableGames.length;
+    if (statusEl) { statusEl.style.color='#059669'; statusEl.textContent='✅ Found '+result.groupGames.length+' group play games + '+nBracket+' possible bracket games'; }
+    if (nextEl) nextEl.disabled = false;
+
+    if (prevEl && result.groupGames.length) {
+      prevEl.style.display = 'block';
+      prevEl.innerHTML = '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#7e22ce;margin-bottom:4px;padding:2px 0">Group Play — '+result.groupGames.length+' games</div>'
+        + result.groupGames.map(function(g){
+          return '<div style="padding:4px 0;border-bottom:1px solid var(--g100);display:flex;gap:6px;align-items:center">'
+            + '<span style="font-size:.72rem;color:var(--g400);min-width:32px;font-weight:600">'+esc(g.gameNum)+'</span>'
+            + '<span style="flex:1;font-weight:600;font-size:.82rem">vs '+esc(g.opponent||'TBD')+'</span>'
+            + '<span style="font-size:.72rem;color:var(--g400)">'+esc(g.date||'')+(g.time?' · '+esc(g.time):'')+'</span>'
+            + '</div>';
+        }).join('')
+        + '<div style="padding-top:6px;font-size:.72rem;color:var(--g400)">+ '+nBracket+' bracket game slots mapped across '+result.bracketPaths.length+' day(s) in Bracket tab</div>';
+    }
+  } catch(e) {
+    if (statusEl) { statusEl.style.color='#dc2626'; statusEl.textContent='❌ '+e.message; }
+    if (nextEl) nextEl.disabled = true;
+  }
+}
+
+function njoToggleTeamB(enable) {
+  if (!S.njo) S.njo = {};
+  S.njo.enableTeamB = enable;
+  var yesBtn = document.getElementById('njo-tb-yes');
+  var noBtn  = document.getElementById('njo-tb-no');
+  var fields = document.getElementById('njo-tb-fields');
+  if (yesBtn) { yesBtn.style.background=enable?'#7e22ce':'var(--g100)'; yesBtn.style.color=enable?'white':'var(--g600)'; }
+  if (noBtn)  { noBtn.style.background=!enable?'var(--royal)':'var(--g100)'; noBtn.style.color=!enable?'white':'var(--g600)'; }
+  if (fields) fields.style.display = enable ? 'block' : 'none';
+}
+
+function njoToStep3() {
+  if (!S.njo?.gamesA?.length) {
+    var s = document.getElementById('njo-s2-status');
+    if (s) { s.style.color='#dc2626'; s.textContent='⚠️ Find Team A first — click "Find Team A & Scan All Games"'; }
+    return;
+  }
+  njoStep(3);
+}
+
+function njoToStep4() {
+  if (S.njo?.enableTeamB && !S.njo?.gamesB?.length) {
+    var s = document.getElementById('njo-s3-status');
+    if (s) { s.style.color='#dc2626'; s.textContent='⚠️ Find Team B first — click "Find Team B & Scan All Games"'; }
+    return;
+  }
+  njoStep(4);
+}
+
+function njoStep5Next() {
+  var poll = parseInt(document.getElementById('njo-poll')?.value ?? '5');
+  if (!S.njo) S.njo = {};
+  S.njo.pollMins = isNaN(poll) ? 5 : poll;
+  var summary = document.getElementById('njo-s5-summary');
+  if (summary) summary.innerHTML = njoDeploySummary();
+  njoStep(5);
+}
+
+// Parse all games for a team from the NJO master sheet rows.
+// Returns { groupGames, allReachableGames, bracketPaths }
+function njoParseTeam(allRows, gmid, gmidColIdx, teamName) {
+  var gameMap = {};
+  var teamLower = teamName.toLowerCase();
+
+  // Build game map for this exact GMID
+  for (var i = 1; i < allRows.length; i++) {
+    var row = allRows[i];
+    if (!row || row.length < 5) continue;
+    var rowGmid = (row[gmidColIdx] || row[11] || '').trim();
+    if (rowGmid !== gmid) continue;
+    var gNum = (row[4] || '').trim();
+    if (gNum) gameMap[gNum] = row;
+  }
+
+  var allGameNums = Object.keys(gameMap);
+  if (!allGameNums.length) throw new Error('No games found for division '+gmid+' — check the division selection or sheet format');
+
+  // Find group play games where this team appears directly
+  var teamGameNums = [];
+  var groupGames = [];
+
+  for (var gNum in gameMap) {
+    var row = gameMap[gNum];
+    var type = (row[2]||'').trim().toLowerCase();
+    var isGroup = !type || type==='group' || type==='pool' || type.startsWith('group');
+    if (!isGroup) continue;
+
+    var rawWhite = (row[5]||'').trim();
+    var rawDark  = (row[7]||'').trim();
+    var white    = njoCleanTeam(rawWhite);
+    var dark     = njoCleanTeam(rawDark);
+    // Only match if NOT a W/L placeholder (placeholders contain 'W' or 'L' followed by game number)
+    var whiteIsPlaceholder = /^[WL]\d+/i.test(rawWhite.replace(/^[A-Z]\d+\(\d+\)-/i,'').replace(/^[A-Z]\d+-/i,''));
+    var darkIsPlaceholder  = /^[WL]\d+/i.test(rawDark.replace(/^[A-Z]\d+\(\d+\)-/i,'').replace(/^[A-Z]\d+-/i,''));
+    if (whiteIsPlaceholder || darkIsPlaceholder) continue; // bracket game, not group
+
+    var wLower = white.toLowerCase(), dLower = dark.toLowerCase();
+    var isWhite = wLower.includes(teamLower);
+    var isDark  = dLower.includes(teamLower);
+    if (!isWhite && !isDark) continue;
+
+    teamGameNums.push(gNum);
+    var dateISO = parseDateToISO((row[0]||'').trim());
+    groupGames.push({
+      id: 'njo-'+gNum+'-'+Math.random().toString(36).slice(2,7),
+      gameNum: gNum,
+      opponent: isWhite ? dark : white,
+      time: (row[1]||'').trim(),
+      dateISO: dateISO,
+      date: dateISO ? isoToDate(dateISO) : (row[0]||'').trim(),
+      location: (row[3]||'').trim(),
+      type: type || 'group',
+      cap: isWhite ? 'White' : 'Dark',
+      njoGmid: gmid,
+      njoType: 'group',
+    });
+  }
+
+  if (!teamGameNums.length) {
+    throw new Error('"'+teamName+'" not found in any group play game in division '+gmid+' — check the team name matches the sheet and that the correct GMID is selected');
+  }
+
+  // BFS to find all reachable bracket games
+  var reachableSet = new Set(teamGameNums);
+  var queue = teamGameNums.slice();
+  while (queue.length) {
+    var gn = queue.shift();
+    var row = gameMap[gn];
+    if (!row) continue;
+    var wTo = (row[9]||'').trim();
+    var lTo = (row[10]||'').trim();
+    if (wTo && gameMap[wTo] && !reachableSet.has(wTo)) { reachableSet.add(wTo); queue.push(wTo); }
+    if (lTo && gameMap[lTo] && !reachableSet.has(lTo)) { reachableSet.add(lTo); queue.push(lTo); }
+  }
+
+  // Build bracket games list (reachable, excluding group play)
+  var allReachableGames = [];
+  var reachableArr = Array.from(reachableSet).filter(function(g){ return !teamGameNums.includes(g); });
+  reachableArr.sort(function(a,b){ return parseInt(a)-parseInt(b); });
+
+  for (var k = 0; k < reachableArr.length; k++) {
+    var gn = reachableArr[k];
+    var row = gameMap[gn];
+    if (!row) continue;
+    var dateISO = parseDateToISO((row[0]||'').trim());
+    var rawW = (row[5]||'').trim();
+    var rawD = (row[7]||'').trim();
+    allReachableGames.push({
+      gameNum: gn,
+      rawWhite: rawW,
+      rawDark: rawD,
+      white: njoCleanTeam(rawW),
+      dark: njoCleanTeam(rawD),
+      time: (row[1]||'').trim(),
+      dateISO: dateISO,
+      date: dateISO ? isoToDate(dateISO) : (row[0]||'').trim(),
+      location: (row[3]||'').trim(),
+      type: (row[2]||'').trim(),
+      wTo: (row[9]||'').trim(),
+      lTo: (row[10]||'').trim(),
+      njoGmid: gmid,
+      njoType: 'bracket',
+    });
+  }
+
+  var bracketPaths = njoBuildBracketPaths(allReachableGames, teamName);
+  return { groupGames: groupGames, allReachableGames: allReachableGames, bracketPaths: bracketPaths };
+}
+
+function njoCleanTeam(raw) {
+  if (!raw) return '';
+  raw = raw.trim();
+  raw = raw.replace(/^[A-Z]\d+\(\d+\)-/i, '');  // B1(2)-TEAM → TEAM
+  raw = raw.replace(/^[A-Z]\d+-/i, '');           // C3-TEAM → TEAM
+  return raw.trim();
+}
+
+function njoOpponentLabel(raw) {
+  if (!raw) return 'TBD';
+  var cleaned = njoCleanTeam(raw);
+  var wm = cleaned.match(/^W(\d+)(?:-(.*))?$/i);
+  if (wm) return 'W-Gm'+wm[1] + (wm[2]&&wm[2].trim() ? ' ('+wm[2].trim()+')' : '');
+  var lm = cleaned.match(/^L(\d+)(?:-(.*))?$/i);
+  if (lm) return 'L-Gm'+lm[1] + (lm[2]&&lm[2].trim() ? ' ('+lm[2].trim()+')' : '');
+  return cleaned;
+}
+
+function njoTypeLabel(type) {
+  if (!type) return 'Bracket Game';
+  var t = type.toLowerCase().trim();
+  var map = { 'semi':'Semifinal', 'final':'Final', '1st':'Gold Medal', '3rd':'Bronze Medal',
+    '5th':'5th Place', '7th':'7th Place', '9th':'9th Place', '11th':'11th Place',
+    '13th':'13th Place', '15th':'15th Place', '17th':'17th Place', '19th':'19th Place',
+    '21st':'21st Place', '23rd':'23rd Place', 'cross':'Crossover', 'crossover':'Crossover',
+    'play-in':'Play-In', 'playin':'Play-In', '5-8':'5th–8th', '9-12':'9th–12th', 'quarterfinal':'Quarterfinal',
+  };
+  return map[t] || (type.charAt(0).toUpperCase()+type.slice(1));
+}
+
+// Build bracket paths organized by date (one section per tournament day)
+function njoBuildBracketPaths(bracketGames, teamName) {
+  var byDate = {};
+  var dateOrder = [];
+  for (var i = 0; i < bracketGames.length; i++) {
+    var g = bracketGames[i];
+    var key = g.dateISO || g.date || 'TBD';
+    if (!byDate[key]) { byDate[key] = []; dateOrder.push(key); }
+    byDate[key].push(g);
+  }
+  // Dedupe and sort dates
+  dateOrder = dateOrder.filter(function(v,i,a){ return a.indexOf(v)===i; }).sort();
+
+  var paths = [];
+  for (var di = 0; di < dateOrder.length; di++) {
+    var dk = dateOrder[di];
+    var dayGames = byDate[dk];
+    var firstGame = dayGames[0];
+    var dayDate = firstGame.date || dk;
+    var dayLabel = 'Bracket — '+(dayDate&&dayDate!=='TBD'?dayDate:'Date TBD')+' ('+dayGames.length+' possible game'+(dayGames.length!==1?'s':'')+')';
+
+    paths.push({
+      id: 'njo-bday-'+(di+1),
+      label: dayLabel,
+      qualifier: 'All games your team could play on this day — exact game depends on bracket results.',
+      steps: dayGames.map(function(g){
+        var wLabel = njoOpponentLabel(g.rawWhite);
+        var dLabel = njoOpponentLabel(g.rawDark);
+        var tLabel = njoTypeLabel(g.type);
+        return {
+          gameNum: g.gameNum,
+          desc: tLabel+' — '+wLabel+' vs '+dLabel,
+          time: g.time || 'TBD',
+          date: g.date || dk,
+          dateISO: g.dateISO,
+          location: g.location || '',
+          njoWhite: g.rawWhite,
+          njoDark: g.rawDark,
+          njoType: g.type,
+          njoWto: g.wTo,
+          njoLto: g.lTo,
+        };
+      }),
+    });
+  }
+  return paths;
+}
+
+async function njoDeploy() {
+  var status = document.getElementById('njo-deploy-status');
+  var n = S.njo;
+  if (!n?.gamesA?.length) { if (status) { status.style.color='#dc2626'; status.textContent='⚠️ Go back and scan Team A games first'; } return; }
+  if (status) { status.style.color='var(--g400)'; status.textContent='⏳ Deploying NJO bracket to app…'; }
+  try {
+    // Build combined games list (group play only in games array)
+    var allGames = [];
+    (n.gamesA||[]).forEach(function(g){ allGames.push(Object.assign({},g,{team:'A'})); });
+    if (n.enableTeamB) (n.gamesB||[]).forEach(function(g){ allGames.push(Object.assign({},g,{team:'B'})); });
+    allGames.sort(function(a,b){ return gameNumToInt(a.gameNum)-gameNumToInt(b.gameNum); });
+
+    // Preserve existing game IDs
+    var existingByNum = {};
+    for (var eg of (S.tournament.games||[])) existingByNum[eg.gameNum] = eg;
+    allGames = allGames.map(function(g){ return Object.assign({},g,{id: existingByNum[g.gameNum]?.id||g.id}); });
+
+    // Build bracket structure
+    var bracketPaths;
+    if (n.enableTeamB && n.bracketB?.length) {
+      bracketPaths = { A: n.bracketA||[], B: n.bracketB||[] };
+    } else {
+      bracketPaths = n.bracketA||[];
+    }
+
+    S.tournament.games   = allGames;
+    S.tournament.bracket = { paths: bracketPaths };
+    S.tournament.njoMode = true;
+    S.tournament.sheetSync = {
+      sheetUrl: n.sheetUrl, sheetId: n.sheetId, masterGid: n.masterGid,
+      njoMode: true, gmidCol: n.gmidCol,
+      gmidA: n.gmidA, teamNameA: n.teamNameA,
+      gmidB: n.enableTeamB ? n.gmidB : null,
+      teamNameB: n.enableTeamB ? n.teamNameB : null,
+      enableTeamB: n.enableTeamB,
+      pollMins: n.pollMins, lastSync: new Date().toISOString(),
+    };
+
+    var saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+    if (!saveRes.ok) throw new Error('Saved locally but cloud save failed — tap 💾 Save & Deploy in the header to retry');
+
+    var totalBracketDays = (n.bracketA||[]).length + (n.enableTeamB?(n.bracketB||[]).length:0);
+    if (status) { status.style.color='#059669'; status.textContent='✅ NJO deployed! '+allGames.length+' group games + '+totalBracketDays+' bracket day(s).'+( n.pollMins?' Auto-sync every '+n.pollMins+' min.':''); }
+    if (n.pollMins > 0) njoStartPoll();
+
+    // Scroll to Game/Tournament Setup
+    setTimeout(function(){
+      var setupEl = Array.from(document.querySelectorAll('#tab-content details')).find(function(d){
+        var s = d.querySelector('summary'); return s && s.textContent.includes('Game / Tournament Setup');
+      });
+      if (setupEl) {
+        setupEl.open = true;
+        setupEl.scrollIntoView({ behavior:'smooth', block:'start' });
+        setupEl.style.outline = '2px solid #7e22ce';
+        setupEl.style.outlineOffset = '2px';
+        setTimeout(function(){ setupEl.style.outline=''; setupEl.style.outlineOffset=''; }, 2500);
+      }
+      var tidInput = document.getElementById('ti-id');
+      if (tidInput && !tidInput.value) setTimeout(function(){ tidInput.focus(); }, 400);
+    }, 900);
+  } catch(e) {
+    if (status) { status.style.color='#dc2626'; status.textContent='❌ '+e.message; }
+  }
+}
+
+let _njoPollTimer = null;
+function njoStartPoll() {
+  if (_njoPollTimer) clearInterval(_njoPollTimer);
+  var mins = S.njo?.pollMins;
+  if (!mins || mins <= 0) return;
+  _njoPollTimer = setInterval(njoAutoPoll, mins * 60 * 1000);
+}
+
+async function njoAutoPoll() {
+  var sync = S.tournament?.sheetSync;
+  if (!sync?.njoMode || !sync?.sheetId) return;
+  try {
+    var csvUrl = 'https://docs.google.com/spreadsheets/d/'+sync.sheetId+'/gviz/tq?tqx=out:csv&gid='+(sync.masterGid||'1188696082');
+    var resp = await fetch(csvUrl);
+    if (!resp.ok) return;
+    var text = await resp.text();
+    var allRows = parseCSV(text);
+    var gmidCol = sync.gmidCol ?? 11;
+    var changed = false;
+
+    // Re-parse both teams and update bracket steps + group games
+    var newGamesA = [], newBracketA = [], newGamesB = [], newBracketB = [];
+    try {
+      if (sync.gmidA && sync.teamNameA) {
+        var rA = njoParseTeam(allRows, sync.gmidA, gmidCol, sync.teamNameA);
+        newGamesA = rA.groupGames; newBracketA = rA.bracketPaths;
+      }
+    } catch(e) { console.warn('[njo] poll re-parse Team A:', e.message); }
+    try {
+      if (sync.enableTeamB && sync.gmidB && sync.teamNameB) {
+        var rB = njoParseTeam(allRows, sync.gmidB, gmidCol, sync.teamNameB);
+        newGamesB = rB.groupGames; newBracketB = rB.bracketPaths;
+      }
+    } catch(e) { console.warn('[njo] poll re-parse Team B:', e.message); }
+
+    // Merge with existing (preserve IDs)
+    var existingById = {};
+    for (var eg of (S.tournament.games||[])) existingById[eg.gameNum] = eg;
+
+    var buildMerged = function(newGames, team) {
+      return newGames.map(function(g){
+        var prev = existingById[g.gameNum];
+        if (prev && prev.opponent===g.opponent && prev.time===g.time && prev.location===g.location) return null; // no change
+        return Object.assign({},g,{team:team, id: prev?.id||g.id});
+      }).filter(Boolean);
+    };
+
+    var mergedA = buildMerged(newGamesA, 'A');
+    var mergedB = buildMerged(newGamesB, 'B');
+    if (mergedA.length || mergedB.length) changed = true;
+
+    // Also check if bracket step descs changed (W/L resolved to real team names)
+    var oldPaths = S.tournament.bracket?.paths;
+    var newPaths;
+    if (sync.enableTeamB && newBracketB.length) {
+      newPaths = { A: newBracketA, B: newBracketB };
+    } else {
+      newPaths = newBracketA.length ? newBracketA : oldPaths;
+    }
+    var oldSig = JSON.stringify(oldPaths);
+    var newSig  = JSON.stringify(newPaths);
+    if (oldSig !== newSig) changed = true;
+
+    if (!changed) return;
+
+    // Apply updates: rebuild games array preserving unchanged entries
+    var gamesMap = {};
+    for (var g of (S.tournament.games||[])) gamesMap[g.gameNum+'_'+g.team] = g;
+    for (var g of mergedA) gamesMap[g.gameNum+'_A'] = g;
+    for (var g of mergedB) gamesMap[g.gameNum+'_B'] = g;
+    var updatedGames = Object.values(gamesMap).sort(function(a,b){ return gameNumToInt(a.gameNum)-gameNumToInt(b.gameNum); });
+
+    S.tournament.games = updatedGames;
+    S.tournament.bracket = { paths: newPaths };
+    S.tournament.sheetSync = Object.assign({}, sync, { lastSync: new Date().toISOString() });
+
+    var saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+    if (saveRes.ok) console.warn('[njo] Auto-synced: '+(mergedA.length+mergedB.length)+' game update(s), bracket refreshed');
+  } catch(e) {
+    console.warn('[njo] Auto-poll error:', e.message);
+  }
+}
+
+function njoReset() {
+  var saved = S.njo?.sheetUrl || '';
+  S.njo = { step:1, sheetUrl:saved, sheetId:'', masterGid:'1188696082',
+    gmidA:'', teamNameA:'', gmidB:'', teamNameB:'', enableTeamB:false,
+    detectedGmids:[], gmidCol:11, pollMins:5, allRows:[], gamesA:[], gamesB:[], bracketA:[], bracketB:[] };
+  njoStep(1);
+  var ui = document.getElementById('njo-url'); if (ui) ui.value = saved;
 }
 
 // ─── RAW TAB (Option 2 backup) ────────────────────────────────────────────────
