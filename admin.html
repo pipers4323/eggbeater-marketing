@@ -6113,7 +6113,6 @@ function renderAddGamesTab() {
     <details class="card collapsible-card">
       <summary class="card-header collapsible-header">⚙️ Game / Tournament Setup <span class="collapse-icon">▾</span></summary>
       <div class="info-form">
-        <div class="info-field"><div class="info-label">Club ID</div><input class="info-input" value="${esc(typeof fbGetClubId==='function'?fbGetClubId():'my-club')}" placeholder="e.g. pacific-waves" oninput="if(typeof fbSetClubId==='function')fbSetClubId(this.value);localStorage.setItem('ebadmin-clubId',this.value)"><div class="info-hint">Identifies your club in the cloud.</div></div>
         <div class="info-field"><div class="info-label">Tournament ID</div><input class="info-input" id="ti-id" value="${esc(t.id||'')}" oninput="S.tournament.id=this.value"><div class="info-hint red">⚠ Changing ID archives the current tournament. Only change when starting a new tournament.</div></div>
         <div class="info-field"><div class="info-label">Name</div><input class="info-input" id="ti-name" value="${esc(t.name||'')}" oninput="S.tournament.name=this.value;updateAdminHeader()"></div>
         <div class="info-field"><div class="info-label">Subtitle</div><input class="info-input" value="${esc(t.subtitle||'')}" oninput="S.tournament.subtitle=this.value"></div>
@@ -7621,9 +7620,25 @@ async function bsDeploy() {
     const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
     if (!saveRes.ok) throw new Error('Games synced but save failed — tap 💾 Deploy in the header to retry');
 
-    if (status) { status.style.color = '#059669'; status.textContent = `✅ ${games.length} game(s) deployed!${S.bsync.pollMins ? ` Auto-sync every ${S.bsync.pollMins} min.` : ''}`; }
+    if (status) { status.style.color = '#059669'; status.textContent = `✅ ${games.length} game(s) imported!${S.bsync.pollMins ? ` Auto-sync every ${S.bsync.pollMins} min.` : ''} Now fill in the tournament details below, then tap 💾 Save & Deploy.`; }
     if (S.bsync.pollMins > 0) bsStartPoll();
-    setTimeout(() => switchTab('schedule'), 1800);
+    // Scroll to Game/Tournament Setup so admin fills in name, dates, venue, etc. before deploying
+    setTimeout(() => {
+      const setupEl = Array.from(document.querySelectorAll('#tab-content details')).find(d => {
+        const s = d.querySelector('summary');
+        return s && s.textContent.includes('Game / Tournament Setup');
+      });
+      if (setupEl) {
+        setupEl.open = true;
+        setupEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setupEl.style.outline = '2px solid var(--royal)';
+        setupEl.style.outlineOffset = '2px';
+        setTimeout(() => { setupEl.style.outline = ''; setupEl.style.outlineOffset = ''; }, 2500);
+      }
+      // Focus Tournament ID as first field to fill
+      const tidInput = document.getElementById('ti-id');
+      if (tidInput && !tidInput.value) setTimeout(() => tidInput.focus(), 400);
+    }, 1000);
   } catch (e) {
     if (status) { status.style.color = '#dc2626'; status.textContent = '❌ ' + e.message; }
   }
