@@ -12,7 +12,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-  <link rel="stylesheet" href="styles.css?v=183">
+  <link rel="stylesheet" href="styles.css?v=184">
   <!-- Capacitor native bridge — must load before any plugin code.
        In native iOS/Android apps this file is copied into www/ by cap sync.
        In the web browser it 404s silently (no-op). -->
@@ -448,30 +448,33 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="firebase.js?v=183"></script>
+  <script src="firebase.js?v=184"></script>
 
   <!-- Android 16 Live Update Bridge -->
-  <script src="live-update.js?v=183"></script>
+  <script src="live-update.js?v=184"></script>
 
   <!-- Native push notification bridge (Capacitor iOS) -->
-  <script src="capacitor-push.js?v=183"></script>
+  <script src="capacitor-push.js?v=184"></script>
 
   <!-- Data + App — query string busts any intermediate cache on every deploy -->
-  <script src="tournament.js?v=183"></script>
-  <script src="app.js?v=183"></script>
+  <script src="tournament.js?v=184"></script>
+  <script src="app.js?v=184"></script>
 
   <!-- SW auto-reload: runs before app.js initialises so every device always
        picks up new code immediately after a deploy, even on the first load. -->
   <script>
     if ('serviceWorker' in navigator) {
+      // Navigate to clean pathname on SW update — strips any ?_r= or ?club= / ?join=
+      // params that may have been added by older service workers. Club ID is always
+      // persisted to localStorage so the clean URL never loses context.
+      function _swReload() {
+        window.location.replace(location.pathname);
+      }
       // Reload whenever a new SW takes control (covers both first-time and updates)
-      // Use replace+timestamp to bypass Android WebView HTTP disk cache
-      navigator.serviceWorker.addEventListener('controllerchange', function() {
-        location.replace('/?_r=' + Date.now());
-      });
+      navigator.serviceWorker.addEventListener('controllerchange', _swReload);
       // Also reload when the SW explicitly signals it has updated
       navigator.serviceWorker.addEventListener('message', function(e) {
-        if (e.data && e.data.type === 'SW_UPDATED') location.replace('/?_r=' + Date.now());
+        if (e.data && e.data.type === 'SW_UPDATED') _swReload();
       });
     }
   </script>

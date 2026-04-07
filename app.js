@@ -647,6 +647,34 @@ function formatDateGroupLabel(dateStr) {
   return dateStr;
 }
 
+function _lastSyncLabel() {
+  const ts = parseInt(localStorage.getItem('ebwp-last-sync') || '0', 10);
+  if (!ts) return null;
+  const mins = Math.round((Date.now() - ts) / 60000);
+  if (mins < 1)    return 'just now';
+  if (mins < 60)   return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24)    return `${hrs} hr ago`;
+  const days = Math.round(hrs / 24);
+  return `${days} day${days !== 1 ? 's' : ''} ago`;
+}
+
+/**
+ * Returns a small HTML warning string when a score poll has failed more recently
+ * than it last succeeded — signals to the user that live data may be stale.
+ * @param {number|undefined} lastError  — state.dirPollLastError or tscorePollLastError
+ * @param {number|undefined} lastSuccess — state.dirPollLastSuccess or tscorePollLastSuccess
+ */
+function _pollStaleNote(lastError, lastSuccess) {
+  if (!lastError) return '';
+  if (lastSuccess && lastSuccess >= lastError) return ''; // recovered
+  const mins = Math.round((Date.now() - lastError) / 60000);
+  const ago = mins < 1 ? 'just now' : `${mins} min ago`;
+  return `<div style="background:#fef3c7;color:#92400e;font-size:0.75rem;font-weight:600;padding:6px 14px;border-radius:8px;margin-bottom:8px">
+    ⚠️ Live feed interrupted (${ago}) — scores may be delayed
+  </div>`;
+}
+
 /** Shows or hides the body-level live-scoring banner (position:fixed outside overflow containers). */
 function _setLiveBanner(visible) {
   const el = document.getElementById('live-scoring-banner');
@@ -1123,6 +1151,7 @@ function recordEventForPlayer(gameId, eventType, cap, name, sixOnFive) {
     ts: Date.now(),
   };
   _pendingClock = '';
+  const isTeamGoal = actualType === 'goal' || actualType === 'goal_5m' || actualType === 'so_goal';
   if (actualType === 'goal')        s.team++;
   if (actualType === 'goal_5m')     s.team++;
   if (actualType === 'so_goal')     s.team = Math.round((s.team + 0.1) * 10) / 10;
@@ -1130,6 +1159,7 @@ function recordEventForPlayer(gameId, eventType, cap, name, sixOnFive) {
   if (actualType === 'opp_so_goal') s.opp  = Math.round((s.opp  + 0.1) * 10) / 10;
   s.events.push(ev);
   state.liveScores[gameId] = s;
+  if (isTeamGoal) _hapticGoal(); // celebrate! 🎉
   afterScore(gameId);
 }
 
@@ -1172,6 +1202,16 @@ function recomputeScores(events) {
     if (e.type === 'opp_so_goal') opp  = Math.round((opp  + 0.1) * 10) / 10;
   }
   return { team, opp };
+}
+
+/** Fire a heavy haptic (iOS Taptic Engine) or a double-pulse vibration (Android/web)
+ *  when our team scores a goal — gives parents watching live a physical jolt of joy. */
+function _hapticGoal() {
+  try {
+    const Haptics = window.Capacitor?.Plugins?.Haptics;
+    if (Haptics) { Haptics.impact({ style: 'heavy' }).catch(() => {}); return; }
+  } catch {}
+  try { navigator.vibrate?.([80, 40, 80]); } catch {} // double-pulse fallback
 }
 
 // Remove the last event (smart undo — recomputes scores)
@@ -4028,12 +4068,41 @@ async function pollDirScores() {
   } catch {}
 }
 
-function startDirScorePolling() {
+/** Returns the appropriate poll interval given the user's current power state.
+ *  Doubles all poll intervals when Data Saver is on or battery is below 20% unplugged. */
+async function _getPollInterval(baseMs) {
+  try {
+    // Data Saver (Chrome Android / desktop)
+    if (window.matchMedia?.('(prefers-reduced-data: reduce)').matches) return baseMs * 2;
+    // Battery Status API (Chromium)
+    if ('getBattery' in navigator) {
+      const battery = await navigator.getBattery();
+      if (!battery.charging && battery.level < 0.20) return baseMs * 2;
+    }
+  } catch { /* API unavailable on this platform — use base rate */ }
+  return baseMs;
+}
+
+/** Restart all active polling timers at the correct power-aware rate.
+ *  Debounced 3 s so rapid `levelchange` events (1 per % of battery drain)
+ *  don't fire a burst of immediate network requests. */
+let _powerChangeDebounce = null;
+function _restartPollOnPowerChange() {
+  clearTimeout(_powerChangeDebounce);
+  _powerChangeDebounce = setTimeout(() => {
+    if (state.dirPollTimer)    startDirScorePolling();
+    if (state.tscorePollTimer) startTournScorePolling();
+    if (_livePollTimer)        startLivePoller(); // also restarts viewer poll at new rate
+  }, 3000);
+}
+
+async function startDirScorePolling() {
   if (state.dirPollTimer) clearInterval(state.dirPollTimer);
   const dirPkg = getDirectorPkg();
   if (!dirPkg?.code || !dirPkg?.directorGames?.length) return;
   pollDirScores(); // immediate first fetch
-  state.dirPollTimer = setInterval(pollDirScores, 30000);
+  const interval = await _getPollInterval(30000);
+  state.dirPollTimer = setInterval(pollDirScores, interval);
 }
 
 // ─── RENDER: TOURNAMENT SCORE TAB ────────────────────────────────────────────
@@ -4239,10 +4308,11 @@ async function pollTournScores() {
   } catch {}
 }
 
-function startTournScorePolling() {
+async function startTournScorePolling() {
   if (state.tscorePollTimer) clearInterval(state.tscorePollTimer);
   if (!state.tscorePkg?.code) return;
-  state.tscorePollTimer = setInterval(pollTournScores, 15000);
+  const interval = await _getPollInterval(15000);
+  state.tscorePollTimer = setInterval(pollTournScores, interval);
 }
 
 function buildTournScoreStandings(dirGames) {
@@ -5955,10 +6025,18 @@ function init() {
       // Reset primary color so applyClubLogo can detect "no branding" on club switch
       window._clubPrimaryColor = null;
 
+      // Logo URL saved outside try-catch so it can be applied even if processing throws
+      let _pendingLogoUrl = null, _pendingLogoName = null;
       try {
         const infoRes = await fetch(WORKER + '/club-info?club=' + encodeURIComponent(_appClubId));
         const info = await infoRes.json();
         if (info.ok) {
+          // ── Apply logo FIRST — before any processing that could throw ─────────
+          // This guarantees the logo shows even if clubType/teamOptions code errors.
+          _pendingLogoUrl  = info.logo   || null;
+          _pendingLogoName = info.clubName || null;
+          applyClubLogo(_pendingLogoUrl, _pendingLogoName);
+
           if (info.clubName) {
             // Title-case if it's a slug (e.g., "alameda-high" → "Alameda High")
             const displayName = info.clubName.includes('-') && !info.clubName.includes(' ')
@@ -5974,10 +6052,11 @@ function init() {
             // Reset selection if current keys are invalid for this club type
             const validKeys = TEAM_OPTIONS.map(t => t.key);
             // Always prioritize favorite if current selection is the default or missing
+            const current = getSelectedTeams();
             const hasInvalid = current.some(k => !validKeys.includes(k));
             const favTeam = _getAutoFavoriteTeam(validKeys);
             const isDefault = current.length === 1 && (current[0] === validKeys[0] || current[0] === '10u-coed');
-            
+
             if (hasInvalid || _isClubChange || (favTeam && isDefault && favTeam !== current[0])) {
               if (favTeam) {
                 console.log('[ebwp] Favoriting team transition:', favTeam);
@@ -5987,11 +6066,11 @@ function init() {
               }
             }
           }
-          // Apply club logo — show custom logo prominently if uploaded, else eggbeater logo
-          applyClubLogo(info.logo || null, info.clubName || null);
         }
       } catch (e) {
         console.warn('[ebwp] club-info fetch failed:', e.message);
+        // Safety net: if the try block threw AFTER saving logo URL, still apply it
+        if (_pendingLogoUrl) applyClubLogo(_pendingLogoUrl, _pendingLogoName);
       }
 
       // Fetch club branding (custom colors)
@@ -6000,6 +6079,11 @@ function init() {
         const brand = await brandRes.json();
         if (brand.ok && brand.primaryColor) {
           applyClubBranding(brand.primaryColor, brand.secondaryColor, brand.headerStyle);
+        } else if (brand.ok) {
+          // Club exists but has no custom branding — reset CSS vars to defaults
+          // so colors don't bleed from a previously viewed club
+          applyClubBranding('#002868', null, null);
+          window._clubPrimaryColor = null;
         }
       } catch (e) {
         console.warn('[ebwp] club-branding fetch failed:', e.message);
@@ -6088,9 +6172,22 @@ function init() {
   window.addEventListener('online', () => {
     const b = document.getElementById('offline-banner');
     if (b) b.classList.add('hidden');
+    // Directly clear the schedule tab's inline offline bar — don't wait for data reload
+    if (typeof renderScheduleTab === 'function' && state.currentTab === 'schedule') renderScheduleTab();
     // Auto-refresh tournament data on reconnect
     if (typeof reloadTournamentJs === 'function') reloadTournamentJs();
   });
+
+  // ── Power-aware polling: restart timers when battery or data-saver state changes ──
+  if ('getBattery' in navigator) {
+    navigator.getBattery().then(battery => {
+      battery.addEventListener('chargingchange',  _restartPollOnPowerChange);
+      battery.addEventListener('levelchange',     _restartPollOnPowerChange);
+    }).catch(() => {});
+  }
+  window.matchMedia?.('(prefers-reduced-data: reduce)')
+    .addEventListener?.('change', _restartPollOnPowerChange);
+
   // Check initial state
   if (!navigator.onLine) {
     const b = document.getElementById('offline-banner');
@@ -6101,8 +6198,7 @@ function init() {
     // Auto-reload when a new service worker activates so every device always
     // runs the latest code immediately after a deploy (no manual refresh needed).
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      // Use replace+timestamp to bypass Android WebView HTTP disk cache
-      location.replace('/?_r=' + Date.now());
+      window.location.replace(location.pathname);
     });
 
     navigator.serviceWorker.register('/sw.js')
@@ -6115,7 +6211,7 @@ function init() {
           }
           // SW signals that a new version just activated — reload to get fresh assets
           if (e.data?.type === 'SW_UPDATED') {
-            location.replace('/?_r=' + Date.now());
+            window.location.replace(location.pathname);
           }
         });
         // Register periodic background sync (Android/Chrome, best-effort)
@@ -6232,7 +6328,8 @@ function showParentUpgradeSheet() {
 // Phase 3: Club ID detection — URL param > localStorage > tournament data > default
 function getAppClubId() {
   const params = new URLSearchParams(window.location.search);
-  const fromUrl = params.get('club');
+  // Accept both ?club= (legacy) and ?join= (preferred — adds to joined list via _handleJoinParam)
+  const fromUrl = params.get('club') || params.get('join');
   if (fromUrl) {
     localStorage.setItem('ebwp-club-id', fromUrl);
     return fromUrl;
@@ -6465,8 +6562,10 @@ function _selectClub(clubId, clubName, clubType) {
   localStorage.setItem('ebwp-team-keys', JSON.stringify([TEAM_OPTIONS[0].key]));
 
   // Update URL so bookmarks and shares include the club
+  // Use ?join= so the club gets added to the parent's joined-clubs list on reload
   const url = new URL(window.location);
-  url.searchParams.set('club', clubId);
+  url.searchParams.delete('club');
+  url.searchParams.set('join', clubId);
   window.history.replaceState({}, '', url);
 
   // Hide picker, show app
@@ -7018,17 +7117,35 @@ function renderPushButton() {
         </button>
       </div>`;
   } else {
-    // ── Not subscribed: show opt-in ──────────────────────────────────────
+    // ── Not subscribed: warm-up card before triggering native prompt ─────
+    // Honest, specific description → user taps → THEN the native OS dialog appears.
+    // This pattern dramatically reduces permission denials.
+
+    // If the user dismissed within the last 14 days, respect that and stay quiet.
+    const dismissed = parseInt(localStorage.getItem('ebwp-push-dismissed') || '0', 10);
+    const DISMISS_TTL = 14 * 24 * 60 * 60 * 1000; // 14 days
+    if (dismissed && Date.now() - dismissed < DISMISS_TTL) {
+      el.innerHTML = '';
+      return;
+    }
+
     el.innerHTML = `
       <div class="push-card">
         <div class="push-header">
-          <span class="push-icon">🔕</span>
-          <span class="push-title">Stay in the loop</span>
+          <span class="push-icon">🔔</span>
+          <span class="push-title">Game Alerts</span>
         </div>
-        <p class="push-desc">Get notified about game scores, schedule changes, and tournament updates.</p>
-        <button class="push-btn push-btn-off" onclick="handlePushSubscribe()">
-          Enable Notifications
-        </button>
+        <p class="push-desc" style="margin-bottom:6px">We'll send you a notification when new games are added to the schedule. Nothing else.</p>
+        <p class="push-desc" style="font-size:0.75rem;color:var(--gray-400);margin-bottom:10px">You can turn this off at any time in Settings.</p>
+        <div style="display:flex;gap:8px">
+          <button class="push-btn push-btn-off" style="flex:2" onclick="handlePushSubscribe()">
+            Enable Notifications
+          </button>
+          <button style="flex:1;background:none;border:1.5px solid var(--gray-200);border-radius:8px;padding:10px;font-size:0.82rem;font-weight:600;color:var(--gray-500);cursor:pointer"
+                  onclick="localStorage.setItem('ebwp-push-dismissed', Date.now()); this.closest('.push-card').style.display='none'">
+            Not Now
+          </button>
+        </div>
       </div>`;
   }
 }
@@ -7115,6 +7232,9 @@ async function handlePushUnsubscribe() {
     await unsubscribeFromPush();
   }
   localStorage.removeItem('ebwp-push-prefs');
+  // Clear the "Not Now" dismiss flag so the warm-up card reappears immediately
+  // if the user wants to re-enable notifications later.
+  localStorage.removeItem('ebwp-push-dismissed');
 }
 
 // ─── SCORER MODE (password-gated scoring controls) ────────────────────────────
@@ -7435,6 +7555,10 @@ async function pollLiveScores() {
       // Strip worker meta fields; tag the score as remote with the source device
       const { deviceId, tournamentId, gameId: _gid, broadcastAt, ...scoreData } = remoteScore;
 
+      // Haptic for parent viewers when team scores (remote team score went up)
+      const prevTeam = local.team || 0;
+      if ((scoreData.team || 0) > prevTeam) _hapticGoal();
+
       // If scorer reset the game to pre, wipe the local entry entirely so viewer sees clean state
       if (scoreData.gameState === 'pre') {
         if (state.liveScores[gameId]) { delete state.liveScores[gameId]; changed = true; }
@@ -7564,10 +7688,11 @@ function showLiveToast() {
   setTimeout(() => { _liveToastShown = false; }, 15000);
 }
 
-function startLivePoller() {
-  if (_livePollTimer) return;
+async function startLivePoller() {
+  if (_livePollTimer) clearInterval(_livePollTimer);
   pollLiveScores(); // immediate first check
-  _livePollTimer = setInterval(pollLiveScores, LIVE_POLL_MS);
+  const interval = await _getPollInterval(LIVE_POLL_MS); // 5 s normal, 10 s on low battery
+  _livePollTimer = setInterval(pollLiveScores, interval);
 }
 
 // ─── PLAYER STATS DOWNLOAD ────────────────────────────────────────────────────
