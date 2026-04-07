@@ -56,6 +56,25 @@ setTimeout(updateThemeIcon, 0);
 // ─── CLUB BRANDING ────────────────────────────────────────────────────────────
 
 /**
+ * Recolor the default Eggbeater SVG logo using the club's primary color.
+ * Defined at module scope so applyClubLogo can call it without being inside applyClubBranding.
+ */
+function recolorEggbeaterSvg(imgEl) {
+  if (!imgEl) return;
+  const color = window._clubPrimaryColor || '#002868';
+  fetch('logo_large.svg')
+    .then(r => r.text())
+    .then(svg => {
+      const recolored = svg.replace('fill="#002868"', `fill="${color}"`);
+      const blob = new Blob([recolored], { type: 'image/svg+xml' });
+      if (imgEl._blobUrl) URL.revokeObjectURL(imgEl._blobUrl);
+      imgEl._blobUrl = URL.createObjectURL(blob);
+      imgEl.src = imgEl._blobUrl;
+    })
+    .catch(() => {});
+}
+
+/**
  * Apply custom club colors by overriding CSS custom properties.
  * Computes lighter/darker tints from the primary hex color.
  */
@@ -118,20 +137,6 @@ function applyClubBranding(primaryColor, secondaryColor, headerStyle) {
   _syncWidgetsAll();
 
   // Recolor all eggbeater SVG logo instances (header logo + inline "brought to you by" logo)
-  function recolorEggbeaterSvg(imgEl) {
-    if (!imgEl) return;
-    fetch('logo_large.svg')
-      .then(r => r.text())
-      .then(svg => {
-        const recolored = svg.replace('fill="#002868"', `fill="${primaryColor}"`);
-        const blob = new Blob([recolored], { type: 'image/svg+xml' });
-        if (imgEl._blobUrl) URL.revokeObjectURL(imgEl._blobUrl);
-        imgEl._blobUrl = URL.createObjectURL(blob);
-        imgEl.src = imgEl._blobUrl;
-      })
-      .catch(() => {});
-  }
-
   const logoImg = document.querySelector('.club-logo-img');
   if (logoImg) {
     logoImg._brandApplied = true;
