@@ -7717,10 +7717,10 @@ async function bsAutoPoll() {
 function njoWizardHtml() {
   if (!S.njo) S.njo = { step: 1, sheetUrl: localStorage.getItem('ebadmin-njo-url') || '', sheetId: '', masterGid: '1188696082',
     gmidA: '', teamNameA: '', gmidB: '', teamNameB: '', enableTeamB: false,
-    detectedGmids: [], gmidCol: 11, pollMins: 5, allRows: [], gamesA: [], gamesB: [], bracketA: [], bracketB: [] };
+    detectedGmids: [], gmidCol: 11, pollMins: 5, calendarName: '', allRows: [], gamesA: [], gamesB: [], bracketA: [], bracketB: [] };
   var n = S.njo;
   var step = n.step || 1;
-  var stepLabels = ['', 'Sheet URL', 'Team A', 'Team B', 'Sync Frequency', 'Review & Deploy'];
+  var stepLabels = ['', 'Sheet URL', 'Team A', 'Team B', 'Calendar & Sync', 'Review & Deploy'];
   var dots = [1,2,3,4,5].map(function(s){
     return '<div id="njo-dot-'+s+'" style="flex:1;height:5px;border-radius:3px;background:'+(step>=s?'#7e22ce':'var(--g200)')+'"></div>';
   }).join('');
@@ -7792,8 +7792,12 @@ function njoWizardHtml() {
     + '<button class="save-btn" style="flex:2;background:linear-gradient(135deg,#4c1d95,#7e22ce)" onclick="njoToStep4()">Continue &rarr;</button>'
     + '</div></div>'
 
-    // Step 4 — Sync frequency
+    // Step 4 — Calendar name + Sync frequency
     + '<div id="njo-s4" style="display:'+(step===4?'block':'none')+'">'
+    + '<div class="info-label" style="margin-bottom:4px">&#x1f4c5; Parent Calendar Name</div>'
+    + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">Parents subscribe to this calendar once and their app auto-updates as bracket games confirm. Make the name specific to the event and club.</div>'
+    + '<input class="info-input" id="njo-calname" value="'+esc(n.calendarName||'')+'" placeholder="e.g. 14u Girls NJO 2026 — 680 Drivers" autocomplete="off" style="margin-bottom:4px" oninput="S.njo.calendarName=this.value">'
+    + '<div style="font-size:.72rem;color:var(--g400);margin-bottom:14px">&#x1f517; Subscribe link shows after deploy — share it in your team chat so parents can add it to Google Calendar, Apple Calendar, or Outlook with one tap.</div>'
     + '<div class="info-label" style="margin-bottom:4px">How often should we check for updates?</div>'
     + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:8px">During NJO, bracket opponents get confirmed as pool play finishes. Every 5 minutes is recommended so parents see updates quickly.</div>'
     + '<select class="info-input" id="njo-poll" style="margin-bottom:10px">'+pollOpts+'</select>'
@@ -7820,6 +7824,7 @@ function njoDeploySummary() {
   return '<strong>&#x1f3c6; NJO Mode — Ready to Deploy</strong><br>'
     + '&#x1f7e3; <strong>Team A:</strong> '+esc(n.teamNameA||'—')+' ('+esc(n.gmidA||'—')+') — '+(n.gamesA&&n.gamesA.length||0)+' group games, '+(n.bracketA&&n.bracketA.length||0)+' bracket days<br>'
     + (n.enableTeamB ? ('&#x1f535; <strong>Team B:</strong> '+esc(n.teamNameB||'—')+' ('+esc(n.gmidB||'—')+') — '+(n.gamesB&&n.gamesB.length||0)+' group games, '+(n.bracketB&&n.bracketB.length||0)+' bracket days<br>') : '')
+    + '&#x1f4c5; <strong>Calendar:</strong> '+(n.calendarName?esc(n.calendarName):'<em style="color:var(--g400)">none set — enter a name in Step 4</em>')+'<br>'
     + '&#x1f504; <strong>Auto-sync:</strong> '+(n.pollMins?'every '+n.pollMins+' min':'manual only')+'<br>'
     + '<em style="color:var(--g400)">Schedule tab: group play games. Bracket tab: all possible bracket paths by day.</em>';
 }
@@ -8000,8 +8005,10 @@ function njoToStep4() {
 
 function njoStep5Next() {
   var poll = parseInt(document.getElementById('njo-poll')?.value ?? '5');
+  var calName = (document.getElementById('njo-calname')?.value || '').trim();
   if (!S.njo) S.njo = {};
   S.njo.pollMins = isNaN(poll) ? 5 : poll;
+  S.njo.calendarName = calName;
   var summary = document.getElementById('njo-s5-summary');
   if (summary) summary.innerHTML = njoDeploySummary();
   njoStep(5);
@@ -8231,6 +8238,7 @@ async function njoDeploy() {
       gmidB: n.enableTeamB ? n.gmidB : null,
       teamNameB: n.enableTeamB ? n.teamNameB : null,
       enableTeamB: n.enableTeamB,
+      calendarName: n.calendarName || '',
       pollMins: n.pollMins, lastSync: new Date().toISOString(),
     };
 
@@ -8238,7 +8246,25 @@ async function njoDeploy() {
     if (!saveRes.ok) throw new Error('Saved locally but cloud save failed — tap 💾 Save & Deploy in the header to retry');
 
     var totalBracketDays = (n.bracketA||[]).length + (n.enableTeamB?(n.bracketB||[]).length:0);
-    if (status) { status.style.color='#059669'; status.textContent='✅ NJO deployed! '+allGames.length+' group games + '+totalBracketDays+' bracket day(s).'+( n.pollMins?' Auto-sync every '+n.pollMins+' min.':''); }
+
+    // Build calendar subscribe URL
+    var clubId  = S.currentClubId || localStorage.getItem('ebadmin-clubId') || 'my-club';
+    var teamKey = S.team || '12u-girls';
+    var calHttps = WORKER + '/calendar/' + encodeURIComponent(clubId) + '/' + encodeURIComponent(teamKey) + '.ics';
+    var calWebcal = calHttps.replace('https://', 'webcal://');
+
+    if (status) {
+      status.style.color='#059669';
+      status.innerHTML = '✅ NJO deployed! '+allGames.length+' group games + '+totalBracketDays+' bracket day(s).'+( n.pollMins?' Auto-sync every '+n.pollMins+' min.':'')
+        + (n.calendarName
+          ? '<br><br>&#x1f4c5; <strong>Parent Calendar Subscribe Link</strong><br>'
+            + '<div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap">'
+            + '<input readonly style="flex:1;min-width:0;padding:6px 8px;border:1px solid var(--g200);border-radius:6px;font-size:.75rem;background:var(--g50);font-family:monospace" value="'+esc(calWebcal)+'" id="njo-cal-link">'
+            + '<button class="save-btn" style="flex:none;padding:6px 12px;font-size:.8rem;white-space:nowrap" onclick="navigator.clipboard.writeText(document.getElementById(\'njo-cal-link\').value).then(function(){this.textContent=\'Copied!\';var b=this;setTimeout(function(){b.textContent=\'📋 Copy\'},2000)}.bind(this))">&#x1f4cb; Copy</button>'
+            + '</div>'
+            + '<div style="font-size:.72rem;color:var(--g400);margin-top:4px">Share in team chat → parents tap link → schedule added to their calendar. Updates auto. Works with Google, Apple, Outlook.</div>'
+          : '');
+    }
     if (n.pollMins > 0) njoStartPoll();
 
     // Scroll to Game/Tournament Setup
