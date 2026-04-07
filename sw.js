@@ -6,12 +6,12 @@
  *   notifies parents when new games are added to the schedule
  */
 
-const CACHE = 'ebwp-v107';
-const VER   = '?v=185';   // bump alongside index.html script tags on every deploy
+const CACHE = 'ebwp-v109';
+const VER   = '?v=187';   // bump alongside index.html script tags on every deploy
 const ASSETS = [
   '/',
   '/index.html',
-  '/styles.css',
+  '/styles.css' + VER,
   '/app.js' + VER,
   '/tournament.js' + VER,
   '/manifest.json',
@@ -35,15 +35,7 @@ self.addEventListener('activate', e => {
       // to fetch fresh assets — postMessage + location.reload() is not enough
       // because WKWebView's native disk cache ignores JS reloads.
       return self.clients.matchAll({ type: 'window' }).then(clients => {
-        clients.forEach(c => {
-          try {
-            const u = new URL(c.url);
-            u.searchParams.set('_r', Date.now());
-            c.navigate(u.toString());
-          } catch (_) {
-            c.postMessage({ type: 'SW_UPDATED' });
-          }
-        });
+        clients.forEach(c => c.postMessage({ type: 'SW_UPDATED' }));
       });
     })
   );
@@ -171,7 +163,13 @@ async function _replayPendingScores() {
 }
 
 // ─── SHEET CONFIG ─────────────────────────────────────────────────────────────
-// Same Google Sheet as PAC Blue (same Kap7 Futures tournament).
+// ⚠️  BETA LIMITATION: These values are hardcoded for a specific tournament.
+// They are baked into every installed SW regardless of which club is using the app.
+// Push notifications for new games will only work correctly for the club/tournament
+// that matches SHEET_ID, TEAM_NAME, and TOURNAMENT_DATES below.
+// TODO (post-beta): Move game-detection logic into the CF Worker so it can be
+// configured per-club server-side, and send the full notification body as push payload.
+//
 // Update SHEET_GID each tournament day when the league posts the new schedule tab.
 // To find the GID: open the sheet, click the tab, look at the URL: ...#gid=XXXXXXXX
 const SHEET_ID   = '1f-nUWyb2TiydKk8eYQGxGvzsYQ80MLqxNIi2G_Ps7x0';

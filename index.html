@@ -12,7 +12,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-  <link rel="stylesheet" href="styles.css?v=185">
+  <link rel="stylesheet" href="styles.css?v=187">
   <!-- Capacitor native bridge — must load before any plugin code.
        In native iOS/Android apps this file is copied into www/ by cap sync.
        In the web browser it 404s silently (no-op). -->
@@ -113,6 +113,8 @@
 
     <!-- ── Schedule Tab ──────────────────────────────────────────────────── -->
     <div id="view-schedule" class="tab-view" role="tabpanel" aria-labelledby="tab-schedule" tabindex="0">
+      <!-- Offline / stale data banner — hidden by default, shown by renderScheduleTab -->
+      <div id="schedule-offline-bar" class="hidden" style="background:#fef3c7;color:#92400e;font-size:0.78rem;font-weight:600;padding:7px 16px;text-align:center;border-bottom:1px solid #fde68a"></div>
       <!-- Next game highlight (pool play or projected bracket) -->
       <div id="next-game-section"></div>
       <!-- Director import removed — now in T-Score tab -->
@@ -125,7 +127,7 @@
     </div>
 
     <!-- ── Possible Games Tab ─────────────────────────────────────────────── -->
-    <div id="view-possible" class="tab-view hidden">
+    <div id="view-possible" class="tab-view hidden" role="tabpanel" aria-label="Possible Games" tabindex="0">
       <div class="card tab-card">
         <h2>Possible Games</h2>
         <p class="step-desc" id="possible-desc">Bracket paths based on pool play results.</p>
@@ -156,7 +158,7 @@
     </div>
 
     <!-- ── Calendar Chooser (shown after sign-in) ────────────────────────── -->
-    <div id="view-calendar" class="tab-view hidden">
+    <div id="view-calendar" class="tab-view hidden" role="tabpanel" aria-label="Calendar" tabindex="0">
       <div class="card tab-card">
         <h2>Choose a Calendar</h2>
         <p class="step-desc">Select which Google Calendar to add games to.</p>
@@ -171,22 +173,22 @@
     </div>
 
     <!-- ── Roster Tab ──────────────────────────────────────────────────────── -->
-    <div id="view-roster" class="tab-view hidden">
+    <div id="view-roster" class="tab-view hidden" role="tabpanel" aria-label="Roster" tabindex="0">
       <!-- Rendered by renderRosterTab() -->
     </div>
 
     <!-- ── Tournament Score Tab ──────────────────────────────────────────── -->
-    <div id="view-tournscore" class="tab-view hidden">
+    <div id="view-tournscore" class="tab-view hidden" role="tabpanel" aria-label="Tournament Scores" tabindex="0">
       <!-- Rendered by renderTournScoreTab() -->
     </div>
 
     <!-- ── Help Tab ───────────────────────────────────────────────────────── -->
-    <div id="view-help" class="tab-view hidden">
+    <div id="view-help" class="tab-view hidden" role="tabpanel" aria-label="Help" tabindex="0">
       <!-- Rendered by renderHelpTab() -->
     </div>
 
     <!-- ── Settings Tab ────────────────────────────────────────────────────── -->
-    <div id="view-settings" class="tab-view hidden">
+    <div id="view-settings" class="tab-view hidden" role="tabpanel" aria-label="Settings" tabindex="0">
       <!-- Rendered by renderSettingsTab() -->
     </div>
 
@@ -448,17 +450,17 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="firebase.js?v=185"></script>
+  <script src="firebase.js?v=187"></script>
 
   <!-- Android 16 Live Update Bridge -->
-  <script src="live-update.js?v=185"></script>
+  <script src="live-update.js?v=187"></script>
 
   <!-- Native push notification bridge (Capacitor iOS) -->
-  <script src="capacitor-push.js?v=185"></script>
+  <script src="capacitor-push.js?v=187"></script>
 
   <!-- Data + App — query string busts any intermediate cache on every deploy -->
-  <script src="tournament.js?v=185"></script>
-  <script src="app.js?v=185"></script>
+  <script src="tournament.js?v=187"></script>
+  <script src="app.js?v=187"></script>
 
   <!-- SW auto-reload: runs before app.js initialises so every device always
        picks up new code immediately after a deploy, even on the first load. -->
