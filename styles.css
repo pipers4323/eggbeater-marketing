@@ -364,6 +364,25 @@ body {
   vertical-align: middle;
 }
 
+/* ── Small-screen header compression (iPhone SE, landscape, narrow viewports) */
+@media (max-height: 700px), (max-width: 380px) {
+  .club-custom-logo-img {
+    max-height: 52px;   /* Down from 80px — saves ~30px on short/narrow screens */
+  }
+  .club-custom-logo-wrap {
+    padding-top: 2px;
+    padding-bottom: 1px;
+  }
+  .eggbeater-poweredby-bar {
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-size: 0.58rem;
+    gap: 3px;
+  }
+  .eggbeater-inline-logo {
+    height: 16px;       /* Down from 22px — keeps bar tight */
+  }
+}
 
 /* Age group + sync badge overlay top-right of the logo */
 .header-right {
