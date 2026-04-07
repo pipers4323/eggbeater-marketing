@@ -554,12 +554,57 @@ kbd {
     <h3>Adding Games</h3>
     <p>Go to the <strong>Games</strong> tab to build your tournament schedule. You have several options:</p>
     <ul>
+      <li><strong>📊 Bracket Sheet Sync</strong> &mdash; <em>Recommended for tournaments.</em> Connect directly to the tournament director's Google Sheet and pull your schedule automatically. See below for a full walkthrough.</li>
       <li><strong>Tournament Library</strong> &mdash; Save your current "Workspace" (games and roster) as a named draft. You can build these in advance and load them when needed.</li>
       <li><strong>+ Add Game</strong> &mdash; Add games manually with opponent, time, location, pool, and cap color.</li>
       <li><strong>Start Fresh</strong> &mdash; Use the "✨ Start Fresh" button to clear your current workspace games and roster without affecting your saved drafts or the live site.</li>
       <li><strong>Paste Schedule</strong> &mdash; Paste a full schedule from a spreadsheet (Google Sheets, Excel).</li>
       <li><strong>Clone from Archive</strong> &mdash; Reuse a past tournament's structure (games/roster) with scores cleared.</li>
     </ul>
+  </div>
+
+  <div class="card">
+    <h3>📊 Bracket Sheet Sync — Step by Step</h3>
+    <p>If the tournament director shares a Google Sheet with the bracket, you can pull your team's schedule directly from it &mdash; no copy-pasting required. The app re-checks the sheet on a schedule and updates your games automatically if anything changes.</p>
+
+    <div class="callout callout-tip" style="margin:14px 0 10px">
+      <div class="callout-icon">💡</div>
+      <p><strong>Before you start:</strong> Make sure the Google Sheet is set to <strong>Anyone with the link can view</strong> (Share → Change → Anyone with the link). It won't work on a private sheet.</p>
+    </div>
+
+    <div class="kv-row" style="align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span class="kv-label" style="min-width:90px;padding-top:2px">Step 1</span>
+      <span class="kv-value"><strong>Paste the Google Sheets URL</strong><br>Copy the full URL from your browser (or the link the tournament director sent you) and paste it into the field. Tap <em>Next →</em>.</span>
+    </div>
+    <div class="kv-row" style="align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span class="kv-label" style="min-width:90px;padding-top:2px">Step 2</span>
+      <span class="kv-value"><strong>Enter the pool seedings range</strong><br>This is the grid on the sheet that lists which teams are in which pools. Enter the cell range (e.g. <code>J3:M6</code>). If the first row of that range contains pool names like "Pool A / Pool B / …", the app picks them up as headers automatically. Tap <em>Fetch Pools →</em> and you'll see a preview grid of all pools and seeds.</span>
+    </div>
+    <div class="kv-row" style="align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span class="kv-label" style="min-width:90px;padding-top:2px">Step 3</span>
+      <span class="kv-value"><strong>Find your team</strong><br>Type your team name exactly as it appears on the sheet (e.g. <em>Diablo</em>). Tap <em>Find My Team →</em>. The app highlights your team in the pool grid and confirms your pool and seed (e.g. "✅ Found: Pool B, Seed 2"). It then automatically scans for your games.</span>
+    </div>
+    <div class="kv-row" style="align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span class="kv-label" style="min-width:90px;padding-top:2px">Step 4</span>
+      <span class="kv-value"><strong>Review your games</strong><br>The app scans the schedule columns (Date / Location / Time / White / Blue) and finds every row containing your team name. It automatically sets cap color based on which column your team appears in &mdash; White cap if you're in the White column, Dark if you're in the Blue column. Review the list and tap <em>Continue →</em>.</span>
+    </div>
+    <div class="kv-row" style="align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span class="kv-label" style="min-width:90px;padding-top:2px">Step 5</span>
+      <span class="kv-value"><strong>Re-bracket (Day 2 advancement)</strong><br>If the tournament has a second day where teams advance based on pool results, tap <em>Yes, it does</em>. Enter the cell range that shows the bracket paths (e.g. <code>J13:M29</code>) and tap <em>Fetch Re-bracket →</em>. If it's a one-day tournament, tap <em>No, single day</em>.</span>
+    </div>
+    <div class="kv-row" style="align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span class="kv-label" style="min-width:90px;padding-top:2px">Step 6</span>
+      <span class="kv-value"><strong>Set the auto-sync interval</strong><br>Choose how often the app should re-check the sheet for changes &mdash; every 5, 10, or 30 minutes, or manual only. Tournament directors sometimes update game times or locations the morning of the event; auto-sync means parents always see the latest schedule.</span>
+    </div>
+    <div class="kv-row" style="align-items:flex-start;padding:10px 0">
+      <span class="kv-label" style="min-width:90px;padding-top:2px">Step 7</span>
+      <span class="kv-value"><strong>Deploy to the app</strong><br>Review the summary (games found, pool, re-bracket, auto-sync interval) and tap <strong>🚀 Deploy to App</strong>. The games go live immediately and the admin panel switches to the Schedule tab so you can review. If you have auto-sync enabled, the app keeps checking the sheet in the background.</span>
+    </div>
+
+    <div class="callout callout-warn" style="margin-top:14px">
+      <div class="callout-icon">&#x26a0;&#xfe0f;</div>
+      <p><strong>Finding the right cell ranges:</strong> Open the Google Sheet, click the top-left cell of the pool grid and note the cell reference in the top-left of the sheet (e.g. <em>J3</em>), then click the bottom-right cell (e.g. <em>M6</em>). Your range is <code>J3:M6</code>. The same method works for the re-bracket range.</p>
+    </div>
   </div>
 
   <div class="card">
