@@ -607,6 +607,47 @@ kbd {
     </div>
   </div>
 
+  <div class="card" id="njo-mode">
+    <h3>🏆 NJO Mode — National Junior Olympics</h3>
+    <p>NJO Mode is a dedicated wizard for USA Water Polo's National Junior Olympics — a 4-day, multi-bracket tournament with a complex advancement structure. It reads directly from the <strong>MASTER BY DIVISION</strong> sheet that USA Water Polo posts each year, which contains every game for every division in a single tab.</p>
+
+    <div class="callout callout-tip" style="margin:14px 0 10px">
+      <div class="callout-icon">💡</div>
+      <p><strong>When to use NJO Mode vs Bracket Sheet Sync:</strong> Use NJO Mode when you have the USA Water Polo MASTER BY DIVISION sheet. Use the regular Bracket Sheet Sync wizard for all other tournaments. NJO Mode auto-detects the sheet format — if it sees the GMID division column it knows it's an NJO sheet.</p>
+    </div>
+
+    <div class="kv-row" style="align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span class="kv-label" style="min-width:90px;padding-top:2px">Step 1</span>
+      <span class="kv-value"><strong>Paste the NJO sheet URL</strong><br>Open the MASTER BY DIVISION tab in the USA Water Polo sheet, copy the full URL (including the <code>#gid=…</code> at the end), and paste it into the field. Tap <em>Detect NJO Format →</em>. The wizard fetches the sheet, finds the GMID column, and lists all available division codes (e.g. 12G, 12GX, 14G, 14GX).</span>
+    </div>
+    <div class="kv-row" style="align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span class="kv-label" style="min-width:90px;padding-top:2px">Step 2</span>
+      <span class="kv-value"><strong>Configure Team A</strong><br>Select your division from the dropdown — the labels decode automatically (e.g. <em>12G = 12U Girls Championship</em>, <em>12GX = 12U Girls Classic</em>). Enter your team name exactly as it appears in the White or Dark columns on the sheet (you can omit the pool-seed prefix — e.g. just <em>San Clemente Red</em> not <em>B1(2)-San Clemente Red</em>). Tap <em>Find Team A &amp; Scan All Games →</em>. The wizard finds all group play games for your team and traces the full bracket tree using the W to # / L to # advancement columns.</span>
+    </div>
+    <div class="kv-row" style="align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span class="kv-label" style="min-width:90px;padding-top:2px">Step 3</span>
+      <span class="kv-value"><strong>Configure Team B (optional)</strong><br>If you're bringing two teams to NJO (e.g. Team A in 14G Championship, Team B in 14GX Classic), tap <em>Yes — add Team B</em> and repeat the same configuration. Each team gets its own bracket in the parent app — parents tap A or B to switch.</span>
+    </div>
+    <div class="kv-row" style="align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span class="kv-label" style="min-width:90px;padding-top:2px">Step 4</span>
+      <span class="kv-value"><strong>Name the parent calendar &amp; set sync frequency</strong><br>Enter a name for the parent calendar subscribe link — something specific like <em>14u Girls NJO 2026 — 680 Drivers</em>. This is what parents see when they subscribe. Then choose how often to auto-sync (every 5 minutes is recommended during NJO since bracket opponents get confirmed quickly after pool play).</span>
+    </div>
+    <div class="kv-row" style="align-items:flex-start;padding:10px 0">
+      <span class="kv-label" style="min-width:90px;padding-top:2px">Step 5</span>
+      <span class="kv-value"><strong>Deploy to app</strong><br>Review the summary and tap <strong>🏆 Deploy NJO to App</strong>. Two things happen: (1) Group play games go live in the Schedule tab immediately with real opponents, times, and locations. (2) The Bracket tab populates with all possible games your team could play, organized by tournament day. After deploy, a <strong>📅 calendar subscribe link</strong> appears — copy and paste it into your team chat. Parents tap it once to add the schedule to Google Calendar, Apple Calendar, or Outlook. The calendar auto-updates every 5 minutes as bracket opponents are confirmed.</span>
+    </div>
+
+    <div class="callout callout-tip" style="margin-top:14px">
+      <div class="callout-icon">&#x1f4c5;</div>
+      <p><strong>Parent calendar updates:</strong> Bracket games start as "Bracket Game TBD — Gm 125". As auto-sync confirms opponents (e.g. Winner of Gm 97 is resolved to San Clemente Red), the calendar event title updates automatically on every calendar app that subscribed. Parents don't need to do anything — their calendar just updates.</p>
+    </div>
+
+    <div class="callout callout-warn" style="margin-top:10px">
+      <div class="callout-icon">&#x26a0;&#xfe0f;</div>
+      <p><strong>GMID codes explained:</strong> The division code format is <em>{age}{gender}{bracket}</em>. Gender: G = Girls, B = Boys, C = Coed. Bracket: no suffix = Championship, X = Classic. Examples: <code>12G</code> = 12U Girls Championship · <code>12GX</code> = 12U Girls Classic · <code>14B</code> = 14U Boys Championship · <code>10C</code> = 10U Coed Championship.</p>
+    </div>
+  </div>
+
   <div class="card">
     <h3>Game Fields</h3>
     <div class="kv-row"><span class="kv-label">Opponent</span><span class="kv-value">Team you're playing (e.g., "NorCal Gold")</span></div>
