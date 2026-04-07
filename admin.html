@@ -1453,6 +1453,12 @@
         overflow-y: auto !important;
         margin: 0 !important;
       }
+
+      /* CHANGE 9: ensure all select elements meet 44px touch target */
+      select, .info-input[type="text"], .form-input select {
+        min-height: 44px !important;
+        font-size: 1rem !important;
+      }
     }
 
     /* ── Admin Dark Mode ──────────────────────────────────────────────────── */
@@ -2692,7 +2698,7 @@ function renderTieredNudge(tabKey) {
           ${n.items.map(item => `<li style="display:flex;gap:10px;font-size:0.88rem;line-height:1.45;color:var(--g800,#1f2937)"><span style="color:#16a34a;flex-shrink:0;font-size:1rem">✓</span><span>${item}</span></li>`).join('')}
         </ul>
       </div>
-      <button onclick="showUpgradeSheet()" style="width:100%;background:var(--royal);color:white;border:none;border-radius:12px;padding:14px 20px;font-size:1rem;font-weight:800;cursor:pointer;letter-spacing:0.01em">${n.cta}</button>
+      <button onclick="${tabKey === 'director' ? 'showTournamentHostSheet()' : 'showUpgradeSheet()'}" style="width:100%;background:var(--royal);color:white;border:none;border-radius:12px;padding:14px 20px;font-size:1rem;font-weight:800;cursor:pointer;letter-spacing:0.01em">${n.cta}</button>
       <p style="text-align:center;font-size:0.75rem;color:var(--g400);margin-top:12px">Questions? Email <a href="mailto:hello@eggbeater.app" style="color:var(--royal)">hello@eggbeater.app</a></p>
     </div>`;
 }
@@ -5987,11 +5993,11 @@ function renderClubInfoTab() {
         </div>
         <div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--g100)">
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <input id="new-admin-uid" class="info-input" style="flex:1 1 140px;margin:0" placeholder="Google UID (advanced)">
+            <input id="new-admin-uid" class="info-input" style="flex:1 1 140px;margin:0" placeholder="Account ID (advanced)">
             <input id="new-admin-name" class="info-input" style="flex:1 1 140px;margin:0" placeholder="Display name">
-            <button class="save-btn" onclick="addClubAdminUid()">+ Add by UID</button>
+            <button class="save-btn" onclick="addClubAdminUid()">+ Add by ID</button>
           </div>
-          <div style="font-size:0.68rem;color:var(--g400);margin-top:4px">Advanced: manually add an admin by their unique user ID.</div>
+          <div style="font-size:0.68rem;color:var(--g400);margin-top:4px">Advanced: manually add an admin by their account ID.</div>
         </div>
         <div style="margin-top:12px">
           <button class="save-btn" style="background:var(--royal);color:white;border-color:var(--royal);width:100%" onclick="initClubAdminList()">
@@ -6342,18 +6348,17 @@ async function loadClubAdmins() {
     list.innerHTML = admins.map(a => {
       const role = a.role || 'admin';
       return `
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--g100);flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--g100);flex-wrap:wrap">
         <div style="flex:1;min-width:0">
           <div style="font-size:0.85rem;font-weight:600;color:var(--g700)">${esc(a.name || 'Unnamed Admin')}</div>
           <div style="font-size:0.72rem;color:var(--g400)">${esc(a.email || '')}</div>
-          <code style="font-size:0.65rem;color:var(--g400);overflow:hidden;text-overflow:ellipsis;display:block">${esc(a.uid)}</code>
         </div>
-        <select onchange="changeAdminRole('${esc(a.uid)}', this.value)" style="font-size:0.72rem;padding:3px 6px;border:1px solid var(--g200);border-radius:6px;background:${role==='scorer'?'#fef3c7':'#ecfdf5'};font-weight:700;color:${role==='scorer'?'#92400e':'#065f46'}">
+        <select onchange="changeAdminRole('${esc(a.uid)}', this.value)" style="font-size:0.82rem;padding:6px 10px;border:1px solid var(--g200);border-radius:6px;background:${role==='scorer'?'#fef3c7':'#ecfdf5'};font-weight:700;color:${role==='scorer'?'#92400e':'#065f46'};min-height:40px">
           <option value="admin" ${role==='admin'?'selected':''}>Admin</option>
           <option value="scorer" ${role==='scorer'?'selected':''}>Scorer</option>
         </select>
-        <button class="save-btn" style="font-size:0.68rem;padding:3px 8px" onclick="editAdminName('${esc(a.uid)}')">✏️ Name</button>
-        <button class="save-btn" style="font-size:0.68rem;padding:3px 8px;background:var(--red-lt);color:var(--red);border-color:var(--red)"
+        <button class="save-btn" style="font-size:0.78rem;padding:6px 12px;min-height:40px" onclick="editAdminName('${esc(a.uid)}')">✏️ Name</button>
+        <button class="save-btn" style="font-size:0.78rem;padding:6px 12px;min-height:40px;background:var(--red-lt);color:var(--red);border-color:var(--red)"
                 onclick="removeClubAdminUid('${esc(a.uid)}')">Remove</button>
       </div>`;
     }).join('');
