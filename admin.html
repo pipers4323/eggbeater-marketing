@@ -7609,6 +7609,8 @@ async function bsScanGames() {
         break;
       }
     }
+    S.bsync.allRows = allRows;
+    S.bsync.cols = { dateCol, timeCol, whiteCol, darkCol, locCol: poolCol >= 0 ? poolCol : (locationCol >= 0 ? locationCol : 1), dataStartRow };
     const agLabel = (S.bsync.colorCoded && S.bsync.myAgeGroup) ? ' ('+S.bsync.myAgeGroup+')' : '';
 
     const games = [];
@@ -7621,8 +7623,9 @@ async function bsScanGames() {
       const isBlue  = dark.toLowerCase().includes(teamNameLower);
       if (!isWhite && !isBlue) continue;
 
-      const dateRaw  = dateCol >= 0 ? (row[dateCol] || '').trim() : '';
-      const location = poolCol >= 0 ? (row[poolCol] || '').trim() : (locationCol >= 0 ? (row[locationCol]||'').trim() : '');
+      const dateRaw   = dateCol >= 0 ? (row[dateCol] || '').trim() : '';
+      const rawLoc    = poolCol >= 0 ? (row[poolCol] || '').trim() : (locationCol >= 0 ? (row[locationCol]||'').trim() : '');
+      const locParsed = bsParseLocation(rawLoc);
       const time     = (row[timeCol] || '').trim();
       const rawGnum  = gameNumCol >= 0 ? (row[gameNumCol]||'').trim() : '';
       const opponentRaw = isWhite ? dark : white;
@@ -7644,8 +7647,8 @@ async function bsScanGames() {
         time: timeFormatted,
         dateISO,
         date: dateISO ? isoToDate(dateISO) : dateRaw,
-        location,
-        pool: S.bsync.myPool || '',
+        location: locParsed.venue,
+        pool: locParsed.poolNum ? 'Pool ' + locParsed.poolNum : (S.bsync.myPool || ''),
         cap,
       });
     }
@@ -7702,11 +7705,185 @@ async function bsFetchRebracket() {
     const text = await resp.text();
     const rows = parseCSV(text);
     if (!rows.length) throw new Error('No data found in that range');
-    S.bsync.bracketPaths = rows;
-    if (status) { status.style.color = '#059669'; status.textContent = `✅ Re-bracket loaded — ${rows.length} row(s)`; }
+    const pool = (S.bsync.myPool || '').replace(/^pool\s*/i, '').trim().toUpperCase();
+    const seedingMap = bsParseRebracket(rows);
+    const bracketPaths = (S.bsync.allRows?.length && pool)
+      ? bsComputeBracketPaths(S.bsync.allRows, seedingMap, pool, S.bsync.cols)
+      : [];
+    S.bsync.bracketPaths = bracketPaths;
+    const n = bracketPaths.length;
+    if (status) {
+      status.style.color = n > 0 ? '#059669' : '#d97706';
+      status.textContent = n > 0
+        ? `✅ Found ${n} bracket path${n !== 1 ? 's' : ''} for Pool ${pool} — will appear in the Possible tab after Deploy`
+        : `⚠️ Re-bracket loaded but no paths found for Pool ${pool} — check the pool letter matches your sheet`;
+    }
   } catch (e) {
     if (status) { status.style.color = '#dc2626'; status.textContent = '❌ ' + e.message; }
   }
+}
+
+// ─── BRACKET SHEET WIZARD — BRACKET PATH HELPERS ──────────────────────────
+
+// Parse "VENUE NAME #N" → { venue, poolNum }  e.g. "NORCO HS #2" → { venue:"NORCO HS", poolNum:"2" }
+function bsParseLocation(raw) {
+  const m = (raw || '').match(/^(.+?)\s*#\s*(\d+)$/);
+  return m ? { venue: m[1].trim(), poolNum: m[2] } : { venue: raw || '', poolNum: '' };
+}
+
+// Extract bracket code prefix: "F1 - 1st B" → "F1",  "LOSER #1" → null
+function bsExtractBracketCode(raw) {
+  const m = (raw || '').match(/^([A-Z][0-9]+)\s*[-–]/i);
+  return m ? m[1].toUpperCase() : null;
+}
+
+// Human-readable description for a bracket team cell: "F1 - 1st B" → "1st B"
+function bsBracketGameDesc(raw) {
+  const m = (raw || '').trim().match(/^[A-Z]\d+\s*[-–]\s*(.+)$/i);
+  return m ? m[1].trim() : (raw || 'TBD');
+}
+
+// Parse rebracket CSV rows → seeding map { "1st b" → "F1", "2nd b" → "H1", … }
+// Handles two formats:
+//   Format 1 (explicit): cells like "E1 - 1st A", "F1 - 1st B"
+//   Format 2 (implicit): header row "Q (1st-4th)", data rows [1, "1st L", "3rd L", …]
+function bsParseRebracket(rows) {
+  const seedingMap = {};
+
+  // Detect Format 1: any cell matches "CODE - ordinal POOL"
+  let fmt1Hits = 0;
+  for (const row of rows) {
+    for (const cell of row) {
+      if (/^[A-Z]\d+\s*[-–]\s*\d+(?:st|nd|rd|th)\s+[A-Z]$/i.test((cell||'').trim())) fmt1Hits++;
+    }
+  }
+
+  if (fmt1Hits > 0) {
+    // Format 1: scan every cell for "CODE - ordinal POOL"
+    for (const row of rows) {
+      for (const cell of row) {
+        const m = (cell||'').trim().match(/^([A-Z]\d+)\s*[-–]\s*(\d+(?:st|nd|rd|th))\s+([A-Z])$/i);
+        if (m) seedingMap[(m[2]+' '+m[3]).toLowerCase()] = m[1].toUpperCase();
+      }
+    }
+  } else {
+    // Format 2: column headers contain bracket group letters, rows have "ordinal POOL" cells
+    let headerRow = null, headerRowIdx = -1;
+    for (let ri = 0; ri < rows.length; ri++) {
+      const nonEmpty = rows[ri].filter(c => (c||'').trim());
+      if (nonEmpty.length >= 2 && /^[A-Z]\b/i.test(nonEmpty[0]||'')) {
+        headerRow = rows[ri]; headerRowIdx = ri; break;
+      }
+    }
+    if (headerRow) {
+      const colLetters = {};
+      for (let ci = 0; ci < headerRow.length; ci++) {
+        const lm = (headerRow[ci]||'').trim().match(/^([A-Z])\b/i);
+        if (lm) colLetters[ci] = lm[1].toUpperCase();
+      }
+      for (let ri = headerRowIdx + 1; ri < rows.length; ri++) {
+        const row = rows[ri];
+        const rowNum = (row[0]||'').trim();
+        if (!rowNum || !/^\d+$/.test(rowNum)) continue;
+        for (let ci = 1; ci < row.length; ci++) {
+          const cell = (row[ci]||'').trim();
+          const grpLetter = colLetters[ci];
+          if (!cell || !grpLetter) continue;
+          const vm = cell.match(/^(\d+(?:st|nd|rd|th))\s+([A-Z])$/i);
+          if (vm) seedingMap[(vm[1]+' '+vm[2]).toLowerCase()] = grpLetter + rowNum;
+        }
+      }
+    }
+  }
+  return seedingMap;
+}
+
+// Scan the full schedule CSV + seeding map → structured bracket path objects for the Possible tab
+function bsComputeBracketPaths(allRows, seedingMap, myPool, cols) {
+  const poolUpper = (myPool||'').replace(/^pool\s*/i,'').trim().toUpperCase();
+  if (!poolUpper || !/^[A-Z]$/.test(poolUpper) || !allRows?.length) return [];
+  const { dateCol=0, timeCol=2, whiteCol=3, darkCol=5, locCol=1, dataStartRow=0 } = cols || {};
+
+  // Build bracket-code → games lookup from all schedule rows
+  const codeToGames = {};
+  for (let ri = dataStartRow; ri < allRows.length; ri++) {
+    const row = allRows[ri];
+    const rawWhite = (row[whiteCol]||'').trim();
+    const rawBlue  = (row[darkCol] ||'').trim();
+    const wCode = bsExtractBracketCode(rawWhite);
+    const bCode = bsExtractBracketCode(rawBlue);
+    if (!wCode && !bCode) continue;
+    const rawTime = (row[timeCol]||'').trim();
+    const rawDate = dateCol >= 0 ? (row[dateCol]||'').trim() : '';
+    const rawLoc  = locCol  >= 0 ? (row[locCol] ||'').trim() : '';
+    const locP    = bsParseLocation(rawLoc);
+    const dateISO = parseDateToISO(rawDate);
+    let timeFmt = rawTime;
+    if (rawTime && !/am|pm/i.test(rawTime)) {
+      const hm = rawTime.match(/^(\d{1,2}):/);
+      if (hm) { const h = parseInt(hm[1],10); timeFmt = rawTime+(h>=7&&h<=11?' AM':' PM'); }
+    }
+    const game = {
+      white: rawWhite, blue: rawBlue, whiteCode: wCode, blueCode: bCode,
+      time: timeFmt, dateISO,
+      date: dateISO ? isoToDate(dateISO) : rawDate,
+      location: locP.venue + (locP.poolNum ? ' Pool ' + locP.poolNum : ''),
+    };
+    if (wCode) { (codeToGames[wCode] = codeToGames[wCode]||[]).push(game); }
+    if (bCode) { (codeToGames[bCode] = codeToGames[bCode]||[]).push(game); }
+  }
+
+  // BFS: collect all bracket games reachable from a starting code
+  function getReachable(startCode) {
+    const visited = new Set(), reachable = [], queue = [startCode];
+    while (queue.length) {
+      const code = queue.shift();
+      if (visited.has(code)) continue;
+      visited.add(code);
+      for (const g of (codeToGames[code]||[])) { if (!reachable.includes(g)) reachable.push(g); }
+      // Advance through winner/loser paths: code "F1" → group "F" → "1st F" and "2nd F"
+      const grp = code.match(/^([A-Z])/)?.[1];
+      if (grp) {
+        const wc = seedingMap[('1st '+grp).toLowerCase()];
+        const lc = seedingMap[('2nd '+grp).toLowerCase()];
+        if (wc && !visited.has(wc)) queue.push(wc);
+        if (lc && !visited.has(lc)) queue.push(lc);
+      }
+    }
+    return reachable;
+  }
+
+  // One path entry per possible finish per bracket day
+  const paths = [];
+  for (const ord of ['1st','2nd','3rd','4th','5th']) {
+    const startCode = seedingMap[(ord+' '+poolUpper).toLowerCase()];
+    if (!startCode) continue;
+    const reachable = getReachable(startCode);
+    if (!reachable.length) continue;
+    const byDate = {}, dateOrder = [];
+    for (const g of reachable) {
+      const dk = g.dateISO||g.date||'TBD';
+      if (!byDate[dk]) { byDate[dk]=[]; dateOrder.push(dk); }
+      byDate[dk].push(g);
+    }
+    for (const dk of [...new Set(dateOrder)].sort()) {
+      const dg = byDate[dk];
+      paths.push({
+        id: 'bs-'+ord.replace(/\W/g,'')+poolUpper+'-'+dk,
+        label: 'If '+ord+' in Pool '+poolUpper+' \u2014 '+dg.length+' possible game'+(dg.length!==1?'s':''),
+        qualifier: 'Bracket games your team could play if they finish '+ord+' in Pool '+poolUpper+'.',
+        steps: dg.map(g => ({
+          gameNum: '',
+          desc: bsBracketGameDesc(g.white)+' vs '+bsBracketGameDesc(g.blue),
+          time: g.time||'TBD',
+          date: g.date||dk,
+          dateISO: g.dateISO||'',
+          location: g.location||'',
+        })),
+      });
+    }
+  }
+  return paths;
 }
 
 function bsStep5Next() {
@@ -7742,7 +7919,7 @@ async function bsDeploy() {
     }));
     games.sort((a, b) => gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum));
     S.tournament.games = games;
-    if (S.bsync.bracketPaths?.length) S.tournament.bracketPaths = S.bsync.bracketPaths;
+    if (S.bsync.bracketPaths?.length) S.tournament.bracket = { paths: S.bsync.bracketPaths };
 
     // Save sync config
     S.tournament.sheetSync = {
