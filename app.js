@@ -266,7 +266,7 @@ const CONFIG = {
 
 // Returns a gender-appropriate water polo emoji based on the team key
 function swimmerEmoji(teamKey) {
-  if (!teamKey) teamKey = (getSelectedTeams && getSelectedTeams()[0]) || '';
+  if (!teamKey) teamKey = getSelectedTeam() || '';
   const k = teamKey.toLowerCase();
   if (k.includes('boy') || k.includes('men') || k.includes('bv') || k.includes('bjv')) return '🤽‍♂️';
   return '🤽‍♀️'; // girls, co-ed, or default
@@ -481,6 +481,7 @@ const state = {
   roster:           [],     // [{ cap, first, last }] — editable via Roster tab
   currentTab:       'schedule',
   viewerMode:       true,       // true = viewing live scores without scorer login (default for parents)
+  parentTier:       null,       // null = not yet checked, 'free' | 'parent' once resolved
 
   // Calendar sync
   accessToken:      null,
@@ -524,18 +525,17 @@ function buildLocationLink(location) {
   const isCoords = /^-?\d+\.\d+\s*,\s*-?\d+\.\d+$/.test(location.trim());
   const dest = isCoords ? location.trim() : encodeURIComponent(location);
   const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
-  const appleUrl = `https://maps.apple.com/?daddr=${dest}`;
-  const wazeUrl = `https://waze.com/ul?q=${dest}`;
-  const iconStyle = `width:13px;height:13px;border-radius:2px;object-fit:contain;flex-shrink:0`;
+  const appleUrl  = `https://maps.apple.com/?daddr=${dest}`;
+  const wazeUrl   = `https://waze.com/ul?q=${dest}`;
   return `<span style="display:flex;flex-direction:column;gap:5px;margin-top:2px" onclick="event.stopPropagation()">
     <span style="display:inline-flex;align-items:center;gap:5px">
       <svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;opacity:0.7"><path d="M6 0C3.24 0 1 2.24 1 5c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.5A1.5 1.5 0 1 1 6 3.5 1.5 1.5 0 0 1 6 6.5z" fill="currentColor"/></svg>
       <span class="location-venue">${escHtml(location)}</span>
     </span>
     <span style="display:inline-flex;gap:5px;padding-left:17px">
-      <a href="${appleUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()"><img src="https://maps.apple.com/favicon.ico" alt="" style="${iconStyle}" onerror="this.style.display='none'">Apple</a>
-      <a href="${googleUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()"><img src="https://maps.gstatic.com/favicon3.ico" alt="" style="${iconStyle}" onerror="this.style.display='none'">Google</a>
-      <a href="${wazeUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()"><img src="https://www.waze.com/favicon.ico" alt="" style="${iconStyle}" onerror="this.style.display='none'">Waze</a>
+      <a href="${appleUrl}"  target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()">Apple</a>
+      <a href="${googleUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()">Google</a>
+      <a href="${wazeUrl}"   target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()">Waze</a>
     </span>
   </span>`;
 }
@@ -870,11 +870,17 @@ function archiveTournament(snapshot, results, bracketResults, liveScores) {
 // ─── TOURNAMENT CHANGE DETECTION ──────────────────────────────────────────────
 
 function checkTournamentChange() {
-  const savedId         = localStorage.getItem(STORE.TOURNAMENT_ID);
-  const savedSnap       = JSON.parse(localStorage.getItem(STORE.SNAPSHOT)        || 'null');
-  const savedRes        = JSON.parse(localStorage.getItem(STORE.RESULTS)         || '{}');
-  const savedBrRes      = JSON.parse(localStorage.getItem(STORE.BRACKET_RESULTS) || '{}');
-  const savedLiveScores = JSON.parse(localStorage.getItem(STORE.LIVE_SCORES)     || '{}');
+  const savedId = localStorage.getItem(STORE.TOURNAMENT_ID);
+  let savedSnap, savedRes, savedBrRes, savedLiveScores;
+  try {
+    savedSnap       = JSON.parse(localStorage.getItem(STORE.SNAPSHOT)        || 'null');
+    savedRes        = JSON.parse(localStorage.getItem(STORE.RESULTS)         || '{}');
+    savedBrRes      = JSON.parse(localStorage.getItem(STORE.BRACKET_RESULTS) || '{}');
+    savedLiveScores = JSON.parse(localStorage.getItem(STORE.LIVE_SCORES)     || '{}');
+  } catch (e) {
+    console.warn('[ebwp] checkTournamentChange: corrupted localStorage, skipping archive check:', e.message);
+    return;
+  }
 
   if (savedId && savedId !== TOURNAMENT.id && savedSnap) {
     // Only archive if results were actually recorded (skip blank placeholder data)
@@ -1793,35 +1799,6 @@ function buildBoxScoreText(gameId) {
   }
   text += `\n— ${getActiveTeamLabel()} WP App\nhttps://eggbeater.app`;
   return text;
-}
-
-async function postToGroupMe(gameId) {
-  const botId = state.groupmeBotId;
-  if (!botId) {
-    showToast('Enter your GroupMe Bot ID in the Roster tab first', 'warn');
-    return;
-  }
-  const text   = buildBoxScoreText(gameId);
-  const chunks = chunkMessage(text);
-  showToast(`Sending ${chunks.length > 1 ? chunks.length + ' messages' : 'to GroupMe'}…`);
-  let failed = 0;
-  for (const chunk of chunks) {
-    try {
-      const res = await fetch('https://api.groupme.com/v3/bots/post', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ bot_id: botId, text: chunk }),
-      });
-      if (!res.ok && res.status !== 202) failed++;
-    } catch {
-      failed++;
-    }
-  }
-  if (failed === 0) {
-    showToast('Sent to GroupMe! 📱', 'ok');
-  } else {
-    showToast(`${failed} message(s) failed — check your Bot ID`);
-  }
 }
 
 async function testGroupMeBot() {
@@ -6064,7 +6041,6 @@ function init() {
 
             if (hasInvalid || _isClubChange || (favTeam && isDefault && favTeam !== current[0])) {
               if (favTeam) {
-                console.log('[ebwp] Favoriting team transition:', favTeam);
                 setSelectedTeams([favTeam]);
               } else if (hasInvalid) {
                 setSelectedTeams([validKeys[0]]);
@@ -6153,7 +6129,6 @@ function init() {
   // Native Deep Linking (Widgets)
   if (typeof Capacitor !== 'undefined' && Capacitor.Plugins.App) {
     Capacitor.Plugins.App.addListener('appUrlOpen', data => {
-      console.log('[bridge] Deep link opened:', data.url);
       const url = new URL(data.url);
       if (url.protocol === 'eggbeater:' && url.host === 'score') {
         const gameId = url.pathname.replace('/', '');
@@ -8324,6 +8299,31 @@ function renderHelpTab() {
         <li>Your calendar connection is remembered. On future visits the app reconnects silently in the background — no action needed.</li>
         <li><strong>Push Notifications</strong> — On iOS (iPhone/iPad), first install the app to your home screen (see <em>Installing the Web App</em> above), open from the home screen icon, then go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <em>Enable Notifications</em>. On Android you can do the same directly in Chrome, or use the native Google Play app.</li>
         <li><strong>Telegram / GroupMe</strong> — The scorer can send box score updates and shootout alerts directly to your team channel from the Scores tab.</li>
+        <li><strong>WebCal Subscribe Link</strong> — If your admin shares a <code>webcal://</code> link (often for NJO or tournament brackets), tap it once to add all games to your calendar. The feed auto-updates every 5 minutes as times, locations, and bracket opponents change. Works with Google Calendar, Apple Calendar, and Outlook.</li>
+      </ul>`
+    },
+    {
+      icon: '🔴',
+      title: 'Live Activities &amp; Live Updates',
+      body: `<p>Follow live-scored games without opening the app.</p>
+      <ul>
+        <li><strong>iPhone (Live Activities)</strong> — when a game is being scored, the score appears on your <strong>lock screen</strong> and in the <strong>Dynamic Island</strong> with team logos, a running clock, and a live event feed. It starts automatically when scoring begins and ends on Final.</li>
+        <li><strong>Android 16+ (Live Updates)</strong> — a persistent notification chip shows the current score (e.g. "Q2 7&ndash;5") and updates on every poll tick. Make sure notifications are enabled in your device settings.</li>
+        <li>Tap <strong>Follow Live</strong> on any in-progress game in the Schedule tab to start the Live Activity.</li>
+        <li>Live Activities work alongside push notifications — you can have both enabled.</li>
+      </ul>`
+    },
+    {
+      icon: '🧩',
+      title: 'Home Screen Widgets',
+      body: `<p>Add Eggbeater widgets to your home screen for at-a-glance info without opening the app.</p>
+      <ul>
+        <li><strong>Score Widget</strong> — shows the live score of the current or most recent game.</li>
+        <li><strong>Schedule Widget</strong> — shows the next upcoming game with time, opponent, and location.</li>
+        <li><strong>Stats Widget</strong> — shows top scorers from the current tournament.</li>
+        <li><strong>How to add (iOS):</strong> Long-press your home screen → tap <strong>+</strong> → search "Eggbeater" → choose a widget size → Add Widget.</li>
+        <li><strong>How to add (Android):</strong> Long-press your home screen → tap <strong>Widgets</strong> → find Eggbeater → drag to your home screen.</li>
+        <li>Widgets update automatically whenever scores or schedules change.</li>
       </ul>`
     },
     {
@@ -8458,7 +8458,7 @@ function renderHelpTab() {
         </div>
       </div>
       <a class="help-request-btn"
-         href="mailto:pipers4323@gmail.com?subject=Eggbeater%20App%20Feature%20Request&body=Hi%2C%20I%20have%20a%20suggestion%20for%20the%20Eggbeater%20WP%20app%3A%0A%0A"
+         href="mailto:hello@eggbeater.app?subject=Eggbeater%20App%20Feature%20Request&body=Hi%2C%20I%20have%20a%20suggestion%20for%20the%20Eggbeater%20WP%20app%3A%0A%0A"
          target="_blank" rel="noopener">
         ✉️ Request a Feature
       </a>
@@ -9131,7 +9131,6 @@ async function toggleLiveActivity(gameId) {
 
     // Listen for APNs push token (sent to Worker for server-side updates)
     LiveActivity.addListener('onPushTokenReceived', async (info) => {
-      console.log('[LA] APNs push token:', info.token);
       try {
         await fetch(`${PUSH_SERVER_URL}/live-activity/sync`, {
           method: 'POST',

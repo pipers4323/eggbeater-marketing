@@ -605,6 +605,38 @@ kbd {
       <div class="callout-icon">&#x26a0;&#xfe0f;</div>
       <p><strong>Finding the right cell ranges:</strong> Open the Google Sheet, click the top-left cell of the pool grid and note the cell reference in the top-left of the sheet (e.g. <em>J3</em>), then click the bottom-right cell (e.g. <em>M6</em>). Your range is <code>J3:M6</code>. The same method works for the re-bracket range.</p>
     </div>
+
+    <div class="callout callout-tip" style="margin-top:14px">
+      <div class="callout-icon">🎨</div>
+      <p><strong>Colour-coded bracket sheets:</strong> Some tournament directors use row background colours (e.g. yellow = 14u, cyan = 12u) instead of a text column to indicate age groups. The Bracket Sheet Sync wizard handles this automatically. In Step 1, check <strong>"Age groups separated by row colour"</strong>, enter the legend cells (e.g. <code>A18, B18</code>) where the sheet labels each colour, and tap <em>Detect</em>. The wizard reads the age group labels, shows them as buttons, and you tap yours. The column layout is also auto-detected, so sheets with non-standard column orders (e.g. Game# / Time / White Hats / Dark Hats / Pool) work without manual configuration.</p>
+    </div>
+  </div>
+
+  <div class="card" id="calendar-feed">
+    <h3>📅 Calendar Subscribe Feed</h3>
+    <p>After deploying games through NJO Mode, parents can subscribe to a <strong>WebCal calendar feed</strong> that auto-updates in Google Calendar, Apple Calendar, or Outlook.</p>
+    <ul>
+      <li><strong>How it works:</strong> After NJO Mode deploys, a <code>webcal://</code> link appears. Copy and share it with parents (e.g. in a group chat). Parents tap the link once to subscribe &mdash; all games appear as calendar events immediately.</li>
+      <li><strong>Auto-updating:</strong> The feed refreshes every 5 minutes. As bracket opponents are confirmed, game titles update automatically (e.g. "Bracket Game TBD" becomes "vs. San Clemente Red"). Times and locations also update if the director changes them.</li>
+      <li><strong>Calendar name:</strong> You name the calendar in Step 4 of the NJO wizard (e.g. "14u Girls NJO 2026 &mdash; 680 Drivers"). This name shows in the parent's calendar app.</li>
+      <li><strong>Works everywhere:</strong> Google Calendar, Apple Calendar (iPhone/Mac), Outlook, and any app that supports iCal/WebCal feeds.</li>
+    </ul>
+  </div>
+
+  <div class="card" id="parent-native-features">
+    <h3>📱 What Parents See — Live Activities, Widgets &amp; More</h3>
+    <p>These features are automatic — once you deploy games, parents get access to all of them with no extra setup on the admin side.</p>
+    <ul>
+      <li><strong>Live Activities (iPhone)</strong> &mdash; During a live-scored game, the score appears on the iPhone lock screen and in the Dynamic Island with team logos, a running clock, and a live event feed. Auto-starts when scoring begins, auto-ends on Final.</li>
+      <li><strong>Live Updates (Android 16)</strong> &mdash; A persistent notification chip shows the current score (e.g. "Q2 7&ndash;5") and updates on every poll tick. Requires Android 16+ with notification permission granted.</li>
+      <li><strong>Home Screen Widgets</strong> &mdash; Parents can add Score, Schedule, and Stats widgets to their home screen on both iOS and Android. Widgets update automatically as games progress.</li>
+      <li><strong>Calendar Subscribe</strong> &mdash; Parents subscribe once to the WebCal feed and all games appear in their calendar app, auto-updating as the bracket resolves. See <a href="#calendar-feed" style="color:var(--royal)">Calendar Subscribe Feed</a> above.</li>
+      <li><strong>Offline Scoring</strong> &mdash; Scorers can enter scores even with no internet. Goals queue locally and sync automatically when connectivity returns.</li>
+    </ul>
+    <div class="callout callout-tip" style="margin-top:10px">
+      <div class="callout-icon">💡</div>
+      <p><strong>Tip for admins:</strong> Let your parents know these features exist! A quick message in your group chat — "You can add a widget or follow the game on your lock screen" — drives adoption.</p>
+    </div>
   </div>
 
   <div class="card" id="njo-mode">
@@ -784,7 +816,7 @@ kbd {
     <h3>Push Notifications</h3>
     <p>Parents who enable notifications in the app receive push alerts on their phone. You control what gets sent:</p>
     <ul>
-      <li><strong>Game Day Reminders</strong> &mdash; Automatic. When enabled, parents get a reminder 2 hours before each game with the opponent, time, and location. Toggle this on/off in the Communication tab.</li>
+      <li><strong>Game Day Reminders</strong> &mdash; Automatic. When enabled, parents get reminders at 2 hours, 1 hour, and 30 minutes before each game with the opponent, time, and location. Toggle this on/off in the Communication tab.</li>
       <li><strong>Announcements</strong> &mdash; Manual. Write a title and message, pick which age groups to notify, then send. Rate limited to 5 per hour.</li>
       <li><strong>Scheduled Announcements</strong> &mdash; Toggle "Schedule for Later" to pick a future date/time. The notification sends automatically at the scheduled time.</li>
     </ul>
@@ -992,7 +1024,7 @@ kbd {
     <ul>
       <li><strong>Clone often</strong> &mdash; If you attend the same tournament each year, clone last year's from the archive. Games, roster, and structure carry over.</li>
       <li><strong>Use Upcoming Mode</strong> &mdash; Deploy the tournament info early so parents can see the dates and venue, even before you have the full schedule.</li>
-      <li><strong>Set up game reminders</strong> &mdash; Enable automatic push reminders in the Communication tab. Parents love getting a heads-up 2 hours before game time.</li>
+      <li><strong>Set up game reminders</strong> &mdash; Enable automatic push reminders in the Communication tab. Parents love getting automatic reminders at 2 hours, 1 hour, and 30 minutes before game time.</li>
       <li><strong>Save templates</strong> &mdash; If your league has a standard format (e.g., "3 pool play + bracket"), save it as a template for one-click setup.</li>
       <li><strong>Print game sheets</strong> &mdash; Print them before you leave for the tournament. They have your roster, scoring grids, and quarter tracking built in.</li>
       <li><strong>Check the Activity Log</strong> &mdash; If multiple admins manage the same team, the activity log (in the <strong>Games</strong> tab) shows who changed what and when.</li>

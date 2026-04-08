@@ -7275,7 +7275,7 @@ function bsRenderDeploySummary(bs) {
 // bsWizardHtml: returns the full Bracket Sheet Sync <details> card as an HTML string.
 // Called inline from renderAddGamesTab() via ${bsWizardHtml()} — no placeholder needed.
 function bsWizardHtml() {
-  if (!S.bsync) S.bsync = { step: 1, sheetUrl: localStorage.getItem('ebadmin-bsync-url') || '', poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null };
+  if (!S.bsync) S.bsync = { step: 1, sheetUrl: localStorage.getItem('ebadmin-bsync-url') || '', poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '' };
   var bs = S.bsync;
   var step = bs.step || 1;
   var dots = [1,2,3,4,5,6].map(function(n){ return '<div id="bs-dot-'+n+'" style="flex:1;height:5px;border-radius:3px;background:'+(step>=n?'var(--royal)':'var(--g200)')+'"></div>'; }).join('');
@@ -7299,6 +7299,27 @@ function bsWizardHtml() {
     + '<input class="info-input" id="bs-url" type="url" value="'+esc(bs.sheetUrl||'')+'" placeholder="https://docs.google.com/spreadsheets/d/\u2026" autocomplete="off" spellcheck="false" style="margin-bottom:8px" onkeydown="if(event.key===\'Enter\')bsStep1Next()">'
     + '<button class="save-btn" style="width:100%" onclick="bsStep1Next()">Next &rarr;</button>'
     + '<div id="bs-s1-err" style="font-size:.8rem;color:#dc2626;margin-top:6px;min-height:1em"></div>'
+    // Colour-coded age groups option
+    + '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--g100)">'
+    + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--g700)">'
+    + '<input type="checkbox" id="bs-cc-chk" '+(bs.colorCoded?'checked':'')+' onchange="bsToggleColorCoded(this.checked)" style="width:15px;height:15px;accent-color:var(--royal);flex-shrink:0">'
+    + 'Age groups separated by row colour'
+    + '</label>'
+    + '<div id="bs-cc-fields" style="display:'+(bs.colorCoded?'block':'none')+';margin-top:8px;padding:10px;background:var(--g50);border-radius:8px;border:1px solid var(--g200)">'
+    + '<div style="font-size:.78rem;color:var(--g500);margin-bottom:6px">Which cells show the age group colour key? e.g. <code style="background:white;padding:1px 4px;border-radius:3px;border:1px solid var(--g200)">A18, B18</code></div>'
+    + '<div style="display:flex;gap:6px;margin-bottom:6px">'
+    + '<input class="info-input" id="bs-cc-cells" value="'+esc(bs.legendCells||'')+'" placeholder="A18, B18" style="flex:1;font-family:monospace;font-size:.84rem" onkeydown="if(event.key===\'Enter\')bsDetectAgeGroups()">'
+    + '<button class="save-btn" style="padding:8px 14px;white-space:nowrap;font-size:.82rem" onclick="bsDetectAgeGroups()">Detect &rarr;</button>'
+    + '</div>'
+    + '<div id="bs-cc-status" style="font-size:.78rem;min-height:1.2em;margin-bottom:4px"></div>'
+    + '<div id="bs-cc-groups" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+    + (bs.ageGroups && bs.ageGroups.length
+        ? '<span style="font-size:.78rem;color:var(--g600);font-weight:600;margin-right:2px">My age group:</span>'
+          + bs.ageGroups.map(function(ag,i){ return '<button onclick="bsSelectAgeGroup('+i+')" style="padding:3px 12px;border-radius:16px;border:2px solid '+(bs.myAgeGroupIdx===i?'var(--royal)':'var(--g200)')+';background:'+(bs.myAgeGroupIdx===i?'var(--royal)':'white')+';color:'+(bs.myAgeGroupIdx===i?'white':'var(--g600)')+';font-size:.8rem;font-weight:600;cursor:pointer">'+esc(ag)+'</button>'; }).join('')
+        : '')
+    + '</div>'
+    + '</div>'
+    + '</div>'
     + '</div>'
     // Step 2
     + '<div id="bs-s2" style="display:'+(step===2?'block':'none')+'">'
@@ -7398,6 +7419,76 @@ function bsStep1Next() {
   bsStep(2);
 }
 
+async // ── Colour-coded age group helpers ────────────────────────────────────────────
+function bsToggleColorCoded(val) {
+  if (!S.bsync) return;
+  S.bsync.colorCoded = !!val;
+  const fields = document.getElementById('bs-cc-fields');
+  if (fields) fields.style.display = val ? 'block' : 'none';
+  if (!val) { S.bsync.ageGroups = []; S.bsync.myAgeGroup = ''; S.bsync.myAgeGroupIdx = 0; }
+}
+
+async function bsDetectAgeGroups() {
+  const cells  = (document.getElementById('bs-cc-cells')?.value || '').trim();
+  const status = document.getElementById('bs-cc-status');
+  const groups = document.getElementById('bs-cc-groups');
+  if (!cells) { if (status) { status.style.color='#dc2626'; status.textContent='⚠️ Enter legend cells first (e.g. A18, B18)'; } return; }
+  const sheetId = S.bsync?.sheetId || (() => {
+    const m = (document.getElementById('bs-url')?.value||'').match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    return m ? m[1] : null;
+  })();
+  if (!sheetId) { if (status) { status.style.color='#dc2626'; status.textContent='⚠️ Enter the sheet URL first'; } return; }
+  S.bsync.legendCells = cells;
+  if (S.bsync) S.bsync.sheetId = sheetId;
+  if (status) { status.style.color='var(--g400)'; status.textContent='\u23f3 Reading legend cells\u2026'; }
+  if (groups) groups.innerHTML = '';
+  try {
+    // Parse refs like "A18, B18" → [{col:0,row:17},{col:1,row:17}]
+    const refs = cells.split(/[\s,]+/).map(r=>r.trim().toUpperCase()).filter(Boolean);
+    const parsed = refs.map(ref => {
+      const m = ref.match(/^([A-Z]+)(\d+)$/);
+      if (!m) return null;
+      let col = 0; for (const ch of m[1]) col = col*26+(ch.charCodeAt(0)-64); col--;
+      return { ref, col, row: parseInt(m[2])-1 };
+    }).filter(Boolean);
+    if (!parsed.length) throw new Error('Could not parse cell references — use format A18, B18');
+    const legendRowNum = parsed[0].row + 1; // 1-indexed for gviz
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/'+sheetId+'/gviz/tq?tqx=out:csv&range='+legendRowNum+':'+legendRowNum;
+    const resp = await fetch(csvUrl);
+    if (!resp.ok) throw new Error('HTTP '+resp.status+' — check sheet is "Anyone with the link can view"');
+    const text = await resp.text();
+    const rows = parseCSV(text);
+    if (!rows.length || !rows[0]) throw new Error('No data returned for that row');
+    const row = rows[0];
+    const agLabels = parsed.map(p => (row[p.col]||'').trim()).filter(Boolean);
+    if (!agLabels.length) throw new Error('Cells appear empty — check the row number in your cell refs');
+    S.bsync.ageGroups     = agLabels;
+    S.bsync.legendParsed  = parsed;
+    S.bsync.myAgeGroupIdx = 0;
+    S.bsync.myAgeGroup    = agLabels[0];
+    if (status) { status.style.color='#059669'; status.textContent='\u2705 Found: '+agLabels.join(' \u00b7 ')+' \u2014 tap yours below'; }
+    if (groups) groups.innerHTML = '<span style="font-size:.78rem;color:var(--g600);font-weight:600;margin-right:2px">My age group:</span>'
+      + agLabels.map(function(ag,i){ return '<button onclick="bsSelectAgeGroup('+i+')" id="bs-ag-btn-'+i+'" style="padding:3px 12px;border-radius:16px;border:2px solid '+(i===0?'var(--royal)':'var(--g200)')+';background:'+(i===0?'var(--royal)':'white')+';color:'+(i===0?'white':'var(--g600)')+';font-size:.8rem;font-weight:600;cursor:pointer">'+esc(ag)+'</button>'; }).join('');
+  } catch(e) {
+    if (status) { status.style.color='#dc2626'; status.textContent='\u274c '+e.message; }
+  }
+}
+
+function bsSelectAgeGroup(idx) {
+  if (!S.bsync) return;
+  S.bsync.myAgeGroupIdx = idx;
+  S.bsync.myAgeGroup    = (S.bsync.ageGroups||[])[idx] || '';
+  (S.bsync.ageGroups||[]).forEach(function(_,i){
+    const btn = document.getElementById('bs-ag-btn-'+i);
+    if (!btn) return;
+    const sel = i===idx;
+    btn.style.borderColor = sel ? 'var(--royal)' : 'var(--g200)';
+    btn.style.background  = sel ? 'var(--royal)' : 'white';
+    btn.style.color       = sel ? 'white' : 'var(--g600)';
+  });
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function bsFetchPools() {
   const range = (document.getElementById('bs-poolrange')?.value || '').trim();
   const status = document.getElementById('bs-s2-status');
@@ -7475,32 +7566,58 @@ async function bsScanGames() {
   if (status4) { status4.style.color = 'var(--g400)'; status4.textContent = '⏳ Scanning schedule sheet for games…'; }
   if (preview) preview.innerHTML = '';
   try {
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${S.bsync.sheetId}/gviz/tq?tqx=out:csv&range=A:H`;
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/'+S.bsync.sheetId+'/gviz/tq?tqx=out:csv';
     const resp = await fetch(csvUrl);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const text = await resp.text();
     const allRows = parseCSV(text);
     const teamNameLower = (S.bsync.teamName || '').toLowerCase();
-    const games = [];
 
-    for (const row of allRows) {
-      const white = (row[3] || '').trim();
-      const blue  = (row[5] || '').trim();
-      if (!white && !blue) continue;
+    // ── Auto-detect column structure from first header row containing "white" + "dark" ──
+    let dateCol=0, locationCol=1, timeCol=2, whiteCol=3, darkCol=5, gameNumCol=-1, poolCol=-1;
+    let dataStartRow = 0;
+    for (let ri = 0; ri < Math.min(allRows.length, 40); ri++) {
+      const lower = allRows[ri].map(function(c){ return (c||'').toLowerCase().trim(); });
+      const wIdx = lower.findIndex(function(c){ return c.includes('white'); });
+      const dIdx = lower.findIndex(function(c){ return c.includes('dark')||c.includes('navy')||c.includes('blue cap'); });
+      if (wIdx !== -1 && dIdx !== -1) {
+        whiteCol = wIdx; darkCol = dIdx;
+        for (let ci = 0; ci < lower.length; ci++) {
+          const c = lower[ci];
+          if (c==='game#'||c==='gm#'||c==='game #'||c==='gm #'||c==='game') gameNumCol = ci;
+          else if (gameNumCol===-1 && (c.startsWith('gm')||c.startsWith('game'))) gameNumCol = ci;
+          if (c==='time'||c.startsWith('time')) timeCol = ci;
+          if (c==='pool'||c==='venue'||c==='field') poolCol = ci;
+          if (c==='date') dateCol = ci;
+          if (c.includes('location')) locationCol = ci;
+        }
+        dataStartRow = ri + 1;
+        break;
+      }
+    }
+    const agLabel = (S.bsync.colorCoded && S.bsync.myAgeGroup) ? ' ('+S.bsync.myAgeGroup+')' : '';
+
+    const games = [];
+    for (let ri = dataStartRow; ri < allRows.length; ri++) {
+      const row = allRows[ri];
+      const white = (row[whiteCol] || '').trim();
+      const dark  = (row[darkCol]  || '').trim();
+      if (!white && !dark) continue;
       const isWhite = white.toLowerCase().includes(teamNameLower);
-      const isBlue  = blue.toLowerCase().includes(teamNameLower);
+      const isBlue  = dark.toLowerCase().includes(teamNameLower);
       if (!isWhite && !isBlue) continue;
 
-      const dateRaw  = (row[0] || '').trim();
-      const location = (row[1] || '').trim();
-      const time     = (row[2] || '').trim();
-      const opponent = isWhite ? blue : white;
+      const dateRaw  = dateCol >= 0 ? (row[dateCol] || '').trim() : '';
+      const location = poolCol >= 0 ? (row[poolCol] || '').trim() : (locationCol >= 0 ? (row[locationCol]||'').trim() : '');
+      const time     = (row[timeCol] || '').trim();
+      const rawGnum  = gameNumCol >= 0 ? (row[gameNumCol]||'').trim() : '';
+      const opponent = isWhite ? dark : white;
       const cap      = isBlue ? 'Dark' : 'White';
       const dateISO  = parseDateToISO(dateRaw);
 
       games.push({
         id: 'g' + (Date.now() + games.length).toString(36),
-        gameNum: String(games.length + 1),
+        gameNum: rawGnum || String(games.length + 1),
         opponent: opponent || 'TBD',
         time,
         dateISO,
@@ -7519,7 +7636,7 @@ async function bsScanGames() {
     }
 
     S.bsync.games = games;
-    if (status4) { status4.style.color = '#059669'; status4.textContent = `✅ Found ${games.length} game(s) — review below`; }
+    if (status4) { status4.style.color = '#059669'; status4.textContent = '\u2705 Found '+games.length+' game(s)'+agLabel+' \u2014 review below'; }
     const nextBtn = document.getElementById('bs-s4-next');
     if (nextBtn) nextBtn.disabled = false;
 
@@ -7615,6 +7732,9 @@ async function bsDeploy() {
       rebracket: S.bsync.rebracket,
       rebracketRange: S.bsync.rebracketRange || '',
       pollMins: S.bsync.pollMins,
+      colorCoded: !!S.bsync.colorCoded,
+      legendCells: S.bsync.legendCells || '',
+      myAgeGroup: S.bsync.myAgeGroup || '',
       lastSync: new Date().toISOString(),
     };
     localStorage.setItem('ebadmin-bsync-url', S.bsync.sheetUrl || '');
@@ -7648,7 +7768,7 @@ async function bsDeploy() {
 
 function bsReset() {
   const saved = S.bsync?.sheetUrl || '';
-  S.bsync = { step: 1, sheetUrl: saved, poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null };
+  S.bsync = { step: 1, sheetUrl: saved, poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '' };
   bsStep(1);
   const urlInput = document.getElementById('bs-url');
   if (urlInput) urlInput.value = saved;
@@ -7665,29 +7785,57 @@ function bsStartPoll() {
 async function bsAutoPoll() {
   if (!S.bsync?.sheetId || !S.bsync?.teamName) return;
   try {
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${S.bsync.sheetId}/gviz/tq?tqx=out:csv&range=A:H`;
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/'+S.bsync.sheetId+'/gviz/tq?tqx=out:csv';
     const resp = await fetch(csvUrl);
     if (!resp.ok) return;
     const text = await resp.text();
     const allRows = parseCSV(text);
     const teamNameLower = S.bsync.teamName.toLowerCase();
+
+    // Auto-detect column structure (same logic as bsScanGames)
+    let dateCol=0, locationCol=1, timeCol=2, whiteCol=3, darkCol=5, gameNumCol=-1, poolCol=-1;
+    let dataStartRow = 0;
+    for (let ri = 0; ri < Math.min(allRows.length, 40); ri++) {
+      const lower = allRows[ri].map(c => (c||'').toLowerCase().trim());
+      const wIdx = lower.findIndex(c => c.includes('white'));
+      const dIdx = lower.findIndex(c => c.includes('dark')||c.includes('navy')||c.includes('blue cap'));
+      if (wIdx !== -1 && dIdx !== -1) {
+        whiteCol = wIdx; darkCol = dIdx;
+        for (let ci = 0; ci < lower.length; ci++) {
+          const c = lower[ci];
+          if (c==='game#'||c==='gm#'||c==='game #'||c==='gm #'||c==='game') gameNumCol = ci;
+          else if (gameNumCol===-1 && (c.startsWith('gm')||c.startsWith('game'))) gameNumCol = ci;
+          if (c==='time'||c.startsWith('time')) timeCol = ci;
+          if (c==='pool'||c==='venue'||c==='field') poolCol = ci;
+          if (c==='date') dateCol = ci;
+          if (c.includes('location')) locationCol = ci;
+        }
+        dataStartRow = ri + 1;
+        break;
+      }
+    }
+
     const games = [];
-    for (const row of allRows) {
-      const white = (row[3] || '').trim();
-      const blue  = (row[5] || '').trim();
+    for (let ri = dataStartRow; ri < allRows.length; ri++) {
+      const row = allRows[ri];
+      const white = (row[whiteCol] || '').trim();
+      const blue  = (row[darkCol]  || '').trim();
       if (!white && !blue) continue;
       const isWhite = white.toLowerCase().includes(teamNameLower);
       const isBlue  = blue.toLowerCase().includes(teamNameLower);
       if (!isWhite && !isBlue) continue;
-      const dateISO = parseDateToISO((row[0] || '').trim());
+      const rawGnum = gameNumCol >= 0 ? (row[gameNumCol]||'').trim() : '';
+      const dateRaw = dateCol >= 0 ? (row[dateCol]||'').trim() : '';
+      const dateISO = parseDateToISO(dateRaw);
+      const location = poolCol >= 0 ? (row[poolCol]||'').trim() : (row[locationCol]||'').trim();
       games.push({
         id: 'g' + (Date.now() + games.length).toString(36),
-        gameNum: String(games.length + 1),
+        gameNum: rawGnum || String(games.length + 1),
         opponent: (isWhite ? blue : white) || 'TBD',
-        time: (row[2] || '').trim(),
+        time: (row[timeCol] || '').trim(),
         dateISO,
-        date: dateISO ? isoToDate(dateISO) : (row[0] || '').trim(),
-        location: (row[1] || '').trim(),
+        date: dateISO ? isoToDate(dateISO) : dateRaw,
+        location,
         pool: S.bsync.myPool || '',
         cap: isBlue ? 'Dark' : 'White',
       });
@@ -8374,7 +8522,7 @@ function njoReset() {
   var saved = S.njo?.sheetUrl || '';
   S.njo = { step:1, sheetUrl:saved, sheetId:'', masterGid:'1188696082',
     gmidA:'', teamNameA:'', gmidB:'', teamNameB:'', enableTeamB:false,
-    detectedGmids:[], gmidCol:11, pollMins:5, allRows:[], gamesA:[], gamesB:[], bracketA:[], bracketB:[] };
+    detectedGmids:[], gmidCol:11, pollMins:5, calendarName:'', allRows:[], gamesA:[], gamesB:[], bracketA:[], bracketB:[] };
   njoStep(1);
   var ui = document.getElementById('njo-url'); if (ui) ui.value = saved;
 }
@@ -10877,7 +11025,7 @@ function renderHelpTab() {
       icon: '📅',
       title: 'Adding &amp; Editing Games',
       body: `<p style="font-weight:600;color:var(--royal)">Build your game schedule in the Games tab.</p>
-      <p style="margin-top:6px;margin-bottom:8px;padding:10px 12px;background:#eff6ff;border-radius:8px;font-size:0.82rem;border-left:3px solid var(--royal)">⭐ <strong>Recommended for tournaments: 📊 Bracket Sheet Sync.</strong> Paste the tournament director's Google Sheet URL and the wizard reads your pool seedings, finds your team's games, and deploys the full bracket in one step. See the <a href="/admin-guide.html#bracket-sync" target="_blank" style="color:var(--royal)">Admin Guide</a> for a full walkthrough.</p>
+      <p style="margin-top:6px;margin-bottom:8px;padding:10px 12px;background:#eff6ff;border-radius:8px;font-size:0.82rem;border-left:3px solid var(--royal)">⭐ <strong>Recommended for tournaments: 📊 Bracket Sheet Sync.</strong> Paste the tournament director's Google Sheet URL and the wizard reads your pool seedings, finds your team's games, and deploys the full bracket in one step. See the <a href="/admin-guide.html#schedule" target="_blank" style="color:var(--royal)">Admin Guide</a> for a full walkthrough.</p>
       <p style="margin-top:0;margin-bottom:8px;padding:10px 12px;background:#f5f3ff;border-radius:8px;font-size:0.82rem;border-left:3px solid #7e22ce">🏆 <strong>Going to NJO? Use NJO Mode.</strong> Paste the USA Water Polo MASTER BY DIVISION sheet, pick your division and team name, and the wizard maps your full 4-day bracket — group play in the Schedule tab, all possible bracket paths in the Bracket tab. Parents get a calendar subscribe link that auto-updates as opponents are confirmed. See the <a href="/admin-guide.html#njo-mode" target="_blank" style="color:#7e22ce">Admin Guide</a> for details.</p>
       <ul style="margin-top:8px">
         <li><strong>🏆 NJO Mode</strong> — for USA Water Polo National Junior Olympics. Paste the MASTER BY DIVISION sheet, select your division (e.g. 12G = 12U Girls Championship), enter your team name, and deploy. Generates group play schedule + full bracket tree. Includes a parent calendar subscribe link (webcal://) that auto-updates every 5 min.</li>
@@ -10889,6 +11037,51 @@ function renderHelpTab() {
         <li><strong>📋 Paste Schedule</strong> — paste rows directly from Excel or Google Sheets.</li>
       </ul>
       <p style="margin-top:10px;padding:10px 12px;background:var(--g50);border-radius:8px;font-size:0.82rem;border-left:3px solid var(--royal)">💡 Tap <strong>💾 Save &amp; Deploy</strong> after any changes — games are only visible to parents after you publish.</p>`
+    },
+    {
+      icon: '🎨',
+      title: 'Colour-Coded Bracket Sheets',
+      body: `<p>Some tournament directors use <strong>row background colours</strong> to indicate age groups (e.g. yellow rows = 14u, cyan rows = 12u) instead of a text column. The Bracket Sheet Sync wizard handles this.</p>
+      <ul>
+        <li><strong>Step 1:</strong> After pasting the sheet URL, check <strong>"Age groups separated by row colour"</strong>.</li>
+        <li><strong>Legend cells:</strong> Enter the cells where the sheet labels each colour (e.g. <code>A18, B18</code>). Tap <strong>Detect →</strong> — the wizard reads the age group names from those cells.</li>
+        <li><strong>Select your group:</strong> Age group buttons appear (e.g. "14u" · "12u"). Tap yours.</li>
+        <li><strong>Auto-detect columns:</strong> The wizard also auto-detects column headers. Sheets with non-standard layouts (Game# / Time / White Hats / Dark Hats / Pool) work without manual configuration.</li>
+      </ul>
+      <p style="margin-top:8px;padding:10px 12px;background:var(--g50);border-radius:8px;font-size:0.82rem;border-left:3px solid var(--royal)">💡 The rest of the wizard (pools, team name, re-bracket, deploy) works the same after selecting your age group.</p>`
+    },
+    {
+      icon: '📅',
+      title: 'Calendar Subscribe Feed',
+      body: `<p>After deploying games through NJO Mode, a <strong>webcal:// subscribe link</strong> appears. Share it with parents — they tap once to add all games to Google Calendar, Apple Calendar, or Outlook.</p>
+      <ul>
+        <li>The calendar <strong>auto-updates every 5 minutes</strong>. As bracket opponents are confirmed, event titles change automatically.</li>
+        <li>You name the calendar in Step 4 of the NJO wizard (e.g. "14u Girls NJO 2026 — 680 Drivers").</li>
+        <li>Parents don't need to sign in or install anything — the link works in any calendar app that supports iCal/WebCal feeds.</li>
+      </ul>`
+    },
+    {
+      icon: '📱',
+      title: 'Parent Features — Live Activities, Widgets &amp; More',
+      body: `<p>These features work automatically once you deploy games and start live scoring. No admin setup required — just let parents know they exist!</p>
+      <ul>
+        <li><strong>Live Activities (iPhone)</strong> — during a live-scored game, the score appears on the lock screen and in the Dynamic Island with team logos and a running clock. Auto-starts when scoring begins, auto-ends on Final.</li>
+        <li><strong>Live Updates (Android 16+)</strong> — a persistent notification chip shows the current score (e.g. "Q2 7–5") and updates on every poll tick.</li>
+        <li><strong>Home Screen Widgets</strong> — Score, Schedule, and Stats widgets for iOS and Android. Parents add them from the home screen widget picker.</li>
+        <li><strong>Offline Scoring</strong> — scorers can enter goals with no internet. Scores queue locally and sync when connectivity returns.</li>
+      </ul>
+      <p style="margin-top:8px;padding:10px 12px;background:var(--g50);border-radius:8px;font-size:0.82rem;border-left:3px solid var(--royal)">💡 A quick message in your group chat — "You can add a home screen widget or follow the game on your lock screen!" — drives parent adoption.</p>`
+    },
+    {
+      icon: '📦',
+      title: 'Archive &amp; Season History',
+      body: `<p>When a tournament is over, archive it to preserve the full record — games, scores, box scores, and player stats.</p>
+      <ul>
+        <li><strong>Archive a tournament:</strong> Use the tournament bar dropdown → tap <strong>Archive</strong>. The tournament becomes read-only and moves to the "Archived" section.</li>
+        <li><strong>Season stats:</strong> Archived tournament stats feed into cumulative player stats (Club plan). View them in the Roster tab → 📊 Player Stats.</li>
+        <li><strong>Clone from archive:</strong> Reuse a past tournament's structure (games + roster, scores cleared) by tapping <strong>Clone from Archive</strong> in the Games tab.</li>
+        <li>Parents see past results in the <strong>History</strong> tab of the parent app.</li>
+      </ul>`
     },
     {
       icon: '👥',
@@ -11098,7 +11291,7 @@ function renderHelpTab() {
       <p>Set up automated push notifications to keep parents informed.</p>
       <ul>
         <li><strong>Scheduled Announcements</strong> — create push notifications scheduled for a future date/time. Set the title, body, and schedule time in the <strong>Team Communication</strong> tab.</li>
-        <li><strong>Game Day Reminders</strong> — when enabled, automatic push notifications are sent to subscribers before each game (default 60 minutes before game time).</li>
+        <li><strong>Game Day Reminders</strong> — when enabled, automatic push notifications are sent to subscribers at 2 hours, 1 hour, and 30 minutes before each game.</li>
         <li>Toggle game reminders on/off per club in the <strong>Team Communication → ⏰ Game Day Reminders</strong> section.</li>
         <li>Reminders include the game number, opponent, time, and location.</li>
         <li>Deduplication prevents sending the same reminder twice for the same game.</li>
