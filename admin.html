@@ -3733,6 +3733,7 @@ function onHSGenderChange(gender) {
 function onAdminTeamChange(teamKey) {
   S.team = teamKey;
   S.director = JSON.parse(localStorage.getItem('ebadmin-director-' + teamKey) || 'null');
+  S.bsync = null; // Reset bracket wizard state — each age group starts fresh
   renderAdminTeamPills();
   // Reload data for the new team from the worker
   refreshAdminData();

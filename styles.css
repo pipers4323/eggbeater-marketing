@@ -1103,6 +1103,29 @@ h2 {
 .bracket-section.projected { border-color: var(--royal); }
 .bracket-section.eliminated { opacity: 0.38; pointer-events: none; }
 
+/* Browser: Possible Games outer card transparent so each section floats as its own card */
+#view-possible .card.tab-card {
+  background: transparent;
+  box-shadow: none;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+#view-possible .bracket-section {
+  box-shadow: var(--shadow);
+}
+[data-theme="dark"] #view-possible .card.tab-card {
+  background: transparent;
+  box-shadow: none;
+}
+[data-theme="dark"] #view-possible .bracket-section {
+  background: #161b22;
+  border-color: #30363d;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) #view-possible .card.tab-card { background: transparent; box-shadow: none; }
+  :root:not([data-theme="light"]) #view-possible .bracket-section { background: #161b22; border-color: #30363d; }
+}
+
 .bracket-header {
   display: flex;
   align-items: center;
