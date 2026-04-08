@@ -103,6 +103,7 @@ function applyClubBranding(primaryColor, secondaryColor, headerStyle) {
 
   // Set primary and computed variants
   root.style.setProperty('--royal', primaryColor);
+  root.style.setProperty('--royal-rgb', `${pc.r}, ${pc.g}, ${pc.b}`);
   const dark = darken(pc, 0.3);
   root.style.setProperty('--royal-dark', rgbToHex(dark.r, dark.g, dark.b));
   const mid = mix(pc, white, 0.2);

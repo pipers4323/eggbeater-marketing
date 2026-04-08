@@ -3,6 +3,7 @@
 
 :root {
   --royal:        #002868;
+  --royal-rgb:    0, 40, 104;
   --royal-dark:   #001a4a;
   --royal-mid:    #1a4898;
   --royal-light:  #dce5f5;
@@ -5511,7 +5512,7 @@ details[open] .help-chevron { transform: rotate(180deg); }
 
 /* Projected bracket path: navy glass accent */
 .native-android .bracket-section.projected {
-  background: rgba(0,40,104,0.72) !important;
+  background: rgba(var(--royal-rgb,0,40,104),0.72) !important;
   border-color: rgba(255,255,255,0.22) !important;
 }
 .native-android .bracket-section.projected .bracket-title,
@@ -5672,13 +5673,13 @@ details[open] .help-chevron { transform: rotate(180deg); }
 /* ── Dark mode viewer-tab-bar (Scores header, all platforms) ───────────── */
 /* Default background: var(--royal)=#002868 looks bright against #0d1117.  */
 [data-theme="dark"] .viewer-tab-bar {
-  background: rgba(0,40,104,0.55) !important;
+  background: rgba(var(--royal-rgb,0,40,104),0.55) !important;
   backdrop-filter: blur(12px) saturate(140%) !important;
   -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .viewer-tab-bar {
-    background: rgba(0,40,104,0.55) !important;
+    background: rgba(var(--royal-rgb,0,40,104),0.55) !important;
     backdrop-filter: blur(12px) saturate(140%) !important;
     -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
   }
