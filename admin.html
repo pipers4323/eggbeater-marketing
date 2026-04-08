@@ -11442,7 +11442,7 @@ function initPlacesAutocomplete() {
     });
     ac.addListener('place_changed', () => {
       const place = ac.getPlace();
-      if (!place?.name) return;
+      if (!place?.place_id || !place?.name) return;
       venueInput.value = place.name;
       S.tournament.location = place.name;
       const addrInput = document.getElementById('info-address-input');
@@ -11463,7 +11463,7 @@ function initGamePlaces() {
     const ac = new google.maps.places.Autocomplete(inp, { types: ['establishment'], fields: ['name'] });
     ac.addListener('place_changed', () => {
       const place = ac.getPlace();
-      if (!place?.name) return;
+      if (!place?.place_id || !place?.name) return;
       inp.value = place.name;
     });
   } catch (e) { /* Places API unavailable — input works as plain text */ }
@@ -11715,7 +11715,7 @@ function initDirectorPlaces() {
     const tvAc = new google.maps.places.Autocomplete(tvInp, { types: ['establishment'], fields: ['name','formatted_address'] });
     tvAc.addListener('place_changed', () => {
       const place = tvAc.getPlace();
-      if (!place?.name) return;
+      if (!place?.place_id || !place?.name) return;
       tvInp.value = place.name;
       S.tournament.location = place.name;
       const adr = document.getElementById('dir-tournament-addr');
