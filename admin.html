@@ -7593,7 +7593,7 @@ async function bsScanGames() {
     for (let ri = 0; ri < Math.min(allRows.length, 40); ri++) {
       const lower = allRows[ri].map(function(c){ return (c||'').toLowerCase().trim(); });
       const wIdx = lower.findIndex(function(c){ return c.includes('white'); });
-      const dIdx = lower.findIndex(function(c){ return c.includes('dark')||c.includes('navy')||c.includes('blue cap'); });
+      const dIdx = lower.findIndex(function(c){ return c==='blue'||c.includes('dark')||c.includes('navy')||c.includes('blue cap'); });
       if (wIdx !== -1 && dIdx !== -1) {
         whiteCol = wIdx; darkCol = dIdx;
         for (let ci = 0; ci < lower.length; ci++) {
