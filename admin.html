@@ -7705,7 +7705,7 @@ async function bsFetchRebracket() {
     const text = await resp.text();
     const rows = parseCSV(text);
     if (!rows.length) throw new Error('No data found in that range');
-    const pool = (S.bsync.myPool || '').replace(/^pool\s*/i, '').trim().toUpperCase();
+    const pool = ((S.bsync.myPool || '').match(/^([A-Z])/i)?.[1] || '').toUpperCase();
     const seedingMap = bsParseRebracket(rows);
     const bracketPaths = (S.bsync.allRows?.length && pool)
       ? bsComputeBracketPaths(S.bsync.allRows, seedingMap, pool, S.bsync.cols)
