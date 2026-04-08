@@ -3940,11 +3940,22 @@ function renderScheduleTab() {
   };
 
   const liveGames = [...(S.tournament.games || [])].sort((a, b) => gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum));
-  
+
+  // Warn admin if all deployed games have past dates or are missing dates
+  const _todayISO = new Date().toISOString().split('T')[0];
+  const _anyMissingDate = liveGames.length > 0 && liveGames.some(g => !g.dateISO);
+  const _allPastDates   = liveGames.length > 0 && liveGames.every(g => g.dateISO && g.dateISO < _todayISO);
+  const _pastDateBanner = (_anyMissingDate || _allPastDates) ? `
+    <div style="background:#fff8e1;border-bottom:1.5px solid #f59e0b;padding:10px 14px;font-size:0.82rem;color:#92400e;display:flex;gap:8px;align-items:flex-start">
+      <span>⚠️</span>
+      <div><strong>${_anyMissingDate ? 'Some games are missing dates' : 'All game dates are in the past'}</strong> — parents will see <em>"All games complete"</em> instead of the schedule. Tap <strong>Edit</strong> on each game and set the correct upcoming date.</div>
+    </div>` : '';
+
   const _currentAgeGroupLabel = getTeamLabel(S.team);
   let cardsHtml = `
     <div class="card" style="border: 1.5px solid var(--green)">
       <div class="card-header" style="background:var(--green-lt);color:var(--green);border-bottom:1px solid var(--green)">🟢 ${esc(_currentAgeGroupLabel)} — Currently Deployed (Live)</div>
+      ${_pastDateBanner}
       ${renderGameList(liveGames, S.tournament)}
     </div>
   `;
@@ -6071,7 +6082,7 @@ function renderAddGamesTab() {
         </div>
         <div class="game-edit-form">
           <div class="form-row"><div class="form-group"><div class="form-label">Game #</div><input class="form-input" id="ge-num" value="${esc(g.gameNum||'')}" placeholder="G4"></div><div class="form-group"><div class="form-label">Opponent</div><input class="form-input" id="ge-opp" value="${esc(g.opponent||'')}" placeholder="SHAQ"></div></div>
-          <div class="form-row"><div class="form-group"><div class="form-label">Time</div><input class="form-input" id="ge-time" value="${esc(g.time||'')}" placeholder="9:00am"></div><div class="form-group"><div class="form-label">Date (YYYY-MM-DD)</div><input class="form-input" id="ge-date" value="${esc(g.dateISO||'')}" placeholder="2026-04-25"></div></div>
+          <div class="form-row"><div class="form-group"><div class="form-label">Time</div><input class="form-input" id="ge-time" value="${esc(g.time||'')}" placeholder="9:00am"></div><div class="form-group"><div class="form-label">Date (YYYY-MM-DD)</div><input class="form-input" id="ge-date" value="${esc(g.dateISO||'')}" placeholder="2026-04-25" oninput="checkGameDateWarning()"><div id="ge-date-warn" style="font-size:0.76rem;color:#f59e0b;margin-top:3px;${(g.dateISO||'')<new Date().toISOString().split('T')[0]&&g.dateISO?'':'display:none'}">⚠️ Date is in the past — parents see "All games complete"</div></div></div>
           <div class="form-group"><div class="form-label">Venue Name</div><input class="form-input" id="ge-loc" value="${esc(g.location||'')}" placeholder="Start typing a venue…" spellcheck="false" autocomplete="off"><div class="info-hint" style="margin-top:3px;font-size:0.75rem;color:var(--g400)">Type to search via Google Places</div></div>
           <div class="form-group"><div class="form-label">Pool</div><input class="form-input" id="ge-pool" value="${esc(g.pool||'')}" placeholder="Pool C"></div>
           <div class="form-group"><div class="form-label">Cap Color</div><div class="cap-toggle"><button class="cap-btn white ${g.cap!=='Dark'?'active':''}" onclick="setGameField('${esc(g.id)}','cap','White')">⚪ White</button><button class="cap-btn dark ${g.cap==='Dark'?'active':''}" onclick="setGameField('${esc(g.id)}','cap','Dark')">⚫ Dark</button></div></div>
@@ -11399,38 +11410,63 @@ function filterHelp(query) {
 
 // ─── PLACES AUTOCOMPLETE ──────────────────────────────────────────────────────
 
+function checkGameDateWarning() {
+  const dateInput = document.getElementById('ge-date');
+  const warnEl    = document.getElementById('ge-date-warn');
+  if (!dateInput || !warnEl) return;
+  const today = new Date().toISOString().split('T')[0];
+  const val   = dateInput.value.trim();
+  warnEl.style.display = (val && val < today) ? '' : 'none';
+}
+
+function _guardPlacesInput(el, fallbackPlaceholder) {
+  // Re-enable immediately if the Places API errors and disables the input
+  const obs = new MutationObserver(() => {
+    if (el.disabled) { el.disabled = false; el.placeholder = fallbackPlaceholder; }
+  });
+  obs.observe(el, { attributes: true, attributeFilter: ['disabled'] });
+  // Also fix any already-disabled state right now
+  if (el.disabled) { el.disabled = false; el.placeholder = fallbackPlaceholder; }
+}
+
 function initPlacesAutocomplete() {
   const venueInput = document.getElementById('info-venue-input');
   if (!venueInput || !window.google?.maps?.places) return;
   if (venueInput._placesInit) return; // already wired up
   venueInput._placesInit = true;
-  const ac = new google.maps.places.Autocomplete(venueInput, {
-    types: ['establishment'],
-    fields: ['name', 'formatted_address'],
-  });
-  ac.addListener('place_changed', () => {
-    const place = ac.getPlace();
-    if (!place?.name) return;
-    venueInput.value = place.name;
-    S.tournament.location = place.name;
-    const addrInput = document.getElementById('info-address-input');
-    if (addrInput && place.formatted_address) {
-      addrInput.value = place.formatted_address;
-      S.tournament.address = place.formatted_address;
-    }
-  });
+  _guardPlacesInput(venueInput, 'Venue name');
+  try {
+    const ac = new google.maps.places.Autocomplete(venueInput, {
+      types: ['establishment'],
+      fields: ['name', 'formatted_address'],
+    });
+    ac.addListener('place_changed', () => {
+      const place = ac.getPlace();
+      if (!place?.name) return;
+      venueInput.value = place.name;
+      S.tournament.location = place.name;
+      const addrInput = document.getElementById('info-address-input');
+      if (addrInput && place.formatted_address) {
+        addrInput.value = place.formatted_address;
+        S.tournament.address = place.formatted_address;
+      }
+    });
+  } catch (e) { /* Places API unavailable — input works as plain text */ }
 }
 
 function initGamePlaces() {
   const inp = document.getElementById('ge-loc');
   if (!inp || inp._placesInit || !window.google?.maps?.places) return;
   inp._placesInit = true;
-  const ac = new google.maps.places.Autocomplete(inp, { types: ['establishment'], fields: ['name'] });
-  ac.addListener('place_changed', () => {
-    const place = ac.getPlace();
-    if (!place?.name) return;
-    inp.value = place.name;
-  });
+  _guardPlacesInput(inp, 'Start typing a venue…');
+  try {
+    const ac = new google.maps.places.Autocomplete(inp, { types: ['establishment'], fields: ['name'] });
+    ac.addListener('place_changed', () => {
+      const place = ac.getPlace();
+      if (!place?.name) return;
+      inp.value = place.name;
+    });
+  } catch (e) { /* Places API unavailable — input works as plain text */ }
 }
 
 function toggleDirImport(ai, gi) {
