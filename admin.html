@@ -2244,7 +2244,8 @@ async function doGoogleLogin() {
           const defaultClubName = user.displayName ? user.displayName + "'s Club" : '';
           await fbEnsureClub(defaultClubName, user.uid);
         } else {
-          // Club exists but user is not admin
+          // Club exists but user is not admin — clear idToken so password login still works
+          S.idToken = null; S.authMode = '';
           setLoginErr(`You (${user.email}) are not an admin for "${access.clubName || savedClubId}". Ask an existing admin to add your UID: ${user.uid}`);
           _resetGoogleBtn();
           return;
@@ -2259,6 +2260,7 @@ async function doGoogleLogin() {
     showStatus('Loading data…', 'info');
     const res = await api('GET', '/admin/data');
     if (res.status === 401 || res.status === 403) {
+      S.idToken = null; S.authMode = ''; // clear so password login works as fallback
       setLoginErr('Server rejected credentials. The Worker may not support token auth yet — try password login.');
       _resetGoogleBtn();
       return;
@@ -2277,6 +2279,7 @@ async function doGoogleLogin() {
     if (data.gmBotId && !botGet(BOT_KEYS.GM_BOT_ID)) botSet(BOT_KEYS.GM_BOT_ID, data.gmBotId);
     await _doAdminLoad();
   } catch (e) {
+    S.idToken = null; S.authMode = ''; // clear so password login works as fallback
     setLoginErr(e.message || 'Sign-in failed');
     _resetGoogleBtn();
   }
