@@ -137,6 +137,22 @@ function applyClubBranding(primaryColor, secondaryColor, headerStyle) {
   state.clubInfo.secondaryColor = secondaryColor;
   _syncWidgetsAll();
 
+  // On native iOS, ViewController.swift injects CSS with !important at document-end
+  // using CSS variables that may not recompute reliably in WKWebView. Inject a later
+  // <style> tag with hardcoded actual values so it wins the cascade.
+  if (window.Capacitor?.getPlatform?.() === 'ios') {
+    const r = pc.r, g = pc.g, b = pc.b, hex = primaryColor;
+    let el = document.getElementById('ios-brand-style');
+    if (!el) { el = document.createElement('style'); el.id = 'ios-brand-style'; document.head.appendChild(el); }
+    el.textContent =
+      `body::after{background:linear-gradient(to bottom,transparent 0%,transparent 20%,${hex} 60%)!important}` +
+      `.app-header{background:rgba(${r},${g},${b},0.82)!important}` +
+      `.next-game-card{background:rgba(${r},${g},${b},0.65)!important}` +
+      `.bracket-section.projected{background:rgba(${r},${g},${b},0.72)!important}` +
+      `html[data-theme="dark"] .viewer-tab-bar{background:rgba(${r},${g},${b},0.55)!important}` +
+      `@media(prefers-color-scheme:dark){html:not([data-theme]) .viewer-tab-bar{background:rgba(${r},${g},${b},0.55)!important}}`;
+  }
+
   // Recolor all eggbeater SVG logo instances (header logo + inline "brought to you by" logo)
   const logoImg = document.querySelector('.club-logo-img');
   if (logoImg) {
