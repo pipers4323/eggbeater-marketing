@@ -7625,15 +7625,23 @@ async function bsScanGames() {
       const location = poolCol >= 0 ? (row[poolCol] || '').trim() : (locationCol >= 0 ? (row[locationCol]||'').trim() : '');
       const time     = (row[timeCol] || '').trim();
       const rawGnum  = gameNumCol >= 0 ? (row[gameNumCol]||'').trim() : '';
-      const opponent = isWhite ? dark : white;
+      const opponentRaw = isWhite ? dark : white;
+      // Strip pool-position prefix e.g. "B3 - SBWPC B" → "SBWPC B"
+      const opponent    = opponentRaw.replace(/^[A-Z]\d+\s*[-–]\s*/i, '').trim();
       const cap      = isBlue ? 'Dark' : 'White';
       const dateISO  = parseDateToISO(dateRaw);
+      // Add AM/PM if missing: hours 7–11 = AM, everything else (1–6, 12) = PM
+      let timeFormatted = time;
+      if (time && !/am|pm/i.test(time)) {
+        const hm = time.match(/^(\d{1,2}):/);
+        if (hm) { const h = parseInt(hm[1], 10); timeFormatted = time + (h >= 7 && h <= 11 ? ' AM' : ' PM'); }
+      }
 
       games.push({
         id: 'g' + (Date.now() + games.length).toString(36),
         gameNum: rawGnum || String(games.length + 1),
         opponent: opponent || 'TBD',
-        time,
+        time: timeFormatted,
         dateISO,
         date: dateISO ? isoToDate(dateISO) : dateRaw,
         location,
