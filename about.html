@@ -50,6 +50,13 @@
       position: fixed;
       top: 0; left: 0; right: 0;
       z-index: 100;
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border-bottom: 1px solid transparent;
+      transition: background 0.3s, border-bottom 0.3s, backdrop-filter 0.3s;
+    }
+    nav.scrolled {
       background: rgba(0, 40, 104, 0.97);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
@@ -1037,7 +1044,10 @@
   // Smooth active nav highlighting
   const sections = document.querySelectorAll('section[id], div[id]');
   const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
+  const navEl = document.querySelector('nav');
   window.addEventListener('scroll', () => {
+    // Toggle solid nav background once past hero
+    if (navEl) navEl.classList.toggle('scrolled', window.scrollY > 80);
     let current = '';
     sections.forEach(s => {
       if (window.scrollY >= s.offsetTop - 80) current = s.id;
