@@ -3659,7 +3659,8 @@ function renderScoresTab() {
       const active = games.filter(g => (!g.dateISO || g.dateISO >= today));
 
       // Slot label — lean header row (not a full card wrapper)
-      html += `<div class="scores-slot-header"><span class="scores-slot-label">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>`;
+      const slotLabel = _groupSectionLabelFor(groupKey, letter);
+      html += `<div class="scores-slot-header"><span class="scores-slot-label">${escHtml(slotLabel)}</span></div>`;
 
       if (!active.length) {
         html += `<p class="empty-msg" style="padding:8px 12px 16px">No active games.</p>`;
@@ -3689,7 +3690,7 @@ function renderScoresTab() {
         html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dk))}</div>`;
         html += `<div class="games-section">`;
         // viewerOnly = scorerLocked: when scorer is unlocked, games are tappable/scoreable
-        for (const g of byDate[dk]) html += buildGameCard(g, scorerLocked, false);
+        for (const g of byDate[dk]) html += buildGameCard(g, scorerLocked, false, slotLabel);
         html += `</div>`;
       }
       if (cache) { window.TOURNAMENT = _savedT; window.HISTORY_SEED = _savedH; }
@@ -4890,7 +4891,7 @@ function buildScheduleCard(g) {
     </div>`;
 }
 
-function buildGameCard(g, viewerOnly = false, showLocation = true) {
+function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel = '') {
   const result    = state.results[g.id] || null;
   const pts       = getPoints(result);
   const win       = isWin(result);
@@ -5116,6 +5117,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true) {
 
   return `
     <div class="game-card ${cardClass}">
+      ${ageGroupLabel ? `<div class="game-card-age-label">${escHtml(ageGroupLabel)}</div>` : ''}
       <div class="game-card-top">
         <div class="game-vs">${TOURNAMENT.clubName ? escHtml(TOURNAMENT.clubName) + ' vs ' : 'vs '}${escHtml(g.opponent || 'TBD')}${pillHtml}${liveBadgeHtml}</div>
         ${g.gameNum ? `<div class="game-num-tag">${escHtml(g.gameNum)}</div>` : ''}

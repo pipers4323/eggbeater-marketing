@@ -947,9 +947,13 @@ h2 {
 .scores-slot-label {
   font-size: 0.78rem;
   font-weight: 700;
-  color: white;
+  color: var(--royal);
   text-transform: uppercase;
   letter-spacing: 0.6px;
+}
+@media (max-width: 1022px) {
+  .scores-slot-label { color: white; }
+  .scores-slot-header { border-top-color: rgba(255,255,255,.15); }
 }
 
 .games-section {
@@ -970,6 +974,15 @@ h2 {
 
 .game-card.result-win  { border-left-color: var(--green); }
 .game-card.result-loss { border-left-color: var(--red); }
+
+.game-card-age-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--teal, #0891b2);
+  margin-bottom: 4px;
+}
 
 .game-card-top {
   display: flex;
@@ -2365,7 +2378,7 @@ h2 {
 .roster-modal {
   position: fixed;
   inset: 0;
-  z-index: 500;
+  z-index: 9000;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
