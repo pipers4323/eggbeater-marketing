@@ -3681,7 +3681,7 @@ function renderScoresTab() {
         html += `</div>`;
       }
     }
-    html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:var(--gray-500)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:var(--royal,#002868);font-weight:600">Read the guide here →</a></div>`;
+    html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
     el.innerHTML = dirHtml + html;
     return;
   }
@@ -3723,7 +3723,7 @@ function renderScoresTab() {
     }
 
     _setLiveBanner(anyLive);
-    const _guideLink = `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:var(--gray-500)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:var(--royal,#002868);font-weight:600">Read the guide here →</a></div>`;
+    const _guideLink = `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
     el.innerHTML = dirHtml + `
         <div class="viewer-tab-bar">
           <span class="viewer-tab-label">${anyLive ? '🔴 Live Scores' : '📺 Scores'}</span>
@@ -3802,7 +3802,7 @@ function renderScoresTab() {
     html += `</div>`;
   }
 
-  html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:var(--gray-500)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:var(--royal,#002868);font-weight:600">Read the guide here →</a></div>`;
+  html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
   el.innerHTML = dirHtml + html;
 }
 
