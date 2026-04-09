@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Box Scoring Guide — Eggbeater Water Polo</title>
-<meta name="description" content="How to live-score games and track player stats from the pool deck with Eggbeater." />
+<meta name="description" content="Complete guide to box scoring water polo games with the Eggbeater app — from first login to final whistle." />
 <meta property="og:title" content="Box Scoring Guide — Eggbeater Water Polo" />
-<meta property="og:description" content="Learn how to score games, track stats, and manage quarters in the Eggbeater parent app." />
+<meta property="og:description" content="Step-by-step instructions for scoring water polo games live with Eggbeater. Goals, exclusions, shootouts, and more." />
 <meta property="og:url" content="https://eggbeater.app/scoring-guide.html" />
 <meta property="og:type" content="website" />
 <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
@@ -45,7 +45,7 @@ body {
 
 /* ── Hero ─────────────────────────────────────────── */
 .hero {
-  background: linear-gradient(135deg, var(--teal) 0%, #0891b2 100%);
+  background: linear-gradient(135deg, var(--royal) 0%, var(--royal-mid) 100%);
   color: white;
   padding: 48px 24px 56px;
   text-align: center;
@@ -100,7 +100,7 @@ body {
   margin: -20px auto 32px;
   position: relative;
   z-index: 1;
-  box-shadow: 0 4px 20px rgba(13, 148, 136,.1);
+  box-shadow: 0 4px 20px rgba(0,40,104,.1);
 }
 .toc h2 {
   font-size: .8rem;
@@ -127,14 +127,14 @@ body {
   border-radius: var(--radius-sm);
   transition: background .15s;
 }
-.toc a:hover { background: #f0fdfa; }
+.toc a:hover { background: var(--royal-subtle); }
 .toc a .num {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 22px; height: 22px;
-  background: #ccfbf1;
-  color: var(--teal);
+  background: var(--royal-light);
+  color: var(--royal);
   border-radius: 6px;
   font-size: .7rem;
   font-weight: 700;
@@ -151,14 +151,14 @@ body {
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 10px;
-  border-bottom: 2px solid #ccfbf1;
+  border-bottom: 2px solid var(--royal-light);
 }
 .section-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 40px; height: 40px;
-  background: var(--teal);
+  background: var(--royal);
   color: white;
   border-radius: 10px;
   font-size: 1.2rem;
@@ -167,7 +167,7 @@ body {
 .section-header h2 {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--teal);
+  color: var(--royal);
 }
 
 /* ── Cards ────────────────────────────────────────── */
@@ -214,7 +214,7 @@ body {
   position: absolute;
   left: 18px; top: 18px;
   width: 26px; height: 26px;
-  background: var(--teal);
+  background: var(--royal);
   color: white;
   border-radius: 8px;
   font-size: .78rem;
@@ -246,6 +246,7 @@ body {
 }
 .callout-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
 .callout p { font-size: .85rem; line-height: 1.6; }
+.callout strong { font-weight: 700; }
 .callout-info { background: var(--royal-subtle); border: 1px solid var(--royal-light); }
 .callout-info p { color: var(--royal-mid); }
 .callout-warn { background: #fffbeb; border: 1px solid #fde68a; }
@@ -265,35 +266,62 @@ body {
 .kv-label {
   font-weight: 600;
   color: var(--g900);
-  min-width: 110px;
+  min-width: 130px;
   flex-shrink: 0;
 }
 .kv-value { color: var(--g600); }
 
-/* ── Tab preview ──────────────────────────────────── */
-.tab-strip {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.tab-pill {
+/* ── Button replicas ──────────────────────────────── */
+.btn-demo {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: 20px;
-  font-size: .8rem;
-  font-weight: 600;
-  border: 1.5px solid var(--g200);
-  background: white;
-  color: var(--g600);
-}
-.tab-pill.active {
+  gap: 5px;
   background: var(--royal);
   color: white;
-  border-color: var(--royal);
+  border-radius: 8px;
+  padding: 3px 10px;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .2px;
+  white-space: nowrap;
+  vertical-align: middle;
 }
+.btn-demo.red   { background: var(--red); }
+.btn-demo.green { background: var(--green); }
+.btn-demo.amber { background: var(--amber); }
+.btn-demo.ghost { background: var(--g200); color: var(--g900); }
+.btn-demo.teal  { background: var(--teal); }
+
+/* ── Period chip ──────────────────────────────────── */
+.period-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--royal-light);
+  color: var(--royal);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: .75rem;
+  font-weight: 700;
+}
+
+/* ── Feature grid ─────────────────────────────────── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+@media (max-width: 600px) { .feature-grid { grid-template-columns: 1fr; } }
+.feature-card {
+  background: white;
+  border: 1px solid var(--g200);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.feature-card .fc-icon { font-size: 1.3rem; margin-bottom: 6px; }
+.feature-card h4 { font-size: .85rem; font-weight: 700; color: var(--g900); margin-bottom: 4px; }
+.feature-card p  { font-size: .8rem; color: var(--g400); line-height: 1.5; }
 
 /* ── Inline code ──────────────────────────────────── */
 code {
@@ -323,6 +351,7 @@ code {
   .toc { box-shadow: none; border: 1px solid var(--g200); }
   .section { page-break-inside: avoid; }
 }
+
 .site-header { background: #002868; }
 .site-header-logo-band { padding: 10px 24px; display: flex; align-items: center; }
 .site-header-logo-band img { height: 72px; width: auto; display: block; }
@@ -335,7 +364,6 @@ code {
     --royal-mid:   #79b8ff;
     --royal-light: #1e3a5f;
     --royal-subtle:#0d1d35;
-    --teal:        #2dd4bf;
     --g50:  #0d1117;
     --g100: #0d1117;
     --g200: #30363d;
@@ -345,16 +373,14 @@ code {
   }
   body { background: #0d1117; color: #e6edf3; }
   .hero::after { background: #0d1117; }
-  .hero { background: linear-gradient(135deg, #0f766e 0%, #164e63 100%); }
   .toc { background: #161b22; box-shadow: 0 4px 20px rgba(0,0,0,.4); }
   .toc a { color: #e6edf3; }
-  .toc a:hover { background: #134e4a; }
-  .toc a .num { background: #134e4a; color: #5eead4; }
-  .section-header { border-bottom-color: #134e4a; }
-  .section-header h2 { color: #2dd4bf; }
-  .card, .step, .feature-card, .platform-card, .tab-pill { background: #161b22; border-color: #30363d; }
-  .card h3, .step h3, .feature-card h4, .platform-card h4 { color: #e6edf3; }
-  .tab-pill { color: #c9d1d9; }
+  .toc a:hover { background: #0d1d35; }
+  .toc a .num { background: #1e3a5f; color: #58a6ff; }
+  .section-header { border-bottom-color: #1e3a5f; }
+  .section-header h2 { color: #58a6ff; }
+  .card, .step, .feature-card { background: #161b22; border-color: #30363d; }
+  .card h3, .step h3, .feature-card h4 { color: #e6edf3; }
   .callout-info { background: #0d1d35; border-color: #1e3a5f; }
   .callout-info p { color: #79b8ff; }
   .callout-warn { background: #2d1f00; border-color: #6b4800; }
@@ -364,6 +390,8 @@ code {
   code { background: #0d1d35; color: #79b8ff; }
   .kv-row { border-bottom-color: #30363d; }
   .footer a { color: #58a6ff; }
+  .btn-demo.ghost { background: #30363d; color: #e6edf3; }
+  .period-chip { background: #1e3a5f; color: #79b8ff; }
 }
 </style>
 </head>
@@ -378,9 +406,9 @@ code {
 
 <!-- ═══════════════ HERO ═══════════════ -->
 <div class="hero">
-  <div class="hero-badge">Scoring Guide</div>
-  <h1>Box Scoring Guide</h1>
-  <p>Learn how to live-score games from the pool deck and share play-by-play updates with parents everywhere.</p>
+  <div class="hero-badge">Scorer Guide</div>
+  <h1>Box Scoring with Eggbeater</h1>
+  <p>Everything you need to go from never having scored a game to running live box scores like a pro.</p>
 </div>
 
 <div class="container">
@@ -389,127 +417,520 @@ code {
 <nav class="toc">
   <h2>In This Guide</h2>
   <div class="toc-grid">
-    <a href="#access"><span class="num">1</span> Entering Scoring Mode</a>
-    <a href="#setup"><span class="num">2</span> Pre-Game Setup</a>
-    <a href="#stats"><span class="num">3</span> Recording Stats</a>
-    <a href="#manage"><span class="num">4</span> Game Management</a>
+    <a href="#what-is-box-scoring"><span class="num">1</span> What Is Box Scoring?</a>
+    <a href="#scorer-login"><span class="num">2</span> Scorer Login</a>
+    <a href="#scores-tab"><span class="num">3</span> The Scores Tab</a>
+    <a href="#open-a-game"><span class="num">4</span> Opening a Game</a>
+    <a href="#the-clock"><span class="num">5</span> The Clock</a>
+    <a href="#recording-goals"><span class="num">6</span> Recording Goals</a>
+    <a href="#exclusions"><span class="num">7</span> Exclusions &amp; Brutality</a>
+    <a href="#other-events"><span class="num">8</span> Assists, Saves &amp; Blocks</a>
+    <a href="#timeouts"><span class="num">9</span> Timeouts</a>
+    <a href="#between-quarters"><span class="num">10</span> Between Quarters</a>
+    <a href="#overtime"><span class="num">11</span> Overtime</a>
+    <a href="#shootout"><span class="num">12</span> Shootout Mode</a>
+    <a href="#finalizing"><span class="num">13</span> Finalizing the Game</a>
+    <a href="#live-broadcast"><span class="num">14</span> Live Broadcast &amp; Alerts</a>
   </div>
 </nav>
 
-<!-- ═══════════════ 1. ACCESSING ═══════════════ -->
-<div class="section" id="access">
+<!-- ═══════════════ 1. WHAT IS BOX SCORING ═══════════════ -->
+<div class="section" id="what-is-box-scoring">
   <div class="section-header">
     <div class="section-icon">1</div>
-    <h2>Entering Scoring Mode</h2>
+    <h2>What Is Box Scoring?</h2>
   </div>
 
   <div class="card">
-    <h3>Who can score?</h3>
-    <p>Anyone with the team's scoring password can log stats for a live game. The scoring screen is fully integrated into the standard parent app.</p>
+    <h3>A real-time game record, built in your browser</h3>
+    <p>Box scoring means recording every significant event in a game &mdash; goals, exclusions, timeouts, saves &mdash; as it happens, right from your phone or tablet. Eggbeater turns that live data into a running score, a detailed play-by-play log, and player stat summaries that parents can follow from anywhere.</p>
+    <p style="margin-top:8px">No special equipment needed. No app to install. Just open the Eggbeater app, unlock Scorer Mode, and you're ready to go.</p>
+  </div>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="fc-icon">📡</div>
+      <h4>Real-time to parents</h4>
+      <p>Every goal and quarter change pushes to parent devices within seconds — no page refresh required.</p>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon">📊</div>
+      <h4>Full play-by-play</h4>
+      <p>Goals, exclusions, saves, and timeouts are time-stamped and attributed to individual players.</p>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon">🏅</div>
+      <h4>Player stats</h4>
+      <p>Goals, assists, saves, and blocks accumulate on each player's card across the whole tournament.</p>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon">🔔</div>
+      <h4>Instant alerts</h4>
+      <p>GroupMe and Telegram notifications fire automatically when games start, goals are scored, and final scores are posted.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 2. SCORER LOGIN ═══════════════ -->
+<div class="section" id="scorer-login">
+  <div class="section-header">
+    <div class="section-icon">2</div>
+    <h2>Scorer Login</h2>
+  </div>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">🔑</span>
+    <p>Scorer Mode is password-protected so only authorized people can enter live scores. Your club admin sets the password &mdash; ask your head coach or tournament director if you don't have it.</p>
   </div>
 
   <div class="steps">
     <div class="step">
-      <h3>Navigate to the Game</h3>
-      <p>Open the Eggbeater app and find the game you are about to score on the <strong>Schedule</strong> or <strong>Scores</strong> tab.</p>
+      <h3>Open the Eggbeater app and go to the Scores tab</h3>
+      <p>Tap the <strong>Scores</strong> tab at the bottom of the screen. You'll see a list of today's games with a <strong>🔒 Scorer Login</strong> button in the top-right corner of the tab.</p>
     </div>
     <div class="step">
-      <h3>Tap Score Game</h3>
-      <p>Tap the <strong>Score Game (✏️)</strong> button on the game card to open the Scoring Console.</p>
+      <h3>Tap "Scorer Login" and enter the password</h3>
+      <p>A password prompt will appear. Type the scorer password your admin gave you and tap <strong>Unlock</strong>. The lock icon will turn into a green ✅ confirming you're in Scorer Mode.</p>
     </div>
     <div class="step">
-      <h3>Enter Password</h3>
-      <p>You will be prompted to enter the scoring password. If you don't know the password, ask your team's coach or club administrator.</p>
+      <h3>You're in — Scorer Mode stays active</h3>
+      <p>Once unlocked, Scorer Mode stays on for your session — even if you switch tabs or briefly leave the app. You'll see a green <strong>Scorer Mode Active</strong> bar at the top of the Scores tab. Tap <strong>🔒 Lock</strong> to log out when you're done for the day.</p>
     </div>
+  </div>
+
+  <div class="callout callout-warn">
+    <span class="callout-icon">⚠️</span>
+    <p><strong>Don't share the scorer password publicly.</strong> Anyone with it can change live scores. If the password is compromised, your admin can update it from the Admin panel and re-share it with authorized scorers only.</p>
   </div>
 </div>
 
-<!-- ═══════════════ 2. SETUP ═══════════════ -->
-<div class="section" id="setup">
-  <div class="section-header">
-    <div class="section-icon">2</div>
-    <h2>Pre-Game Setup</h2>
-  </div>
-
-  <div class="card">
-    <h3>Setting Cap Colors</h3>
-    <p>Before the game starts, verify that your team has the correct cap color assigned. By standard logic, Eggbeater places White caps on the left side and Dark caps on the right side of the screen. If it's incorrect, use the toggle tools at the top to fix it.</p>
-  </div>
-
-  <div class="card">
-    <h3>Setting the Roster</h3>
-    <p>Your team's entire imported roster will be visible in the player panel. Tap the names of players who are present to activate them for the game. Grayed-out players will not be available for you to apply stats to.</p>
-  </div>
-
-  <div class="card">
-    <h3>Assign the Starting Goalie</h3>
-    <p>At the bottom of the roster panel, locate your starting goalkeeper and tap the <strong>Assign Goalkeeper (🧤)</strong> badge next to their name. This is critical because Goalie-specific stats (like Saves) are tracked differently than field player stats.</p>
-  </div>
-</div>
-
-<!-- ═══════════════ 3. SCORING ═══════════════ -->
-<div class="section" id="stats">
+<!-- ═══════════════ 3. SCORES TAB ═══════════════ -->
+<div class="section" id="scores-tab">
   <div class="section-header">
     <div class="section-icon">3</div>
-    <h2>Recording Stats</h2>
+    <h2>The Scores Tab</h2>
   </div>
 
   <div class="card">
-    <h3>The Scoring Interface</h3>
-    <p>The scoring console is built for highly efficient tap interactions so you can keep your eyes on the pool.</p>
-    <img src="screen-scoring.png" alt="Scoring Interface" style="width:100%; max-width:500px; display:block; margin: 16px auto; border-radius: 8px; border: 1px solid var(--g200);">
+    <h3>What you see in Scorer Mode</h3>
+    <p>Once logged in, the Scores tab shows a card for every upcoming and in-progress game. Games are grouped by date and sorted by scheduled start time. Each card shows:</p>
+    <ul>
+      <li><strong>Game number</strong> &mdash; e.g., Game 14</li>
+      <li><strong>Teams</strong> &mdash; your team vs. opponent, with cap colors</li>
+      <li><strong>Scheduled time and location</strong></li>
+      <li><strong>Current score and period</strong> &mdash; once the game is started</li>
+      <li><strong>A <span class="btn-demo">Score</span> button</strong> &mdash; tap to open the full scoring panel for that game</li>
+    </ul>
   </div>
 
   <div class="card">
-    <h3>Logging Goals &amp; Assists</h3>
-    <ol>
-      <li>Tap the name of the player who scored.</li>
-      <li>Tap green <strong>Goal</strong> prominently displayed on their stat sheet.</li>
-      <li>Eggbeater will immediately prompt you for the Assist. Tap the assisting player's name, or select "No Assist" if unassisted.</li>
-    </ol>
-  </div>
-
-  <div class="card">
-    <h3>Logging Exclusions</h3>
-    <p>If a player is ejected, tap their name and select <strong>Exclusion</strong>.</p>
-    <p style="margin-top: 8px;">If your team drew an exclusion on the opposing team (earning a man-up advantage), tap your player who drew the foul and select <strong>Earned Excl</strong>. This stat highlights key offensive contributors.</p>
-  </div>
-
-  <div class="card">
-    <h3>Other Key Stats</h3>
-    <div class="kv-row"><span class="kv-label">Missed Shots</span><span class="kv-value">Tap the shooting player and select <strong>Shot/Miss</strong> to record an attempt.</span></div>
-    <div class="kv-row"><span class="kv-label">Steals</span><span class="kv-value">Tap the defending player and select <strong>Steal</strong>.</span></div>
-    <div class="kv-row"><span class="kv-label">Goalie Saves</span><span class="kv-value">Goalie stats automatically map to the active Goalkeeper. Simply tap <strong>Save</strong> when they block a shot.</span></div>
+    <h3>Game status indicators</h3>
+    <div class="kv-row">
+      <span class="kv-label">Pre-Game</span>
+      <span class="kv-value">Game hasn't started yet. Clock shows the full quarter length (e.g., 7:00 or 8:00).</span>
+    </div>
+    <div class="kv-row">
+      <span class="kv-label">🔴 LIVE</span>
+      <span class="kv-value">Game is currently being scored. Score and clock are updating in real-time for all viewers.</span>
+    </div>
+    <div class="kv-row">
+      <span class="kv-label">Final</span>
+      <span class="kv-value">Game is complete. The card moves to the History tab once finalized.</span>
+    </div>
   </div>
 </div>
 
-<!-- ═══════════════ 4. MANAGEMENT ═══════════════ -->
-<div class="section" id="manage">
+<!-- ═══════════════ 4. OPEN A GAME ═══════════════ -->
+<div class="section" id="open-a-game">
   <div class="section-header">
     <div class="section-icon">4</div>
-    <h2>Game Management</h2>
+    <h2>Opening a Game</h2>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <h3>Find your game on the Scores tab</h3>
+      <p>Locate the game card for the match you're about to score. Games are sorted by start time so your next game is always near the top.</p>
+    </div>
+    <div class="step">
+      <h3>Tap the Score button</h3>
+      <p>Tap the blue <span class="btn-demo">Score</span> button on the game card. The full scoring panel opens, filling most of your screen.</p>
+    </div>
+    <div class="step">
+      <h3>Confirm the teams before the whistle</h3>
+      <p>You'll see the two teams, a game clock, and all the event buttons. Take a moment to confirm the correct game is open &mdash; check the game number and opponent name at the top of the panel. Then you're ready to go.</p>
+    </div>
+  </div>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">💡</span>
+    <p>You can score only one game at a time. If you need to switch games mid-tournament, close the current panel and open the correct game from the Scores tab.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 5. THE CLOCK ═══════════════ -->
+<div class="section" id="the-clock">
+  <div class="section-header">
+    <div class="section-icon">5</div>
+    <h2>The Clock</h2>
   </div>
 
   <div class="card">
-    <h3>Clock &amp; Quarters</h3>
-    <p>Use the <strong>Start/Stop</strong> clock tools at the top to mirror the real scoreboard. This helps parents following remotely feel the live flow of the game! When a quarter finishes, tap <strong>End Q1</strong> (or the respective quarter) to progress the match segment. At the very end, tap <strong>End Game</strong>.</p>
+    <h3>How the game clock works</h3>
+    <p>Eggbeater has a built-in countdown clock for each quarter. It runs automatically once you tap <strong>Start</strong> and ticks down on its own &mdash; you don't need to babysit it. The clock is used to time-stamp events in the play-by-play log; it runs independently of the physical scoreboard at the pool.</p>
+    <p style="margin-top:8px">The clock display sits near the top of the scoring panel, showing minutes and seconds remaining in the current period (e.g., <strong>7:00</strong> at the start of Q1).</p>
   </div>
 
   <div class="card">
-    <h3>Correcting Mistakes</h3>
-    <p>Scoring mistakes happen! At the bottom of the scoring module is a rolling <strong>Event Log</strong> of all play-by-play actions throughout the game. If you accidentally credited a goal or foul to the wrong player, scroll to it in the event log, tap <strong>Undo</strong>, and log it again properly.</p>
+    <h3>Clock buttons explained</h3>
+    <div class="kv-row">
+      <span class="kv-label"><span class="btn-demo green">▶ Start</span></span>
+      <span class="kv-value"><strong>Begins the automatic countdown</strong> for the current quarter. Tap this when the referee blows the whistle to start play. The clock ticks down on its own &mdash; you don't need to touch it again until the quarter ends or there's a significant stoppage.</span>
+    </div>
+    <div class="kv-row">
+      <span class="kv-label"><span class="btn-demo amber">⏸ Stop</span></span>
+      <span class="kv-value">Pauses the countdown. Use this for extended stoppages &mdash; an injury timeout, equipment issue, or to re-sync with the pool clock. Tap <strong>▶ Start</strong> again to resume.</span>
+    </div>
+    <div class="kv-row">
+      <span class="kv-label"><span class="btn-demo ghost">↩ Pre</span></span>
+      <span class="kv-value"><strong>Returns the game to Pre-Game (not-started) state.</strong> This is an undo for accidentally starting a game too early. All events and the score are cleared, and the clock resets to the full quarter length. Only use Pre <em>before</em> meaningful play has begun.</span>
+    </div>
+    <div class="kv-row">
+      <span class="kv-label"><span class="btn-demo ghost">⟳ Reset</span></span>
+      <span class="kv-value">Resets the clock to the full quarter length without changing the period or score. Useful if the physical clock was reset at the pool and you need to re-sync mid-quarter.</span>
+    </div>
+  </div>
+
+  <div class="callout callout-warn">
+    <span class="callout-icon">⚠️</span>
+    <p><strong>Pre clears all events and the score.</strong> If Q1 is already underway with goals recorded, using Pre will wipe everything &mdash; the game reverts to 0&ndash;0 and not-started. To simply pause play mid-quarter without losing data, use <strong>Stop</strong> instead.</p>
+  </div>
+
+  <div class="card">
+    <h3>Keeping the clock roughly in sync</h3>
+    <p>Water polo clocks stop frequently &mdash; on goals, exclusions, timeouts, and ball out of bounds. You don't need to stop and start the Eggbeater clock for every single whistle. Most scorers let the Eggbeater clock run continuously through normal stoppages. The time-stamps on events are reference points, not official timing.</p>
+    <p style="margin-top:8px">If you fall significantly behind or ahead of the pool clock, tap <strong>Stop</strong>, adjust if needed, then tap <strong>▶ Start</strong> when play resumes.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 6. RECORDING GOALS ═══════════════ -->
+<div class="section" id="recording-goals">
+  <div class="section-header">
+    <div class="section-icon">6</div>
+    <h2>Recording Goals</h2>
   </div>
 
   <div class="callout callout-success">
-    <div class="callout-icon">&#x1f4e1;</div>
-    <p><strong>Live Sync is Automatic:</strong> Every time you log an event or start the clock, the Eggbeater cloud syncs the new dashboard back to all remote parents within ~100 milliseconds!</p>
+    <span class="callout-icon">⚽</span>
+    <p>Goals are the most important events to record accurately. Every goal immediately updates the live score seen by parents and triggers the Telegram/GroupMe goal notification.</p>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <h3>Tap the goal button for the scoring team</h3>
+      <p>There are two large <span class="btn-demo green">+ Goal</span> buttons in the scoring panel &mdash; one for your team and one for the opponent. Tap the button for whichever team just scored. The current clock time is captured automatically.</p>
+    </div>
+    <div class="step">
+      <h3>Enter the scorer's cap number</h3>
+      <p>A number pad appears. Type the cap number of the player who scored (e.g., <strong>7</strong> for cap 7). If you don't know the number in the moment, you can leave it blank &mdash; the goal will still count, just without player attribution. Tap <strong>Save</strong> to confirm.</p>
+    </div>
+    <div class="step">
+      <h3>Select the goal type</h3>
+      <p>Choose from the options shown:</p>
+      <ul>
+        <li><strong>Regular</strong> &mdash; a standard field goal during even-strength play</li>
+        <li><strong>6-on-5 (Power Play)</strong> &mdash; scored while the opposing team is playing shorthanded due to an exclusion</li>
+        <li><strong>Penalty Shot</strong> &mdash; awarded by the referee for a major foul</li>
+      </ul>
+    </div>
+    <div class="step">
+      <h3>Score updates instantly across all devices</h3>
+      <p>The scoreboard at the top of the panel increments immediately. Parents following remotely will see the updated score within a few seconds. The goal also appears in the play-by-play log below the score.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Correcting a goal entered by mistake</h3>
+    <p>If you tap the wrong team's goal button, find the incorrect entry in the play-by-play log and tap the <strong>Delete</strong> (🗑 trash) icon next to it. The score decreases by one and the event is removed. Then record the correct goal.</p>
+  </div>
+
+  <div class="card">
+    <h3>Shot attempts and misses</h3>
+    <p>Tap <span class="btn-demo ghost">Miss</span> to log a shot that didn't go in. This records a shot attempt for the shooter and a save opportunity for the goalkeeper &mdash; no score change. Shot tracking is optional but gives coaches useful data post-game.</p>
   </div>
 </div>
 
-<div class="footer">
-  <p>&copy; 2026 Eggbeater Water Polo. <a href="index.html">Back to Home</a></p>
+<!-- ═══════════════ 7. EXCLUSIONS & BRUTALITY ═══════════════ -->
+<div class="section" id="exclusions">
+  <div class="section-header">
+    <div class="section-icon">7</div>
+    <h2>Exclusions &amp; Brutality Cards</h2>
+  </div>
+
+  <div class="card">
+    <h3>Exclusions (20-second ejections)</h3>
+    <p>An exclusion is a 20-second ejection for a major foul &mdash; the offending player must leave the water and their team plays shorthanded. To record an exclusion:</p>
+    <ol style="padding-left:20px;margin-top:8px">
+      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Tap <span class="btn-demo red">Exclusion</span> for the team whose player was excluded.</li>
+      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Enter the excluded player's cap number.</li>
+      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Tap <strong>Save</strong>. The event logs with the current clock time and the player's personal exclusion count increments.</li>
+    </ol>
+    <p style="margin-top:8px;font-size:.88rem;color:var(--g600)">A player who accumulates <strong>three exclusions</strong> in a game is disqualified for the remainder of the match. Eggbeater tracks this automatically and shows a warning on the third exclusion.</p>
+  </div>
+
+  <div class="card">
+    <h3>Brutality cards</h3>
+    <p>A brutality card is the most severe penalty in water polo &mdash; the offending player is excluded for the rest of the game and their team plays a man down for four minutes. To record one:</p>
+    <ol style="padding-left:20px;margin-top:8px">
+      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Tap <span class="btn-demo red">Brutality</span> for the offending team.</li>
+      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Enter the player's cap number and confirm.</li>
+    </ol>
+    <p style="margin-top:8px;font-size:.88rem;color:var(--g600)">Brutality cards are logged separately from regular exclusions in the play-by-play and appear prominently in the post-game box score summary.</p>
+  </div>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">💡</span>
+    <p>Recording an exclusion does not automatically start a 6-on-5 power-play clock in the app &mdash; just log the exclusion event and continue. When the excluded team scores (ending the 6-on-5), record it as a regular goal. You'll select the <strong>6-on-5</strong> goal type when the <em>other</em> team converts during the power play.</p>
+  </div>
 </div>
 
+<!-- ═══════════════ 8. ASSISTS, SAVES & BLOCKS ═══════════════ -->
+<div class="section" id="other-events">
+  <div class="section-header">
+    <div class="section-icon">8</div>
+    <h2>Assists, Saves &amp; Blocks</h2>
+  </div>
+
+  <div class="card">
+    <h3>Assists</h3>
+    <p>An assist is credited to the player whose pass directly led to a goal. Assists are <em>optional</em> &mdash; record them when you're confident about who made the key pass and it doesn't slow you down during play.</p>
+    <p style="margin-top:8px">To add an assist: immediately after recording a goal, enter the assisting player's cap number in the assist field that appears in the goal prompt. Or, find the goal in the play-by-play log and tap <strong>Add Assist</strong> to add it after the fact.</p>
+  </div>
+
+  <div class="card">
+    <h3>Saves</h3>
+    <p>A save is credited to the goalkeeper who stopped a shot. Tap <span class="btn-demo ghost">Save</span> and enter the goalkeeper's cap number. Saves accumulate in the goalkeeper's individual stats and show up in the post-game box score.</p>
+  </div>
+
+  <div class="card">
+    <h3>Blocks</h3>
+    <p>A block is a defensive stop by a field player (not the goalkeeper). Tap <span class="btn-demo ghost">Block</span> and enter the blocking player's cap number. Great for recognizing standout defensive plays in the log.</p>
+  </div>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">💡</span>
+    <p><strong>Goals and exclusions first.</strong> Assists, saves, and blocks add depth to the stats, but if the game is moving fast, skip them and focus on score-affecting events. You can always backfill optional stats between quarters.</p>
+  </div>
 </div>
+
+<!-- ═══════════════ 9. TIMEOUTS ═══════════════ -->
+<div class="section" id="timeouts">
+  <div class="section-header">
+    <div class="section-icon">9</div>
+    <h2>Timeouts</h2>
+  </div>
+
+  <div class="card">
+    <h3>Recording a timeout</h3>
+    <p>Each team typically gets one timeout per game (exact rules vary by age group and tournament format). When a team calls a timeout:</p>
+    <ol style="padding-left:20px;margin-top:8px">
+      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Tap <span class="btn-demo amber">Timeout</span> for the team that called it.</li>
+      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">The timeout is logged with the current clock time and the team's timeout usage is recorded.</li>
+      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Tap <span class="btn-demo amber">⏸ Stop</span> on the clock to pause the countdown while the teams huddle. Tap <span class="btn-demo green">▶ Start</span> when the referee restarts play.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ═══════════════ 10. BETWEEN QUARTERS ═══════════════ -->
+<div class="section" id="between-quarters">
+  <div class="section-header">
+    <div class="section-icon">10</div>
+    <h2>Between Quarters</h2>
+  </div>
+
+  <div class="card">
+    <h3>The game period flow</h3>
+    <p>A standard water polo game moves through these periods in order:</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px">
+      <span class="period-chip">Pre-Game</span>
+      <span style="font-size:.8rem;color:var(--g400);align-self:center">&rarr;</span>
+      <span class="period-chip">Q1</span>
+      <span style="font-size:.8rem;color:var(--g400);align-self:center">&rarr;</span>
+      <span class="period-chip">Q2</span>
+      <span style="font-size:.8rem;color:var(--g400);align-self:center">&rarr;</span>
+      <span class="period-chip">Half</span>
+      <span style="font-size:.8rem;color:var(--g400);align-self:center">&rarr;</span>
+      <span class="period-chip">Q3</span>
+      <span style="font-size:.8rem;color:var(--g400);align-self:center">&rarr;</span>
+      <span class="period-chip">Q4</span>
+      <span style="font-size:.8rem;color:var(--g400);align-self:center">&rarr;</span>
+      <span class="period-chip">Final / OT / Shootout</span>
+    </div>
+    <p style="margin-top:10px">You advance manually by tapping the <span class="btn-demo">End Quarter</span> button when a period is over. The app will ask you to confirm before advancing to the next period.</p>
+  </div>
+
+  <div class="card">
+    <h3>Quarter break checklist</h3>
+    <ul>
+      <li>Wait for the referee's final whistle ending the quarter.</li>
+      <li>If the app clock is still running, tap <span class="btn-demo amber">⏸ Stop</span>.</li>
+      <li>Tap <span class="btn-demo">End Q1</span> (or whichever quarter just ended). The app moves to the break state and the clock resets.</li>
+      <li>When teams are back in the water and the referee is ready to begin, tap <span class="btn-demo green">▶ Start</span> to begin the next quarter's countdown.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Halftime</h3>
+    <p>After Q2, tapping <span class="btn-demo">End Q2</span> puts the game into <strong>Half</strong> state. The clock resets to the full Q3 length. Halftime is typically a few minutes &mdash; don't tap <strong>▶ Start</strong> until both teams are back in the water and the referee signals to begin Q3.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 11. OVERTIME ═══════════════ -->
+<div class="section" id="overtime">
+  <div class="section-header">
+    <div class="section-icon">11</div>
+    <h2>Overtime</h2>
+  </div>
+
+  <div class="card">
+    <h3>When the score is tied after Q4</h3>
+    <p>If the game is tied at the end of Q4, tap <span class="btn-demo">End Q4</span> and the app will offer you three options:</p>
+    <div class="kv-row">
+      <span class="kv-label">Overtime</span>
+      <span class="kv-value">Proceed to an OT period. The clock resets to the OT length (often 3:00 or 5:00 sudden death, depending on tournament rules). Goals and events are recorded exactly the same as in regular periods. Tap <strong>▶ Start</strong> when OT begins.</span>
+    </div>
+    <div class="kv-row">
+      <span class="kv-label">Shootout</span>
+      <span class="kv-value">Skip OT and go straight to a penalty shootout. See Section 12 below for full shootout instructions.</span>
+    </div>
+    <div class="kv-row">
+      <span class="kv-label">Final (tie)</span>
+      <span class="kv-value">Record the game as a draw &mdash; some pool-play formats don't play overtime.</span>
+    </div>
+  </div>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">💡</span>
+    <p>If OT also ends tied, tap <span class="btn-demo">End OT</span> and choose <strong>Shootout</strong> to proceed to penalty shots, or play additional OT periods if tournament rules require it.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 12. SHOOTOUT MODE ═══════════════ -->
+<div class="section" id="shootout">
+  <div class="section-header">
+    <div class="section-icon">12</div>
+    <h2>Shootout Mode</h2>
+  </div>
+
+  <div class="card">
+    <h3>How a shootout works</h3>
+    <p>A shootout is a penalty shot competition. Teams alternate taking shots &mdash; typically 5 shots per team, one at a time. The team that converts more shots wins. If still tied after 5 rounds, the shootout continues in sudden death: one shot per team per round until one team leads after a completed round.</p>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <h3>Enter Shootout Mode</h3>
+      <p>When the referee announces a shootout, tap <span class="btn-demo">End Q4</span> (or <span class="btn-demo">End OT</span>) &rarr; <strong>Shootout</strong>. The scoring panel switches to a simplified shootout view showing both teams' attempt counters and a running shootout tally. Parents automatically receive a <strong>Shootout Alert</strong> notification at this moment.</p>
+    </div>
+    <div class="step">
+      <h3>Record each shot attempt</h3>
+      <p>For each shot, tap one of two buttons for the shooting team:</p>
+      <ul>
+        <li><span class="btn-demo green">Goal ✓</span> &mdash; the shot went in. That team's shootout count increases by 1.</li>
+        <li><span class="btn-demo red">Miss ✗</span> &mdash; the shot was saved, hit the post, or missed. No score change.</li>
+      </ul>
+      <p style="margin-top:6px">Enter the shooting player's cap number when prompted, then alternate &mdash; your team shoots, then the opponent, repeat until the shootout is decided.</p>
+    </div>
+    <div class="step">
+      <h3>Finalize when complete</h3>
+      <p>After 5 rounds (or when the winner is mathematically decided), a <span class="btn-demo">Finalize</span> button appears. Tap it to end the game. The winning team is shown and the final score notification fires to all parent devices.</p>
+    </div>
+  </div>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">💡</span>
+    <p>During a shootout the main game clock is not used. Don't worry about starting or stopping it &mdash; just focus on logging each attempt accurately.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 13. FINALIZING THE GAME ═══════════════ -->
+<div class="section" id="finalizing">
+  <div class="section-header">
+    <div class="section-icon">13</div>
+    <h2>Finalizing the Game</h2>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <h3>Advance past the last period</h3>
+      <p>When the final whistle blows, stop the clock and tap the <span class="btn-demo">End Q4</span> (or End OT / End Shootout) button. Select <strong>Final</strong> when prompted. The game status changes to <strong>Final</strong> in the scoring panel.</p>
+    </div>
+    <div class="step">
+      <h3>Review the box score</h3>
+      <p>Take a moment to look over the play-by-play and confirm the score looks right. If you spot a missed goal or an incorrect event, you can still delete or add entries at this stage. Once you're satisfied, proceed.</p>
+    </div>
+    <div class="step">
+      <h3>Tap "Finalize Game"</h3>
+      <p>Tap the <span class="btn-demo">Finalize Game</span> button. The score is locked, the game moves off the Scores tab into the History tab, and a final-score notification fires to all parent devices. The game is complete &mdash; great work!</p>
+    </div>
+  </div>
+
+  <div class="callout callout-warn">
+    <span class="callout-icon">⚠️</span>
+    <p>Once finalized, the game is marked final in the system. If a correction is needed afterward, ask your club admin &mdash; they can reopen the game from the Admin panel.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 14. LIVE BROADCAST & ALERTS ═══════════════ -->
+<div class="section" id="live-broadcast">
+  <div class="section-header">
+    <div class="section-icon">14</div>
+    <h2>Live Broadcast &amp; Alerts</h2>
+  </div>
+
+  <div class="card">
+    <h3>What parents see in real-time</h3>
+    <p>Every time you record a goal, change the period, or finalize a game, Eggbeater broadcasts the update to all parent devices following that game &mdash; no page refresh needed. Parents see:</p>
+    <ul>
+      <li>The current score and period, updating live</li>
+      <li>A 🔴 <strong>LIVE</strong> badge on the game card while scoring is active</li>
+      <li>The play-by-play log building in real-time when they tap into the game detail</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Automatic notifications</h3>
+    <p>If your club has a Telegram or GroupMe channel connected, the following alerts fire automatically without you doing anything extra:</p>
+    <div class="kv-row">
+      <span class="kv-label">Game started</span>
+      <span class="kv-value">Fires when you tap ▶ Start at the beginning of Q1, alerting families the game is underway.</span>
+    </div>
+    <div class="kv-row">
+      <span class="kv-label">Goal scored</span>
+      <span class="kv-value">Fires immediately when a goal is confirmed, with the scorer's name (if entered) and the updated score.</span>
+    </div>
+    <div class="kv-row">
+      <span class="kv-label">Shootout alert</span>
+      <span class="kv-value">Fires when Shootout Mode is entered, so families know it's down to penalty shots.</span>
+    </div>
+    <div class="kv-row">
+      <span class="kv-label">Final score</span>
+      <span class="kv-value">Fires when the game is finalized with the full box score summary.</span>
+    </div>
+  </div>
+
+  <div class="callout callout-success">
+    <span class="callout-icon">🎉</span>
+    <p>Parents who can't be at the pool can follow every goal in near real-time. The more complete your scoring, the richer the experience &mdash; even grandparents in another state can celebrate goals the moment they happen.</p>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  <p>Questions? Contact your club admin or visit <a href="https://eggbeater.app">eggbeater.app</a></p>
+  <p style="margin-top:6px"><a href="/parent-guide.html">Parent Guide</a> &nbsp;&middot;&nbsp; <a href="https://eggbeater.app">Home</a></p>
+</div>
+
 </body>
 </html>
