@@ -544,16 +544,12 @@ function buildLocationLink(location) {
   const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
   const appleUrl  = `https://maps.apple.com/?daddr=${dest}`;
   const wazeUrl   = `https://waze.com/ul?q=${dest}`;
-  return `<span style="display:flex;flex-direction:column;gap:5px;margin-top:2px" onclick="event.stopPropagation()">
-    <span style="display:inline-flex;align-items:center;gap:5px">
-      <svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;opacity:0.7"><path d="M6 0C3.24 0 1 2.24 1 5c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.5A1.5 1.5 0 1 1 6 3.5 1.5 1.5 0 0 1 6 6.5z" fill="currentColor"/></svg>
-      <span class="location-venue">${escHtml(location)}</span>
-    </span>
-    <span style="display:inline-flex;gap:5px;padding-left:17px">
-      <a href="${appleUrl}"  target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()">Apple</a>
-      <a href="${googleUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()">Google</a>
-      <a href="${wazeUrl}"   target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()">Waze</a>
-    </span>
+  return `<span style="display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px" onclick="event.stopPropagation()">
+    <svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;opacity:0.7"><path d="M6 0C3.24 0 1 2.24 1 5c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.5A1.5 1.5 0 1 1 6 3.5 1.5 1.5 0 0 1 6 6.5z" fill="currentColor"/></svg>
+    <span class="location-venue">${escHtml(location)}</span>
+    <a href="${appleUrl}"  target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()"><img src="https://www.google.com/s2/favicons?sz=16&domain=maps.apple.com" width="13" height="13" style="border-radius:3px;vertical-align:middle" alt="">Apple</a>
+    <a href="${googleUrl}" target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()"><img src="https://www.google.com/s2/favicons?sz=16&domain=maps.google.com" width="13" height="13" style="border-radius:3px;vertical-align:middle" alt="">Google</a>
+    <a href="${wazeUrl}"   target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()"><img src="https://www.google.com/s2/favicons?sz=16&domain=waze.com" width="13" height="13" style="border-radius:3px;vertical-align:middle" alt="">Waze</a>
   </span>`;
 }
 
