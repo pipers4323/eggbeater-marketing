@@ -6,8 +6,8 @@
  *   notifies parents when new games are added to the schedule
  */
 
-const CACHE = 'ebwp-v129';
-const VER   = '?v=207';   // bump alongside index.html script tags on every deploy
+const CACHE = 'ebwp-v130';
+const VER   = '?v=208';   // bump alongside index.html script tags on every deploy
 const ASSETS = [
   '/',
   '/index.html',

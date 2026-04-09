@@ -3639,7 +3639,7 @@ function renderScoresTab() {
     const scorerLocked = TOURNAMENT.scoringPassword && !isScorerUnlocked();
     const loginBar = scorerLocked
       ? `<div class="scorer-gate-bar"><button class="scorer-gate-btn" onclick="openScoringPasswordModal()">🔒 Scorer Login</button></div>`
-      : (!isScorerUnlocked() ? '' : `<div class="scorer-gate-bar"><button class="scorer-gate-btn scorer-gate-btn-active" onclick="">✅ Scorer Active</button></div>`);
+      : (!isScorerUnlocked() ? '' : `<div class="scorer-tab-bar"><span class="scorer-tab-label">🔓 Scorer Mode Active</span><button class="scorer-tab-lock-btn" onclick="lockScoring()">🔒 Lock</button></div>`);
     let html = loginBar;
     const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
     for (const { groupKey, letter } of scoreSlots) {
