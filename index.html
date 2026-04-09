@@ -22,7 +22,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-  <link rel="stylesheet" href="styles.css?v=210">
+  <link rel="stylesheet" href="styles.css?v=225">
   <!-- Capacitor native bridge — must load before any plugin code.
        In native iOS/Android apps this file is copied into www/ by cap sync.
        In the web browser it 404s silently (no-op). -->
@@ -386,6 +386,27 @@
     </div>
   </div>
 
+  <!-- Join club password modal (bottom sheet) -->
+  <div id="join-pw-modal" class="roster-modal hidden" role="dialog" aria-modal="true" aria-label="Join club password">
+    <div class="roster-modal-backdrop" onclick="_closeModal('join-pw-modal')"></div>
+    <div class="roster-modal-sheet">
+      <div class="roster-modal-header">
+        <span id="join-pw-title" class="roster-modal-title">Join Club</span>
+        <button class="roster-modal-close" onclick="_closeModal('join-pw-modal')" aria-label="Close">✕</button>
+      </div>
+      <div class="scoring-pw-body">
+        <p class="scoring-pw-desc">This club requires a password to join. Ask your club admin or coach for the password.</p>
+        <input id="join-pw-input" type="password" class="scoring-pw-input"
+               placeholder="Enter join password"
+               autocomplete="off" autocorrect="off" spellcheck="false"
+               onkeydown="if(event.key==='Enter')submitJoinPassword()">
+        <div id="join-pw-error" class="scoring-pw-error"></div>
+        <button class="scoring-pw-btn" onclick="submitJoinPassword()">Join Club</button>
+        <button class="scoring-pw-btn-cancel" onclick="_closeModal('join-pw-modal')" style="background:transparent;color:var(--gray-500);border:none;margin-top:10px;font-size:0.9rem;font-weight:600;cursor:pointer;width:100%">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Player stats download modal (bottom sheet) -->
   <div id="player-stats-modal" class="roster-modal hidden" role="dialog" aria-modal="true" aria-label="Download player stats">
     <div class="roster-modal-backdrop" onclick="closePlayerStatsModal()"></div>
@@ -460,17 +481,17 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="firebase.js?v=210"></script>
+  <script src="firebase.js?v=225"></script>
 
   <!-- Android 16 Live Update Bridge -->
-  <script src="live-update.js?v=210"></script>
+  <script src="live-update.js?v=225"></script>
 
   <!-- Native push notification bridge (Capacitor iOS) -->
-  <script src="capacitor-push.js?v=210"></script>
+  <script src="capacitor-push.js?v=225"></script>
 
   <!-- Data + App — query string busts any intermediate cache on every deploy -->
-  <script src="tournament.js?v=210"></script>
-  <script src="app.js?v=210"></script>
+  <script src="tournament.js?v=225"></script>
+  <script src="app.js?v=225"></script>
 
   <!-- SW auto-reload: runs before app.js initialises so every device always
        picks up new code immediately after a deploy, even on the first load. -->

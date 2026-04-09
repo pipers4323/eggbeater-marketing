@@ -5342,6 +5342,12 @@
                  oninput="S.tournament.clubName=this.value">
         </div>
         <div class="info-field">
+          <div class="info-label">Join Password (Optional) <span style="color:var(--g400);font-weight:400;text-transform:none">(parents must enter this to join)</span></div>
+          <input class="info-input" id="club-join-password" value="${esc(t.joinPassword || '')}" placeholder="e.g. gatorade"
+                 oninput="S.tournament.joinPassword=this.value">
+          <div class="info-hint">Only required for initial join. Recommended 1 word, lowercase.</div>
+        </div>
+        <div class="info-field">
           <div class="info-label">Cloud Club ID <span style="color:var(--g400);font-weight:400;text-transform:none">(Firestore path)</span></div>
           <input class="info-input" value="${esc(clubId)}" placeholder="e.g. pacific-waves"
                  oninput="if(typeof fbSetClubId==='function')fbSetClubId(this.value);localStorage.setItem('ebadmin-clubId',this.value)">
@@ -10056,6 +10062,7 @@
         const res = await api('PUT', '/admin/club-settings', {
           clubName: S.tournament.clubName || '',
           clubType: S.clubType || 'club',
+          joinPassword: S.tournament.joinPassword || '',
         });
         if (!res.ok) throw new Error('Save failed: ' + res.status);
         if (statusEl) statusEl.innerHTML = '<span style="color:var(--green)">✅ Club settings saved</span>';
@@ -10075,6 +10082,9 @@
         }
         if (data.clubName) {
           S.tournament.clubName = data.clubName;
+        }
+        if (data.joinPassword !== undefined) {
+          S.tournament.joinPassword = data.joinPassword;
         }
         // Load branding for THIS club (fresh from KV, not stale state)
         S._branding = {

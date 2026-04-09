@@ -6395,21 +6395,45 @@ function removeJoinedClub(clubId) {
  * Handle ?join=CLUB_ID URL parameter — adds the club to the joined list
  * and auto-selects it so the parent lands directly in the app.
  */
-function _handleJoinParam() {
+async function _handleJoinParam() {
   const params = new URLSearchParams(window.location.search);
   const joinClub = params.get('join');
   if (!joinClub) return;
-
-  // Add to joined list
-  addJoinedClub(joinClub);
-
-  // Auto-select this club (sets ebwp-club-id)
-  localStorage.setItem('ebwp-club-id', joinClub);
 
   // Clean up the URL (remove ?join= so refreshes don't re-trigger)
   params.delete('join');
   const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
   window.history.replaceState({}, '', newUrl);
+
+  // If already joined, just select it
+  const joined = getJoinedClubs();
+  if (joined.includes(joinClub)) {
+    _selectClub(joinClub);
+    return;
+  }
+
+  // Check if this club requires a password before joining
+  try {
+    const res = await fetch(WORKER + '/club-info?club=' + encodeURIComponent(joinClub));
+    const data = await res.json();
+    if (data.ok && data.requiresJoinPassword) {
+      window._pendingJoinClub = { id: joinClub, name: data.clubName, clubType: data.clubType };
+      const titleEl = document.getElementById('join-pw-title');
+      if (titleEl) titleEl.textContent = 'Join ' + (data.clubName || 'Club');
+      _openModal('join-pw-modal');
+      return;
+    }
+    // Not gated or fetch failed — proceed normally
+    if (data.ok) {
+      addJoinedClub(joinClub);
+      _selectClub(joinClub, data.clubName, data.clubType);
+    }
+  } catch (e) {
+    console.warn('[ebwp] _handleJoinParam check failed:', e.message);
+    // Fallback: try to join anyway
+    addJoinedClub(joinClub);
+    _selectClub(joinClub);
+  }
 }
 
 /**
@@ -6535,20 +6559,72 @@ async function _manualJoinClub() {
   const code = input.value.trim().toLowerCase().replace(/\s+/g, '-');
   if (!code) { if (errEl) errEl.textContent = 'Please enter a club code'; return; }
 
-  // Validate club exists
+  // If already joined, just select it
+  if (getJoinedClubs().includes(code)) {
+    _selectClub(code);
+    return;
+  }
+
+  // Validate club exists and check if gated
   try {
-    const res = await fetch(WORKER + '/clubs');
+    const res = await fetch(WORKER + '/club-info?club=' + encodeURIComponent(code));
     if (!res.ok) throw new Error('Network error');
-    const data = await res.json();
-    const club = (data.clubs || []).find(c => c.id === code);
-    if (!club) {
+    const club = await res.json();
+    if (!club.ok) {
       if (errEl) errEl.textContent = `Club "${code}" not found. Check with your admin.`;
       return;
     }
+
+    if (club.requiresJoinPassword) {
+      window._pendingJoinClub = { id: club.clubId, name: club.clubName, clubType: club.clubType };
+      const titleEl = document.getElementById('join-pw-title');
+      if (titleEl) titleEl.textContent = 'Join ' + (club.clubName || 'Club');
+      _openModal('join-pw-modal');
+      return;
+    }
+
     addJoinedClub(code);
-    _selectClub(club.id, club.name, club.clubType);
+    _selectClub(club.clubId, club.clubName, club.clubType);
   } catch (e) {
     if (errEl) errEl.textContent = 'Could not connect. Try again.';
+  }
+}
+
+/** Submit join password from modal */
+async function submitJoinPassword() {
+  const input = document.getElementById('join-pw-input');
+  const errEl = document.getElementById('join-pw-error');
+  const btn = document.querySelector('#join-pw-modal .scoring-pw-btn');
+  const pending = window._pendingJoinClub;
+
+  if (!input || !pending) return;
+  const pw = input.value.trim();
+  if (!pw) { if (errEl) errEl.textContent = 'Please enter password'; return; }
+
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Joining...';
+
+  try {
+    const res = await fetch(WORKER + '/validate-join-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clubId: pending.id, password: pw })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      addJoinedClub(pending.id);
+      _closeModal('join-pw-modal');
+      _selectClub(pending.id, pending.name, pending.clubType);
+      input.value = '';
+    } else {
+      errEl.textContent = 'Incorrect password — check with your club admin and try again';
+    }
+  } catch (e) {
+    errEl.textContent = 'Error connecting to server';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Join Club';
   }
 }
 
