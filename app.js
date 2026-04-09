@@ -5140,9 +5140,14 @@ function bracketLocationDisplay(stepLocation) {
   if (!stepLocation) return (TOURNAMENT.location || '').split(',')[0].trim() || '';
   // If it already looks like a full address (contains a comma) show it as-is
   if (stepLocation.includes(',')) return stepLocation;
-  // Short sub-location → prepend venue name (first segment of TOURNAMENT.location)
+  // If step already names a venue building (school / aquatic center / etc.), show as-is
+  // This handles multi-venue tournaments where Day 2 games move to a different facility
+  if (/\b(hs|high school|college|university|center|aquatic|arena|stadium|park|pool|natatorium)\b/i.test(stepLocation)) {
+    return stepLocation;
+  }
+  // Short sub-location (e.g. "Pool E", "Main Pool") → prepend tournament venue name
   const venue = (TOURNAMENT.location || '').split(',')[0].trim();
-  return venue ? `${venue} · ${stepLocation}` : stepLocation;
+  return venue ? `${venue} \u00b7 ${stepLocation}` : stepLocation;
 }
 
 function renderPossibleTab() {

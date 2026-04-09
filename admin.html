@@ -6980,9 +6980,35 @@
             break;
           }
         }
+        // ── Auto-correct year typos in date column ──────────────────────────────
+        // e.g. sheet has 4/12/2025 when all others are 4/11/2026 → fix to dominant year
+        const _yearCount = {};
+        for (let ri = dataStartRow; ri < allRows.length; ri++) {
+          const d = (allRows[ri][dateCol] || '').trim();
+          const ym = d.match(/\b(\d{4})\b/);
+          if (ym) _yearCount[ym[1]] = (_yearCount[ym[1]] || 0) + 1;
+        }
+        const _sortedYears = Object.keys(_yearCount).sort((a,b) => _yearCount[b]-_yearCount[a]);
+        let _dateFixCount = 0, _badYears = [];
+        if (_sortedYears.length > 1) {
+          const _goodYear = _sortedYears[0];
+          for (const _badYear of _sortedYears.slice(1)) {
+            for (let ri = dataStartRow; ri < allRows.length; ri++) {
+              const d = (allRows[ri][dateCol] || '').trim();
+              if (d && d.includes(_badYear)) {
+                allRows[ri] = allRows[ri].slice(); // clone row before mutating
+                allRows[ri][dateCol] = d.replace(_badYear, _goodYear);
+                _dateFixCount++;
+              }
+            }
+            _badYears.push(_badYear + ' → ' + _goodYear);
+          }
+        }
+
         S.bsync.allRows = allRows;
         S.bsync.cols = { dateCol, timeCol, whiteCol, darkCol, locCol: poolCol >= 0 ? poolCol : (locationCol >= 0 ? locationCol : 1), dataStartRow };
         const agLabel = (S.bsync.colorCoded && S.bsync.myAgeGroup) ? ' ('+S.bsync.myAgeGroup+')' : '';
+        const _dateFix = _dateFixCount > 0 ? ` ⚠️ Auto-fixed ${_dateFixCount} date(s) with wrong year (${_badYears.join(', ')})` : '';
 
         const games = [];
         for (let ri = dataStartRow; ri < allRows.length; ri++) {
@@ -7032,7 +7058,7 @@
         }
 
         S.bsync.games = games;
-        if (status4) { status4.style.color = '#059669'; status4.textContent = '\u2705 Found '+games.length+' game(s)'+agLabel+' \u2014 review below'; }
+        if (status4) { status4.style.color = '#059669'; status4.textContent = '\u2705 Found '+games.length+' game(s)'+agLabel+' \u2014 review below'+_dateFix; }
         const nextBtn = document.getElementById('bs-s4-next');
         if (nextBtn) nextBtn.disabled = false;
 
@@ -10993,17 +11019,27 @@
       try {
         const ac = new google.maps.places.Autocomplete(venueInput, {
           types: ['establishment'],
-          fields: ['name', 'formatted_address'],
+          fields: ['place_id', 'name', 'formatted_address'],
         });
         ac.addListener('place_changed', () => {
           const place = ac.getPlace();
-          if (!place?.place_id || !place?.name) return;
+          if (!place?.name) return;
           venueInput.value = place.name;
           S.tournament.location = place.name;
           const addrInput = document.getElementById('info-address-input');
-          if (addrInput && place.formatted_address) {
+          if (!addrInput) return;
+          if (place.formatted_address) {
             addrInput.value = place.formatted_address;
             S.tournament.address = place.formatted_address;
+          } else if (place.place_id && window.google?.maps?.places?.PlacesService) {
+            // Fallback: formatted_address not returned in autocomplete result — fetch via PlacesService
+            const svc = new google.maps.places.PlacesService(document.createElement('div'));
+            svc.getDetails({ placeId: place.place_id, fields: ['formatted_address'] }, (details, status) => {
+              if (status === google.maps.places.PlacesServiceStatus.OK && details?.formatted_address) {
+                addrInput.value = details.formatted_address;
+                S.tournament.address = details.formatted_address;
+              }
+            });
           }
         });
       } catch (e) { /* Places API unavailable — input works as plain text */ }
@@ -11267,14 +11303,24 @@
       const tvInp = document.getElementById('dir-tournament-venue');
       if (tvInp && !tvInp._placesInit) {
         tvInp._placesInit = true;
-        const tvAc = new google.maps.places.Autocomplete(tvInp, { types: ['establishment'], fields: ['name', 'formatted_address'] });
+        const tvAc = new google.maps.places.Autocomplete(tvInp, { types: ['establishment'], fields: ['place_id', 'name', 'formatted_address'] });
         tvAc.addListener('place_changed', () => {
           const place = tvAc.getPlace();
-          if (!place?.place_id || !place?.name) return;
+          if (!place?.name) return;
           tvInp.value = place.name;
           S.tournament.location = place.name;
           const adr = document.getElementById('dir-tournament-addr');
-          if (adr && place.formatted_address) { adr.value = place.formatted_address; S.tournament.address = place.formatted_address; }
+          if (!adr) return;
+          if (place.formatted_address) {
+            adr.value = place.formatted_address; S.tournament.address = place.formatted_address;
+          } else if (place.place_id && window.google?.maps?.places?.PlacesService) {
+            const svc = new google.maps.places.PlacesService(document.createElement('div'));
+            svc.getDetails({ placeId: place.place_id, fields: ['formatted_address'] }, (details, status) => {
+              if (status === google.maps.places.PlacesServiceStatus.OK && details?.formatted_address) {
+                adr.value = details.formatted_address; S.tournament.address = details.formatted_address;
+              }
+            });
+          }
         });
       }
     }
