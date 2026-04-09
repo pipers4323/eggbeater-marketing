@@ -4628,7 +4628,11 @@ function renderNextGameCard() {
            ${clockStr ? `<span class="next-live-clock" id="next-game-clock-${g.id}">${clockStr}</span>` : ''}
          </div>`
       : '';
+    const nextDateKey = g.dateISO || g.date;
+    const nextDateHeader = nextDateKey
+      ? `<div class="date-group-header">${escHtml(formatDateGroupLabel(nextDateKey))}</div>` : '';
     section.innerHTML = `
+      ${nextDateHeader}
       <div class="next-game-wrap">
         <div class="next-game-card${nextLive ? ' next-game-live' : ''}">
           <div class="next-game-card-top">
@@ -4824,6 +4828,7 @@ function renderGamesList() {
   // Exclude the next game — it already appears in the blue card above
   const nextObj    = findNextGameOrProjected();
   const nextGameId = nextObj?.type === 'pool' ? nextObj.game?.id : null;
+  const nextDateKey = nextObj?.type === 'pool' ? (nextObj.game?.dateISO || nextObj.game?.date) : null;
   const listGames  = upcomingGames.filter(g => g.id !== nextGameId);
 
   if (!listGames.length) { listEl.innerHTML = ''; return; }
@@ -4838,7 +4843,10 @@ function renderGamesList() {
 
   let html = '';
   for (const dateLabel of groupOrder) {
-    html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dateLabel))}</div>`;
+    // Skip the date header if it matches the next game's date — already shown above that card
+    if (dateLabel !== nextDateKey) {
+      html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dateLabel))}</div>`;
+    }
     html += `<div class="games-section">`;
     for (const g of groups[dateLabel]) html += buildScheduleCard(g);
     html += `</div>`;
