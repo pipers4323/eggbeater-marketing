@@ -3110,6 +3110,9 @@ function switchTab(tab) {
   });
   updateTScoreTabVisibility();
   if (tab !== 'scores') _setLiveBanner(false); // hide banner when leaving scores tab
+  // Compact header on Scores tab — hides the subtitle (dates/venue) to free vertical space
+  const _hdr = document.querySelector('.app-header');
+  if (_hdr) { _hdr.classList.toggle('scores-compact', tab === 'scores'); syncHeaderHeight(); }
   // Sync selected tab to native Liquid Glass tab bar (iOS only, no-op elsewhere)
   try { window.webkit?.messageHandlers?.tabSync?.postMessage({ tab }); } catch(_){}
   if (tab === 'possible')    renderPossibleTab();
@@ -3686,7 +3689,7 @@ function renderScoresTab() {
         html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dk))}</div>`;
         html += `<div class="games-section">`;
         // viewerOnly = scorerLocked: when scorer is unlocked, games are tappable/scoreable
-        for (const g of byDate[dk]) html += buildGameCard(g, scorerLocked);
+        for (const g of byDate[dk]) html += buildGameCard(g, scorerLocked, false);
         html += `</div>`;
       }
       if (cache) { window.TOURNAMENT = _savedT; window.HISTORY_SEED = _savedH; }
@@ -3727,7 +3730,7 @@ function renderScoresTab() {
       }
       for (const dateKey of dateOrder) {
         cardsHtml += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dateKey))}</div><div class="games-section">`;
-        for (const g of byDate[dateKey]) cardsHtml += buildGameCard(g, true);
+        for (const g of byDate[dateKey]) cardsHtml += buildGameCard(g, true, false);
         cardsHtml += `</div>`;
       }
     }
@@ -3808,7 +3811,7 @@ function renderScoresTab() {
   for (const dateKey of dateOrder) {
     html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dateKey))}</div>`;
     html += `<div class="games-section">`;
-    for (const g of byDate[dateKey]) html += buildGameCard(g);
+    for (const g of byDate[dateKey]) html += buildGameCard(g, false, false);
     html += `</div>`;
   }
 
@@ -4887,7 +4890,7 @@ function buildScheduleCard(g) {
     </div>`;
 }
 
-function buildGameCard(g, viewerOnly = false) {
+function buildGameCard(g, viewerOnly = false, showLocation = true) {
   const result    = state.results[g.id] || null;
   const pts       = getPoints(result);
   const win       = isWin(result);
@@ -5010,7 +5013,7 @@ function buildGameCard(g, viewerOnly = false) {
   // ── Scorer section (full controls) ────────────────────────────────────────
   const isActiveGame = s.gameState && s.gameState !== 'pre';
   const scorerSection = `
-    <details class="scorer-details" ${isActiveGame ? 'open' : ''}>
+    <details class="scorer-details" ${isActiveGame ? 'open' : ''} ontoggle="if(this.open)this.closest('.game-card').scrollIntoView({behavior:'smooth',block:'start'})">
       <summary class="scorer-summary">
         ${isActiveGame ? '▼ Scoring Controls' : '▶ Open Scorer'}
       </summary>
@@ -5121,7 +5124,7 @@ function buildGameCard(g, viewerOnly = false) {
       <div class="game-info-row">
         <span class="icon-label">🕐 ${escHtml(g.time || 'TBD')}${(g.date || g.dateISO) ? ' · ' + escHtml(g.date || g.dateISO) : ''}</span>
         ${g.pool ? `<span class="icon-label">${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span class="icon-label">${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
-        ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
+        ${showLocation && TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
       </div>
       ${pts !== null ? `<div class="game-info-row"><span class="points-badge">+${pts} bracket pts</span></div>` : ''}
 

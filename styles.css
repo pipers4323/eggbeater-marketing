@@ -441,6 +441,10 @@ body {
   color: rgba(255,255,255,.4);
 }
 
+/* Compact header when Scores tab is active — hide subtitle to save vertical space */
+.app-header.scores-compact .strip-dot,
+.app-header.scores-compact #header-tournament-dates { display: none; }
+
 #header-tournament-name {
   font-weight: 700;
   color: white;
@@ -801,6 +805,7 @@ h2 {
   background: var(--gray-200);
 }
 
+
 /* On mobile, body bg is dark royal — make date headers white so they're visible */
 @media (max-width: 1022px) {
   .date-group-header { color: white; }
@@ -926,17 +931,25 @@ h2 {
 .scores-slot-header {
   display: flex;
   align-items: center;
-  padding: 14px 12px 2px;
+  gap: 10px;
+  padding: 14px 12px 4px;
   margin-top: 4px;
-  border-top: 1.5px solid var(--gray-200);
+  border-top: 1.5px solid rgba(255,255,255,.15);
 }
 .scores-slot-header:first-child { border-top: none; margin-top: 0; }
+.scores-slot-header::after {
+  content: '';
+  flex: 1;
+  height: 1.5px;
+  background: var(--teal, #0891b2);
+  opacity: 0.45;
+}
 .scores-slot-label {
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--royal);
+  color: white;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
 }
 
 .games-section {
