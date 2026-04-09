@@ -1,6 +1,9 @@
 const fs = require('fs');
 let content = fs.readFileSync('c:/Users/sarah/Claude Code/eggbeater-marketing/admin.html', 'utf8');
 
+// Normalize newlines to \n to make regexes work reliably
+content = content.replace(/\r\n/g, '\n');
+
 const helper = `
     async function _pushToFirebaseMirror(teamKey, tournament, history) {
       if (typeof fbSaveTournamentMirror === 'function') {
@@ -25,7 +28,7 @@ if (!content.includes('_pushToFirebaseMirror')) {
 
   // 3. saveUpcomingInfo
   content = content.replace(
-    /(const res = await api\('PUT', '\/admin\/data', \{ tournament: S\.tournament, history: S\.history \}\);\n\s*if \(!res\.ok\).*?\n\s*)(?!await _pushToFirebaseMirror)(showStatus\('Deploying)/,
+    /(const res = await api\('PUT', '\/admin\/data', \{ tournament: S\.tournament, history: S\.history \}\);\n\s*if \(!res\.ok\)[^\n]*\n\s*)(?!await _pushToFirebaseMirror)(showStatus\('Deploying)/,
     "$1await _pushToFirebaseMirror(S.team, S.tournament, S.history);\n        $2"
   );
 
@@ -52,6 +55,9 @@ if (!content.includes('_pushToFirebaseMirror')) {
     /const saveRes = await api\('PUT', '\/admin\/data', \{ tournament: parsed\.tournament, history: parsed\.history \}\);\n\s*if \(!saveRes\.ok\)/,
     "const saveRes = await api('PUT', '/admin/data', { tournament: parsed.tournament, history: parsed.history });\n        await _pushToFirebaseMirror(S.team, parsed.tournament, parsed.history);\n        if (!saveRes.ok)"
   );
+
+  // Convert newlines back to Windows \r\n to match project style
+  content = content.replace(/\n/g, '\r\n');
 
   fs.writeFileSync('c:/Users/sarah/Claude Code/eggbeater-marketing/admin.html', content);
   console.log('Patched admin.html successfully');

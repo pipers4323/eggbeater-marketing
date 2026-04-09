@@ -4180,6 +4180,7 @@
         // Save state
         const res = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
         if (!res.ok) throw new Error('KV save failed: ' + res.status);
+        try { await _pushToFirebaseMirror(S.team, S.tournament, S.history); } catch (e) { console.warn('Mirror failed', e); }
 
         // Deploy cleared state
         const dep = await api('POST', '/admin/deploy');
@@ -4454,6 +4455,7 @@
       try {
         const res = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
         if (!res.ok) throw new Error('KV save failed: ' + res.status);
+        try { await _pushToFirebaseMirror(S.team, S.tournament, S.history); } catch (e) { console.warn('Mirror failed', e); }
         showStatus('Deploying…', 'info');
         const dep = await api('POST', '/admin/deploy');
         if (!dep.ok) { const t = await dep.text(); throw new Error(t); }
@@ -4473,6 +4475,7 @@
       try {
         const res = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
         if (!res.ok) throw new Error('KV save failed: ' + res.status);
+        try { await _pushToFirebaseMirror(S.team, S.tournament, S.history); } catch (e) { console.warn('Mirror failed', e); }
         showStatus('Deploying…', 'info');
         const dep = await api('POST', '/admin/deploy');
         if (!dep.ok) { const t = await dep.text(); throw new Error(t); }
@@ -4493,6 +4496,7 @@
       try {
         const res = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
         if (!res.ok) throw new Error('KV save failed: ' + res.status);
+        try { await _pushToFirebaseMirror(S.team, S.tournament, S.history); } catch (e) { console.warn('Mirror failed', e); }
         showStatus('Deploying…', 'info');
         const dep = await api('POST', '/admin/deploy');
         if (!dep.ok) { const t = await dep.text(); throw new Error(t); }
@@ -8231,6 +8235,7 @@
       showStatus('Saving to KV…', 'info');
       try {
         const saveRes = await api('PUT', '/admin/data', { tournament: parsed.tournament, history: parsed.history });
+        try { await _pushToFirebaseMirror(S.team, parsed.tournament, parsed.history); } catch(e){}
         if (!saveRes.ok) throw new Error('KV save failed: ' + saveRes.status);
         S.tournament = parsed.tournament;
         S.history = parsed.history;
@@ -8587,6 +8592,7 @@
             // Real data — save as-is and deploy
             showStatus(`Deploying ${key} (has data)…`, 'info');
             S.team = key;
+            try { await _pushToFirebaseMirror(key, tournament, history); } catch(e){}
             const depRes = await api('POST', '/admin/deploy');
             S.team = origTeam;
             if (!depRes.ok) { failed.push(key); continue; }
@@ -8600,6 +8606,7 @@
               history: []
             });
             if (!saveRes.ok) { S.team = origTeam; failed.push(key); continue; }
+            try { await _pushToFirebaseMirror(key, stayTunedTournament, []); } catch(e){}
             const depRes = await api('POST', '/admin/deploy');
             S.team = origTeam;
             if (!depRes.ok) { failed.push(key); continue; }
@@ -8653,6 +8660,7 @@
           t.upcomingMode = true;
           t.comingSoon = t.comingSoon || 'Schedule coming soon — check back closer to tournament day!';
           const saveRes = await api('PUT', `/admin/data?team=${encodeURIComponent(key)}`, { tournament: t, history: data.history || [] });
+          try { await _pushToFirebaseMirror(key, t, data.history || []); } catch(e){}
           if (!saveRes.ok) throw new Error('save failed ' + saveRes.status);
           done++;
         } catch (e) {
