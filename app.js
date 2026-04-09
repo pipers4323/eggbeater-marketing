@@ -3112,7 +3112,7 @@ function switchTab(tab) {
   if (tab !== 'scores') _setLiveBanner(false); // hide banner when leaving scores tab
   // Compact header on Scores tab — hides the subtitle (dates/venue) to free vertical space
   const _hdr = document.querySelector('.app-header');
-  if (_hdr) { _hdr.classList.toggle('scores-compact', tab === 'scores'); syncHeaderHeight(); }
+  if (_hdr) { _hdr.classList.toggle('scores-compact', tab === 'scores'); if (tab !== 'scores') _hdr.classList.remove('scoring-active'); syncHeaderHeight(); }
   // Sync selected tab to native Liquid Glass tab bar (iOS only, no-op elsewhere)
   try { window.webkit?.messageHandlers?.tabSync?.postMessage({ tab }); } catch(_){}
   if (tab === 'possible')    renderPossibleTab();
@@ -4891,12 +4891,24 @@ function buildScheduleCard(g) {
     </div>`;
 }
 
+function _onScorerToggle(el) {
+  const hdr = document.querySelector('.app-header');
+  if (el.open) {
+    el.closest('.game-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    hdr?.classList.add('scoring-active');
+  } else {
+    hdr?.classList.remove('scoring-active');
+  }
+  syncHeaderHeight();
+}
+
 function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel = '') {
   const result    = state.results[g.id] || null;
   const pts       = getPoints(result);
   const win       = isWin(result);
   const loss      = isLoss(result);
   const cardClass = win ? 'result-win' : loss ? 'result-loss' : '';
+  const capBgClass = g.cap === 'Dark' ? 'cap-dark-bg' : g.cap === 'White' ? 'cap-white-bg' : '';
   const capIcon   = g.cap === 'Dark' ? '🔵' : '⚪';
   const pillHtml  = result
     ? `<span class="result-pill ${win ? 'win' : 'loss'}">${resultLabel(result)}</span>` : '';
@@ -5014,7 +5026,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
   // ── Scorer section (full controls) ────────────────────────────────────────
   const isActiveGame = s.gameState && s.gameState !== 'pre';
   const scorerSection = `
-    <details class="scorer-details" ${isActiveGame ? 'open' : ''} ontoggle="if(this.open)this.closest('.game-card').scrollIntoView({behavior:'smooth',block:'start'})">
+    <details class="scorer-details" ${isActiveGame ? 'open' : ''} ontoggle="_onScorerToggle(this)">
       <summary class="scorer-summary">
         ${isActiveGame ? '▼ Scoring Controls' : '▶ Open Scorer'}
       </summary>
@@ -5116,7 +5128,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
     </div>`;
 
   return `
-    <div class="game-card ${cardClass}">
+    <div class="game-card ${cardClass} ${capBgClass}">
       ${ageGroupLabel ? `<div class="game-card-age-label">${escHtml(ageGroupLabel)}</div>` : ''}
       <div class="game-card-top">
         <div class="game-vs">${TOURNAMENT.clubName ? escHtml(TOURNAMENT.clubName) + ' vs ' : 'vs '}${escHtml(g.opponent || 'TBD')}${pillHtml}${liveBadgeHtml}</div>
@@ -7391,11 +7403,13 @@ function lockScoring() {
       broadcastGameReset(gameId);
     }
   }
+  document.querySelector('.app-header')?.classList.remove('scoring-active');
   showToast('🔒 Scorer mode locked');
   updateLiveDot();
   renderGamesList();
   renderNextGameCard(); // clear LIVE badge on blue card
   if (state.currentTab === 'scores') renderScoresTab();
+  syncHeaderHeight();
 }
 
 // ─── LIVE SCORE BROADCAST & SYNC ──────────────────────────────────────────────
