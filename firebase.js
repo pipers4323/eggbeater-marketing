@@ -571,6 +571,19 @@ function fbListenToTournament(teamKey) {
         return;
       }
 
+      // Never let Firestore overwrite live KV games with an empty games array.
+      // Firestore is a real-time admin sync channel — if its tournament document has no
+      // games but the Workers.dev KV snapshot already has games, the Firestore doc is
+      // stale (admin hasn't deployed yet). Overwriting would blank the schedule.
+      const kvGames = typeof TEAM_CACHE !== 'undefined' && TEAM_CACHE[teamKey]
+        ? (TEAM_CACHE[teamKey].tournament?.games || [])
+        : [];
+      const fsGames = data.tournament.games || [];
+      if (kvGames.length > 0 && fsGames.length === 0) {
+        console.info('[firebase] Ignoring empty Firestore snapshot for', teamKey, '— KV data has', kvGames.length, 'games');
+        return;
+      }
+
       // Update TEAM_CACHE so multi-team rendering picks up the fresh data
       if (typeof TEAM_CACHE !== 'undefined') {
         TEAM_CACHE[teamKey] = {
