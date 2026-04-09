@@ -546,11 +546,10 @@ function fbListenToTournament(teamKey) {
     delete _tournamentListeners[teamKey];
   }
 
-  // Use club-scoped collection so listeners match the deployed data path
-  const col = _fbTournamentsCol();
-  if (!col) return;
-
-  _tournamentListeners[teamKey] = col
+  // Listen to the flat backward-compat collection because the admin panel
+  // dual-writes here. (The club-scoped collection uses a different document
+  // schema where teamKey is a nested field, not the doc ID).
+  _tournamentListeners[teamKey] = _fbDb.collection('tournaments')
     .doc(teamKey)
     .onSnapshot(snap => {
       if (!snap.exists) return;

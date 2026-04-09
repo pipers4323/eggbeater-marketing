@@ -1,0 +1,8839 @@
+
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const WORKER = 'https://ebwp-push.sarah-new.workers.dev';
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const S = {
+  pw:           '',
+  tournament:   null,
+  history:      [],
+  roster:       null,   // master roster — stored separately, persists across tournaments
+  currentTab:   'schedule',
+  editingGame:  null,   // gameId currently open for edit
+  editingRoster: null,  // roster index currently open for edit
+  editingHistory: null, // history index currently open for edit
+  tsConnected:  false,  // true when TeamSnap OAuth token is stored in worker KV
+  team:         (localStorage.getItem('ebadmin-clubType') === 'highschool' ? 'boys-varsity' : '14u-girls'),
+  clubType:     localStorage.getItem('ebadmin-clubType') || 'club',        // 'club' or 'highschool' — loaded from KV, cached in localStorage
+  savedTournaments: [],   // drafts stored for this team
+  activeDraftId:  null,   // id of the draft currently loaded in the workspace
+  tournamentId:   null,   // Phase 3: currently selected Firestore tournament ID
+  tournamentList: [],     // Phase 3: [{id, name, dates, status, location, ...}]
+  director:     null,   // Tournament Director state (lazily init'd in renderDirectorTab)
+  idToken:      null,   // Firebase ID token for Worker API auth
+  authMode:     '',     // 'google' or 'password'
+  dirPkg:       null,   // imported Tournament Director package (for Sync from Director)
+  dirPkgCode:   '',     // share code used to import
+  dirSelectedAg: -1,    // selected age group index from imported pkg
+  dirSelectedTeam: '',  // selected team name within age group
+  teamStatuses: {},     // { 'teamKey': 'green'|'yellow'|'gray' } for status dots
+  clubTier:     'free', // current subscription tier: 'free' | 'club' | 'tournament_host' | 'parent'
+  _dirty:       false,  // true when there are unsaved changes
+};
+
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
+
+// ─── GOOGLE LOGIN (Firebase Auth) ──────────────────────────────────────────────
+
+const GOOGLE_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px;flex-shrink:0"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>';
+
+function _resetGoogleBtn() {
+  const btn = document.getElementById('google-login-btn');
+  if (btn) { btn.disabled = false; btn.innerHTML = GOOGLE_SVG + ' Sign in with Google'; }
+}
+
+async function doGoogleLogin() {
+  setLoginErr('');
+  const btn = document.getElementById('google-login-btn');
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+  try {
+    // Sign in with Firebase Google Auth (skip popup if already signed in)
+    if (typeof fbSignIn !== 'function') throw new Error('Firebase not loaded');
+    let user = typeof fbGetUser === 'function' ? fbGetUser() : null;
+    if (!user) {
+      await fbSignIn();
+      user = typeof fbGetUser === 'function' ? fbGetUser() : null;
+    }
+    if (!user) throw new Error('Sign-in cancelled or failed');
+
+    // Get ID token
+    const token = await fbGetIdToken();
+    if (!token) throw new Error('Could not get ID token');
+    S.idToken = token;
+    S.authMode = 'google';
+
+    // ── Redeem invite token BEFORE admin checks ──────────────────────────
+    // If the URL has ?invite=TOKEN, the user arrived via an admin invite link.
+    // We must redeem it first so their UID gets added to the admin list BEFORE
+    // the access checks below run — otherwise they'd be blocked.
+    const urlParams = new URLSearchParams(window.location.search);
+    let inviteClubId = null;
+    if (urlParams.has('invite')) {
+      const inviteToken = urlParams.get('invite');
+      showStatus('Accepting invite…', 'info');
+      try {
+        const invRes = await fetch(WORKER + '/admin/invite/accept?token=' + encodeURIComponent(inviteToken), {
+          headers: { 'Authorization': 'Bearer ' + S.idToken },
+        });
+        const invData = await invRes.json().catch(() => ({}));
+        if (invRes.ok && invData.clubId) {
+          inviteClubId = invData.clubId;
+          // Also add UID to Firestore so fbCheckAdminAccess passes
+          if (typeof fbAddClubAdmin === 'function') {
+            await fbAddClubAdmin(invData.clubId, user.uid);
+          }
+          showStatus('✅ ' + (invData.message || 'Invite accepted!'), 'ok');
+        } else {
+          // Non-fatal: invite may be expired/already used — continue with normal login
+          console.warn('[invite] Could not redeem:', invData.message || invRes.status);
+        }
+      } catch (e) {
+        console.warn('[invite] Redemption error:', e.message);
+      }
+      // Clean invite param from URL regardless of success
+      history.replaceState({}, '', window.location.pathname);
+    }
+
+    // Determine club ID — prefer invite's club, then saved, then default
+    const savedClubId = inviteClubId || localStorage.getItem('ebadmin-clubId') || 'my-club';
+    if (inviteClubId) localStorage.setItem('ebadmin-clubId', inviteClubId);
+    if (typeof fbSetClubId === 'function') fbSetClubId(savedClubId);
+
+    // Check admin access for this club
+    if (typeof fbCheckAdminAccess === 'function') {
+      const access = await fbCheckAdminAccess(savedClubId);
+      if (!access.isAdmin) {
+        if (!access.clubName) {
+          // Club doesn't exist yet — auto-create it and make this user admin
+          // Derive a default club name from the user's display name; admin can rename later
+          const defaultClubName = user.displayName ? user.displayName + "'s Club" : '';
+          await fbEnsureClub(defaultClubName, user.uid);
+        } else {
+          // Club exists but user is not admin
+          setLoginErr(`You (${user.email}) are not an admin for "${access.clubName || savedClubId}". Ask an existing admin to add your UID: ${user.uid}`);
+          _resetGoogleBtn();
+          return;
+        }
+      }
+    }
+
+    // Phase C: identify this club in RevenueCat (for purchase attribution on native)
+    rcLoginForClub(savedClubId);
+
+    // Load admin data from Worker using the Firebase token
+    showStatus('Loading data…', 'info');
+    const res = await api('GET', '/admin/data');
+    if (res.status === 401 || res.status === 403) {
+      setLoginErr('Server rejected credentials. The Worker may not support token auth yet — try password login.');
+      _resetGoogleBtn();
+      return;
+    }
+    if (!res.ok) throw new Error('Worker returned ' + res.status);
+    const data = await res.json();
+    S.tournament = data.tournament || defaultTournament();
+    S.history    = data.history    || [];
+    S.roster     = data.roster     || null;
+    S.role       = data.adminRole  || 'admin';
+    S.director   = JSON.parse(localStorage.getItem('ebadmin-director-' + S.team) || 'null');
+    if (S.tournament.singleTeam !== true) {
+      if (!Array.isArray(S.tournament.teams) || S.tournament.teams.length < 2) S.tournament.teams = ['A', 'B'];
+      S.tournament.teamLabels = S.tournament.teamLabels || { A: 'Team A', B: 'Team B' };
+    }
+    if (data.gmBotId && !botGet(BOT_KEYS.GM_BOT_ID)) botSet(BOT_KEYS.GM_BOT_ID, data.gmBotId);
+    await _doAdminLoad();
+  } catch (e) {
+    setLoginErr(e.message || 'Sign-in failed');
+    _resetGoogleBtn();
+  }
+}
+
+// ─── PASSWORD LOGIN (legacy fallback) ──────────────────────────────────────────
+
+async function doLogin() {
+  const pw = document.getElementById('pw-input').value.trim();
+  if (!pw) return;
+  S.pw = pw;
+  S.authMode = 'password';
+  showStatus('Signing in…', 'info');
+  try {
+    const res = await api('GET', '/admin/data');
+    if (res.status === 401) {
+      localStorage.removeItem('ebadmin-saved-pw');  // clear saved pw if wrong
+      setLoginErr('Wrong password'); showStatus(''); return;
+    }
+    if (!res.ok) throw new Error('Worker returned ' + res.status);
+    const data = await res.json();
+    S.tournament = data.tournament || defaultTournament();
+    S.history    = data.history    || [];
+    S.roster     = data.roster     || null;
+    S.role       = data.adminRole  || 'admin';
+    S.director   = JSON.parse(localStorage.getItem('ebadmin-director-' + S.team) || 'null');
+    if (S.tournament.singleTeam !== true) {
+      if (!Array.isArray(S.tournament.teams) || S.tournament.teams.length < 2) {
+        S.tournament.teams = ['A', 'B'];
+      }
+      S.tournament.teamLabels = S.tournament.teamLabels || { A: 'Team A', B: 'Team B' };
+    }
+    if (document.getElementById('remember-pw')?.checked) {
+      localStorage.setItem('ebadmin-saved-pw', pw);
+    }
+    if (data.gmBotId && !botGet(BOT_KEYS.GM_BOT_ID)) botSet(BOT_KEYS.GM_BOT_ID, data.gmBotId);
+    // Super admin: show club dashboard to pick which club to manage
+    showClubDashboard();
+  } catch (e) {
+    setLoginErr('Connection failed: ' + e.message);
+    showStatus('');
+  }
+}
+
+// ─── LOGOUT & CLUB SWITCHING ────────────────────────────────────────────────
+
+async function doLogout() {
+  if (!confirm('Log out of the admin panel?')) return;
+  try { if (typeof fbSignOut === 'function') await fbSignOut(); } catch (e) {}
+  S.idToken = '';
+  S.pw = '';
+  S.authMode = '';
+  S.tournament = null;
+  S.history = [];
+  S.roster = null;
+  localStorage.removeItem('ebadmin-saved-pw');
+  document.getElementById('admin-app').setAttribute('hidden', '');
+  document.getElementById('club-dashboard').style.display = 'none';
+  document.getElementById('login-screen').style.display = '';
+  _resetGoogleBtn();
+  showStatus('Logged out', 'info');
+}
+
+async function switchClub() {
+  // Go back to the club dashboard
+  document.getElementById('admin-app').setAttribute('hidden', '');
+  showClubDashboard();
+}
+
+// ─── SUPER ADMIN CLUB DASHBOARD ─────────────────────────────────────────────
+
+async function showClubDashboard() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-app').setAttribute('hidden', '');
+  document.getElementById('club-dashboard').style.display = '';
+  showStatus('');
+
+  const listEl = document.getElementById('club-dashboard-list');
+  listEl.innerHTML = '<div style="text-align:center;color:var(--g400);padding:20px">Loading clubs…</div>';
+
+  try {
+    const res = await fetch(WORKER + '/clubs');
+    if (!res.ok) throw new Error('Failed to fetch clubs');
+    const data = await res.json();
+    const clubs = data.clubs || [];
+
+    if (!clubs.length) {
+      listEl.innerHTML = '<div style="text-align:center;color:var(--g400);padding:20px">No clubs found.</div>';
+      return;
+    }
+
+    // For each club, fetch admin count
+    let html = '';
+    for (const club of clubs) {
+      let adminCount = '?';
+      try {
+        const aRes = await fetch(WORKER + '/admin/club-admins?club=' + encodeURIComponent(club.id), {
+          headers: S.pw ? { 'X-Admin-Password': S.pw } : { 'Authorization': 'Bearer ' + S.idToken }
+        });
+        if (aRes.ok) {
+          const aData = await aRes.json();
+          adminCount = (aData.admins || aData.adminUIDs || []).length;
+        }
+      } catch (e) {}
+
+      const typeLabel = club.clubType === 'highschool' ? '🎓 HS' : '🤽‍♀️ Club';
+      const logoHtml = club.logo
+        ? `<div style="width:44px;height:44px;background:var(--g50);border-radius:10px;border:1px solid var(--g200);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">`
+          + `<img src="${club.logo}" style="width:40px;height:40px;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display=''">`
+          + `<div style="font-size:1.4rem;display:none">${club.clubType === 'highschool' ? '🎓' : '🤽‍♀️'}</div>`
+          + `</div>`
+        : `<div style="width:44px;height:44px;background:var(--g100);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.4rem">${club.clubType === 'highschool' ? '🎓' : '🤽‍♀️'}</div>`;
+
+      html += `
+        <div style="background:var(--g50);border:1px solid var(--g200);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:box-shadow .15s"
+             onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,40,104,.15)'"
+             onmouseleave="this.style.boxShadow='none'"
+             onclick="selectDashboardClub('${esc(club.id)}')">
+          <div style="display:flex;align-items:center;gap:12px">
+            ${logoHtml}
+            <div style="flex:1;min-width:0">
+              <div style="font-size:1rem;font-weight:700;color:var(--royal)">${esc(club.name)}</div>
+              <div style="font-size:0.78rem;color:var(--g400)">${typeLabel} · ID: ${esc(club.id)} · ${adminCount} admin${adminCount !== 1 ? 's' : ''}</div>
+            </div>
+            <button onclick="event.stopPropagation();deleteClub('${esc(club.id)}','${esc(club.name)}')"
+                    title="Delete club"
+                    style="background:none;border:none;color:var(--g300);font-size:1.1rem;cursor:pointer;padding:4px 6px;border-radius:6px;transition:color .15s,background .15s"
+                    onmouseenter="this.style.color='#d32f2f';this.style.background='#fdecea'"
+                    onmouseleave="this.style.color='var(--g300)';this.style.background='none'">🗑️</button>
+            <div style="color:var(--g400);font-size:1.2rem">›</div>
+          </div>
+        </div>`;
+    }
+    listEl.innerHTML = html;
+
+    // Update platform stats
+    const statsEl = document.getElementById('platform-stats-body');
+    if (statsEl) {
+      let totalAdmins = 0;
+      for (const club of clubs) {
+        try {
+          const aRes = await fetch(WORKER + '/admin/club-admins?club=' + encodeURIComponent(club.id), {
+            headers: S.pw ? { 'X-Admin-Password': S.pw } : { 'Authorization': 'Bearer ' + S.idToken }
+          });
+          if (aRes.ok) {
+            const aData = await aRes.json();
+            totalAdmins += (aData.admins || aData.adminUIDs || []).length;
+          }
+        } catch (e) {}
+      }
+      statsEl.innerHTML = `
+        <div style="display:flex;gap:20px;margin-top:4px">
+          <div><span style="font-size:1.4rem;font-weight:700;color:var(--royal)">${clubs.length}</span><br>Clubs</div>
+          <div><span style="font-size:1.4rem;font-weight:700;color:var(--royal)">${totalAdmins}</span><br>Total Admins</div>
+          <div><span style="font-size:1.4rem;font-weight:700;color:var(--royal)">9</span><br>Age Groups</div>
+        </div>`;
+    }
+  } catch (e) {
+    listEl.innerHTML = '<div style="text-align:center;color:var(--red);padding:20px">Error loading clubs: ' + esc(e.message) + '</div>';
+  }
+}
+
+async function selectDashboardClub(clubId) {
+  localStorage.setItem('ebadmin-clubId', clubId);
+  if (typeof fbSetClubId === 'function') fbSetClubId(clubId);
+  // Reset branding state so the new club's branding loads fresh
+  S._branding = null;
+  document.getElementById('club-dashboard').style.display = 'none';
+  showStatus('Loading ' + clubId + '…', 'info');
+  try {
+    const res = await api('GET', '/admin/data');
+    if (!res.ok) throw new Error('Worker returned ' + res.status);
+    const data = await res.json();
+    S.tournament = data.tournament || defaultTournament();
+    S.history    = data.history    || [];
+    S.roster     = data.roster     || null;
+    if (S.tournament.singleTeam !== true) {
+      if (!Array.isArray(S.tournament.teams) || S.tournament.teams.length < 2) S.tournament.teams = ['A', 'B'];
+      S.tournament.teamLabels = S.tournament.teamLabels || { A: 'Team A', B: 'Team B' };
+    }
+    await _doAdminLoad();
+  } catch (e) {
+    showStatus('Failed: ' + e.message, 'err');
+    document.getElementById('club-dashboard').style.display = '';
+  }
+}
+
+async function createNewClub() {
+  const idInput = document.getElementById('new-club-id');
+  const nameInput = document.getElementById('new-club-name');
+  const clubId = (idInput?.value || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+  const clubName = (nameInput?.value || '').trim();
+  if (!clubId) { alert('Enter a club ID (letters, numbers, hyphens only)'); return; }
+  if (!clubName) { alert('Enter a display name'); return; }
+  if (!/^[a-z][a-z0-9-]{2,39}$/.test(clubId)) { alert('Club ID must start with a letter, 3-40 chars, only lowercase letters/numbers/hyphens'); return; }
+
+  try {
+    // Build auth headers — prefer Firebase (so UID gets added as admin), fall back to password
+    const authHeaders = { 'Content-Type': 'application/json' };
+    if (S.idToken) {
+      authHeaders['Authorization'] = 'Bearer ' + S.idToken;
+    } else if (S.pw) {
+      authHeaders['X-Admin-Password'] = S.pw;
+    }
+
+    // Bootstrap admin list for the new club
+    const initRes = await fetch(WORKER + '/admin/init-club?club=' + encodeURIComponent(clubId), {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({})
+    });
+    const initData = await initRes.json();
+    if (!initData.ok && !initData.description?.includes('already')) {
+      throw new Error(initData.description || 'Init failed');
+    }
+
+    // Set the club display name
+    await fetch(WORKER + '/admin/club-name?club=' + encodeURIComponent(clubId), {
+      method: 'PUT',
+      headers: authHeaders,
+      body: JSON.stringify({ name: clubName })
+    });
+
+    // Auto-add the current Firebase user as admin for the new club
+    const fbUser = typeof fbGetUser === 'function' ? fbGetUser() : null;
+    if (fbUser && fbUser.uid) {
+      await fetch(WORKER + '/admin/club-admins?club=' + encodeURIComponent(clubId), {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify({ adminUIDs: [{ uid: fbUser.uid, name: fbUser.displayName || '', email: fbUser.email || '' }] })
+      });
+    }
+
+    idInput.value = '';
+    nameInput.value = '';
+    alert('Club "' + clubName + '" created! You can now manage it from the dashboard.');
+    showClubDashboard(); // refresh the list
+  } catch (e) {
+    alert('Error creating club: ' + e.message);
+  }
+}
+
+async function deleteClub(clubId, clubName) {
+  if (!confirm('Delete club "' + (clubName || clubId) + '"?\n\nThis will permanently remove all club data including tournaments, rosters, and admin lists.\n\nThis cannot be undone!')) return;
+  if (!confirm('Are you REALLY sure you want to delete "' + (clubName || clubId) + '"?')) return;
+  try {
+    const headers = {};
+    // Send both — password auth bypasses club-level admin checks (super admin)
+    if (S.idToken) headers['Authorization'] = 'Bearer ' + S.idToken;
+    if (S.pw) headers['X-Admin-Password'] = S.pw;
+    const res = await fetch(WORKER + '/admin/delete-club?club=' + encodeURIComponent(clubId), {
+      method: 'DELETE',
+      headers,
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(errText || 'Delete failed: ' + res.status);
+    }
+    alert('Club "' + (clubName || clubId) + '" has been deleted.');
+    showClubDashboard();
+  } catch (e) {
+    alert('Error deleting club: ' + e.message);
+  }
+}
+
+/** Build smart header text from current tournament + club context */
+function getTeamLabel(teamKey) {
+  const teams = getAdminTeams();
+  const match = teams.find(t => t.key === teamKey);
+  return match ? match.label : teamKey.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function getCurrentSeasonLabel() {
+  return `Fall ${new Date().getFullYear()} Season`;
+}
+
+function updateAdminHeader() {
+  const clubId = localStorage.getItem('ebadmin-clubId') || 'my-club';
+  const clubName = clubId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+  // Update title to show club name
+  const titleEl = document.querySelector('.admin-header-title');
+  if (titleEl) titleEl.textContent = clubName + ' Admin';
+  // Mobile compact club name (shown instead of the hidden full title)
+  const mobileNameEl = document.getElementById('mobile-club-name');
+  if (mobileNameEl) mobileNameEl.textContent = clubName;
+
+  // Build subtitle from tournament data
+  const t = S.tournament;
+  const subEl = document.getElementById('header-sub');
+  if (!subEl) return;
+
+  // Team label is now shown in the header select — subtitle just shows tournament info
+  if (!t || t.stayTuned || !t.name || t.name === 'Stay Tuned!') {
+    subEl.textContent = S.clubType === 'highschool' ? getCurrentSeasonLabel() : 'No tournament loaded';
+    return;
+  }
+
+  const parts = [t.name];
+  if (t.location) parts.push(t.location);
+  if (t.dates) parts.push(t.dates);
+  subEl.textContent = parts.join(' · ');
+}
+
+// ─── SUBSCRIPTION TIER (Phase C) ─────────────────────────────────────────────
+
+const TIER_LABELS = { free: 'Free', club: 'Club', tournament_host: 'Tournament Host', parent: 'Parent' };
+const TIER_COLORS = { free: '#6b7280', club: '#2563eb', tournament_host: '#7c3aed', parent: '#059669' };
+
+/**
+ * Fetch the club's current subscription tier from the worker and store in S.clubTier.
+ * Falls back to 'free' on any error.
+ */
+async function loadClubTier(clubId) {
+  if (!clubId) return;
+  try {
+    const res = await fetch(`${WORKER}/club-tier?clubId=${encodeURIComponent(clubId)}`);
+    if (res.ok) {
+      const data = await res.json();
+      S.clubTier = data.tier || 'free';
+      console.info(`[tier] Club tier for ${clubId}: ${S.clubTier}`);
+    }
+  } catch (e) {
+    console.warn('[tier] Could not fetch club tier:', e.message);
+  }
+  updateTierBadge();
+  updateTabCrowns();
+}
+
+/**
+ * Show/hide 👑 crown on premium tab buttons based on current tier.
+ * Crown appears when the club doesn't have the required feature — regardless of ENFORCE_TIERS.
+ * This is a visual indicator of what's included in each plan, not a gate.
+ * Disappears once the club has the required tier — positive reinforcement.
+ */
+function updateTabCrowns() {
+  const gates = { teamcomm: 'push_notify', history: 'season_stats', director: 'tournament_host' };
+  Object.entries(gates).forEach(([tab, feature]) => {
+    const locked = !tierHasFeatureByTier(feature);
+    document.querySelectorAll(`[data-tab="${tab}"] .tab-crown`).forEach(el => {
+      el.style.display = locked ? '' : 'none';
+    });
+  });
+}
+
+// Like tierHasFeature() but always checks real tier — ignores ENFORCE_TIERS flag.
+// Used for crown badges so they reflect actual club tier regardless of testing mode.
+function tierHasFeatureByTier(feature) {
+  const tier = S.clubTier || 'free';
+  const tiers = { free: [], parent: ['parent_stats'], club: ['push_notify', 'live_scoring', 'season_stats', 'multi_team'], tournament_host: ['push_notify', 'live_scoring', 'season_stats', 'multi_team', 'tournament_host'] };
+  return (tiers[tier] || []).includes(feature);
+}
+
+/**
+ * Tailored full-page upgrade nudge for each gated tab.
+ * Returns HTML string to replace the tab content when the feature is locked.
+ */
+function renderTieredNudge(tabKey) {
+  const nudges = {
+    teamcomm: {
+      icon: '📣',
+      title: 'Team Communication',
+      tier: 'Club Plan',
+      price: '$24.99/mo · $199/yr · 14-day free trial',
+      feature: 'push_notify',
+      items: [
+        'Push notifications to all subscribers — scores, schedule changes, cancellations',
+        'Automatic game reminders sent to parents X minutes before tip-off',
+        'Send custom announcements any time — team news, carpool, hotel info',
+        'Telegram, GroupMe &amp; TeamSnap integrations for your existing group chats',
+        'Schedule announcements in advance — set it and forget it',
+      ],
+      cta: 'Upgrade to Club 👑',
+    },
+    history: {
+      icon: '📊',
+      title: 'Season Stats',
+      tier: 'Club Plan',
+      price: '$24.99/mo · $199/yr · 14-day free trial',
+      feature: 'season_stats',
+      items: [
+        'Cumulative player stats tracked across every tournament all season',
+        'Goals, assists, exclusions &amp; saves per player — individual and team totals',
+        'Season-long leaderboards updated automatically after every game',
+        'Export stats for program reports, recruiting profiles, or MaxPreps (high school)',
+        'Historical record stays even when you start a new tournament',
+      ],
+      cta: 'Upgrade to Club 👑',
+    },
+    director: {
+      icon: '🏆',
+      title: 'Tournament Host',
+      tier: 'Tournament Host',
+      price: '$199 one-time per event',
+      feature: 'tournament_host',
+      items: [
+        'Import scores directly from tournament director — no double entry',
+        'Manage all clubs &amp; age groups from a single director dashboard',
+        'Public shareable bracket URL for spectators, coaches, and parents',
+        'Live public scoring visible to anyone — no app or login required',
+        'Exportable results &amp; standings reports for end-of-tournament packets',
+      ],
+      cta: 'Get Tournament Host 👑',
+    },
+  };
+  const n = nudges[tabKey];
+  if (!n) return renderUpgradeNudge(tabKey);
+  return `
+    <div style="padding:32px 20px;max-width:500px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:3rem;margin-bottom:10px">${n.icon}</div>
+        <div style="font-size:1.25rem;font-weight:800;color:var(--royal);margin-bottom:4px">${n.title}</div>
+        <div style="display:inline-block;background:var(--royal);color:white;font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:20px;letter-spacing:0.05em;margin-bottom:6px">${n.tier}</div>
+        <div style="font-size:0.82rem;color:var(--g400)">${n.price}</div>
+      </div>
+      <div style="background:var(--g50,#f9fafb);border:1px solid var(--g100,#f3f4f6);border-radius:14px;padding:18px 20px;margin-bottom:24px">
+        <div style="font-weight:700;font-size:0.82rem;color:var(--g500);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">What you unlock</div>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px">
+          ${n.items.map(item => `<li style="display:flex;gap:10px;font-size:0.88rem;line-height:1.45;color:var(--g800,#1f2937)"><span style="color:#16a34a;flex-shrink:0;font-size:1rem">✓</span><span>${item}</span></li>`).join('')}
+        </ul>
+      </div>
+      <button onclick="showUpgradeSheet()" style="width:100%;background:var(--royal);color:white;border:none;border-radius:12px;padding:14px 20px;font-size:1rem;font-weight:800;cursor:pointer;letter-spacing:0.01em">${n.cta}</button>
+      <p style="text-align:center;font-size:0.75rem;color:var(--g400);margin-top:12px">Questions? Email <a href="mailto:hello@eggbeater.app" style="color:var(--royal)">hello@eggbeater.app</a></p>
+    </div>`;
+}
+
+/** Render or update the tier badge(s) in the admin header.
+ *  tournament_host clubs get two badges: Club + Tournament Host. */
+function updateTierBadge() {
+  const titleEl = document.querySelector('#admin-app .admin-header-title');
+  if (!titleEl) return;
+  // Remove any existing badges so we can re-render cleanly
+  document.querySelectorAll('#admin-app .tier-badge-item').forEach(el => el.remove());
+  const tier = S.clubTier || 'free';
+  const badgeStyle = 'font-size:0.72rem;font-weight:700;padding:4px 9px;border-radius:6px;color:white;letter-spacing:0.02em;cursor:default;border:1.5px solid rgba(255,255,255,0.25);flex-shrink:0';
+  // tournament_host shows two badges: Club (blue) + Tournament Host (purple)
+  const badges = tier === 'tournament_host'
+    ? [{ label: 'Club', color: TIER_COLORS['club'] }, { label: 'Tournament Host', color: TIER_COLORS['tournament_host'] }]
+    : [{ label: TIER_LABELS[tier] || tier, color: TIER_COLORS[tier] || '#6b7280' }];
+  badges.forEach(b => {
+    const el = document.createElement('span');
+    el.className = 'tier-badge-item';
+    el.style.cssText = badgeStyle;
+    el.style.background = b.color;
+    el.textContent = b.label;
+    el.title = tier === 'free' ? 'Upgrade to Club to unlock all features' : `Active: ${b.label} plan`;
+    titleEl.parentNode.insertBefore(el, titleEl.nextSibling);
+  });
+}
+
+/**
+ * ENFORCE_TIERS — set to true to enable paywall gates in production.
+ * While false, ALL features are available to every club regardless of tier.
+ * Flip to true when ready to start enforcing subscriptions.
+ */
+const ENFORCE_TIERS = true;
+
+/**
+ * Check if the current club has access to a paid feature.
+ * Returns true if the feature is available for the current tier.
+ */
+function tierHasFeature(feature) {
+  if (!ENFORCE_TIERS) return true; // everything open during testing
+  const tier = S.clubTier || 'free';
+  switch (feature) {
+    case 'multi_team':        return tier !== 'free';
+    case 'push_notify':       return tier !== 'free';
+    case 'live_scoring':      return tier !== 'free';
+    case 'season_stats':      return tier !== 'free';
+    case 'tournament_host':   return tier === 'tournament_host';
+    default:                  return true;
+  }
+}
+
+/**
+ * Show a tasteful upgrade nudge inline (not a popup).
+ * Returns an HTML string for a locked feature prompt.
+ */
+function renderUpgradeNudge(featureName) {
+  const nudgeData = {
+    'live_scoring': {
+      headline: 'Live Scoring — Club Plan',
+      desc: 'Let parents or sideline scorers submit real-time scores from poolside. Every goal updates live in the parent app instantly.',
+      cta: 'Unlock Live Scoring',
+    },
+    'multi_team': {
+      headline: 'Multi-Team Mode — Club Plan',
+      desc: 'Run A Team and B Team from one dashboard with separate rosters, games, and live scores for each squad.',
+      cta: 'Unlock Multi-Team',
+    },
+    'push_notify': {
+      headline: 'Push Notifications — Club Plan',
+      desc: 'Automatically alert parents when scores change, games are added, or schedules shift — no manual texts needed.',
+      cta: 'Unlock Push Notifications',
+    },
+    'season_stats': {
+      headline: 'Season Stats — Club Plan',
+      desc: 'Track goals, assists, and saves across every tournament all season. Individual and team leaderboards update automatically.',
+      cta: 'Unlock Season Stats',
+    },
+    // Legacy string call-sites
+    'Live Scoring — Club Plan': {
+      headline: 'Live Scoring — Club Plan',
+      desc: 'Let parents or sideline scorers submit real-time scores from poolside. Every goal updates live in the parent app instantly.',
+      cta: 'Unlock Live Scoring',
+    },
+    'Multiple Teams — Club Plan': {
+      headline: 'Multi-Team Mode — Club Plan',
+      desc: 'Run A Team and B Team from one dashboard with separate rosters, games, and live scores for each squad.',
+      cta: 'Unlock Multi-Team',
+    },
+  };
+  const n = nudgeData[featureName] || {};
+  const headline = n.headline || (featureName + ' — Club Plan');
+  const desc = n.desc || 'Upgrade to Club Plan to unlock this feature for your club.';
+  const cta = n.cta || 'View Upgrade Options';
+  // On web (no Capacitor), route directly to Stripe checkout for the Club monthly plan
+  const isNative = !!(window.Capacitor?.isNativePlatform?.());
+  const upgradeAction = isNative
+    ? `showUpgradeSheet()`
+    : `_paywallWebCheckout('price_1TIEmo0NjxFM08jKlS2kPNZp','club')`;
+  const ctaLabel = isNative ? `${cta} ↗` : `${cta} — $24.99/mo ↗`;
+  return `<div class="upgrade-nudge" style="background:var(--g50);border:1px solid var(--g200);border-radius:10px;padding:14px 16px;margin:8px 0">
+    <div style="display:flex;align-items:flex-start;gap:10px">
+      <span style="font-size:1.3rem;flex-shrink:0;margin-top:1px">🔒</span>
+      <div style="flex:1;min-width:0">
+        <div class="upgrade-nudge-title" style="font-size:0.88rem;font-weight:700;color:var(--g900)">${headline}</div>
+        <div class="upgrade-nudge-sub" style="font-size:0.78rem;color:var(--g500);margin-top:3px;line-height:1.45">${desc}</div>
+      </div>
+    </div>
+    <button onclick="${upgradeAction}" style="margin-top:12px;width:100%;background:var(--royal);color:white;border:none;border-radius:8px;padding:9px 14px;font-size:0.85rem;font-weight:700;cursor:pointer;letter-spacing:0.01em">${ctaLabel}</button>
+  </div>`;
+}
+
+// ─── PAYWALL UI (Phase B) ──────────────────────────────────────────────────────
+
+// Cached offerings from RevenueCat (keyed by identifier)
+let _paywallOfferings = null;
+let _paywallPeriod = 'monthly'; // 'monthly' | 'annual'
+
+/** Open the paywall sheet. Fetches RC offerings on native; shows static prices on web. */
+async function showUpgradeSheet() {
+  const drawer = document.getElementById('paywall-drawer');
+  if (!drawer) return;
+
+  // Already subscribed to Club? Show a friendly message instead
+  const tier = S.clubTier || 'free';
+  if (tier === 'club') {
+    showStatus('Your club already has an active Club subscription.', 'ok');
+    return;
+  }
+
+  // Reset toggle to monthly
+  _paywallPeriod = 'monthly';
+  document.getElementById('paywall-monthly-btn')?.classList.add('active');
+  document.getElementById('paywall-annual-btn')?.classList.remove('active');
+
+  // Show sheet immediately with a loading state
+  drawer.classList.remove('paywall-hidden');
+  _renderPaywallCards(null); // loading state
+
+  // Fetch offerings from RevenueCat on native
+  const Purchases = window.Capacitor?.Plugins?.Purchases;
+  if (Purchases) {
+    try {
+      const result = await Purchases.getOfferings();
+      const pkgs = result?.current?.availablePackages || [];
+      _paywallOfferings = {};
+      for (const p of pkgs) _paywallOfferings[p.identifier] = p;
+    } catch (e) {
+      console.warn('[paywall] getOfferings failed:', e.message);
+      _paywallOfferings = {};
+    }
+  } else {
+    _paywallOfferings = null; // web — use static prices
+  }
+
+  _renderPaywallCards(_paywallOfferings);
+}
+
+/** Render the pricing cards into #paywall-cards. offerings=null means web/static. */
+function _renderPaywallCards(offerings) {
+  const el = document.getElementById('paywall-cards');
+  if (!el) return;
+
+  // Loading state
+  if (offerings === null && window.Capacitor?.Plugins?.Purchases) {
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:#9ca3af;font-size:0.9rem">Loading prices…</div>';
+    return;
+  }
+
+  const isNative = !!(window.Capacitor?.Plugins?.Purchases);
+  const isMonthly = _paywallPeriod === 'monthly';
+
+  // Helper: get real price string from RC or fall back to static
+  const price = (id, fallback) => offerings?.[id]?.product?.priceString || fallback;
+
+  // Club card — monthly or annual
+  const clubMonthlyId      = '$rc_monthly';
+  const clubAnnualId       = '$rc_annual';
+  const clubPkg            = isMonthly ? clubMonthlyId : clubAnnualId;
+  const clubPrice          = isMonthly ? price(clubMonthlyId, '$24.99') : price(clubAnnualId, '$199.99');
+  const clubPeriod         = isMonthly ? '/month' : '/year';
+  const clubSaving         = isMonthly ? '' : '<div class="paywall-card-saving">Save ~34% vs monthly billing</div>';
+  const clubTrialLine      = isMonthly ? '14-day free trial · cancel anytime' : 'Best value · cancel anytime';
+  const clubBtnText        = isMonthly ? 'Start Free Trial' : 'Subscribe Annually';
+
+  // Stripe price IDs for web checkout
+  const STRIPE_CLUB_MONTHLY = 'price_1TIEmo0NjxFM08jKlS2kPNZp';
+  const STRIPE_CLUB_ANNUAL  = 'price_1TIEnv0NjxFM08jKAY1W5s0m';
+  const STRIPE_HOST         = 'price_1TIEp60NjxFM08jKHWtHSRJM';
+  const clubStripePriceId   = isMonthly ? STRIPE_CLUB_MONTHLY : STRIPE_CLUB_ANNUAL;
+
+  // Tournament Host card
+  const hostId    = 'tournament_host';
+  const hostPrice = price(hostId, '$199.99');
+
+  let html = `
+    <div class="paywall-card featured">
+      <div class="paywall-card-badge">MOST POPULAR</div>
+      <div class="paywall-card-title">Eggbeater Club</div>
+      <div class="paywall-card-desc">${clubTrialLine}</div>
+      <div class="paywall-card-price">${clubPrice}<span>${clubPeriod}</span></div>
+      ${clubSaving}
+      ${isNative
+        ? `<button class="paywall-buy-btn primary" id="paywall-club-btn" onclick="_paywallPurchase('${clubPkg}')">${clubBtnText}</button>`
+        : `<button class="paywall-buy-btn primary" id="paywall-club-btn" onclick="_paywallWebCheckout('${clubStripePriceId}','club')">${clubBtnText}</button>`
+      }
+    </div>
+
+    <div class="paywall-card">
+      <div class="paywall-card-title">Tournament Host</div>
+      <div class="paywall-card-desc">One-time purchase · unlimited age groups · public live scoring</div>
+      <div class="paywall-card-price">${hostPrice}<span> one-time</span></div>
+      ${isNative
+        ? `<button class="paywall-buy-btn secondary" id="paywall-host-btn" onclick="_paywallPurchase('${hostId}')">Purchase Tournament Host</button>`
+        : `<button class="paywall-buy-btn secondary" id="paywall-host-btn" onclick="_paywallWebCheckout('${STRIPE_HOST}','tournament_host')">Purchase Tournament Host</button>`
+      }
+    </div>`;
+
+  el.innerHTML = html;
+}
+
+/** Switch between monthly and annual view. */
+function _paywallTogglePeriod(period) {
+  _paywallPeriod = period;
+  document.getElementById('paywall-monthly-btn')?.classList.toggle('active', period === 'monthly');
+  document.getElementById('paywall-annual-btn')?.classList.toggle('active', period === 'annual');
+  _renderPaywallCards(_paywallOfferings);
+}
+
+/** Close the paywall sheet. */
+function _closePaywall() {
+  document.getElementById('paywall-drawer')?.classList.add('paywall-hidden');
+}
+
+/** Initiate a purchase for the given RC package identifier. */
+async function _paywallPurchase(packageId) {
+  const Purchases = window.Capacitor?.Plugins?.Purchases;
+  if (!Purchases) return;
+
+  // Disable both buy buttons during purchase
+  ['paywall-club-btn', 'paywall-host-btn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) { btn.disabled = true; btn.textContent = 'Processing…'; }
+  });
+
+  try {
+    const pkg = _paywallOfferings?.[packageId];
+    if (!pkg) throw new Error('Package not found: ' + packageId);
+
+    const result = await Purchases.purchasePackage({ aPackage: pkg });
+    const entitlements = result?.customerInfo?.entitlements?.active || {};
+
+    // Map entitlement to tier
+    let newTier = S.clubTier;
+    if (entitlements['club'])            newTier = 'club';
+    else if (entitlements['tournament_host']) newTier = 'tournament_host';
+    else if (entitlements['parent'])     newTier = 'parent';
+
+    S.clubTier = newTier;
+    updateTierBadge();
+    _closePaywall();
+    showStatus('Purchase complete! Welcome to ' + (TIER_LABELS[newTier] || newTier) + '.', 'ok');
+
+  } catch (e) {
+    // RC throws with userCancelled=true if user dismissed — don't show error for that
+    if (e?.userCancelled) {
+      // silently re-enable buttons
+    } else {
+      showStatus('Purchase failed: ' + (e.message || 'Unknown error'), 'err');
+    }
+    // Re-enable buttons
+    _renderPaywallCards(_paywallOfferings);
+  }
+}
+
+/** Restore previous purchases. */
+async function _paywallRestore() {
+  const Purchases = window.Capacitor?.Plugins?.Purchases;
+  if (!Purchases) {
+    showStatus('Restore is only available in the native app.', 'info');
+    return;
+  }
+  showStatus('Restoring purchases…', 'info');
+  try {
+    const result = await Purchases.restorePurchases();
+    const entitlements = result?.customerInfo?.entitlements?.active || {};
+
+    let newTier = 'free';
+    if (entitlements['club'])                newTier = 'club';
+    else if (entitlements['tournament_host']) newTier = 'tournament_host';
+    else if (entitlements['parent'])          newTier = 'parent';
+
+    S.clubTier = newTier;
+    updateTierBadge();
+
+    if (newTier !== 'free') {
+      _closePaywall();
+      showStatus('Purchases restored! ' + (TIER_LABELS[newTier] || newTier) + ' plan active.', 'ok');
+    } else {
+      showStatus('No active purchases found.', 'info');
+    }
+  } catch (e) {
+    showStatus('Restore failed: ' + (e.message || 'Unknown error'), 'err');
+  }
+}
+
+/**
+ * Web (browser) checkout via Stripe.
+ * Calls Worker /create-web-checkout → redirects to Stripe-hosted checkout page.
+ */
+async function _paywallWebCheckout(priceId, tier) {
+  const btn = document.getElementById(
+    tier === 'tournament_host' ? 'paywall-host-btn' : 'paywall-club-btn'
+  );
+  if (btn) { btn.disabled = true; btn.textContent = 'Redirecting…'; }
+
+  try {
+    const clubId = S.currentClubId || S.clubId;
+    if (!clubId) throw new Error('No club selected — please refresh and try again.');
+
+    const res = await fetch(`${WORKER}/create-web-checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clubId,
+        priceId,
+        successUrl: `${location.origin}${location.pathname}?checkout=success`,
+        cancelUrl:  `${location.origin}${location.pathname}?checkout=cancel`,
+      }),
+    });
+    const data = await res.json();
+    if (!data.ok || !data.url) throw new Error(data.description || 'Failed to create checkout session');
+    window.location.href = data.url;
+  } catch (e) {
+    showStatus('Checkout error: ' + e.message, 'err');
+    if (btn) { btn.disabled = false; btn.textContent = tier === 'tournament_host' ? 'Purchase Tournament Host' : 'Subscribe'; }
+  }
+}
+
+/**
+ * Open Stripe Billing Portal so the user can manage / cancel their web subscription.
+ */
+async function openStripePortal() {
+  showStatus('Opening subscription management…', 'info');
+  try {
+    const clubId = S.currentClubId || S.clubId;
+    if (!clubId) throw new Error('No club selected');
+
+    const res = await fetch(`${WORKER}/create-portal-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clubId,
+        returnUrl: `${location.origin}${location.pathname}`,
+      }),
+    });
+    const data = await res.json();
+    if (!data.ok || !data.url) throw new Error(data.description || 'Failed to open portal');
+    window.location.href = data.url;
+  } catch (e) {
+    showStatus('Portal error: ' + e.message, 'err');
+  }
+}
+
+/** Handle return from Stripe Checkout (success/cancel query params). */
+(function _handleStripeReturn() {
+  const params = new URLSearchParams(location.search);
+  if (params.has('checkout')) {
+    const status = params.get('checkout');
+    // Clean the URL param without reload
+    const clean = location.pathname;
+    history.replaceState({}, '', clean);
+
+    if (status === 'success') {
+      showStatus('Payment successful! Your plan will activate shortly.', 'ok');
+      // Refresh tier after a brief delay so KV has time to update
+      setTimeout(async () => {
+        const clubId = S.currentClubId || S.clubId;
+        if (clubId) await loadClubTier(clubId);
+      }, 3000);
+    } else if (status === 'cancel') {
+      showStatus('Checkout cancelled — no charge was made.', 'info');
+    }
+  }
+})();
+
+/**
+ * Attempt to log in to RevenueCat SDK with clubId as the app_user_id.
+ * This ensures purchases are attributed to the correct club.
+ * Only works on native (iOS/Android) — silently no-ops on web.
+ */
+async function rcLoginForClub(clubId) {
+  if (!clubId) return;
+  try {
+    const Purchases = window.Capacitor?.Plugins?.Purchases;
+    if (!Purchases) return; // running in browser — skip
+    const apiKey = window.Capacitor.getPlatform() === 'ios'
+      ? 'appl_xrlDYgNuYWYDOboFAyxMfNNUwGf'
+      : 'goog_HRazxrVZgjHNXPpNFqDrjwGflmW';
+    await Purchases.configure({ apiKey });
+    await Purchases.logIn({ appUserID: clubId });
+    console.info(`[rc] Logged in to RevenueCat as club: ${clubId}`);
+  } catch (e) {
+    console.warn('[rc] RevenueCat logIn failed (non-fatal):', e.message);
+  }
+}
+
+/** Shared post-login setup — called by both doLogin() and doGoogleLogin(). */
+async function _doAdminLoad() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-app').removeAttribute('hidden');
+  // Sync header height now that admin-app is visible (sidebar needs correct padding-top)
+  requestAnimationFrame(() => syncAdminHeaderHeight());
+  // Show Switch Club button for superadmin (password login)
+  const switchBtn = document.getElementById('switch-club-btn');
+  if (switchBtn) switchBtn.style.display = S.authMode === 'password' ? '' : 'none';
+
+  // Phase 3: restore club ID and load cloud tournament list from Firestore
+  // We MUST do this before loadClubSettings() so the api() helper has the correct club context.
+  if (!localStorage.getItem('ebadmin-clubId')) {
+    const clubId = typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club';
+    localStorage.setItem('ebadmin-clubId', clubId);
+  }
+  const savedClubId = localStorage.getItem('ebadmin-clubId');
+  if (savedClubId && typeof fbSetClubId === 'function') fbSetClubId(savedClubId);
+
+  // Load club settings (type, name, branding, logo) first so S.clubType and
+  // branding are populated before we render team pills or the header.
+  await loadClubSettings();
+
+  // Phase C: load subscription tier (non-blocking — badge updates when ready)
+  loadClubTier(savedClubId);
+
+  renderAdminTeamPills();
+  if (typeof fbLoadTournaments === 'function' && fbReady()) {
+    try {
+      S.tournamentList = await fbLoadTournaments();
+      const savedId = localStorage.getItem('ebadmin-tournamentId');
+      const active  = S.tournamentList.find(t => t.status === 'active');
+      const saved   = savedId && S.tournamentList.find(t => t.id === savedId);
+      S.tournamentId = saved ? saved.id : active ? active.id : S.tournamentList[0]?.id || null;
+      if (S.tournamentId) localStorage.setItem('ebadmin-tournamentId', S.tournamentId);
+    } catch (e) { console.warn('[admin] tournament list load:', e.message); }
+  }
+
+  // Load saved tournaments for the specific team (workspace drafts)
+  try {
+    const listRes = await api('GET', '/admin/saved-tournaments');
+    if (listRes.ok) {
+      const listData = await listRes.json();
+      S.savedTournaments = listData.savedTournaments || [];
+    }
+  } catch (e) {
+    console.warn('[admin] saved tournaments load error:', e.message);
+  }
+
+  renderTournamentSelector();
+  syncAdminHeaderHeight();
+  updateAdminHeader();
+  showStatus('');
+
+  // Note: invite token handling has been moved to doGoogleLogin() so it runs
+  // BEFORE admin access checks, allowing new admins to sign in via invite link.
+
+  // Check for TeamSnap OAuth redirect params in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('ts_connected')) {
+    S.currentTab = 'teamcomm';
+    history.replaceState({}, '', window.location.pathname);
+  } else if (urlParams.has('ts_error')) {
+    S.currentTab = 'teamcomm';
+    history.replaceState({}, '', window.location.pathname);
+  }
+
+  // Restore persisted Tournament Director sync package
+  restoreDirSync();
+
+  // Load TeamSnap OAuth status from worker
+  await refreshTsStatus();
+
+  // Show notification if returning from TeamSnap OAuth
+  if (urlParams.has('ts_connected')) {
+    showStatus('✅ TeamSnap connected!', 'ok');
+  } else if (urlParams.has('ts_error')) {
+    showStatus('❌ TeamSnap connect failed: ' + urlParams.get('ts_error'), 'err');
+  }
+
+  renderTab();
+  // Fetch status indicators for all age groups in background
+  fetchAllTeamStatuses();
+  // Show first-run setup banner if club isn't fully set up yet
+  maybeShowSetupBanner();
+}
+
+// ── Setup Banner ─────────────────────────────────────────────────────────────
+
+function maybeShowSetupBanner() {
+  const banner = document.getElementById('setup-banner');
+  if (!banner) return;
+  // Don't show if user has explicitly dismissed it this session
+  if (sessionStorage.getItem('setup-banner-dismissed')) return;
+  const hasName  = !!(S.tournament?.clubName || '').trim();
+  const hasGames = !!(S.tournament?.games?.length);
+  if (hasName && hasGames) { banner.style.display = 'none'; return; }
+  // Mark step states
+  const s1 = document.getElementById('sb-step-1');
+  const s2 = document.getElementById('sb-step-2');
+  if (s1) s1.classList.toggle('done', hasName);
+  if (s2) s2.classList.toggle('done', hasGames);
+  banner.style.display = 'block';
+}
+
+function dismissSetupBanner() {
+  const banner = document.getElementById('setup-banner');
+  if (banner) banner.style.display = 'none';
+  sessionStorage.setItem('setup-banner-dismissed', '1');
+}
+
+function _showShareLink() {
+  // Navigate to Club Info tab which has the parent join link section
+  switchTab('clubinfo');
+  // Scroll to join link after tab renders
+  setTimeout(() => {
+    const el = document.querySelector('.join-url-box, [data-section="share"]');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 300);
+}
+
+// ── Team Status Indicators ───────────────────────────────────────────────────
+
+function _statusDot(teamKey) {
+  const status = S.teamStatuses[teamKey];
+  if (!status) return '';
+  const colors = { green: '#22c55e', yellow: '#eab308', gray: '#d1d5db' };
+  const c = colors[status] || colors.gray;
+  return `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${c};margin-right:4px;flex-shrink:0;vertical-align:middle"></span>`;
+}
+
+async function fetchAllTeamStatuses() {
+  const teams = getAdminTeams();
+  const results = await Promise.allSettled(
+    teams.map(async t => {
+      try {
+        const res = await api('GET', `/admin/data?team=${encodeURIComponent(t.key)}`);
+        if (!res.ok) return { key: t.key, status: 'gray' };
+        const data = await res.json();
+        const tourn = data.tournament;
+        if (!tourn || !tourn.id) return { key: t.key, status: 'gray' };
+        if (tourn.games && tourn.games.length > 0) return { key: t.key, status: 'green' };
+        return { key: t.key, status: 'yellow' };
+      } catch { return { key: t.key, status: 'gray' }; }
+    })
+  );
+  for (const r of results) {
+    if (r.status === 'fulfilled') S.teamStatuses[r.value.key] = r.value.status;
+  }
+  renderAdminTeamPills(); // Re-render with dots
+}
+
+function setLoginErr(msg) {
+  document.getElementById('login-error').textContent = msg;
+}
+
+function defaultTournament() {
+  // Note: roster is NOT part of tournament — it lives in roster-data KV and is managed separately
+  // Multi-team is the default — teams + teamLabels are always present unless singleTeam is set.
+  return { id: 'new-tournament', name: 'New Tournament', subtitle: '',
+           location: '', address: '', dates: '', pool: '', comingSoon: '',
+           teams: ['A', 'B'], teamLabels: { A: 'Team A', B: 'Team B' },
+           games: [], bracket: { paths: [] } };
+}
+
+// ─── API HELPER ───────────────────────────────────────────────────────────────
+
+async function api(method, path, body) {
+  // Append team + club query params to admin endpoints
+  const teamPaths = ['/admin/data', '/admin/roster', '/admin/deploy'];
+  const needsTeam = teamPaths.some(p => path.startsWith(p));
+  let fullPath = path;
+  if (needsTeam) {
+    const sep = fullPath.includes('?') ? '&' : '?';
+    fullPath += `${sep}team=${encodeURIComponent(S.team)}`;
+  }
+  // Always append club ID for admin endpoints
+  if (fullPath.startsWith('/admin/')) {
+    const sep = fullPath.includes('?') ? '&' : '?';
+    const clubId = (typeof fbGetClubId === 'function' ? fbGetClubId() : null) || 'my-club';
+    fullPath += `${sep}club=${encodeURIComponent(clubId)}`;
+  }
+
+  // Build auth headers — prefer Firebase ID token, fall back to password
+  const headers = { 'Content-Type': 'application/json' };
+  if (S.idToken) {
+    headers['Authorization'] = 'Bearer ' + S.idToken;
+  } else if (S.pw) {
+    headers['X-Admin-Password'] = S.pw;
+  }
+
+  return fetch(WORKER + fullPath, {
+    method,
+    headers,
+    body: body != null ? JSON.stringify(body) : undefined,
+  });
+}
+
+/** Refresh the Firebase ID token (tokens expire after 1 hour). */
+async function refreshIdToken() {
+  if (typeof fbGetIdToken === 'function') {
+    const token = await fbGetIdToken(true);
+    if (token) S.idToken = token;
+  }
+}
+// Auto-refresh token every 50 minutes
+setInterval(refreshIdToken, 50 * 60 * 1000);
+
+// ─── THEME ────────────────────────────────────────────────────────────────────
+
+function applyAdminTheme(t) {
+  t = t || localStorage.getItem('ebwp-admin-theme') || 'light';
+  if (t === 'system') t = 'light'; // system option retired; treat as light
+  localStorage.setItem('ebwp-admin-theme', t);
+  const dark = t === 'dark';
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  // Sync pill active states if visible
+  document.querySelectorAll('.theme-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.val === t);
+  });
+  // Sync login screen toggle emoji
+  const loginToggle = document.getElementById('login-theme-toggle');
+  if (loginToggle) loginToggle.textContent = dark ? '☀️' : '🌙';
+  // Sync dashboard (club picker) toggle emoji
+  const dashToggle = document.getElementById('dashboard-theme-toggle');
+  if (dashToggle) dashToggle.textContent = dark ? '☀️' : '🌙';
+}
+
+function toggleLoginTheme() {
+  const cur = localStorage.getItem('ebwp-admin-theme') || 'light';
+  const isDark = cur === 'dark' || (cur === 'system' && window.matchMedia('(prefers-color-scheme:dark)').matches);
+  applyAdminTheme(isDark ? 'light' : 'dark');
+}
+// Apply on OS theme change
+// OS theme-change listener removed — admin theme is explicit (light/dark only, no system follow)
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+
+function switchTab(tab) {
+  // Intercept locked tabs — open upgrade sheet directly instead of loading a locked page
+  const lockedTabs = {
+    teamcomm: 'push_notify',
+    history:  'season_stats',
+    director: 'tournament_host',
+  };
+  if (lockedTabs[tab] && !tierHasFeature(lockedTabs[tab])) {
+    showUpgradeSheet();
+    return;
+  }
+
+  S.currentTab   = tab;
+  S.editingGame  = null;
+  S.editingRoster = null;
+  // Combined bar is only relevant on the Schedule tab
+  const bar = document.querySelector('#admin-app .admin-combined-bar');
+  if (bar) bar.style.display = tab === 'schedule' ? '' : 'none';
+  // Update tab button active states
+  const primaryTabs = ['schedule', 'roster', 'addgames'];
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if (b.dataset.tab === 'more') {
+      // More button is active when a secondary tab is showing
+      b.classList.toggle('active', !primaryTabs.includes(tab));
+    } else {
+      b.classList.toggle('active', b.dataset.tab === tab);
+    }
+  });
+  renderTab();
+}
+
+/** Toggle the admin More drawer */
+function toggleAdminMore() {
+  const d = document.getElementById('admin-more-drawer');
+  if (d) d.classList.toggle('admin-more-hidden');
+}
+
+/** Navigate from the More drawer to a secondary tab */
+function adminMoreNav(tab) {
+  toggleAdminMore(); // close drawer
+  switchTab(tab);
+}
+
+function syncAdminHeaderHeight() {
+  // Scope to #admin-app header only — not the #club-dashboard header
+  const adminApp = document.getElementById('admin-app');
+  const h = adminApp ? adminApp.querySelector('.admin-header') : document.querySelector('.admin-header');
+  if (h && h.offsetHeight > 0) {
+    document.documentElement.style.setProperty('--admin-header-h', h.offsetHeight + 'px');
+  }
+}
+window.addEventListener('resize', syncAdminHeaderHeight);
+
+// Track unsaved changes via event delegation on the tab content area
+document.addEventListener('DOMContentLoaded', () => {
+  const tc = document.getElementById('tab-content');
+  if (tc) {
+    tc.addEventListener('input', _markDirty);
+    tc.addEventListener('change', _markDirty);
+  }
+});
+
+// Warn on unload if there are unsaved changes
+window.addEventListener('beforeunload', e => {
+  if (S._dirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+function renderTab() {
+  const el = document.getElementById('tab-content');
+  // Restrict scorer-role users to Schedule tab only
+  if (S.role === 'scorer' && !['schedule'].includes(S.currentTab)) {
+    el.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--g400)"><div style="font-size:2rem;margin-bottom:8px">🔒</div><div style="font-weight:700;font-size:1rem;margin-bottom:4px">Scorer Access Only</div><div style="font-size:0.85rem">Your account has scorer-level access. You can view and score games, but editing tournament settings, roster, and other admin features requires full admin access.</div></div>';
+    return;
+  }
+  if (S.currentTab === 'clubinfo') { loadClubSettings().then(() => { el.innerHTML = renderClubInfoTab(); loadClubAdmins(); loadPendingInvites(); initBrandingPreview(); }); return; }
+  if (S.currentTab === 'schedule') { el.innerHTML = renderScheduleTab(); }
+  if (S.currentTab === 'roster') el.innerHTML = renderRosterTab();
+  if (S.currentTab === 'addgames') { el.innerHTML = renderAddGamesTab(); renderToLengthInputs(); setTimeout(initPlacesAutocomplete, 0); if (S.editingGame) setTimeout(initGamePlaces, 0); }
+  if (S.currentTab === 'raw')      el.innerHTML = renderRawTab();
+  if (S.currentTab === 'help')     el.innerHTML = renderHelpTab();
+  if (S.currentTab === 'director') {
+    if (!tierHasFeature('tournament_host')) { el.innerHTML = renderTieredNudge('director'); return; }
+    el.innerHTML = renderDirectorTab(); setTimeout(() => { initDirectorPlaces(); (S.director?.ageGroups||[]).forEach((_,ai) => renderDirToLengthInputs(ai)); }, 0);
+  }
+  if (S.currentTab === 'teamcomm') {
+    el.innerHTML = renderTeamCommTab();
+    const prevConn = S.tsConnected;
+    refreshTsStatus().then(() => {
+      if (S.tsConnected !== prevConn) el.innerHTML = renderTeamCommTab();
+    });
+    setTimeout(loadScheduledAnnouncements, 300);
+    setTimeout(loadRemindersSetting, 200);
+  }
+  if (S.currentTab === 'archive') {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--g400)">Loading archive…</div>';
+    loadArchiveTab();
+  }
+  if (S.currentTab === 'history') {
+    el.innerHTML = renderHistoryAdminTab();
+  }
+  if (S.currentTab === 'settings') {
+    el.innerHTML = renderAdminSettingsTab();
+    setTimeout(() => applyAdminTheme(), 0);
+  }
+}
+
+function renderAdminSettingsTab() {
+  const user = typeof firebase !== 'undefined' && typeof firebase.auth === 'function'
+    ? firebase.auth().currentUser : null;
+  // clubId lives in localStorage (S.clubId is never explicitly set)
+  const clubId = S.currentClubId || localStorage.getItem('ebadmin-clubId') || '';
+  // Club display name: prefer tournament.clubName, fall back to title-cased ID
+  const clubName = S.tournament?.clubName || S.clubName ||
+    (clubId ? clubId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '');
+
+  // Password login = always super admin; Google = check superAdminUIDs list
+  const uid = user?.uid || '';
+  const isSuperAdmin = S.authMode === 'password' ||
+    (S.club?.superAdminUIDs || []).includes(uid);
+  let accountHtml = '';
+  if (user) {
+    accountHtml = `
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--g100)">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--royal);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;flex-shrink:0">
+          ${esc((user.displayName || user.email || '?')[0].toUpperCase())}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-weight:700;font-size:0.95rem;color:var(--royal)">${esc(user.displayName || 'Admin')}</span>
+            ${isSuperAdmin ? '<span class="badge-superadmin">⭐ Super Admin</span>' : ''}
+          </div>
+          <div style="font-size:0.8rem;color:var(--g400);overflow:hidden;text-overflow:ellipsis">${esc(user.email || '')}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent" onclick="doLogout()">
+        <span style="font-size:1.1rem">🚪</span>
+        <span style="font-weight:600;color:#dc2626;font-size:0.95rem">Sign Out</span>
+      </div>
+    `;
+  } else if (S.authMode === 'password') {
+    accountHtml = `
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--g100)">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--royal);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;flex-shrink:0">🔑</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-weight:700;font-size:0.95rem;color:var(--royal)">SuperAdmin</span>
+            ${isSuperAdmin ? '<span class="badge-superadmin">⭐ Super Admin</span>' : ''}
+          </div>
+          <div style="font-size:0.8rem;color:var(--g400)">Logged in via shared password</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent" onclick="doLogout()">
+        <span style="font-size:1.1rem">🚪</span>
+        <span style="font-weight:600;color:#dc2626;font-size:0.95rem">Sign Out</span>
+      </div>
+    `;
+  } else if (S.uid) {
+    // Logged in via proxy auth (Firebase currentUser not yet available)
+    accountHtml = `
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--g100)">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--royal);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;flex-shrink:0">
+          ${esc(S.uid[0].toUpperCase())}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-weight:700;font-size:0.95rem;color:var(--royal)">Admin</span>
+            ${isSuperAdmin ? '<span class="badge-superadmin">⭐ Super Admin</span>' : ''}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent" onclick="doLogout()">
+        <span style="font-size:1.1rem">🚪</span>
+        <span style="font-weight:600;color:#dc2626;font-size:0.95rem">Sign Out</span>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-header">Settings</div>
+      <div style="padding:10px 16px;font-size:0.85rem;color:var(--g400)">Manage your account and club.</div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-header">🎨 Appearance</div>
+      <div style="padding:14px 16px">
+        <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--g400);margin-bottom:10px">Theme</div>
+        <div style="display:flex;gap:8px">
+          <button class="theme-pill" onclick="applyAdminTheme('light')" data-val="light">☀️ Light</button>
+          <button class="theme-pill" onclick="applyAdminTheme('dark')" data-val="dark">🌙 Dark</button>
+        </div>
+        <div style="font-size:0.72rem;color:var(--g400);margin-top:8px">Your choice is saved automatically and applied across all sessions on this device.</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-header">Account</div>
+      ${accountHtml}
+    </div>
+
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-header">Club</div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--g100)">
+        <span style="font-size:1.1rem">🤽‍♀️</span>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:0.95rem">${esc(clubName)}</div>
+          <div style="font-size:0.8rem;color:var(--g400)">${isSuperAdmin ? '⭐ Super Admin · ' : ''}${esc(clubId)}</div>
+        </div>
+        <span style="color:var(--royal);font-weight:800">✓</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent" onclick="switchClub()">
+        <span style="font-size:1.1rem">🏠</span>
+        <span style="font-weight:600;font-size:0.95rem">Return to Club Dashboard</span>
+      </div>
+    </div>
+
+    <details class="card collapsible-card" style="margin-bottom:12px;border:1.5px solid #fca5a5">
+      <summary class="card-header collapsible-header" style="color:#dc2626;background:#fff5f5">⚠️ Danger Zone <span class="collapse-icon" style="color:#fca5a5">▾</span></summary>
+      <div style="padding:10px 14px 6px;background:#fff5f5;border-bottom:1px solid #fecaca">
+        <div style="font-size:0.78rem;color:#991b1b;line-height:1.5">These actions are permanent and cannot be undone. Proceed with caution.</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent" onclick="deleteClub('${esc(clubId)}','${esc(clubName)}')">
+        <span style="font-size:1.1rem">🗑️</span>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:0.95rem;color:#dc2626">Delete Club</div>
+          <div style="font-size:0.78rem;color:var(--g400)">Permanently removes all tournaments, rosters, and admin data. Cannot be undone.</div>
+        </div>
+      </div>
+    </details>
+  `;
+}
+
+const ADMIN_TEAMS_CLUB = [
+  { key: '10u-coed',  label: '10u Co-Ed' },
+  { key: '12u-girls', label: '12u Girls' },
+  { key: '12u-boys',  label: '12u Boys' },
+  { key: '14u-girls', label: '14u Girls' },
+  { key: '14u-boys',  label: '14u Boys' },
+  { key: '16u-girls', label: '16u Girls' },
+  { key: '16u-boys',  label: '16u Boys' },
+  { key: '18u-girls', label: '18u Girls' },
+  { key: '18u-boys',  label: '18u Boys' },
+];
+
+const ADMIN_TEAMS_HS = [
+  { key: 'boys-varsity', label: 'Boys Varsity' },
+  { key: 'boys-jv',      label: 'Boys JV' },
+  { key: 'girls-varsity', label: 'Girls Varsity' },
+  { key: 'girls-jv',      label: 'Girls JV' },
+];
+
+// Legacy compat
+const ADMIN_TEAMS = ADMIN_TEAMS_CLUB;
+
+function getAdminTeams() {
+  return S.clubType === 'highschool' ? ADMIN_TEAMS_HS : ADMIN_TEAMS_CLUB;
+}
+
+function renderAdminTeamPills() {
+  const sel = document.getElementById('admin-team-select');
+  if (!sel) return;
+  const teams = getAdminTeams();
+  // If current team isn't in the list, switch to first valid team
+  if (!teams.find(t => t.key === S.team)) {
+    S.team = teams[0].key;
+    refreshAdminData();
+  }
+  const statusEmoji = key => {
+    const s = S.teamStatuses[key];
+    return s === 'green' ? '🟢' : s === 'yellow' ? '🟡' : '⚫';
+  };
+  sel.innerHTML = teams.map(t =>
+    `<option value="${t.key}"${t.key === S.team ? ' selected' : ''}>${statusEmoji(t.key)} ${esc(t.label)}</option>`
+  ).join('');
+}
+
+function onHSGenderChange(gender) {
+  const level = S.team.includes('jv') ? 'jv' : 'varsity';
+  onAdminTeamChange(gender + '-' + level);
+}
+
+function onAdminTeamChange(teamKey) {
+  S.team = teamKey;
+  S.director = JSON.parse(localStorage.getItem('ebadmin-director-' + teamKey) || 'null');
+  renderAdminTeamPills();
+  // Reload data for the new team from the worker
+  refreshAdminData();
+}
+
+/** Re-fetches all tournament data from the server and re-renders the current tab. */
+async function refreshAdminData(btn) {
+  if (btn) { btn.disabled = true; btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Refreshing…'; }
+  try {
+    const res  = await api('GET', '/admin/data');
+    if (!res.ok) throw new Error('Server error ' + res.status);
+    const data = await res.json();
+    S.tournament = data.tournament || S.tournament;
+    S.history    = data.history    || S.history;
+    S.roster     = data.roster     ?? S.roster;
+    // Phase 3: if a cloud tournament is selected, overlay its age group data
+    if (S.tournamentId && typeof fbLoadTournament === 'function') {
+      try {
+        const full = await fbLoadTournament(S.tournamentId);
+        const agData = full?.ageGroups?.[S.team];
+        if (agData?.tournament) {
+          S.tournament = agData.tournament;
+          S.history    = agData.history || S.history;
+          S.roster     = agData.roster ?? S.roster;
+        }
+      } catch (e) { /* fall back to KV data */ }
+    }
+    showStatus('✓ Data refreshed', 'ok');
+  } catch (e) {
+    showStatus('Refresh failed — check connection', 'err');
+  }
+  updateAdminHeader();
+  renderTab();
+}
+
+// ─── PHASE 3: TOURNAMENT SELECTOR ─────────────────────────────────────────────
+
+function renderTournamentSelector() {
+  const strip = document.getElementById('admin-tourn-strip');
+  if (!strip) return;
+  // If Firebase not ready or no tournaments loaded, hide strip
+  if (!S.tournamentList.length) {
+    strip.innerHTML = `<span style="font-size:0.72rem;opacity:0.6">No cloud tournaments yet</span>
+      <button class="tourn-strip-btn tourn-strip-btn-new" onclick="createNewTournament()">+ New Tournament</button>`;
+    return;
+  }
+
+  const current = S.tournamentList.find(t => t.id === S.tournamentId);
+  const statusCls = current ? `tourn-status-${current.status || 'upcoming'}` : '';
+  const statusLabel = current ? (current.status || 'upcoming') : '';
+
+  const options = S.tournamentList.map(t => {
+    const sel = t.id === S.tournamentId ? ' selected' : '';
+    const icon = t.status === 'active' ? '● ' : t.status === 'archived' ? '○ ' : '◎ ';
+    return `<option value="${esc(t.id)}"${sel}>${icon}${esc(t.name || 'Untitled')} — ${esc(t.dates || 'no dates')}</option>`;
+  }).join('');
+
+  strip.innerHTML = `
+    <select class="tourn-select" onchange="onTournamentChange(this.value)">${options}</select>
+    <span class="tourn-status-badge ${statusCls}">${esc(statusLabel)}</span>
+    <button class="tourn-strip-btn" onclick="toggleTournamentStatus()" title="Toggle active/archived">${
+      current?.status === 'active' ? '📦 Archive' : '🟢 Activate'
+    }</button>
+    <button class="tourn-strip-btn tourn-strip-btn-new" onclick="createNewTournament()">+ New</button>
+    ${current?.status === 'archived' ? `<button class="tourn-strip-btn tourn-strip-btn-danger" onclick="deleteTournament()">✕</button>` : ''}
+  `;
+}
+
+async function onTournamentChange(tournamentId) {
+  if (tournamentId === S.tournamentId) return;
+  showStatus('Loading tournament…', 'info');
+  try {
+    const full = await fbLoadTournament(tournamentId);
+    if (!full) throw new Error('Tournament not found in Firestore');
+    S.tournamentId = tournamentId;
+    localStorage.setItem('ebadmin-tournamentId', tournamentId);
+    // Load the current age group's data from the tournament doc
+    const agData = full.ageGroups?.[S.team];
+    if (agData) {
+      S.tournament = agData.tournament || defaultTournament();
+      S.history    = agData.history || [];
+      S.roster     = agData.roster ?? S.roster;
+    } else {
+      // No data for this age group in the cloud tournament yet — keep current KV data
+      showStatus('No cloud data for ' + S.team + ' in this tournament — showing KV data', 'info');
+    }
+    // Update header subtitle
+    document.getElementById('header-sub').textContent =
+      (S.tournament.name || 'Tournament') + ' · ' + (S.tournament.subtitle || '');
+    renderTournamentSelector();
+    renderTab();
+    showStatus('✓ Loaded: ' + (full.name || 'Untitled'), 'ok');
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  }
+}
+
+async function createNewTournament() {
+  const name = prompt('Tournament name:');
+  if (!name) return;
+  const dates = prompt('Dates (e.g. "April 25-27, 2026"):') || '';
+  showStatus('Creating tournament…', 'info');
+  try {
+    const id = await fbCreateTournament({ name, dates, location: '', address: '', status: 'upcoming' });
+    if (!id) throw new Error('Firestore create failed');
+    // Refresh list and select the new tournament
+    S.tournamentList = await fbLoadTournaments();
+    S.tournamentId = id;
+    localStorage.setItem('ebadmin-tournamentId', id);
+    renderTournamentSelector();
+    showStatus('✓ Created: ' + name, 'ok');
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  }
+}
+
+async function toggleTournamentStatus() {
+  if (!S.tournamentId) return;
+  const current = S.tournamentList.find(t => t.id === S.tournamentId);
+  if (!current) return;
+  const newStatus = current.status === 'active' ? 'archived' : 'active';
+  const verb = newStatus === 'active' ? 'Activate' : 'Archive';
+  if (!confirm(`${verb} "${current.name}"?${newStatus === 'active' ? '\n\nThis will deactivate any other active tournament.' : ''}`)) return;
+  showStatus(verb + 'ing…', 'info');
+  try {
+    // When archiving, snapshot ALL age groups' KV data into the cloud tournament
+    if (newStatus === 'archived' && typeof fbSaveTournamentAgeGroup === 'function') {
+      showStatus('Saving all age groups to cloud before archiving…', 'info');
+      // Save current in-memory team first
+      await fbSaveTournamentAgeGroup(S.tournamentId, S.team, {
+        tournament: S.tournament, history: S.history, roster: S.roster,
+      });
+      // Save other teams from KV
+      for (const key of ALL_TEAM_KEYS) {
+        if (key === S.team) continue; // already saved above
+        try {
+          const res = await api('GET', `/admin/data?team=${encodeURIComponent(key)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.tournament) {
+              await fbSaveTournamentAgeGroup(S.tournamentId, key, {
+                tournament: data.tournament, history: data.history || [], roster: data.roster || null,
+              });
+            }
+          }
+        } catch (e) { console.warn('[archive] failed to save', key, e.message); }
+      }
+    }
+    await fbSetTournamentStatus(S.tournamentId, newStatus);
+    // Refresh list to pick up status changes
+    S.tournamentList = await fbLoadTournaments();
+    renderTournamentSelector();
+    showStatus('✓ ' + current.name + ' → ' + newStatus, 'ok');
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  }
+}
+
+async function deleteTournament() {
+  if (!S.tournamentId) return;
+  const current = S.tournamentList.find(t => t.id === S.tournamentId);
+  if (!current) return;
+  if (current.status === 'active') { alert('Cannot delete an active tournament. Archive it first.'); return; }
+  if (!confirm(`Permanently delete "${current.name}"?\n\nThis removes the tournament from the cloud. This cannot be undone.`)) return;
+  showStatus('Deleting…', 'info');
+  try {
+    await fbDeleteTournament(S.tournamentId);
+    S.tournamentList = await fbLoadTournaments();
+    // Select next available tournament or clear
+    if (S.tournamentList.length) {
+      S.tournamentId = S.tournamentList[0].id;
+      await onTournamentChange(S.tournamentId);
+    } else {
+      S.tournamentId = null;
+    }
+    renderTournamentSelector();
+    showStatus('✓ Deleted', 'ok');
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  }
+}
+
+// ─── SCHEDULE TAB ─────────────────────────────────────────────────────────────
+
+function renderScheduleTab() {
+  const renderGameList = (gamesArray, contextTourn) => {
+    const multiTeam = isMultiTeamAdmin();
+    let gameListHtml = '';
+    if (multiTeam) {
+      const teams = {};
+      for (const g of gamesArray) {
+        const teamKey = g.team || 'A';
+        if (!teams[teamKey]) teams[teamKey] = [];
+        teams[teamKey].push(g);
+      }
+      for (const [teamKey, teamGames] of Object.entries(teams).sort(([a],[b]) => a.localeCompare(b))) {
+        const teamLabel = (contextTourn.teamLabels && contextTourn.teamLabels[teamKey]) || `Team ${teamKey}`;
+        gameListHtml += `<div style="font-size:0.78rem;font-weight:700;color:var(--royal);padding:10px 14px 4px;text-transform:uppercase;letter-spacing:0.5px">${esc(teamLabel)}</div>`;
+        gameListHtml += teamGames.map(g => _scheduleGameRow(g)).join('');
+      }
+    } else {
+      gameListHtml = gamesArray.map(g => _scheduleGameRow(g)).join('');
+    }
+    return gameListHtml || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No games loaded yet — go to the <strong>Add Games</strong> tab to add games.</div>';
+  };
+
+  const liveGames = [...(S.tournament.games || [])].sort((a, b) => gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum));
+  
+  const _currentAgeGroupLabel = getTeamLabel(S.team);
+  let cardsHtml = `
+    <div class="card" style="border: 1.5px solid var(--green)">
+      <div class="card-header" style="background:var(--green-lt);color:var(--green);border-bottom:1px solid #bbf7d0">🟢 ${esc(_currentAgeGroupLabel)} — Currently Deployed (Live)</div>
+      ${renderGameList(liveGames, S.tournament)}
+    </div>
+  `;
+
+  for (const draft of (S.savedTournaments || [])) {
+    const draftGames = [...(draft.tournament.games || [])].sort((a, b) => gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum));
+    cardsHtml += `
+      <div class="card">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <span>📂 ${esc(draft.name)}</span>
+          <button class="add-btn" style="width:auto;padding:6px 14px;margin:0;font-size:0.75rem;background:var(--royal);color:white;border:none" onclick="deployDraft('${esc(draft.id)}')">Deploy to Live</button>
+        </div>
+        ${renderGameList(draftGames, draft.tournament)}
+      </div>
+    `;
+  }
+
+  // Show "Go Live" when in upcoming mode, or "Set to Upcoming" when live
+  const upcomingBtn = S.tournament.upcomingMode
+    ? `<button class="add-btn btn-success-lt" style="margin-top:8px;font-weight:700" onclick="goLive()">🟢 Go Live — show games in app</button>`
+    : liveGames.length
+      ? `<button class="add-btn btn-warning-lt" style="margin-top:8px" onclick="setUpcomingMode()">📅 Set to Upcoming Mode (hide schedule from app)</button>`
+      : '';
+
+  // Quick-edit card for upcoming tournament info — only shown in upcoming mode
+  const upcomingInfoCard = S.tournament.upcomingMode ? `
+    <div class="card upcoming-info-card" style="border:1.5px solid #f97316;background:#fff8f0;margin-bottom:10px">
+      <div class="card-header" style="color:#c2410c;border-bottom:1px solid #fed7aa">📅 Upcoming Tournament Info</div>
+      <div class="info-form">
+        <div class="info-field">
+          <div class="info-label">Tournament Name</div>
+          <input class="info-input" value="${esc(S.tournament.name||'')}"
+                 placeholder="e.g. Spring Classic 2026"
+                 oninput="S.tournament.name=this.value;updateAdminHeader()">
+        </div>
+        <div class="info-field">
+          <div class="info-label">Dates</div>
+          <input class="info-input" value="${esc(S.tournament.dates||'')}"
+                 placeholder="e.g. April 25–27, 2026"
+                 oninput="S.tournament.dates=this.value">
+        </div>
+        <div class="info-field">
+          <div class="info-label">Venue Name</div>
+          <input class="info-input" value="${esc(S.tournament.location||'')}"
+                 placeholder="e.g. Campolindo HS Aquatic Center"
+                 oninput="S.tournament.location=this.value">
+        </div>
+        <div class="info-field">
+          <div class="info-label">Coming Soon Message <span style="color:var(--g400);font-weight:400;text-transform:none">(shown in Schedule tab)</span></div>
+          <input class="info-input" value="${esc(S.tournament.comingSoon||'')}"
+                 placeholder="Schedule coming soon — check back closer to tournament day!"
+                 oninput="S.tournament.comingSoon=this.value">
+        </div>
+        <button class="add-btn btn-save-upcoming btn-warning-lt" style="font-weight:700;margin-top:2px;width:calc(100% - 4px);margin-left:2px;margin-right:2px"
+                onclick="saveUpcomingInfo(this)">💾 Save &amp; Deploy Info</button>
+      </div>
+    </div>` : '';
+
+  const upcomingBtnInner = S.tournament.upcomingMode
+    ? `<button class="add-btn btn-go-live btn-success-lt" style="font-weight:700;width:100%" onclick="goLive()">🟢 Go Live</button>`
+    : liveGames.length
+      ? `<button class="add-btn btn-upcoming btn-warning-lt" style="width:100%" onclick="setUpcomingMode()">📅 Set to Upcoming Mode</button>`
+      : '';
+
+  const _statusPill = S.tournament.upcomingMode
+    ? `<div class="btn-warning-lt" style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-width:1px;border-style:solid;border-radius:8px;margin-bottom:8px;font-size:0.78rem;font-weight:700">📅 Status: <strong>Coming Soon</strong> — schedule is hidden from parents. Tap "🟢 Go Live" when ready.</div>`
+    : liveGames.length
+      ? `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--green-lt);border:1px solid #bbf7d0;border-radius:8px;margin-bottom:8px;font-size:0.78rem;font-weight:700;color:var(--green)">🟢 Status: <strong>Live</strong> — parents can see this schedule in the app.</div>`
+      : `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--g50);border:1px solid var(--g200);border-radius:8px;margin-bottom:8px;font-size:0.78rem;font-weight:700;color:var(--g600)">⚫ Status: <strong>No games</strong> — add games in the Games tab, then deploy.</div>`;
+
+  return `
+    ${_statusPill}
+    ${upcomingInfoCard}
+    ${cardsHtml}
+    ${upcomingBtnInner ? `<div style="margin-top:8px">${upcomingBtnInner}</div>` : ''}
+    <div class="schedule-danger-zone" style="margin-top:10px;border:1.5px solid #fecaca;border-radius:10px;overflow:hidden">
+      <div class="danger-label" style="background:#fff5f5;padding:8px 12px;font-size:0.72rem;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:0.05em">⚠️ Danger Zone</div>
+      <div class="danger-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px">
+        <button class="add-btn btn-undeploy btn-danger-lt" style="font-weight:700;margin:0" onclick="undeployLiveSchedule()">🛑 Take Offline</button>
+        <button class="clear-data-btn" style="margin:0" onclick="clearAgeGroupData()">🗑 Clear All Data</button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:center;padding:4px 0 8px;margin-top:8px">
+      <button class="admin-refresh-btn" id="admin-refresh-btn" onclick="refreshAdminData(this)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Refresh Data
+      </button>
+    </div>`;
+}
+
+/** Read-only game row for the Schedule tab */
+function _scheduleGameRow(g) {
+  const capIcon = g.cap === 'Dark' ? '⚫' : '⚪';
+  const meta = [g.time, g.location, capIcon + ' ' + (g.cap || '—')].filter(Boolean).join(' · ');
+  const scoreHtml = (g.us !== undefined && g.us !== '' && g.them !== undefined && g.them !== '')
+    ? `<span style="font-size:0.82rem;font-weight:700;color:${parseInt(g.us)>parseInt(g.them)?'var(--green)':'var(--red)'}">${esc(g.us)}–${esc(g.them)}</span>`
+    : '';
+  return `<div class="game-row" style="cursor:default">
+    <div class="game-summary" style="cursor:default">
+      <span class="game-num">${esc(g.gameNum || '?')}</span>
+      <div class="game-info">
+        <div class="game-opp">${esc(g.opponent || 'TBD')}</div>
+        <div class="game-meta">${esc(meta)}</div>
+      </div>
+      ${scoreHtml}
+    </div>
+  </div>`;
+}
+
+
+// ── Clone from Archive ────────────────────────────────────────────────────────
+
+// ── CSV Export ────────────────────────────────────────────────────────────────
+
+function _csvEscape(val) {
+  const s = String(val ?? '');
+  return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function _downloadCSV(filename, csvContent) {
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportResultsCSV() {
+  const games = S.tournament.games || [];
+  if (!games.length) { showStatus('No games to export', 'err'); return; }
+
+  const clubId = typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club';
+  const header = ['Game#', 'Opponent', 'Date', 'Time', 'Location', 'Pool', 'Cap', 'OurScore', 'OppScore', 'Result'];
+  const rows = [header.join(',')];
+
+  for (const g of games) {
+    const us = parseInt(g.us || '0', 10);
+    const them = parseInt(g.them || '0', 10);
+    let result = '';
+    if (g.us !== undefined && g.them !== undefined && (g.us !== '' || g.them !== '')) {
+      result = us > them ? 'W' : us < them ? 'L' : 'T';
+    }
+    rows.push([
+      _csvEscape(g.gameNum || ''),
+      _csvEscape(g.opponent || ''),
+      _csvEscape(g.dateISO || ''),
+      _csvEscape(g.time || ''),
+      _csvEscape(g.location || ''),
+      _csvEscape(g.pool || ''),
+      _csvEscape(g.cap || ''),
+      _csvEscape(g.us ?? ''),
+      _csvEscape(g.them ?? ''),
+      result,
+    ].join(','));
+  }
+
+  const filename = `${clubId}-${S.team}-results.csv`;
+  _downloadCSV(filename, rows.join('\n'));
+  showStatus(`Exported ${games.length} games to ${filename}`, 'ok');
+}
+
+function exportRosterCSV() {
+  const clubId = typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club';
+  const multi = isMultiTeamAdmin();
+  const allPlayers = [];
+
+  if (multi && S.roster && !Array.isArray(S.roster)) {
+    for (const [teamKey, arr] of Object.entries(S.roster)) {
+      if (!Array.isArray(arr)) continue;
+      const label = (S.tournament.teamLabels?.[teamKey]) || `Team ${teamKey}`;
+      for (const p of arr) allPlayers.push({ ...p, team: label });
+    }
+  } else {
+    const arr = Array.isArray(S.roster) ? S.roster : [];
+    for (const p of arr) allPlayers.push(p);
+  }
+
+  if (!allPlayers.length) { showStatus('No players to export', 'err'); return; }
+
+  const hasTeam = allPlayers.some(p => p.team);
+  const header = ['Cap', 'FirstName', 'LastName'];
+  if (hasTeam) header.push('Team');
+  const rows = [header.join(',')];
+
+  for (const p of allPlayers) {
+    const row = [_csvEscape(p.cap), _csvEscape(p.first), _csvEscape(p.last)];
+    if (hasTeam) row.push(_csvEscape(p.team || ''));
+    rows.push(row.join(','));
+  }
+
+  const filename = `${clubId}-${S.team}-roster.csv`;
+  _downloadCSV(filename, rows.join('\n'));
+  showStatus(`Exported ${allPlayers.length} players to ${filename}`, 'ok');
+}
+
+// ── Clone from Archive ────────────────────────────────────────────────────────
+
+async function cloneFromArchive() {
+  showStatus('Loading archived tournaments…', 'info');
+  try {
+    const teams = getAdminTeams();
+    const allArchives = [];
+    for (const t of teams) {
+      try {
+        const res = await api('GET', `/admin/archive?team=${encodeURIComponent(t.key)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.archives && data.archives.length) {
+            for (const a of data.archives) allArchives.push({ ...a, teamKey: t.key, teamLabel: t.label });
+          }
+        }
+      } catch {}
+    }
+    if (!allArchives.length) { showStatus('No archived tournaments found for any team.', 'err'); return; }
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    const modal = document.createElement('div');
+    modal.style.cssText = 'background:var(--bg);border-radius:16px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.3)';
+    modal.innerHTML = '<h3 style="margin:0 0 8px;font-size:1.1rem">📋 Clone from Archive</h3><p style="margin:0 0 16px;font-size:0.82rem;color:var(--g500)">Select a past tournament to clone its structure (games, roster, brackets). Scores will be cleared.</p>';
+    for (const a of allArchives) {
+      const card = document.createElement('div');
+      card.style.cssText = 'padding:12px 14px;border:1px solid var(--g200);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all 0.15s';
+      card.onmouseenter = () => card.style.borderColor = 'var(--primary)';
+      card.onmouseleave = () => card.style.borderColor = 'var(--g200)';
+      const rec = a.record ? (a.record.wins||0)+'W-'+(a.record.losses||0)+'L' : '';
+      card.innerHTML = '<div style="font-weight:600;font-size:0.95rem">'+esc(a.name||a.id)+'</div><div style="font-size:0.78rem;color:var(--g500);margin-top:2px">'+esc([a.teamLabel,(a.games||0)+' games',rec].filter(Boolean).join(' · '))+'</div>';
+      card.onclick = async () => { overlay.remove(); await _applyClonedArchive(a.id, a.teamKey, a.name||a.id); };
+      modal.appendChild(card);
+    }
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = 'width:100%;margin-top:8px;padding:10px;border:none;border-radius:8px;background:var(--g100);color:var(--g600);font-size:0.9rem;cursor:pointer';
+    cancelBtn.onclick = () => overlay.remove();
+    modal.appendChild(cancelBtn);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    showStatus('');
+  } catch (e) { showStatus('Failed to load archives: ' + e.message, 'err'); }
+}
+
+async function _applyClonedArchive(tournId, teamKey, originalName) {
+  showStatus('Cloning tournament…', 'info');
+  try {
+    const res = await api('GET', `/admin/archive-detail?tournId=${encodeURIComponent(tournId)}&team=${encodeURIComponent(teamKey)}`);
+    if (!res.ok) throw new Error('Could not fetch archive detail');
+    const data = await res.json();
+    const src = data.tournament || data.snapshot?.tournament;
+    if (!src) throw new Error('No tournament data in archive');
+    const cloned = JSON.parse(JSON.stringify(src));
+    cloned.name = 'Copy of ' + (originalName || cloned.name || 'Tournament');
+    cloned.dates = '';
+    cloned.location = cloned.location || '';
+    cloned.stayTuned = false;
+    cloned.comingSoon = '';
+    if (cloned.games) {
+      cloned.games = cloned.games.map(g => ({
+        id: 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+        gameNum: g.gameNum||'', opponent: g.opponent||'', location: g.location||'',
+        pool: g.pool||'', cap: g.cap||'Light', team: g.team||'',
+        time: '', dateISO: '', result: null, score: null, ourScore: null, theirScore: null,
+      }));
+    }
+    if (cloned.bracketPaths) {
+      cloned.bracketPaths = cloned.bracketPaths.map(p => ({
+        ...p, steps: (p.steps||[]).map(s => ({ ...s, result: null })),
+      }));
+    }
+    S.tournament = cloned;
+    const srcRoster = data.roster || data.snapshot?.roster;
+    if (srcRoster) S.roster = srcRoster;
+    renderTab();
+    updateAdminHeader();
+    showStatus('\u2705 Cloned "'+originalName+'" \u2014 edit name, dates, and times, then Save & Deploy.', 'ok');
+  } catch (e) { showStatus('Clone failed: ' + e.message, 'err'); }
+}
+
+// ── Auto-Populate Bracket ────────────────────────────────────────────────────
+
+// ── Tournament Templates ──────────────────────────────────────────────────────
+
+const BUILTIN_TEMPLATES = [
+  {
+    name: '3-Game Saturday', description: '3 pool play games for a single day',
+    template: { games: [
+      { opponent:'', time:'8:00 AM', pool:'Pool A', cap:'White', gameNum:'G1' },
+      { opponent:'', time:'10:00 AM', pool:'Pool A', cap:'Dark', gameNum:'G2' },
+      { opponent:'', time:'12:00 PM', pool:'Pool A', cap:'White', gameNum:'G3' },
+    ], bracket: [] }
+  },
+  {
+    name: 'Round Robin 4-Team', description: '6 games, every team plays every other team',
+    template: { games: [
+      { opponent:'Team B', time:'', pool:'Pool', cap:'White', gameNum:'G1' },
+      { opponent:'Team C', time:'', pool:'Pool', cap:'Dark', gameNum:'G2' },
+      { opponent:'Team D', time:'', pool:'Pool', cap:'White', gameNum:'G3' },
+      { opponent:'Team B vs C', time:'', pool:'Pool', cap:'', gameNum:'G4', isOther:true },
+      { opponent:'Team B vs D', time:'', pool:'Pool', cap:'', gameNum:'G5', isOther:true },
+      { opponent:'Team C vs D', time:'', pool:'Pool', cap:'', gameNum:'G6', isOther:true },
+    ], bracket: [] }
+  },
+  {
+    name: '8-Team Bracket', description: 'Pool play + QF + SF + Finals bracket',
+    template: { games: [
+      { opponent:'', time:'', pool:'Pool A', cap:'White', gameNum:'G1' },
+      { opponent:'', time:'', pool:'Pool A', cap:'Dark', gameNum:'G2' },
+      { opponent:'', time:'', pool:'Pool A', cap:'White', gameNum:'G3' },
+      { opponent:'', time:'', pool:'Pool B', cap:'Dark', gameNum:'G4' },
+    ], bracket: [
+      { desc:'QF: 1A vs 4B', time:'', location:'' },
+      { desc:'QF: 2A vs 3B', time:'', location:'' },
+      { desc:'QF: 1B vs 4A', time:'', location:'' },
+      { desc:'QF: 2B vs 3A', time:'', location:'' },
+      { desc:'SF: Winner QF1 vs Winner QF2', time:'', location:'' },
+      { desc:'SF: Winner QF3 vs Winner QF4', time:'', location:'' },
+      { desc:'Finals', time:'', location:'' },
+    ]}
+  },
+];
+
+async function saveAsTemplate() {
+  const name = prompt('Template name:');
+  if (!name) return;
+  const desc = prompt('Description (optional):', '') || '';
+  // Strip scores, dates, times from current games
+  const cleanGames = (S.tournament.games || []).map(g => ({
+    opponent: g.opponent || '', pool: g.pool || '', cap: g.cap || '',
+    gameNum: g.gameNum || '', location: g.location || '',
+  }));
+  const template = { games: cleanGames, bracket: S.tournament.bracket || [] };
+  try {
+    const res = await api('POST', '/admin/templates', { name, description: desc, template });
+    if (!res.ok) throw new Error('Save failed');
+    showStatus(`✅ Template "${name}" saved!`, 'ok');
+  } catch (e) {
+    showStatus('Failed: ' + e.message, 'err');
+  }
+}
+
+async function loadTemplate() {
+  let custom = [];
+  try {
+    const res = await api('GET', '/admin/templates');
+    if (res.ok) { const d = await res.json(); custom = d.templates || []; }
+  } catch {}
+  const all = [...BUILTIN_TEMPLATES.map((t,i) => ({ ...t, isBuiltin: true, idx: i })),
+               ...custom.map((t,i) => ({ ...t, isBuiltin: false, idx: i }))];
+  let modal = document.getElementById('template-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'template-modal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px';
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  }
+  let html = '<div style="background:var(--g50);border-radius:12px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto;padding:20px">';
+  html += '<h3 style="margin:0 0 8px;font-size:1.1rem">📐 Load Template</h3>';
+  html += '<p style="margin:0 0 12px;font-size:0.82rem;color:#64748b">Select a template to pre-populate this tournament.</p>';
+  html += '<div style="font-size:0.72rem;font-weight:700;color:#1e40af;margin-bottom:6px">BUILT-IN</div>';
+  for (const t of all.filter(t => t.isBuiltin)) {
+    html += `<button style="display:block;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--g200);border-radius:8px;margin-bottom:6px;background:var(--g0,white);cursor:pointer;font-size:0.85rem" onclick="applyTemplate(${JSON.stringify(t.template).replace(/"/g, '&quot;')})">
+      <div style="font-weight:700">${esc(t.name)}</div>
+      <div style="font-size:0.75rem;color:#64748b">${esc(t.description)} · ${t.template.games.length} games</div>
+    </button>`;
+  }
+  const customEntries = all.filter(t => !t.isBuiltin);
+  if (customEntries.length) {
+    html += '<div style="font-size:0.72rem;font-weight:700;color:#059669;margin:10px 0 6px">YOUR TEMPLATES</div>';
+    for (const t of customEntries) {
+      html += `<button style="display:block;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--g200);border-radius:8px;margin-bottom:6px;background:var(--g0,white);cursor:pointer;font-size:0.85rem" onclick="applyTemplate(${JSON.stringify(t.template).replace(/"/g, '&quot;')})">
+        <div style="font-weight:700">${esc(t.name)}</div>
+        <div style="font-size:0.75rem;color:#64748b">${esc(t.description)} · ${t.template.games.length} games</div>
+      </button>`;
+    }
+  }
+  html += '<button style="margin-top:8px;width:100%;padding:8px;border:1px solid var(--g200);border-radius:8px;background:var(--g100);color:var(--g700);cursor:pointer;font-size:0.82rem" onclick="this.closest(\'#template-modal\').remove()">Cancel</button>';
+  html += '</div>';
+  modal.innerHTML = html;
+}
+
+function applyTemplate(tmpl) {
+  if (!confirm('This will replace all current games. Continue?')) return;
+  const modal = document.getElementById('template-modal');
+  if (modal) modal.remove();
+  S.tournament.games = (tmpl.games || []).map((g, i) => ({
+    id: 'g' + (i + 1), ...g, date: '', time: g.time || '', us: '', them: '', score: '',
+  }));
+  if (tmpl.bracket) S.tournament.bracket = tmpl.bracket;
+  showStatus('✅ Template applied — edit opponents and details', 'ok');
+  renderTab();
+}
+
+// ── Paste / Upload Schedule ───────────────────────────────────────────────────
+
+function openPasteSchedule() {
+  let modal = document.getElementById('paste-sched-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'paste-sched-modal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px';
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => onPasteModalBackdropClick(e));
+  }
+  modal.innerHTML = `<div style="background:var(--g50);border-radius:12px;max-width:500px;width:100%;max-height:85vh;overflow-y:auto;padding:20px" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;margin-bottom:4px">
+      <h3 style="margin:0;font-size:1.1rem;flex:1">📋 Paste Schedule</h3>
+      <button onclick="document.getElementById('paste-sched-modal')?.remove()" style="background:none;border:none;font-size:1.2rem;color:var(--g400);cursor:pointer;line-height:1;padding:0;margin-left:auto">✕</button>
+    </div>
+    <p style="margin:0 0 6px;font-size:0.78rem;color:#64748b">Paste from a spreadsheet. Tab or comma separated.</p>
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:6px 10px;font-family:monospace;font-size:0.72rem;margin-bottom:8px;color:#0c4a6e">
+      Example: 3/15, 9:00 AM, NorCal Gold, Soda Center, Pool 2
+    </div>
+    <textarea id="paste-sched-text" style="width:100%;height:120px;border:1px solid #d1d5db;border-radius:8px;padding:8px;font-size:0.82rem;resize:vertical;box-sizing:border-box" placeholder="Date, Time, Opponent, Location, Pool"></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button style="flex:1;padding:8px;border:1px solid var(--g200);border-radius:8px;background:var(--g100);color:var(--g700);cursor:pointer;font-size:0.82rem" onclick="document.getElementById('paste-sched-modal').remove()">Cancel</button>
+      <label style="flex:1;padding:8px;border:1px solid #7dd3fc;border-radius:8px;background:#f0f9ff;cursor:pointer;font-size:0.82rem;text-align:center;color:#0c4a6e;font-weight:600">
+        📁 Upload CSV
+        <input type="file" accept=".csv,.tsv,.txt" style="display:none" onchange="handleScheduleFile(this.files[0])">
+      </label>
+      <button style="flex:1;padding:8px;border:none;border-radius:8px;background:var(--royal);color:white;cursor:pointer;font-size:0.82rem;font-weight:700" onclick="parsePastedSchedule()">Parse</button>
+    </div>
+    <div id="paste-sched-preview" style="margin-top:10px"></div>
+  </div>`;
+}
+
+function onPasteModalBackdropClick(e) {
+  if (e.target !== e.currentTarget) return;
+  const ta = document.getElementById('paste-sched-text');
+  if (ta && ta.value.trim()) {
+    if (!confirm('Close without importing?')) return;
+  }
+  e.currentTarget.remove();
+}
+
+function handleScheduleFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('paste-sched-text').value = e.target.result;
+    parsePastedSchedule();
+  };
+  reader.readAsText(file);
+}
+
+function parsePastedSchedule() {
+  const text = (document.getElementById('paste-sched-text').value || '').trim();
+  if (!text) { showStatus('Paste some schedule data first', 'err'); return; }
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  // Auto-detect delimiter
+  const delim = lines[0].includes('\t') ? '\t' : ',';
+  // Parse header row
+  const firstCols = lines[0].split(delim).map(c => c.trim().toLowerCase());
+  const headerWords = ['date', 'time', 'opponent', 'vs', 'team', 'location', 'venue', 'site', 'pool'];
+  const hasHeader = firstCols.some(c => headerWords.includes(c));
+  let colMap = { date: 0, time: 1, opponent: 2, location: 3, pool: 4 };
+  if (hasHeader) {
+    colMap = {};
+    firstCols.forEach((h, i) => {
+      if (h === 'date') colMap.date = i;
+      else if (h === 'time') colMap.time = i;
+      else if (['opponent', 'vs', 'team'].includes(h)) colMap.opponent = i;
+      else if (['location', 'venue', 'site'].includes(h)) colMap.location = i;
+      else if (h === 'pool') colMap.pool = i;
+    });
+  }
+  const dataLines = hasHeader ? lines.slice(1) : lines;
+  const parsed = dataLines.map(line => {
+    const cols = line.split(delim).map(c => c.trim());
+    return {
+      date: cols[colMap.date ?? 99] || '',
+      time: cols[colMap.time ?? 99] || '',
+      opponent: cols[colMap.opponent ?? 99] || '',
+      location: cols[colMap.location ?? 99] || '',
+      pool: cols[colMap.pool ?? 99] || '',
+    };
+  }).filter(g => g.opponent);
+
+  if (!parsed.length) {
+    document.getElementById('paste-sched-preview').innerHTML = '<div style="color:var(--red);font-size:0.82rem">No valid games found. Make sure opponent column has data.</div>';
+    return;
+  }
+
+  // Show preview
+  let html = `<div style="font-size:0.78rem;font-weight:700;margin-bottom:4px">${parsed.length} games found:</div>`;
+  html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.75rem"><thead><tr style="border-bottom:2px solid #e5e7eb">';
+  html += '<th style="padding:4px;text-align:left">Date</th><th style="padding:4px;text-align:left">Time</th><th style="padding:4px;text-align:left">Opponent</th><th style="padding:4px;text-align:left">Location</th><th style="padding:4px;text-align:left">Pool</th>';
+  html += '</tr></thead><tbody>';
+  for (const [i, g] of parsed.entries()) {
+    const bg = i % 2 ? '#f9fafb' : 'white';
+    html += `<tr style="background:${bg}"><td style="padding:3px 4px">${esc(g.date)}</td><td style="padding:3px 4px">${esc(g.time)}</td><td style="padding:3px 4px;font-weight:600">${esc(g.opponent)}</td><td style="padding:3px 4px">${esc(g.location)}</td><td style="padding:3px 4px">${esc(g.pool)}</td></tr>`;
+  }
+  html += '</tbody></table></div>';
+  html += `<button style="margin-top:8px;width:100%;padding:10px;border:none;border-radius:8px;background:var(--green);color:white;cursor:pointer;font-size:0.85rem;font-weight:700" onclick="importParsedGames(window._parsedSchedule)">✓ Import ${parsed.length} Games</button>`;
+  document.getElementById('paste-sched-preview').innerHTML = html;
+  window._parsedSchedule = parsed;
+}
+
+function importParsedGames(parsed) {
+  if (!parsed || !parsed.length) return;
+  const existing = S.tournament.games || [];
+  const startIdx = existing.length;
+  for (const [i, g] of parsed.entries()) {
+    existing.push({
+      id: 'g' + (startIdx + i + 1),
+      gameNum: 'G' + (startIdx + i + 1),
+      opponent: g.opponent,
+      date: g.date,
+      dateISO: normalizeDate(g.date),
+      time: g.time,
+      pool: g.pool,
+      cap: i % 2 === 0 ? 'White' : 'Dark',
+      us: '', them: '', score: '',
+    });
+  }
+  S.tournament.games = existing;
+  const modal = document.getElementById('paste-sched-modal');
+  if (modal) modal.remove();
+  showStatus(`✅ Imported ${parsed.length} games`, 'ok');
+  renderTab();
+}
+
+function normalizeDate(d) {
+  if (!d) return '';
+  // Try MM/DD/YYYY or M/D/YY or M/D
+  const parts = d.split('/');
+  if (parts.length >= 2) {
+    const m = parseInt(parts[0], 10);
+    const day = parseInt(parts[1], 10);
+    let yr = parts[2] ? parseInt(parts[2], 10) : new Date().getFullYear();
+    if (yr < 100) yr += 2000;
+    return `${yr}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  }
+  return d; // already ISO or unknown format
+}
+
+function autoPopulateBracket() {
+  const games = S.tournament.games || [];
+  if (!games.length) { showStatus('No games to compute standings from', 'err'); return; }
+
+  // Compute standings: group by pool or all together
+  const standings = {};
+  for (const g of games) {
+    const opp = g.opponent || 'TBD';
+    const us = parseInt(g.us ?? '', 10);
+    const them = parseInt(g.them ?? '', 10);
+    if (isNaN(us) || isNaN(them)) continue;
+
+    // Track our team's record (we appear as team in each pool)
+    const pool = g.pool || 'all';
+    if (!standings[pool]) standings[pool] = {};
+
+    // Our team
+    const ourTeam = S.tournament.name || 'Us';
+    if (!standings[pool][ourTeam]) standings[pool][ourTeam] = { wins: 0, losses: 0, ties: 0, gf: 0, ga: 0 };
+    if (!standings[pool][opp])     standings[pool][opp]     = { wins: 0, losses: 0, ties: 0, gf: 0, ga: 0 };
+
+    standings[pool][ourTeam].gf += us;
+    standings[pool][ourTeam].ga += them;
+    standings[pool][opp].gf += them;
+    standings[pool][opp].ga += us;
+
+    if (us > them) {
+      standings[pool][ourTeam].wins++;
+      standings[pool][opp].losses++;
+    } else if (us < them) {
+      standings[pool][ourTeam].losses++;
+      standings[pool][opp].wins++;
+    } else {
+      standings[pool][ourTeam].ties++;
+      standings[pool][opp].ties++;
+    }
+  }
+
+  // Build ranked list: combine all pools, sort by wins desc then goal diff desc
+  const ranked = [];
+  for (const [pool, teams] of Object.entries(standings)) {
+    for (const [name, rec] of Object.entries(teams)) {
+      const diff = rec.gf - rec.ga;
+      ranked.push({ name, ...rec, diff, pool });
+    }
+  }
+  ranked.sort((a, b) => b.wins - a.wins || b.diff - a.diff || b.gf - a.gf);
+
+  if (ranked.length < 2) { showStatus('Need at least 2 teams with results to seed bracket', 'err'); return; }
+
+  // Show preview modal
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--bg);border-radius:16px;max-width:460px;width:100%;max-height:80vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.3)';
+
+  let seedRows = ranked.map((t, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:${i%2?'var(--g50)':'white'};border-radius:6px;margin-bottom:2px">
+      <span style="width:24px;height:24px;border-radius:50%;background:var(--royal);color:white;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:800;flex-shrink:0">${i+1}</span>
+      <span style="flex:1;font-weight:600;font-size:0.85rem">${esc(t.name)}</span>
+      <span style="font-size:0.75rem;color:var(--g500)">${t.wins}W-${t.losses}L${t.ties?'-'+t.ties+'T':''}</span>
+      <span style="font-size:0.72rem;color:${t.diff>=0?'var(--green)':'var(--red)'}">GD:${t.diff>=0?'+':''}${t.diff}</span>
+    </div>
+  `).join('');
+
+  // Bracket matchups preview
+  const n = ranked.length;
+  let matchups = '';
+  if (n >= 8) {
+    matchups = [[1,8],[2,7],[3,6],[4,5]].map(([a,b]) =>
+      `<div style="font-size:0.82rem;padding:3px 0">#${a} ${esc(ranked[a-1]?.name||'?')} vs #${b} ${esc(ranked[b-1]?.name||'?')}</div>`
+    ).join('');
+  } else if (n >= 4) {
+    matchups = [[1,4],[2,3]].map(([a,b]) =>
+      `<div style="font-size:0.82rem;padding:3px 0">#${a} ${esc(ranked[a-1]?.name||'?')} vs #${b} ${esc(ranked[b-1]?.name||'?')}</div>`
+    ).join('');
+  } else {
+    matchups = `<div style="font-size:0.82rem;padding:3px 0">#1 ${esc(ranked[0]?.name||'?')} vs #2 ${esc(ranked[1]?.name||'?')}</div>`;
+  }
+
+  modal.innerHTML = `
+    <h3 style="margin:0 0 4px;font-size:1.1rem">🏆 Bracket Seedings</h3>
+    <p style="margin:0 0 12px;font-size:0.78rem;color:var(--g500)">Ranked by wins, then goal differential. Review and confirm.</p>
+    <div style="margin-bottom:12px">${seedRows}</div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--g400);margin-bottom:4px">First Round Matchups</div>
+      ${matchups}
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="save-btn" style="flex:1;background:var(--royal)" onclick="applyBracketSeedings(${JSON.stringify(ranked.map(t=>t.name)).replace(/"/g,'&quot;')});this.closest('div[style*=fixed]').remove()">✓ Apply Seeds</button>
+      <button class="save-btn btn-neutral-lt" style="flex:1" onclick="this.closest('div[style*=fixed]').remove()">Cancel</button>
+    </div>
+  `;
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+function applyBracketSeedings(rankedNames) {
+  const bracket = S.tournament.bracket;
+  if (!bracket || !bracket.paths) {
+    S.tournament.bracket = { paths: [] };
+  }
+
+  const n = rankedNames.length;
+  let matchups;
+  if (n >= 8) {
+    matchups = [[0,7],[1,6],[2,5],[3,4]]; // #1v#8, #2v#7, etc.
+  } else if (n >= 4) {
+    matchups = [[0,3],[1,2]];
+  } else {
+    matchups = [[0,1]];
+  }
+
+  // Populate bracket paths with seeded matchups
+  S.tournament.bracket.paths = matchups.map(([a, b], i) => ({
+    id: 'seed-' + (i + 1),
+    team1: rankedNames[a] || 'TBD',
+    team2: rankedNames[b] || 'TBD',
+    seed1: a + 1,
+    seed2: b + 1,
+    result: null,
+  }));
+
+  showStatus(`✅ Bracket seeded with ${matchups.length} matchups. Save & Deploy to publish.`, 'ok');
+  renderTab();
+}
+
+/**
+ * Clear all data (tournament, history, roster) for the currently selected age group.
+ * Deletes from both KV (via worker) and Firestore, then resets local state.
+ */
+async function undeployLiveSchedule() {
+  const teamLabel = getAdminTeams().find(t => t.key === S.team)?.label || S.team;
+  _adminConfirm({
+    title: '🛑 Take Schedule Offline',
+    body: `Remove all live games for <strong>${teamLabel}</strong> from the parent app and set it back to "Coming Soon" mode.<br><br>Your saved games and settings will remain safe.`,
+    confirmText: '🛑 Take Offline',
+    dangerConfirm: true,
+    onConfirm: _doUndeployLiveSchedule,
+  });
+}
+
+async function _doUndeployLiveSchedule() {
+  const teamLabel = getAdminTeams().find(t => t.key === S.team)?.label || S.team;
+  showStatus('Undeploying…', 'info');
+  try {
+    S.tournament.games = [];
+    S.tournament.upcomingMode = true;
+    S.tournament.comingSoon = S.tournament.comingSoon || 'Schedule coming soon — check back closer to tournament day!';
+
+    // Save state
+    const res = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+    if (!res.ok) throw new Error('KV save failed: ' + res.status);
+
+    // Deploy cleared state
+    const dep = await api('POST', '/admin/deploy');
+    if (!dep.ok) throw new Error('Deploy failed');
+
+    showStatus('✅ Live schedule undeployed!', 'ok');
+    renderTab();
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+    renderTab();
+  }
+}
+
+async function clearAgeGroupData() {
+  const teamLabel = getAdminTeams().find(t => t.key === S.team)?.label || S.team;
+  const clubId = localStorage.getItem('ebadmin-clubId') || 'my-club';
+  _adminConfirm({
+    title: '🗑 Clear All Data',
+    body: `Permanently delete all tournament data, game history, and roster for <strong>${teamLabel}</strong> (${clubId}).<br><br>This <strong>cannot be undone.</strong>`,
+    confirmText: 'Delete Everything',
+    dangerConfirm: true,
+    requireType: 'DELETE',
+    onConfirm: _doClearAgeGroupData,
+  });
+}
+
+async function _doClearAgeGroupData() {
+  const teamLabel = getAdminTeams().find(t => t.key === S.team)?.label || S.team;
+  showStatus('Clearing data…', 'info');
+
+  try {
+    // Delete from worker KV
+    const res = await api('DELETE', '/admin/data');
+    if (!res.ok) throw new Error('Server returned ' + res.status);
+
+    // Clear local state
+    S.tournament = defaultTournament();
+    S.history = [];
+    S.roster = null;
+
+    // Also clear from Firestore if a cloud tournament is selected
+    if (S.tournamentId && typeof fbSaveTournamentAgeGroup === 'function') {
+      try {
+        await fbSaveTournamentAgeGroup(S.tournamentId, S.team, {
+          tournament: null,
+          history: [],
+          roster: null
+        });
+      } catch (e) { /* OK if Firestore clear fails */ }
+    }
+
+    showStatus(`✓ All ${teamLabel} data cleared`, 'ok');
+    renderTab();
+  } catch (e) {
+    showStatus('Clear failed: ' + e.message, 'err');
+  }
+}
+
+function toggleEditGame(id) {
+  S.editingGame = (S.editingGame === id) ? null : id;
+  renderTab();
+}
+
+function cancelEdit() {
+  S.editingGame   = null;
+  S.editingRoster = null;
+  renderTab();
+}
+
+// ── Team auto-detection ────────────────────────────────────────────────────
+
+// Given any text, returns the team key ('A', 'B', …) whose label appears in it,
+// or null if no match. Case-insensitive.
+function detectTeamFromText(text) {
+  if (!isMultiTeamAdmin()) return null;
+  const labels = S.tournament.teamLabels || {};
+  const lower  = (text || '').toLowerCase();
+  for (const [key, label] of Object.entries(labels)) {
+    if (label && lower.includes(label.toLowerCase())) return key;
+  }
+  return null;
+}
+
+// Strip a team label + surrounding "vs" / "VS" / "v." from an opponent string.
+// e.g. "Team A vs Lamorinda" → "Lamorinda"
+//      "Lamorinda vs Team A" → "Lamorinda"
+function cleanOpponentName(text, teamKey) {
+  const label = (S.tournament.teamLabels || {})[teamKey] || '';
+  if (!label) return text;
+  let s = text;
+  // Remove "LABEL vs OPP" → "OPP"
+  s = s.replace(new RegExp('^\\s*' + escRegex(label) + '\\s+vs\\.?\\s*', 'i'), '');
+  // Remove "OPP vs LABEL" → "OPP"
+  s = s.replace(new RegExp('\\s*vs\\.?\\s+' + escRegex(label) + '\\s*$', 'i'), '');
+  // Remove bare label if still present
+  s = s.replace(new RegExp(escRegex(label), 'ig'), '');
+  // Clean up leftover "vs" at start/end and extra spaces
+  s = s.replace(/^\s*vs\.?\s*/i, '').replace(/\s*vs\.?\s*$/i, '').trim();
+  return s || text; // never return empty string
+}
+
+function escRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Scan every game and auto-assign team based on label match in any text field.
+function autoDetectAllTeams() {
+  if (!isMultiTeamAdmin()) return;
+  let count = 0;
+  for (const g of (S.tournament.games || [])) {
+    const searchText = [g.opponent, g.gameNum, g.location, g.pool].join(' ');
+    const detected   = detectTeamFromText(searchText);
+    if (detected) {
+      g.team = detected;  // only set the team — opponent name is preserved as entered
+      count++;
+    }
+  }
+  showStatus(count ? `✅ Auto-detected teams for ${count} game(s)` : '⚠️ No team labels found in game data — enter opponents like "Team A vs Lamorinda"', count ? 'ok' : 'err');
+  renderTab();
+}
+
+function saveGame(id) {
+  _markDirty();
+  const g = S.tournament.games.find(x => x.id === id);
+  if (!g) return;
+  const dateISO  = document.getElementById('ge-date').value.trim();
+  g.gameNum      = document.getElementById('ge-num').value.trim();
+  g.opponent     = document.getElementById('ge-opp').value.trim();
+  g.time         = document.getElementById('ge-time').value.trim();
+  g.dateISO      = dateISO;
+  g.date         = isoToDate(dateISO);
+  g.location     = document.getElementById('ge-loc').value.trim();
+  g.pool         = document.getElementById('ge-pool').value.trim();
+  // cap is set via setGameField
+
+  // Auto-detect team from opponent text in multi-team mode (opponent name preserved as-entered)
+  if (isMultiTeamAdmin() && !g.team) {
+    const detected = detectTeamFromText(g.opponent);
+    if (detected) g.team = detected;
+  }
+
+  S.editingGame = null;
+
+  // Sort games chronologically after every save
+  S.tournament.games.sort((a, b) => {
+    return gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum);
+  });
+
+  renderTab();
+}
+
+function setGameField(id, field, val) {
+  const g = S.tournament.games.find(x => x.id === id);
+  if (g) g[field] = val;
+  renderTab();
+}
+
+function deleteGame(id) {
+  _markDirty();
+  if (!confirm('Delete this game?')) return;
+  S.tournament.games = S.tournament.games.filter(g => g.id !== id);
+  S.editingGame = null;
+  renderTab();
+}
+
+// ─── HS SEASON SCHEDULE IMPORT ────────────────────────────────────────────────
+
+function downloadScheduleTemplate() {
+  const header = 'Date,Time,Opponent,Location,Cap Color';
+  const sample = '9/15/2025,4:00 PM,Berkeley High,Home,Dark\n9/22/2025,4:00 PM,Oakland High,Away,White\n9/29/2025,4:00 PM,Piedmont,Home,Dark';
+  const blob = new Blob([header + '\n' + sample], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'season-schedule-template.csv';
+  a.click();
+}
+
+function importSeasonScheduleCSV(fileInput) {
+  const f = fileInput.files?.[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    const games = parseScheduleCSV(text);
+    if (!games.length) {
+      showStatus('No games found in CSV. Check format: Date, Time, Opponent, Location, Cap Color', 'err');
+      return;
+    }
+    S.tournament.games = games;
+    showStatus(`✅ Imported ${games.length} games`, 'ok');
+    renderTab();
+  };
+  reader.readAsText(f);
+}
+
+function parseScheduleCSV(text) {
+  const lines = text.trim().split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length < 2) return [];
+  // Skip header
+  const header = lines[0].toLowerCase();
+  const start = header.includes('date') || header.includes('opponent') ? 1 : 0;
+  const games = [];
+  for (let i = start; i < lines.length; i++) {
+    const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+    if (cols.length < 2) continue;
+    const [date, time, opponent, location, cap] = cols;
+    if (!opponent && !date) continue;
+    const num = `G${games.length + 1}`;
+    games.push({
+      id: num + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      gameNum: num,
+      date: date || '',
+      time: time || '',
+      opponent: opponent || 'TBD',
+      location: location || '',
+      cap: (cap || '').toLowerCase().includes('dark') ? 'Dark' : (cap || '').toLowerCase().includes('white') ? 'White' : '',
+    });
+  }
+  return games;
+}
+
+async function syncScheduleFromSheet() {
+  const urlInput = document.getElementById('schedule-sheet-url');
+  const statusEl = document.getElementById('schedule-import-status');
+  if (!urlInput) return;
+  const sheetUrl = urlInput.value.trim();
+  if (!sheetUrl) { if (statusEl) statusEl.textContent = 'Please paste a Google Sheet URL.'; return; }
+
+  // Extract sheet ID from URL
+  const m = sheetUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (!m) { if (statusEl) statusEl.textContent = 'Invalid Google Sheets URL.'; return; }
+  const sheetId = m[1];
+
+  if (statusEl) statusEl.innerHTML = '<span style="color:var(--royal)">⏳ Fetching sheet data…</span>';
+  try {
+    // Fetch as CSV via Google Sheets export
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+    const res = await fetch(csvUrl);
+    if (!res.ok) throw new Error('Could not fetch sheet. Make sure it\'s shared as "Anyone with link".');
+    const text = await res.text();
+    const games = parseScheduleCSV(text);
+    if (!games.length) throw new Error('No games found. Check column format: Date, Time, Opponent, Location, Cap Color');
+    S.tournament.games = games;
+    if (statusEl) statusEl.innerHTML = `<span style="color:var(--green)">✅ Imported ${games.length} games from sheet</span>`;
+    renderTab();
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:#dc2626">❌ ${e.message}</span>`;
+  }
+}
+
+function addGame() {
+  _markDirty();
+  const id = 'g' + Date.now().toString(36);
+  S.tournament.games.push({
+    id, gameNum: '', opponent: '', time: '', dateISO: '', date: '', location: '', pool: '', cap: 'White',
+  });
+  S.editingGame = id;
+  renderTab();
+  // Scroll to the new game
+  setTimeout(() => {
+    const el = document.querySelector('.game-edit-form');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 60);
+}
+
+// Sets upcomingMode flag — app shows "coming soon" but games stay intact here for testing/staging.
+async function setUpcomingMode() {
+  if (!confirm('Set app to "Upcoming Tournament" mode?\n\nYour games stay saved here — the app will show the "coming soon" message until you tap "🟢 Go Live". Roster and History are unaffected.')) return;
+  S.tournament.upcomingMode = true;
+  S.tournament.comingSoon = S.tournament.comingSoon || 'Schedule coming soon — check back closer to tournament day!';
+  S.editingGame = null;
+  showStatus('Saving upcoming mode…', 'info');
+  try {
+    const res = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+    if (!res.ok) throw new Error('KV save failed: ' + res.status);
+    showStatus('Deploying…', 'info');
+    const dep = await api('POST', '/admin/deploy');
+    if (!dep.ok) { const t = await dep.text(); throw new Error(t); }
+    showStatus('✅ Upcoming Mode active — games preserved. Tap "🟢 Go Live" to show them in the app.', 'ok');
+    renderTab();
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+    renderTab();
+  }
+}
+
+// Clears upcomingMode flag — all saved games become visible in the app immediately.
+async function goLive() {
+  if (!confirm('Go Live — make all saved games visible in the app now?')) return;
+  delete S.tournament.upcomingMode;
+  showStatus('Going live…', 'info');
+  try {
+    const res = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+    if (!res.ok) throw new Error('KV save failed: ' + res.status);
+    showStatus('Deploying…', 'info');
+    const dep = await api('POST', '/admin/deploy');
+    if (!dep.ok) { const t = await dep.text(); throw new Error(t); }
+    showStatus('✅ Live! All saved games are now visible in the app.', 'ok');
+    renderTab();
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+    renderTab();
+  }
+}
+
+// Saves updated upcoming tournament info (name, dates, location, comingSoon) and deploys.
+async function saveUpcomingInfo(btn) {
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Saving…';
+  showStatus('Saving upcoming info…', 'info');
+  try {
+    const res = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+    if (!res.ok) throw new Error('KV save failed: ' + res.status);
+    showStatus('Deploying…', 'info');
+    const dep = await api('POST', '/admin/deploy');
+    if (!dep.ok) { const t = await dep.text(); throw new Error(t); }
+    showStatus('✅ Upcoming info saved and deployed!', 'ok');
+    document.getElementById('header-sub').textContent =
+      (S.tournament.name || 'Tournament') + ' · ' + (S.tournament.subtitle || '');
+    btn.textContent = '✅ Saved!';
+    setTimeout(() => { btn.disabled = false; btn.textContent = orig; }, 2500);
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+
+// ─── ROSTER TAB ───────────────────────────────────────────────────────────────
+
+function buildRosterRows(rosterArr, teamKey) {
+  // teamKey is 'A', 'B', or null (single-team)
+  const isHS = S.clubType === 'highschool';
+  return rosterArr.map((p, idx) => {
+    const editKey = teamKey ? teamKey + ':' + idx : idx;
+    if (S.editingRoster === editKey) {
+      return `<div class="roster-edit-row">
+        <div class="form-row" style="margin-bottom:8px">
+          <div class="form-group" style="max-width:70px">
+            <div class="form-label">Cap #</div>
+            <input class="form-input" id="re-cap" value="${esc(p.cap||'')}" placeholder="#">
+          </div>
+          <div class="form-group">
+            <div class="form-label">First</div>
+            <input class="form-input" id="re-first" value="${esc(p.first||'')}" placeholder="First">
+          </div>
+          <div class="form-group">
+            <div class="form-label">Last</div>
+            <input class="form-input" id="re-last" value="${esc(p.last||'')}" placeholder="Last">
+          </div>
+          ${isHS ? `<div class="form-group" style="max-width:110px">
+            <div class="form-label">Grade</div>
+            <select class="form-input" id="re-grade" style="padding:9px 8px">
+              <option value="">—</option>
+              <option value="Freshman"${p.grade==='Freshman'?' selected':''}>Freshman</option>
+              <option value="Sophomore"${p.grade==='Sophomore'?' selected':''}>Sophomore</option>
+              <option value="Junior"${p.grade==='Junior'?' selected':''}>Junior</option>
+              <option value="Senior"${p.grade==='Senior'?' selected':''}>Senior</option>
+            </select>
+          </div>` : ''}
+        </div>
+        <div class="form-actions">
+          <button class="btn-save" onclick="saveRosterPlayer('${editKey}')">✓ Done</button>
+          <button class="btn-cancel" onclick="cancelEdit()">Cancel</button>
+          <button class="btn-del" onclick="deleteRosterPlayer('${editKey}')">🗑</button>
+        </div>
+      </div>`;
+    }
+    const gk = p.cap && ['GK','1','1A'].includes(String(p.cap).trim().toUpperCase());
+    const gradeBadge = isHS && p.grade ? `<span style="font-size:0.68rem;font-weight:700;background:var(--royal-lt);color:var(--royal);padding:1px 6px;border-radius:4px;margin-left:6px">${esc(gradeAbbr(p.grade))}</span>` : '';
+    return `<div class="roster-row">
+      <span class="roster-cap${gk ? ' roster-cap-gk' : ''}">${p.cap ? '#'+esc(p.cap) : '—'}</span>
+      <span class="roster-name">${esc(p.first||'')} ${esc(p.last||'')}${gradeBadge}</span>
+      <button class="btn-icon btn-edit-sm" onclick="S.editingRoster='${editKey}';renderTab()">Edit</button>
+    </div>`;
+  }).join('');
+}
+
+function gradeAbbr(g) {
+  if (g === 'Freshman')  return 'Fr';
+  if (g === 'Sophomore') return 'So';
+  if (g === 'Junior')    return 'Jr';
+  if (g === 'Senior')    return 'Sr';
+  return g || '';
+}
+
+// ── Roster helpers — all operate on S.roster, not S.tournament ────────────────
+
+function getRosterArray(teamKey) {
+  // Ensure S.roster is initialised in the right shape
+  if (teamKey) {
+    if (!S.roster || Array.isArray(S.roster)) S.roster = { A: S.roster || [], B: [] };
+    if (!S.roster[teamKey]) S.roster[teamKey] = [];
+    return S.roster[teamKey];
+  }
+  if (!Array.isArray(S.roster)) S.roster = [];
+  return S.roster;
+}
+
+function renderRosterTab() {
+  const savedSheetUrl = localStorage.getItem('ebadmin-sheets-url') || '';
+  const saveBtn = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+    <button class="add-btn" style="background:var(--g50);color:var(--g600);border:1px solid var(--g200)" onclick="exportRosterCSV()">📥 Export Roster CSV</button>
+    <button class="save-btn" style="margin:0" onclick="saveRoster()">💾 Save Roster</button>
+  </div>`;
+  const sheetCard = `
+    <details class="card collapsible-card" style="margin-top:8px">
+      <summary class="card-header collapsible-header">📊 Google Sheets Sync <span class="collapse-icon">▾</span></summary>
+      <div style="padding:10px 14px">
+        <div style="font-size:0.78rem;color:var(--g400);margin-bottom:8px">
+          Paste your Google Sheet link — sheet must be shared as <em>Anyone with link can view</em>.<br>
+          Columns expected: <strong>Team&nbsp;&nbsp;Cap #&nbsp;&nbsp;First Name&nbsp;&nbsp;Last Name</strong>
+        </div>
+        <input class="form-input" id="sheets-url" type="url"
+               value="${esc(savedSheetUrl)}"
+               placeholder="https://docs.google.com/spreadsheets/d/…"
+               style="margin-bottom:8px;font-size:0.8rem"
+               autocomplete="off" spellcheck="false">
+        <div style="display:flex;gap:8px">
+          <button class="save-btn" style="flex:1" onclick="syncFromSheet()">🔄 Sync from Sheet</button>
+          <button class="save-btn btn-neutral-lt" style="flex:0 0 auto" onclick="saveSheetUrl()">💾 Save URL</button>
+        </div>
+        <div id="sheets-status" style="font-size:0.8rem;margin-top:6px;color:var(--g400)"></div>
+      </div>
+    </details>`;
+  const bulkImportCard = `
+    <details class="card collapsible-card" style="margin-top:8px" id="bulk-import-card">
+      <summary class="card-header collapsible-header">📋 Bulk Import <span class="collapse-icon">▾</span></summary>
+      <div style="padding:10px 14px">
+        <div style="font-size:0.78rem;color:var(--g400);margin-bottom:8px">
+          Paste from Google Sheets / Excel or upload a CSV. Auto-detects columns by header row.
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button class="save-btn" style="flex:1" onclick="toggleBulkPasteArea()">📋 Paste from Spreadsheet</button>
+          <label class="save-btn" style="flex:1;text-align:center;cursor:pointer;margin:0">
+            📁 Upload CSV
+            <input type="file" accept=".csv,.tsv,.txt" onchange="bulkImportFile(event)" style="display:none">
+          </label>
+        </div>
+        <div id="bulk-paste-area" style="display:none">
+          <textarea id="bulk-paste-input" rows="6"
+            placeholder="Paste rows from your spreadsheet here…&#10;e.g.:  #  First  Last  Pos&#10;       1  John  Smith  Attacker"
+            style="width:100%;box-sizing:border-box;font-family:monospace;font-size:0.8rem;padding:8px;border:1px solid var(--g200);border-radius:6px;resize:vertical"></textarea>
+          <button class="save-btn" style="width:100%;margin-top:6px" onclick="parseBulkPaste()">🔍 Parse & Preview</button>
+        </div>
+        <div id="bulk-preview" style="display:none;margin-top:8px"></div>
+      </div>
+    </details>`;
+  const hint = `<div style="font-size:0.78rem;color:var(--g400);padding:8px 14px 0;text-align:center">
+    Roster is saved independently — names persist across tournaments.<br>
+    Update cap numbers here any time; tap <strong>💾 Save Roster</strong> when done.
+  </div>
+  <button class="save-btn btn-success-lt" style="width:100%;margin-top:8px;font-size:0.8rem"
+          onclick="seedDemoRosters()" title="Seeds gender-appropriate demo rosters for all age groups (safe to re-run)">
+    🌱 Seed Demo Rosters (All Age Groups)
+  </button>`;
+
+  if (isMultiTeamAdmin()) {
+    // Ensure object format
+    if (!S.roster || Array.isArray(S.roster)) S.roster = { A: S.roster || [], B: [] };
+    const rA     = S.roster.A || [];
+    const rB     = S.roster.B || [];
+    const labelA = (S.tournament.teamLabels && S.tournament.teamLabels.A) || 'Team A';
+    const labelB = (S.tournament.teamLabels && S.tournament.teamLabels.B) || 'Team B';
+    return `
+      ${hint}
+      ${sheetCard}
+      ${bulkImportCard}
+      <details class="card collapsible-card" style="margin-top:8px" open>
+        <summary class="card-header collapsible-header">${esc(labelA)} Roster (${rA.length} players) <span class="collapse-icon">▾</span></summary>
+        <div style="padding:8px 14px;border-bottom:1px solid var(--g100)">
+          <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--g400);display:block;margin-bottom:4px">Upload CSV (cap,first,last)</label>
+          <input type="file" accept=".csv" onchange="uploadRosterCSV(event,'A')" style="font-size:0.82rem">
+        </div>
+        ${buildRosterRows(rA, 'A') || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No players yet</div>'}
+      </details>
+      <button class="add-btn" onclick="addRosterPlayer('A')">+ Add Player to ${esc(labelA)}</button>
+      <details class="card collapsible-card" style="margin-top:10px" open>
+        <summary class="card-header collapsible-header">${esc(labelB)} Roster (${rB.length} players) <span class="collapse-icon">▾</span></summary>
+        <div style="padding:8px 14px;border-bottom:1px solid var(--g100)">
+          <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--g400);display:block;margin-bottom:4px">Upload CSV (cap,first,last)</label>
+          <input type="file" accept=".csv" onchange="uploadRosterCSV(event,'B')" style="font-size:0.82rem">
+        </div>
+        ${buildRosterRows(rB, 'B') || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No players yet</div>'}
+      </details>
+      <button class="add-btn" onclick="addRosterPlayer('B')">+ Add Player to ${esc(labelB)}</button>
+      <!-- Export Roster CSV + Save Roster are side-by-side in saveBtn at the bottom -->
+      ${S.tournament.enableCTeam ? (() => {
+    const rC = (S.roster && S.roster.C) || [];
+    const labelC = (S.tournament.teamLabels && S.tournament.teamLabels.C) || 'Team C';
+    return `
+  <details class="card collapsible-card" style="margin-top:10px" open>
+    <summary class="card-header collapsible-header">${esc(labelC)} Roster (${rC.length} players) <span class="collapse-icon">▾</span></summary>
+    <div style="padding:8px 14px;border-bottom:1px solid var(--g100)">
+      <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--g400);display:block;margin-bottom:4px">Upload CSV (cap,first,last)</label>
+      <input type="file" accept=".csv" onchange="uploadRosterCSV(event,'C')" style="font-size:0.82rem">
+    </div>
+    ${buildRosterRows(rC, 'C') || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No players yet</div>'}
+  </details>
+  <button class="add-btn" onclick="addRosterPlayer('C')">+ Add Player to ${esc(labelC)}</button>`;
+  })() : ''}
+      <details class="card collapsible-card" style="margin-top:8px" open>
+        <summary class="card-header collapsible-header" style="display:flex;align-items:center;justify-content:space-between">
+          <span>📊 Season Player Stats</span>
+          <span style="display:flex;align-items:center;gap:8px">
+            <button style="font-size:0.72rem;background:none;border:none;color:var(--royal);cursor:pointer;font-weight:600" onclick="event.stopPropagation();loadPlayerStats()">🔄 Refresh</button>
+            <span class="collapse-icon">▾</span>
+          </span>
+        </summary>
+        <div id="player-stats-container" style="padding:10px 14px">
+          <button class="save-btn" style="width:100%" onclick="loadPlayerStats()">📊 Load Season Stats</button>
+        </div>
+      </details>
+      ${saveBtn}`;
+  }
+
+  // Single-team mode
+  if (!Array.isArray(S.roster)) S.roster = [];
+  const rows = buildRosterRows(S.roster, null);
+  return `
+    ${hint}
+    ${sheetCard}
+    ${bulkImportCard}
+    <details class="card collapsible-card" style="margin-top:8px" open>
+      <summary class="card-header collapsible-header">Roster (${(S.roster||[]).length} players) <span class="collapse-icon">▾</span></summary>
+      <div style="padding:8px 14px;border-bottom:1px solid var(--g100)">
+        <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--g400);display:block;margin-bottom:4px">Upload CSV (cap,first,last)</label>
+        <input type="file" accept=".csv" onchange="uploadRosterCSV(event,null)" style="font-size:0.82rem">
+      </div>
+      ${rows || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No players yet — sync from sheet, upload a CSV, or tap Add Player</div>'}
+    </details>
+    <button class="add-btn" onclick="addRosterPlayer(null)">+ Add Player</button>
+    <details class="card collapsible-card" style="margin-top:8px" open>
+      <summary class="card-header collapsible-header" style="display:flex;align-items:center;justify-content:space-between">
+        <span>📊 Season Player Stats</span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <button style="font-size:0.72rem;background:none;border:none;color:var(--royal);cursor:pointer;font-weight:600" onclick="event.stopPropagation();loadPlayerStats()">🔄 Refresh</button>
+          <span class="collapse-icon">▾</span>
+        </span>
+      </summary>
+      <div id="player-stats-container" style="padding:10px 14px">
+        <button class="save-btn" style="width:100%" onclick="loadPlayerStats()">📊 Load Season Stats</button>
+      </div>
+    </details>
+    ${saveBtn}`;
+}
+
+function addRosterPlayer(teamKey) {
+  const arr = getRosterArray(teamKey);
+  arr.push({ cap: '', first: '', last: '' });
+  S.editingRoster = teamKey ? teamKey + ':' + (arr.length - 1) : (arr.length - 1);
+  renderTab();
+}
+
+// ── Player Stats ─────────────────────────────────────────────────────────────
+
+let _playerStatsData = [];
+let _playerStatsSort = { col: 'goals', desc: true };
+
+async function loadPlayerStats() {
+  const container = document.getElementById('player-stats-container');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;color:var(--g400);font-size:0.85rem;padding:8px">Loading stats from archived tournaments…</div>';
+
+  try {
+    const res = await api('GET', '/admin/player-stats');
+    if (!res.ok) throw new Error('Failed: ' + res.status);
+    const data = await res.json();
+    _playerStatsData = data.stats || [];
+
+    if (!_playerStatsData.length) {
+      container.innerHTML = '<div style="text-align:center;color:var(--g400);font-size:0.85rem;padding:8px">No player stats found. Stats are aggregated from archived tournaments with playerStats data.</div>';
+      return;
+    }
+
+    renderPlayerStatsTable();
+  } catch (e) {
+    container.innerHTML = `<div style="color:var(--red);font-size:0.85rem;padding:8px">Error: ${esc(e.message)}</div>
+      <button class="save-btn" style="width:100%;margin-top:4px" onclick="loadPlayerStats()">Retry</button>`;
+  }
+}
+
+function sortPlayerStats(col) {
+  if (_playerStatsSort.col === col) {
+    _playerStatsSort.desc = !_playerStatsSort.desc;
+  } else {
+    _playerStatsSort.col = col;
+    _playerStatsSort.desc = true;
+  }
+  renderPlayerStatsTable();
+}
+
+function renderPlayerStatsTable() {
+  const container = document.getElementById('player-stats-container');
+  if (!container || !_playerStatsData.length) return;
+
+  const { col, desc } = _playerStatsSort;
+  const sorted = [..._playerStatsData].sort((a, b) => {
+    const av = a[col] ?? 0, bv = b[col] ?? 0;
+    return desc ? bv - av : av - bv;
+  });
+
+  const arrow = (c) => _playerStatsSort.col === c ? (_playerStatsSort.desc ? ' ▼' : ' ▲') : '';
+  const th = (label, key) => `<th class="stats-sort-th" style="padding:4px 6px;white-space:nowrap;font-size:0.7rem;text-align:${key==='name'?'left':'center'};color:${_playerStatsSort.col===key?'var(--royal)':'var(--g500)'}" onclick="sortPlayerStats('${key}')">${label}${arrow(key)}</th>`;
+
+  let html = `<div style="overflow-x:auto;margin:0 -14px;padding:0 14px">
+    <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+      <thead><tr style="border-bottom:2px solid var(--g200)">
+        ${th('#','cap')}${th('Name','name')}${th('GP','gamesPlayed')}${th('G','goals')}${th('A','assists')}${th('S','steals')}${th('EX','exclusions')}${th('G/GP','goalsPerGame')}
+      </tr></thead><tbody>`;
+
+  for (const [i, p] of sorted.entries()) {
+    const bg = i % 2 ? 'var(--g50)' : 'white';
+    html += `<tr style="background:${bg}">
+      <td style="padding:4px 6px;text-align:center;font-weight:700;color:var(--royal)">${esc(p.cap||'')}</td>
+      <td style="padding:4px 6px;font-weight:600;white-space:nowrap">${esc(p.name)}</td>
+      <td style="padding:4px 6px;text-align:center">${p.gamesPlayed}</td>
+      <td style="padding:4px 6px;text-align:center;font-weight:700;color:var(--green)">${p.goals}</td>
+      <td style="padding:4px 6px;text-align:center">${p.assists}</td>
+      <td style="padding:4px 6px;text-align:center">${p.steals}</td>
+      <td style="padding:4px 6px;text-align:center;color:var(--red)">${p.exclusions}</td>
+      <td style="padding:4px 6px;text-align:center;font-weight:600">${p.goalsPerGame?.toFixed(2) || '0.00'}</td>
+    </tr>`;
+  }
+
+  html += '</tbody></table></div>';
+  html += `<div style="font-size:0.68rem;color:var(--g300);margin-top:6px;text-align:right">${sorted.length} players · click column headers to sort</div>`;
+  container.innerHTML = html;
+}
+
+function saveRosterPlayer(editKey) {
+  // editKey is 'A:3', 'B:0', or a plain number (single-team)
+  const parts   = String(editKey).split(':');
+  const teamKey = parts.length > 1 ? parts[0] : null;
+  const idx     = parseInt(parts[parts.length - 1], 10);
+  const arr     = getRosterArray(teamKey);
+  const player = {
+    cap:   document.getElementById('re-cap').value.trim(),
+    first: document.getElementById('re-first').value.trim(),
+    last:  document.getElementById('re-last').value.trim(),
+  };
+  // Include grade for high school clubs
+  const gradeEl = document.getElementById('re-grade');
+  if (gradeEl && gradeEl.value) player.grade = gradeEl.value;
+  arr[idx] = player;
+  S.editingRoster = null;
+  renderTab();
+}
+
+function deleteRosterPlayer(editKey) {
+  if (!confirm('Remove this player?')) return;
+  const parts   = String(editKey).split(':');
+  const teamKey = parts.length > 1 ? parts[0] : null;
+  const idx     = parseInt(parts[parts.length - 1], 10);
+  const arr     = getRosterArray(teamKey);
+  arr.splice(idx, 1);
+  S.editingRoster = null;
+  renderTab();
+}
+
+function uploadRosterCSV(event, teamKey) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines   = e.target.result.split(/\r?\n/).filter(l => l.trim());
+    const players = [];
+    for (const line of lines) {
+      const [cap, first, last] = line.split(',').map(s => s.trim());
+      if (!cap && !first && !last) continue;
+      if (cap.toLowerCase() === 'cap') continue; // skip header row
+      players.push({ cap: cap || '', first: first || '', last: last || '' });
+    }
+    const arr = getRosterArray(teamKey);
+    arr.splice(0, arr.length, ...players);
+    showStatus(`Loaded ${players.length} players — tap 💾 Save Roster to persist`, 'ok');
+    renderTab();
+  };
+  reader.readAsText(file);
+}
+
+// ── Bulk Import (paste / CSV upload with preview) ─────────────────────────────
+
+function toggleBulkPasteArea() {
+  const el = document.getElementById('bulk-paste-area');
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+function parseBulkPaste() {
+  const raw = document.getElementById('bulk-paste-input')?.value || '';
+  if (!raw.trim()) { showStatus('Nothing to parse — paste your spreadsheet data first', 'err'); return; }
+  const players = _parseBulkText(raw);
+  _showBulkPreview(players);
+}
+
+function bulkImportFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const players = _parseBulkText(e.target.result);
+    _showBulkPreview(players);
+  };
+  reader.readAsText(file);
+}
+
+/** Core parser: auto-detect delimiter and columns from header row */
+function _parseBulkText(raw) {
+  const lines = raw.split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return [];
+
+  // Auto-detect delimiter: tab, comma, or pipe
+  const firstLine = lines[0];
+  const delim = firstLine.includes('\t') ? '\t' : firstLine.includes('|') ? '|' : ',';
+  const rows = lines.map(l => l.split(delim).map(s => s.trim().replace(/^["']|["']$/g, '')));
+
+  // Try detecting header row
+  const headerPatterns = {
+    cap:   /^(#|num|number|cap|jersey|no)$/i,
+    first: /^(first|fname|first.?name|player.?first)$/i,
+    last:  /^(last|lname|last.?name|player.?last|surname)$/i,
+    name:  /^(name|player|full.?name|player.?name|athlete)$/i,
+    pos:   /^(pos|position|role)$/i,
+    team:  /^(team|squad|group)$/i,
+    ageGroup: /^(age.?group|division|age|level|group|class)$/i,
+  };
+
+  let colMap = null;
+  let dataStart = 0;
+
+  // Check if first row looks like a header
+  const firstRowCells = rows[0];
+  const headerMatches = {};
+  for (let i = 0; i < firstRowCells.length; i++) {
+    const cell = firstRowCells[i];
+    for (const [field, re] of Object.entries(headerPatterns)) {
+      if (re.test(cell) && !headerMatches[field]) {
+        headerMatches[field] = i;
+      }
+    }
+  }
+  const matchCount = Object.keys(headerMatches).length;
+  if (matchCount >= 2 || (matchCount === 1 && firstRowCells.length <= 4)) {
+    colMap = headerMatches;
+    dataStart = 1;
+  }
+
+  // Fallback: assume columns order based on count
+  if (!colMap) {
+    const ncols = rows[0].length;
+    if (ncols >= 3)      colMap = { cap: 0, first: 1, last: 2 };
+    else if (ncols === 2) colMap = { cap: 0, name: 1 };
+    else                  colMap = { name: 0 };
+  }
+
+  const players = [];
+  for (let i = dataStart; i < rows.length; i++) {
+    const r = rows[i];
+    if (r.every(c => !c)) continue; // skip blank rows
+
+    let cap = '', first = '', last = '', pos = '', team = '';
+
+    if (colMap.cap !== undefined) cap = r[colMap.cap] || '';
+    if (colMap.first !== undefined) first = r[colMap.first] || '';
+    if (colMap.last !== undefined) last = r[colMap.last] || '';
+    if (colMap.name !== undefined) {
+      const fullName = r[colMap.name] || '';
+      const parts = fullName.trim().split(/\s+/);
+      if (!first) first = parts[0] || '';
+      if (!last) last = parts.slice(1).join(' ') || '';
+    }
+    if (colMap.pos !== undefined) pos = r[colMap.pos] || '';
+    if (colMap.team !== undefined) team = r[colMap.team] || '';
+    let ageGroup = '';
+    if (colMap.ageGroup !== undefined) ageGroup = r[colMap.ageGroup] || '';
+
+    if (!first && !last && !cap) continue; // skip completely empty
+    players.push({ cap, first, last, pos, team, ageGroup });
+  }
+  return players;
+}
+
+/** Show a preview table of parsed players with confirm button */
+function _showBulkPreview(players) {
+  const el = document.getElementById('bulk-preview');
+  if (!el) return;
+
+  if (!players.length) {
+    el.style.display = '';
+    el.innerHTML = '<div style="color:var(--red);font-size:0.85rem;padding:8px">No players found. Check your data format.</div>';
+    return;
+  }
+
+  const hasPos = players.some(p => p.pos);
+  const hasTeam = players.some(p => p.team);
+  const hasAgeGroup = players.some(p => p.ageGroup);
+  const multi = isMultiTeamAdmin();
+
+  let html = `<div style="font-size:0.82rem;font-weight:700;color:var(--royal);margin-bottom:6px">Preview (${players.length} players found)</div>`;
+  html += '<div style="overflow-x:auto;max-height:240px;overflow-y:auto;border:1px solid var(--g200);border-radius:6px">';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:0.78rem">';
+  html += '<thead><tr style="background:var(--g50);position:sticky;top:0">';
+  html += '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">#</th>';
+  html += '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">First</th>';
+  html += '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">Last</th>';
+  if (hasPos) html += '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">Pos</th>';
+  if (hasTeam && multi) html += '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">Team</th>';
+  if (hasAgeGroup) html += '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">Age Group</th>';
+  html += '</tr></thead><tbody>';
+
+  for (const p of players) {
+    html += `<tr style="border-bottom:1px solid var(--g100)">
+      <td style="padding:4px 8px;font-weight:700">${esc(p.cap)}</td>
+      <td style="padding:4px 8px">${esc(p.first)}</td>
+      <td style="padding:4px 8px">${esc(p.last)}</td>
+      ${hasPos ? `<td style="padding:4px 8px;color:var(--g400)">${esc(p.pos)}</td>` : ''}
+      ${hasTeam && multi ? `<td style="padding:4px 8px;color:var(--g400)">${esc(p.team)}</td>` : ''}
+      ${hasAgeGroup ? `<td style="padding:4px 8px;color:var(--g400)">${esc(p.ageGroup)}</td>` : ''}
+    </tr>`;
+  }
+  html += '</tbody></table></div>';
+
+  // Team target selector for multi-team clubs (only when no age group or team column)
+  if (multi && !hasTeam && !hasAgeGroup) {
+    const labelA = (S.tournament.teamLabels?.A) || 'Team A';
+    const labelB = (S.tournament.teamLabels?.B) || 'Team B';
+    html += `<div style="margin-top:8px;font-size:0.82rem">
+      <label style="font-weight:600;margin-right:8px">Import to:</label>
+      <select id="bulk-import-team" style="padding:4px 10px;border:1px solid var(--g200);border-radius:4px;font-size:0.82rem">
+        <option value="A">${esc(labelA)}</option>
+        <option value="B">${esc(labelB)}</option>
+        ${S.tournament.enableCTeam ? `<option value="C">${esc(S.tournament.teamLabels?.C || 'Team C')}</option>` : ''}
+      </select>
+    </div>`;
+  }
+
+  // Age group selector (only when no age group column and multiple groups could apply)
+  if (!hasAgeGroup) {
+    html += `<div style="margin-top:6px;font-size:0.78rem;color:var(--g400)">Players will import to the currently selected age group.</div>`;
+  } else {
+    const ageGroups = [...new Set(players.map(p => p.ageGroup).filter(Boolean))];
+    const matched = ageGroups.map(ag => ({ original: ag, key: _resolveAgeGroupKey(ag) })).filter(m => m.key);
+    const unmatched = ageGroups.filter(ag => !_resolveAgeGroupKey(ag));
+    html += `<div style="margin-top:6px;font-size:0.78rem;color:var(--green);font-weight:600">✓ Will auto-route to ${matched.length} age group${matched.length !== 1 ? 's' : ''}: ${matched.map(m => m.original).join(', ')}</div>`;
+    if (unmatched.length) html += `<div style="font-size:0.78rem;color:var(--amber)">⚠️ Unrecognized groups (will skip): ${unmatched.join(', ')}</div>`;
+  }
+
+  html += `<div style="display:flex;gap:8px;margin-top:8px">
+    <button class="save-btn" style="flex:1;background:var(--green);border-color:var(--green)" onclick="_confirmBulkImport()">✓ Import ${players.length} Players</button>
+    <button class="save-btn btn-neutral-lt" style="flex:0 0 auto" onclick="document.getElementById('bulk-preview').style.display='none'">Cancel</button>
+  </div>`;
+
+  // Stash parsed players for confirm
+  window._bulkParsedPlayers = players;
+  el.style.display = '';
+  el.innerHTML = html;
+}
+
+/** Confirm: merge parsed players into roster */
+async function _confirmBulkImport() {
+  const players = window._bulkParsedPlayers;
+  if (!players?.length) return;
+
+  const multi = isMultiTeamAdmin();
+  const hasTeamCol = players.some(p => p.team);
+  const hasAgeGroup = players.some(p => p.ageGroup);
+
+  // Cross-age-group import: group players by resolved age group key
+  if (hasAgeGroup) {
+    const grouped = {};
+    let skipped = 0;
+    for (const p of players) {
+      const agKey = _resolveAgeGroupKey(p.ageGroup);
+      if (!agKey) { skipped++; continue; }
+      if (!grouped[agKey]) grouped[agKey] = [];
+      grouped[agKey].push(p);
+    }
+
+    // For each age group, load roster, merge, save
+    let totalImported = 0;
+    for (const [agKey, agPlayers] of Object.entries(grouped)) {
+      try {
+        // Load existing roster for this age group
+        const origTeam = S.team;
+        S.team = agKey;
+        const res = await api('GET', '/admin/roster');
+        let existingRoster = res.ok ? await res.json().then(d => d.roster || []) : [];
+        S.team = origTeam;
+
+        // Build target array (handle multi-team within age group)
+        if (multi && !Array.isArray(existingRoster)) {
+          // Multi-team roster is object { A: [], B: [] }
+          for (const p of agPlayers) {
+            const teamKey = hasTeamCol ? resolveTeamKey(p.team) : 'A';
+            if (!existingRoster[teamKey]) existingRoster[teamKey] = [];
+            _mergePlayer(existingRoster[teamKey], p);
+          }
+        } else {
+          if (!Array.isArray(existingRoster)) existingRoster = [];
+          for (const p of agPlayers) _mergePlayer(existingRoster, p);
+        }
+
+        // Save roster for this age group
+        const saveOrigTeam = S.team;
+        S.team = agKey;
+        await api('PUT', '/admin/roster', { roster: existingRoster });
+        S.team = saveOrigTeam;
+        totalImported += agPlayers.length;
+      } catch (e) {
+        console.error(`[bulk] Error importing to ${agKey}:`, e);
+      }
+    }
+
+    // If current age group was part of import, reload its roster
+    if (grouped[S.team]) {
+      try {
+        const res = await api('GET', '/admin/roster');
+        if (res.ok) S.roster = (await res.json()).roster || [];
+      } catch {}
+    }
+
+    window._bulkParsedPlayers = null;
+    showStatus(`Imported ${totalImported} players across ${Object.keys(grouped).length} age groups${skipped ? ` (${skipped} skipped)` : ''}`, 'ok');
+    renderTab();
+    return;
+  }
+
+  // Single age group import (current team)
+  if (multi) {
+    if (!S.roster || Array.isArray(S.roster)) S.roster = { A: S.roster || [], B: [] };
+    if (hasTeamCol) {
+      for (const p of players) {
+        const key = resolveTeamKey(p.team);
+        if (!S.roster[key]) S.roster[key] = [];
+        _mergePlayer(S.roster[key], p);
+      }
+    } else {
+      const key = document.getElementById('bulk-import-team')?.value || 'A';
+      if (!S.roster[key]) S.roster[key] = [];
+      for (const p of players) _mergePlayer(S.roster[key], p);
+    }
+  } else {
+    if (!Array.isArray(S.roster)) S.roster = [];
+    for (const p of players) _mergePlayer(S.roster, p);
+  }
+
+  window._bulkParsedPlayers = null;
+  showStatus(`Imported ${players.length} players — tap 💾 Save Roster to persist`, 'ok');
+  renderTab();
+}
+
+/** Resolve an age group string to an admin team key (e.g. '14u Girls' → '14u-girls') */
+function _resolveAgeGroupKey(ag) {
+  if (!ag) return null;
+  const norm = ag.trim().toLowerCase().replace(/\s+/g, '-');
+  const teams = getAdminTeams();
+  // Exact match
+  const exact = teams.find(t => t.key === norm);
+  if (exact) return exact.key;
+  // Fuzzy: try contains match
+  const fuzzy = teams.find(t => norm.includes(t.key) || t.label.toLowerCase().replace(/\s+/g, '-') === norm);
+  if (fuzzy) return fuzzy.key;
+  // Try partial: '14u girls' matches '14u-girls'
+  const partial = teams.find(t => {
+    const parts = t.key.split('-');
+    return parts.every(p => norm.includes(p));
+  });
+  if (partial) return partial.key;
+  return null;
+}
+
+/** Merge a single player: update existing by cap match, else append */
+function _mergePlayer(arr, p) {
+  const player = { cap: p.cap || '', first: p.first || '', last: p.last || '' };
+  if (p.cap) {
+    const idx = arr.findIndex(r => String(r.cap) === String(p.cap));
+    if (idx >= 0) { arr[idx] = { ...arr[idx], ...player }; return; }
+  }
+  arr.push(player);
+}
+
+// Save the sheet URL to localStorage so it persists
+function saveSheetUrl() {
+  const url = document.getElementById('sheets-url')?.value.trim();
+  if (!url) { document.getElementById('sheets-status').textContent = '⚠️ Enter a URL first'; return; }
+  localStorage.setItem('ebadmin-sheets-url', url);
+  document.getElementById('sheets-status').textContent = '✅ URL saved';
+}
+
+// Resolve a sheet Team column value to 'A' or 'B'.
+// Checks (in order): exact key, match against team labels, common color keywords.
+function resolveTeamKey(teamVal) {
+  if (!teamVal) return 'A';
+  const t  = teamVal.trim();
+  const tu = t.toUpperCase();
+  // Exact single-letter key
+  if (tu === 'A') return 'A';
+  if (tu === 'B') return 'B';
+  // Match against the configured team labels (e.g. "Team A", "Team B")
+  const labelA = (S.tournament.teamLabels && S.tournament.teamLabels.A) || '';
+  const labelB = (S.tournament.teamLabels && S.tournament.teamLabels.B) || '';
+  const tl = t.toLowerCase();
+  if (labelB && tl.includes(labelB.toLowerCase())) return 'B';
+  if (labelA && tl.includes(labelA.toLowerCase())) return 'A';
+  // Common color / keyword fallbacks
+  if (/blue|dark|navy|black|green|teal/i.test(t)) return 'B';
+  return 'A'; // default anything unrecognised to Team A
+}
+
+// Fetch the Google Sheet via worker, parse it, replace the roster, then auto-save
+async function syncFromSheet() {
+  const url = document.getElementById('sheets-url')?.value.trim();
+  if (!url) { document.getElementById('sheets-status').textContent = '⚠️ Enter a Google Sheets URL first'; return; }
+
+  // Save the URL for next time
+  localStorage.setItem('ebadmin-sheets-url', url);
+
+  const statusEl = document.getElementById('sheets-status');
+  statusEl.textContent = '⏳ Fetching sheet…';
+
+  try {
+    const res  = await api('POST', '/admin/sheets-sync', { url });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.description || 'Sync failed');
+
+    const players = data.players; // [{ team, cap, first, last }]
+    const hasTeam = players.some(p => p.team && p.team.trim());
+
+    if (isMultiTeamAdmin() || hasTeam) {
+      // Multi-team: route each player to A or B based on their Team column value
+      if (!S.roster || Array.isArray(S.roster)) S.roster = { A: [], B: [] };
+      S.roster.A = [];
+      S.roster.B = [];
+      for (const p of players) {
+        const key = resolveTeamKey(p.team);
+        S.roster[key].push({ cap: p.cap, first: p.first, last: p.last });
+      }
+      const totalA = S.roster.A.length, totalB = S.roster.B.length;
+      const labelA = (S.tournament.teamLabels && S.tournament.teamLabels.A) || 'A';
+      const labelB = (S.tournament.teamLabels && S.tournament.teamLabels.B) || 'B';
+      statusEl.textContent = `✅ Synced ${totalA + totalB} players (${labelA}: ${totalA}, ${labelB}: ${totalB}) — saving…`;
+    } else {
+      // Single-team: ignore team column
+      S.roster = players.map(p => ({ cap: p.cap, first: p.first, last: p.last }));
+      statusEl.textContent = `✅ Synced ${players.length} players — saving…`;
+    }
+
+    // Auto-save to KV
+    const saveRes = await api('PUT', '/admin/roster', { roster: S.roster });
+    if (!saveRes.ok) throw new Error('Sync succeeded but save failed — tap 💾 Save Roster to retry');
+    statusEl.textContent = statusEl.textContent.replace('— saving…', '— saved ✓');
+    renderTab();
+  } catch (e) {
+    statusEl.textContent = '❌ ' + e.message;
+  }
+}
+
+async function saveRoster() {
+  if (!S.roster) { showStatus('⚠️ No roster to save', 'err'); return; }
+  showStatus('Saving roster…', 'info');
+  try {
+    const res = await api('PUT', '/admin/roster', { roster: S.roster });
+    if (!res.ok) throw new Error('Worker returned ' + res.status);
+    showStatus('✅ Roster saved — will be included in next deploy', 'ok');
+  } catch (e) {
+    showStatus('❌ Save failed: ' + e.message, 'err');
+  }
+}
+
+async function seedDemoRosters() {
+  if (!confirm('Seed gender-appropriate demo rosters for ALL age groups?\nThis overwrites existing demo rosters (safe to re-run).')) return;
+  showStatus('Seeding demo rosters…', 'info');
+  try {
+    const res = await api('POST', '/admin/seed-demo-rosters', {});
+    if (!res.ok) throw new Error('Worker returned ' + res.status);
+    const data = await res.json();
+    showStatus(`✅ Demo rosters seeded for ${data.seeded?.length || '?'} age groups — reload the parent app to see them`, 'ok');
+  } catch (e) {
+    showStatus('❌ Seed failed: ' + e.message, 'err');
+  }
+}
+
+// ─── ADD GAMES TAB ────────────────────────────────────────────────────────────
+
+function renderDirToLengthInputs(ai) {
+  const ag = S.director?.ageGroups?.[ai];
+  if (!ag) return;
+  const count = ag.timeoutsPerTeam ?? 2;
+  const defaultLengths = [1, 0.5];
+  const lengths = (ag.timeoutLengths && ag.timeoutLengths.length) ? ag.timeoutLengths : defaultLengths;
+  const container = document.getElementById('dir-to-lengths-' + ai);
+  if (!container) return;
+  if (count === 0) { container.innerHTML = ''; return; }
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:4px">';
+  for (let i = 0; i < count; i++) {
+    const val = lengths[i] ?? 1;
+    const label = val >= 1 ? `${val} min` : `${Math.round(val*60)} sec`;
+    html += `<div class="info-field">
+      <div class="info-label">Timeout ${i+1} Length</div>
+      <input class="info-input" type="number" min="0.25" max="5" step="0.25" value="${val}"
+             placeholder="e.g. 1 or 0.5 for 30sec"
+             oninput="(S.director.ageGroups[${ai}].timeoutLengths=S.director.ageGroups[${ai}].timeoutLengths||[])[${i}]=+this.value;saveDirectorLocally()">
+      <div class="info-hint">Current: ${label} — use decimals (0.5 = 30 sec, 0.25 = 15 sec)</div>
+    </div>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function renderToLengthInputs() {
+  const cs = S.tournament.clockSettings || {};
+  // Default to 2 timeouts if not yet saved to KV
+  const count = cs.timeoutsPerTeam ?? 2;
+  // Default lengths: 1 min and 0.5 min (30 sec)
+  const defaultLengths = [1, 0.5];
+  const lengths = (cs.timeoutLengths && cs.timeoutLengths.length) ? cs.timeoutLengths : defaultLengths;
+  const container = document.getElementById('cfg-to-lengths');
+  if (!container) return;
+  if (count === 0) { container.innerHTML = ''; return; }
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:4px">';
+  for (let i = 0; i < count; i++) {
+    const val = lengths[i] ?? 1;
+    const label = val >= 1 ? `${val} min` : `${Math.round(val*60)} sec`;
+    html += `<div class="info-field">
+      <div class="info-label">Timeout ${i+1} Length</div>
+      <input class="info-input" type="number" min="0.25" max="5" step="0.25" value="${val}"
+             placeholder="e.g. 1 or 0.5 for 30sec"
+             oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{});(S.tournament.clockSettings.timeoutLengths=S.tournament.clockSettings.timeoutLengths||[])[${i}]=+this.value">
+      <div class="info-hint">Current: ${label} — use decimals (0.5 = 30 sec, 0.25 = 15 sec)</div>
+    </div>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function copyParentJoinLink() {
+  const input = document.getElementById('parent-join-url');
+  if (!input) return;
+  input.select();
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(input.value).then(() => {
+      showStatus('✓ Parent join link copied!', 'ok');
+    });
+  } else {
+    document.execCommand('copy');
+    showStatus('✓ Parent join link copied!', 'ok');
+  }
+}
+
+function renderClubInfoTab() {
+  const clubId = typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club';
+  const joinUrl = 'https://eggbeater.app?join=' + encodeURIComponent(clubId);
+  const isHS = S.clubType === 'highschool';
+  const t = S.tournament;
+  return `
+    <!-- ═══════ CLUB SETTINGS ═══════ -->
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header" style="background:var(--royal);color:white;font-size:0.82rem">🏫 Club Settings <span class="collapse-icon" style="color:rgba(255,255,255,0.7)">▾</span></summary>
+      <div class="info-form">
+        <div class="info-field">
+          <div class="info-label">Organization Type</div>
+          <div style="display:flex;gap:14px;padding:6px 0">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="radio" name="clubType" value="club" ${!isHS ? 'checked' : ''}
+                     onchange="setClubType('club')" style="width:16px;height:16px;accent-color:var(--royal)">
+              <span style="font-size:0.88rem;font-weight:600">🤽‍♀️ Club / Age Group</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="radio" name="clubType" value="highschool" ${isHS ? 'checked' : ''}
+                     onchange="setClubType('highschool')" style="width:16px;height:16px;accent-color:var(--royal)">
+              <span style="font-size:0.88rem;font-weight:600">🎓 High School</span>
+            </label>
+          </div>
+          <div class="info-hint">${isHS
+            ? '🎓 Teams: Boys Varsity, Boys JV, Girls Varsity, Girls JV · Roster includes grade'
+            : '🤽‍♀️ Teams: 10u Co-Ed through 18u Boys/Girls age groups'}</div>
+        </div>
+        <div class="info-field">
+          <div class="info-label">Club Name <span style="color:var(--g400);font-weight:400;text-transform:none">(shown in header &amp; vs. lines)</span></div>
+          <input class="info-input" value="${esc(t.clubName||'')}" placeholder="e.g. Pacific Waves"
+                 oninput="S.tournament.clubName=this.value">
+        </div>
+        <div class="info-field">
+          <div class="info-label">Cloud Club ID <span style="color:var(--g400);font-weight:400;text-transform:none">(Firestore path)</span></div>
+          <input class="info-input" value="${esc(clubId)}" placeholder="e.g. pacific-waves"
+                 oninput="if(typeof fbSetClubId==='function')fbSetClubId(this.value);localStorage.setItem('ebadmin-clubId',this.value)">
+          <div class="info-hint">Identifies your club in the cloud. Only change if setting up a new club.</div>
+        </div>
+        <button class="save-btn" style="width:100%;margin-top:8px;background:var(--royal);color:white;border-color:var(--royal);font-weight:700" onclick="saveClubSettings()">💾 Save Club Settings</button>
+        <div id="club-settings-status" style="font-size:0.78rem;margin-top:4px;min-height:16px"></div>
+      </div>
+    </details>
+
+    ${isHS ? `
+    <!-- ═══════ SEASON (HS Only) ═══════ -->
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header">🗓 Current Season <span class="collapse-icon">▾</span></summary>
+      <div class="info-form">
+        <div class="info-field" style="background:var(--g50);padding:10px;border-radius:8px">
+          <div class="info-label">Season Year <span style="color:var(--g400);font-weight:400;text-transform:none">(applies to all groups)</span></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="info-input" id="hs-season-year" type="number" min="2020" max="2035" step="1"
+                   value="${esc(getSeasonYear(S.tournament.id))}"
+                   style="flex:0 0 100px;margin:0;text-align:center;font-size:1rem;font-weight:700"
+                   onchange="setHSSeasonYear(this.value)">
+            <span style="font-size:0.88rem;font-weight:600;color:var(--royal)">Fall ${esc(getSeasonYear(S.tournament.id))}</span>
+          </div>
+          <div class="info-hint" style="margin-top:4px">Changing the year archives the current season for all groups (Varsity + JV).</div>
+        </div>
+      </div>
+    </details>
+    ` : ''}
+
+    <!-- ═══════ PARENT JOIN LINK ═══════ -->
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header">🔗 Parent Join Link <span class="collapse-icon">▾</span></summary>
+      <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">Share this link with parents so they can see your club in the app.</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="form-input" id="parent-join-url" value="${esc(joinUrl)}" readonly
+                 style="font-size:0.8rem;font-family:monospace;flex:1;background:var(--g50);cursor:text"
+                 onclick="this.select()">
+          <button class="btn-save" onclick="copyParentJoinLink()" style="flex:0 0 auto;white-space:nowrap">📋 Copy</button>
+        </div>
+        <div style="font-size:0.72rem;color:var(--g400)">Club code: <strong>${esc(clubId)}</strong> — parents can also type this into the join screen.</div>
+      </div>
+    </details>
+
+    <!-- ═══════ CLUB BRANDING ═══════ -->
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header" style="background:var(--royal);color:white;font-size:0.82rem">🎨 Club Branding <span class="collapse-icon" style="color:rgba(255,255,255,0.7)">▾</span></summary>
+      <div class="info-form">
+        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5;margin-bottom:10px">
+          Customize your club's colors in the parent app. All parents will see these colors automatically.
+        </div>
+        <div class="info-field">
+          <div class="info-label">Primary Color <span style="color:var(--g400);font-weight:400;text-transform:none">(header, buttons, accents)</span></div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <input type="color" id="brand-primary" value="${S._branding?.primaryColor || '#002868'}"
+                   oninput="updateBrandingPreview()" style="width:48px;height:36px;border:1px solid var(--g200);border-radius:6px;cursor:pointer;padding:2px">
+            <input class="info-input" id="brand-primary-hex" value="${S._branding?.primaryColor || '#002868'}" maxlength="7"
+                   oninput="syncBrandingFromHex('primary')" style="flex:0 0 90px;margin:0;font-family:monospace;text-align:center">
+            <span id="brand-primary-swatch" style="width:24px;height:24px;border-radius:50%;background:${S._branding?.primaryColor || '#002868'};border:2px solid var(--g200);flex-shrink:0;outline:none;outline-offset:1px"></span>
+          </div>
+        </div>
+        <div class="info-field">
+          <div class="info-label">Secondary Color <span style="color:var(--g400);font-weight:400;text-transform:none">(accent highlights)</span></div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <input type="color" id="brand-secondary" value="${S._branding?.secondaryColor || '#0d9488'}"
+                   oninput="updateBrandingPreview()" style="width:48px;height:36px;border:1px solid var(--g200);border-radius:6px;cursor:pointer;padding:2px">
+            <input class="info-input" id="brand-secondary-hex" value="${S._branding?.secondaryColor || '#0d9488'}" maxlength="7"
+                   oninput="syncBrandingFromHex('secondary')" style="flex:0 0 90px;margin:0;font-family:monospace;text-align:center">
+            <span id="brand-secondary-swatch" style="width:24px;height:24px;border-radius:50%;background:${S._branding?.secondaryColor || '#0d9488'};border:2px solid var(--g200);flex-shrink:0;outline:none;outline-offset:1px"></span>
+          </div>
+        </div>
+        <div class="info-field">
+          <div class="info-label">Header Style</div>
+          <select class="info-input" id="brand-header-style" onchange="updateBrandingPreview()" style="margin:0">
+            <option value="default" ${(S._branding?.headerStyle||'default')==='default'?'selected':''}>Default (gradient)</option>
+            <option value="gradient" ${S._branding?.headerStyle==='gradient'?'selected':''}>Bold gradient</option>
+            <option value="solid" ${S._branding?.headerStyle==='solid'?'selected':''}>Solid color</option>
+          </select>
+        </div>
+        <div style="margin-top:10px">
+          <div class="info-label" style="margin-bottom:6px">Live Preview</div>
+          <div id="brand-preview" style="border-radius:10px;overflow:hidden;border:1px solid var(--g200)">
+            <div id="brand-preview-header" style="padding:14px 18px;color:white;font-weight:700;font-size:0.95rem;transition:background 0.3s">
+              ${esc(S.tournament.clubName || 'Your Club Name')} — Tournament
+            </div>
+            <div id="brand-preview-body" style="padding:10px 18px;background:var(--g50);display:flex;gap:8px;align-items:center">
+              <button id="brand-preview-btn" style="padding:6px 16px;border:none;border-radius:8px;color:white;font-weight:700;font-size:0.82rem;cursor:default;transition:background 0.3s">Schedule</button>
+              <button id="brand-preview-btn2" style="padding:6px 16px;border:none;border-radius:8px;color:white;font-weight:700;font-size:0.82rem;cursor:default;transition:background 0.3s">Scores</button>
+              <span id="brand-preview-accent" style="font-weight:700;font-size:0.85rem;transition:color 0.3s">🏆 Live</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="save-btn" style="flex:1;background:var(--royal);color:white;border-color:var(--royal);font-weight:700" onclick="saveBranding()">💾 Save Branding</button>
+          <button class="save-btn" style="flex:0 0 auto" onclick="resetBranding()">↩ Reset to Default</button>
+        </div>
+        <div id="branding-status" style="font-size:0.78rem;margin-top:4px;min-height:16px"></div>
+      </div>
+    </details>
+
+    <!-- ═══════ MULTI-TEAM MODE ═══════ -->
+    ${tierHasFeature('multi_team') ? `
+    <details class="card collapsible-card" style="margin-bottom:12px">
+      <summary class="card-header collapsible-header">🏊 Multi-Team Mode <span class="collapse-icon">▾</span></summary>
+      <div class="info-form">
+        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5;margin-bottom:8px">Run A Team and B Team from one dashboard — separate rosters, games, and scores for each squad.</div>
+        <div class="info-field"><div class="info-label">Multi-team Mode</div><label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0"><input type="checkbox" id="ti-multiteam" ${!isMultiTeamAdmin()?'checked':''} onchange="toggleMultiTeam(this.checked)" style="width:18px;height:18px;cursor:pointer"><span style="font-size:0.9rem">Disable multi-team</span></label></div>
+        <div id="ti-team-labels" style="display:${isMultiTeamAdmin()?'contents':'none'}">
+          <div class="info-field"><div class="info-label">Team A Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.A)||'')}" placeholder="Team A" oninput="setTeamLabel('A',this.value)"></div>
+          <div class="info-field"><div class="info-label">Team B Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.B)||'')}" placeholder="Team B" oninput="setTeamLabel('B',this.value)"></div>
+          <div class="info-field"><div class="info-label">C Team</div><label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0"><input type="checkbox" id="ti-cteam" ${t.enableCTeam?'checked':''} onchange="toggleCTeam(this.checked)" style="width:18px;height:18px;cursor:pointer"><span style="font-size:0.9rem">Enable C Team</span></label></div>
+          <div id="ti-cteam-fields" style="display:${t.enableCTeam?'contents':'none'}"><div class="info-field"><div class="info-label">Team C Label</div><input class="info-input" value="${esc((t.teamLabels&&t.teamLabels.C)||'')}" placeholder="Team C" oninput="setTeamLabel('C',this.value)"></div></div>
+        </div>
+      </div>
+    </details>
+    ` : ''}
+
+    <!-- ═══════ CLUB LOGO ═══════ -->
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header">🖼 Club Logo <span class="collapse-icon">▾</span></summary>
+      <div style="padding:14px">
+        <div id="club-logo-preview" style="margin-bottom:10px;text-align:left;padding:10px;border-radius:8px;background:repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 0 0 / 16px 16px;border:1px solid var(--g200)"></div>
+        <input type="file" id="club-logo-file" accept="image/*" style="display:none" onchange="previewClubLogo(event)">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="save-btn" style="flex:1" onclick="document.getElementById('club-logo-file').click()">📷 Choose Image</button>
+          <button class="save-btn" style="flex:1;background:var(--green);color:white" onclick="uploadClubLogo()" id="upload-logo-btn" disabled>⬆️ Upload Logo</button>
+        </div>
+        <div id="logo-upload-status" style="font-size:0.78rem;margin-top:6px"></div>
+        <div class="info-hint" style="margin-top:4px">Max 150KB. Shown in the parent app header.</div>
+      </div>
+    </details>
+
+    <!-- ═══════ ADMIN MANAGEMENT ═══════ -->
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header">👥 Club Admin Management <span class="collapse-icon">▾</span></summary>
+      <div style="padding:10px 14px">
+        <p style="font-size:0.82rem;color:var(--g400);margin-bottom:10px;line-height:1.5">
+          Manage who can access this club's admin panel.
+        </p>
+        ${S.authMode === 'google' ? `
+          <div style="font-size:0.78rem;color:var(--g600);margin-bottom:8px;padding:8px 10px;background:var(--g50);border-radius:8px">
+            <strong>Your UID:</strong> <code style="font-size:0.75rem;background:var(--g100);padding:2px 6px;border-radius:4px;user-select:all">${esc(typeof fbGetUser === 'function' && fbGetUser() ? fbGetUser().uid : 'N/A')}</code>
+            <br><strong>Email:</strong> ${esc(typeof fbGetUser === 'function' && fbGetUser() ? fbGetUser().email : 'N/A')}
+          </div>
+        ` : '<div style="font-size:0.78rem;color:var(--amber);margin-bottom:8px">Sign in with Google to manage club admins.</div>'}
+        <div id="club-admins-list" style="margin-top:8px"></div>
+        <div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--g100)">
+          <div style="font-size:0.82rem;font-weight:700;color:var(--royal);margin-bottom:6px">📨 Invite New Admin</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="invite-email" class="info-input" style="flex:1 1 200px;margin:0" placeholder="Email (optional)">
+            <button class="save-btn" onclick="generateInviteLink()">🔗 Generate Invite Link</button>
+          </div>
+          <div id="invite-link-output" style="margin-top:8px;display:none">
+            <div style="display:flex;gap:8px;align-items:center">
+              <input id="invite-link-value" class="info-input" style="flex:1;margin:0;font-size:0.75rem" readonly>
+              <button class="save-btn" style="flex-shrink:0" onclick="copyInviteLink()">📋 Copy</button>
+            </div>
+            <div style="font-size:0.72rem;color:var(--g400);margin-top:4px">Expires in 7 days.</div>
+          </div>
+        </div>
+        <div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--g100)">
+          <div style="font-size:0.82rem;font-weight:700;color:var(--royal);margin-bottom:6px">⏳ Pending Invites</div>
+          <div id="pending-invites-list" style="font-size:0.82rem;color:var(--g400)">Loading...</div>
+          <button class="save-btn btn-neutral-lt" style="margin-top:8px;width:100%" onclick="loadPendingInvites()">🔄 Refresh Invites</button>
+        </div>
+        <div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--g100)">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="new-admin-uid" class="info-input" style="flex:1 1 140px;margin:0" placeholder="Google UID (advanced)">
+            <input id="new-admin-name" class="info-input" style="flex:1 1 140px;margin:0" placeholder="Display name">
+            <button class="save-btn" onclick="addClubAdminUid()">+ Add by UID</button>
+          </div>
+          <div style="font-size:0.68rem;color:var(--g400);margin-top:4px">Advanced: manually add an admin by their Firebase UID.</div>
+        </div>
+        <div style="margin-top:12px">
+          <button class="save-btn" style="background:var(--royal);color:white;border-color:var(--royal);width:100%" onclick="initClubAdminList()">
+            🔐 Bootstrap Admin List (first-time setup)
+          </button>
+          <div class="info-hint">Registers you as the first admin. Only works if no admin list exists yet.</div>
+        </div>
+        <div style="margin-top:8px">
+          <button class="save-btn" style="width:100%" onclick="loadClubAdmins()">🔄 Refresh Admin List</button>
+        </div>
+      </div>
+    </details>
+
+    <!-- ═══════ ANALYTICS ═══════ -->
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header" style="display:flex;align-items:center;justify-content:space-between">
+        <span>📊 Analytics</span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <button style="font-size:0.72rem;background:none;border:none;color:var(--royal);cursor:pointer;font-weight:600" onclick="event.stopPropagation();loadAnalytics()">🔄 Refresh</button>
+          <span class="collapse-icon">▾</span>
+        </span>
+      </summary>
+      <div id="analytics-container" style="padding:10px 14px">
+        <button class="save-btn" style="width:100%" onclick="loadAnalytics()">📊 Load Analytics</button>
+      </div>
+    </details>
+
+    ${!tierHasFeature('multi_team') ? `
+    <div class="card" style="border:1.5px solid var(--royal-lt);margin-top:4px">
+      <div style="padding:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="font-size:1.5rem">👑</span>
+          <div>
+            <div style="font-weight:800;font-size:0.95rem;color:var(--royal)">Unlock Club Features</div>
+            <div style="font-size:0.78rem;color:var(--g400);margin-top:2px">Everything your club needs to run like a pro</div>
+          </div>
+        </div>
+        <ul style="font-size:0.84rem;color:var(--g600);line-height:1.8;padding-left:18px;margin-bottom:12px">
+          <li><strong>Multi-Team Mode</strong> — A, B &amp; C team rosters, games and scores</li>
+          <li><strong>Live Scoring</strong> — real-time scoreboard for parents in the app</li>
+          <li><strong>Push Notifications</strong> — score alerts and schedule updates</li>
+          <li><strong>Season Stats &amp; History</strong> — player and team stats across tournaments</li>
+          <li><strong>Team Communication</strong> — Telegram, GroupMe, and custom messaging</li>
+        </ul>
+        <button onclick="window.Capacitor?.isNativePlatform?.() ? showUpgradeSheet() : _paywallWebCheckout('price_1TIEmo0NjxFM08jKlS2kPNZp','club')" style="width:100%;background:var(--royal);color:white;border:none;border-radius:8px;padding:10px 14px;font-size:0.88rem;font-weight:700;cursor:pointer;letter-spacing:0.01em">
+          Upgrade to Club Plan ↗
+        </button>
+        <div style="text-align:center;font-size:0.72rem;color:var(--g400);margin-top:6px">14-day free trial · cancel anytime</div>
+      </div>
+    </div>` : ''}`;
+}
+
+function renderAddGamesTab() {
+  const t = S.tournament;
+  const isHS = S.clubType === 'highschool';
+  const games = [...(t.games || [])].sort((a, b) => gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum));
+
+  const rows = games.map(g => {
+    const capIcon = g.cap === 'Dark' ? '⚫' : '⚪';
+    const meta = [g.time, g.location, capIcon + ' ' + (g.cap || '—')].filter(Boolean).join(' · ');
+    const isEditing = S.editingGame === g.id;
+    if (isEditing) {
+      return `<div class="game-row">
+        <div class="game-summary" onclick="toggleEditGame('${esc(g.id)}')">
+          <span class="game-num">${esc(g.gameNum || '?')}</span>
+          <div class="game-info"><div class="game-opp">${esc(g.opponent || 'TBD')}</div></div>
+          <span class="game-edit-icon">▲</span>
+        </div>
+        <div class="game-edit-form">
+          <div class="form-row"><div class="form-group"><div class="form-label">Game #</div><input class="form-input" id="ge-num" value="${esc(g.gameNum||'')}" placeholder="G4"></div><div class="form-group"><div class="form-label">Opponent</div><input class="form-input" id="ge-opp" value="${esc(g.opponent||'')}" placeholder="SHAQ"></div></div>
+          <div class="form-row"><div class="form-group"><div class="form-label">Time</div><input class="form-input" id="ge-time" value="${esc(g.time||'')}" placeholder="9:00am"></div><div class="form-group"><div class="form-label">Date (YYYY-MM-DD)</div><input class="form-input" id="ge-date" value="${esc(g.dateISO||'')}" placeholder="2026-04-25"></div></div>
+          <div class="form-group"><div class="form-label">Venue Name</div><input class="form-input" id="ge-loc" value="${esc(g.location||'')}" placeholder="Start typing a venue…" spellcheck="false" autocomplete="off"><div class="info-hint" style="margin-top:3px;font-size:0.75rem;color:var(--g400)">Type to search via Google Places</div></div>
+          <div class="form-group"><div class="form-label">Pool</div><input class="form-input" id="ge-pool" value="${esc(g.pool||'')}" placeholder="Pool C"></div>
+          <div class="form-group"><div class="form-label">Cap Color</div><div class="cap-toggle"><button class="cap-btn white ${g.cap!=='Dark'?'active':''}" onclick="setGameField('${esc(g.id)}','cap','White')">⚪ White</button><button class="cap-btn dark ${g.cap==='Dark'?'active':''}" onclick="setGameField('${esc(g.id)}','cap','Dark')">⚫ Dark</button></div></div>
+          ${isMultiTeamAdmin() ? `<div class="form-group"><div class="form-label">Team</div><select class="form-input" onchange="setGameField('${esc(g.id)}','team',this.value)"><option value="A" ${(g.team||'A')==='A'?'selected':''}>A — ${esc((t.teamLabels&&t.teamLabels.A)||'Team A')}</option><option value="B" ${g.team==='B'?'selected':''}>B — ${esc((t.teamLabels&&t.teamLabels.B)||'Team B')}</option>${t.enableCTeam?`<option value="C" ${g.team==='C'?'selected':''}>C — ${esc((t.teamLabels&&t.teamLabels.C)||'Team C')}</option>`:''}</select></div>` : ''}
+          <div class="form-actions"><button class="btn-save" onclick="saveGame('${esc(g.id)}')">✓ Done</button><button class="btn-cancel" onclick="cancelEdit()">Cancel</button><button class="btn-del" onclick="deleteGame('${esc(g.id)}')">🗑</button></div>
+        </div></div>`;
+    }
+    return `<div class="game-row"><div class="game-summary" onclick="toggleEditGame('${esc(g.id)}')"><span class="game-num">${esc(g.gameNum || '?')}</span>${isMultiTeamAdmin()&&g.team?`<span class="game-num" style="background:${g.team==='B'?'#0d9488':'#cc1f1f'}">${esc(g.team)}</span>`:''}<div class="game-info"><div class="game-opp">${esc(g.opponent || 'TBD')}</div><div class="game-meta">${esc(meta)}</div></div><span class="game-edit-icon">✎</span></div></div>`;
+  }).join('');
+
+  const autoBtn = isMultiTeamAdmin() ? `<button class="add-btn" style="background:#dce5f5;color:#002868;border:1.5px solid #b8c9e5;margin-bottom:4px" onclick="autoDetectAllTeams()">🔍 Auto-detect teams</button>` : '';
+
+  return `
+    <details class="card collapsible-card">
+      <summary class="card-header collapsible-header">📚 Game / Tournament Library <span class="collapse-icon">▾</span></summary>
+      <div style="padding:10px 14px">
+        <div style="font-size:0.78rem;color:var(--g400);margin-bottom:8px">Drafts save both your **games schedule** and your **current roster**. Use this to prepare multiple tournaments for the same club in advance.</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <select id="draft-select" class="info-input" style="flex:1;margin:0">
+            <option value="">-- Load a saved draft --</option>
+            ${(S.savedTournaments || []).map(d => `<option value="${esc(d.id)}"${S.activeDraftId === d.id ? ' selected' : ''}>${esc(d.name)}</option>`).join('')}
+          </select>
+          <button class="add-btn" style="flex:none;width:auto;padding:8px 16px" onclick="loadFromLibrary(document.getElementById('draft-select').value)">Load</button>
+          <button class="add-btn btn-neutral-lt" style="flex:none;width:auto;padding:8px 12px" onclick="removeFromLibrary(document.getElementById('draft-select').value)" title="Delete draft">🗑</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="add-btn btn-neutral-lt" style="flex:1" onclick="resetWorkspace()">✨ Start Fresh (Clear Workspace)</button>
+          <button class="add-btn" style="flex:1;background:var(--royal);color:white;border:none" onclick="saveToLibrary()">💾 Save Current Workspace to Library</button>
+        </div>
+        <div style="border-top:1px solid var(--g100);margin-top:10px;padding-top:10px">
+          <div style="font-size:0.78rem;color:var(--g400);margin-bottom:6px">📐 <strong>Templates</strong> — save/load reusable game structures (without scores or dates).</div>
+          <div style="display:flex;gap:8px">
+            <button class="add-btn btn-amber-lt" style="flex:1" onclick="saveAsTemplate()">💾 Save as Template</button>
+            <button class="add-btn btn-teal-lt" style="flex:1" onclick="loadTemplate()">📐 Load Template</button>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="card collapsible-card">
+      <summary class="card-header collapsible-header">⚙️ Game / Tournament Setup <span class="collapse-icon">▾</span></summary>
+      <div class="info-form">
+        <div class="info-field"><div class="info-label">Cloud Club ID</div><input class="info-input" value="${esc(typeof fbGetClubId==='function'?fbGetClubId():'my-club')}" placeholder="e.g. pacific-waves" oninput="if(typeof fbSetClubId==='function')fbSetClubId(this.value);localStorage.setItem('ebadmin-clubId',this.value)"><div class="info-hint">Identifies your club in the cloud.</div></div>
+        <div class="info-field"><div class="info-label">Tournament ID</div><input class="info-input" id="ti-id" value="${esc(t.id||'')}" oninput="S.tournament.id=this.value"><div class="info-hint red">⚠ Changing ID archives the current tournament. Only change when starting a new tournament.</div></div>
+        <div class="info-field"><div class="info-label">Name</div><input class="info-input" id="ti-name" value="${esc(t.name||'')}" oninput="S.tournament.name=this.value;updateAdminHeader()"></div>
+        <div class="info-field"><div class="info-label">Subtitle</div><input class="info-input" value="${esc(t.subtitle||'')}" oninput="S.tournament.subtitle=this.value"></div>
+        <div class="info-field"><div class="info-label">Dates</div><input class="info-input" value="${esc(t.dates||'')}" placeholder="April 25, 2026" oninput="S.tournament.dates=this.value"></div>
+        <div class="info-field"><div class="info-label">Venue Name</div><input id="info-venue-input" class="info-input" value="${esc(t.location||'')}" placeholder="Start typing…" spellcheck="false" oninput="S.tournament.location=this.value"><div class="info-hint">Type to search via Google Places.</div></div>
+        <div class="info-field"><div class="info-label">Venue Address</div><input id="info-address-input" class="info-input" value="${esc(t.address||'')}" placeholder="Full address" oninput="S.tournament.address=this.value"><div class="info-hint">Displayed on game cards.</div></div>
+        <div class="info-field"><div class="info-label">Coming Soon Message</div><input class="info-input" value="${esc(t.comingSoon||'')}" placeholder="Schedule coming week of April 20" oninput="S.tournament.comingSoon=this.value"><div class="info-hint">Clear once you've added games.</div></div>
+        ${tierHasFeature('live_scoring')
+          ? `<div class="info-field"><div class="info-label">Scoring Password</div><input class="info-input" type="text" value="${esc(t.scoringPassword||'')}" placeholder="e.g. bawl2026" autocomplete="off" oninput="S.tournament.scoringPassword=this.value"><div class="info-hint">Parents must enter this to use live scoring.</div></div>`
+          : ''}
+      </div>
+    </details>
+
+    <details class="card collapsible-card">
+      <summary class="card-header collapsible-header">⏱ Clock Settings <span class="collapse-icon">▾</span></summary>
+      <div class="info-form">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div class="info-field"><div class="info-label">Quarter Length (min)</div><input class="info-input" type="number" min="1" max="20" step="0.5" value="${esc((t.clockSettings||{}).quarterMins??7)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).quarterMins=+this.value"></div>
+          <div class="info-field"><div class="info-label">Quarter Break (min)</div><input class="info-input" type="number" min="0" max="10" step="0.5" value="${esc((t.clockSettings||{}).breakMins??2)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).breakMins=+this.value"></div>
+          <div class="info-field"><div class="info-label">Halftime (min)</div><input class="info-input" type="number" min="1" max="20" step="0.5" value="${esc((t.clockSettings||{}).halftimeMins??5)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).halftimeMins=+this.value"></div>
+          <div class="info-field"><div class="info-label"># Timeouts</div><input class="info-input" type="number" min="0" max="5" step="1" id="cfg-to-count" value="${esc((t.clockSettings||{}).timeoutsPerTeam??2)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).timeoutsPerTeam=+this.value;renderToLengthInputs()"></div>
+        </div>
+        <div id="cfg-to-lengths"></div>
+      </div>
+    </details>
+
+    <details class="card collapsible-card" open>
+      <summary class="card-header collapsible-header">📅 Games <span class="collapse-icon">▾</span></summary>
+      <div style="padding:10px 14px">
+        <div style="margin:0 0 10px;border-bottom:1px solid var(--g100);padding-bottom:8px">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--g600);margin-bottom:4px">${isHS?'Season Schedule':'Games'} (${games.length})</div>
+          ${rows || '<div style="padding:8px;color:var(--g400);font-size:.82rem;text-align:center">No games yet — use the tools below.</div>'}
+        </div>
+        ${autoBtn}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+          <button class="add-btn" onclick="addGame()" style="flex:1">+ Add Game</button>
+          <button class="add-btn btn-neutral-lt" onclick="cloneFromArchive()" style="flex:1">📋 Clone from Archive</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+          <button class="add-btn btn-blue-lt" style="flex:1" onclick="openPasteSchedule()">📋 Paste Schedule</button>
+        </div>
+        <div style="border-top:1px solid var(--g100);margin-top:8px;padding-top:8px">
+          <div style="font-size:0.78rem;color:var(--g400);margin-bottom:6px">📊 <strong>Sync from Schedule Sheet</strong></div>
+          <div style="display:flex;gap:8px;margin-bottom:6px"><input class="info-input" id="games-sheet-url" type="url" value="${esc(localStorage.getItem('ebadmin-games-sheet-url')||'')}" placeholder="https://docs.google.com/spreadsheets/d/…" style="margin:0;flex:1;font-size:0.8rem" autocomplete="off" spellcheck="false"><button class="save-btn" onclick="syncGamesFromSheet()">🔄 Sync</button><button class="save-btn btn-neutral-lt" onclick="saveGamesSheetUrl()">💾</button></div>
+          <div id="games-sheet-status" style="font-size:0.8rem;color:var(--g400)"></div>
+        </div>
+        <div style="border-top:1px solid var(--g100);margin-top:8px;padding-top:8px">
+          <div style="font-size:0.78rem;color:var(--g400);margin-bottom:6px">🏆 <strong>Sync from Tournament Host</strong></div>
+          <div style="display:flex;gap:8px;margin-bottom:6px"><input class="info-input" id="dir-sync-code" type="text" maxlength="6" value="${esc(S.dirPkgCode||'')}" placeholder="ABC123" style="flex:1;text-transform:uppercase;letter-spacing:2px;font-weight:700;font-size:0.95rem;margin:0" autocomplete="off" spellcheck="false" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')" onkeydown="if(event.key==='Enter')importDirSync()"><button class="save-btn" onclick="importDirSync()">📥 Import</button></div>
+          <div id="dir-sync-status" style="font-size:0.8rem;color:var(--g400)"></div>
+          ${renderDirSyncResult()}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="add-btn" style="flex:1;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd" onclick="autoPopulateBracket()">🏆 Auto-Populate Bracket</button></div>
+      </div>
+    </details>
+
+    <details class="card collapsible-card" id="activity-log-card">
+      <summary class="card-header collapsible-header" style="display:flex;align-items:center;justify-content:space-between" onclick="if(this.parentElement.open)loadActivityLog()">
+        <span>📋 Activity Log</span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <button style="font-size:0.72rem;background:none;border:none;color:var(--royal);cursor:pointer;font-weight:600" onclick="event.stopPropagation();loadActivityLog()">🔄 Refresh</button>
+          <span class="collapse-icon">▾</span>
+        </span>
+      </summary>
+      <div id="activity-log-container" style="padding:10px 14px">
+        <div style="text-align:center;color:var(--g400);font-size:0.85rem;padding:8px">Tap to load activity log…</div>
+      </div>
+    </details>`;
+}
+function renderInfoTab() { return renderAddGamesTab(); }
+
+
+// ── Activity Log ─────────────────────────────────────────────────────────────
+
+let _activityLogTimer = null;
+
+async function loadActivityLog() {
+  const container = document.getElementById('activity-log-container');
+  if (!container) return;
+
+  try {
+    const res = await api('GET', '/admin/activity-log');
+    if (!res.ok) throw new Error('Failed');
+    const data = await res.json();
+    const log = data.log || [];
+
+    if (!log.length) {
+      container.innerHTML = '<div style="text-align:center;color:var(--g300);font-size:0.85rem;padding:12px">No activity recorded yet. Actions like deploys, roster saves, and announcements will appear here.</div>';
+      return;
+    }
+
+    const actionIcons = {
+      'deploy': '🚀',
+      'save-data': '💾',
+      'save-roster': '👥',
+      'clear-data': '🗑️',
+      'admin-change': '🔑',
+      'announcement': '📢',
+    };
+
+    const rows = log.slice(0, 50).map(entry => {
+      const icon = actionIcons[entry.action] || '•';
+      const ago = _timeAgo(entry.timestamp);
+      const email = entry.adminEmail ? entry.adminEmail.split('@')[0] : 'admin';
+      return `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--g50);align-items:flex-start">
+        <div style="font-size:1.1rem;flex-shrink:0;width:24px;text-align:center;padding-top:1px">${icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.82rem;color:var(--text);line-height:1.4">${esc(entry.details)}</div>
+          <div style="font-size:0.72rem;color:var(--g400);margin-top:1px">${esc(email)} · ${ago}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    container.innerHTML = rows;
+
+    // Auto-refresh every 60s
+    if (_activityLogTimer) clearInterval(_activityLogTimer);
+    _activityLogTimer = setInterval(() => {
+      if (document.getElementById('activity-log-container')) loadActivityLog();
+      else clearInterval(_activityLogTimer);
+    }, 60000);
+
+  } catch (e) {
+    container.innerHTML = `<div style="color:var(--red);font-size:0.85rem;padding:8px">Failed to load activity log</div>`;
+  }
+}
+
+function _timeAgo(isoStr) {
+  const now = Date.now();
+  const then = new Date(isoStr).getTime();
+  const diffMs = now - then;
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(isoStr).toLocaleDateString();
+}
+
+// ── Analytics ───────────────────────────────────────────────────────────────
+
+async function loadAnalytics() {
+  const container = document.getElementById('analytics-container');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;color:var(--g400);font-size:0.85rem;padding:8px">Loading analytics…</div>';
+
+  try {
+    const teams = getAdminTeams();
+    const teamKeys = teams.map(t => t.key).join(',');
+    const [analyticsRes, pageviewsRes] = await Promise.all([
+      api('GET', '/admin/analytics'),
+      api('GET', `/admin/pageviews?teams=${encodeURIComponent(teamKeys)}`),
+    ]);
+
+    const analytics = analyticsRes.ok ? await analyticsRes.json() : { total: 0, byAgeGroup: {}, byPlatform: {} };
+    const pageviews = pageviewsRes.ok ? await pageviewsRes.json() : { days: [] };
+
+    // Subscriber summary
+    let html = `<div style="display:flex;align-items:center;gap:14px;padding:10px 14px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-radius:10px;margin-bottom:12px">
+      <div style="width:48px;height:48px;border-radius:50%;background:#22c55e;color:white;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;flex-shrink:0">${analytics.total}</div>
+      <div>
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#16a34a">Total Subscribers</div>
+        <div style="font-size:0.78rem;color:var(--g400)">
+          ${Object.entries(analytics.byPlatform || {}).filter(([,v]) => v > 0).map(([k,v]) => `${k}: ${v}`).join(' · ') || 'No data'}
+        </div>
+      </div>
+    </div>`;
+
+    // Subscribers by age group (bar chart)
+    const agEntries = Object.entries(analytics.byAgeGroup || {});
+    if (agEntries.length) {
+      const maxAg = Math.max(...agEntries.map(([,v]) => v), 1);
+      html += '<div style="margin-bottom:12px"><div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--g400);margin-bottom:6px">Subscribers by Age Group</div>';
+      for (const [key, count] of agEntries) {
+        const label = key === 'all' ? 'All Groups' : (teams.find(t => t.key === key)?.label || key);
+        const pct = Math.round((count / maxAg) * 100);
+        html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+          <span style="font-size:0.75rem;width:72px;text-align:right;flex-shrink:0;color:var(--g500)">${esc(label)}</span>
+          <div style="flex:1;height:16px;background:var(--g100);border-radius:8px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#6366f1,#818cf8);border-radius:8px;transition:width 0.3s"></div>
+          </div>
+          <span style="font-size:0.75rem;font-weight:700;width:28px;color:var(--g600)">${count}</span>
+        </div>`;
+      }
+      html += '</div>';
+    }
+
+    // Page views sparkline (30 days)
+    const days = pageviews.days || [];
+    if (days.length) {
+      const maxPV = Math.max(...days.map(d => d.total), 1);
+      html += '<div><div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--g400);margin-bottom:6px">Page Views (Last 30 Days)</div>';
+      const totalViews = days.reduce((s, d) => s + d.total, 0);
+      html += `<div style="font-size:0.78rem;color:var(--g500);margin-bottom:6px">Total: ${totalViews.toLocaleString()} views</div>`;
+      html += '<div style="display:flex;align-items:flex-end;gap:1px;height:60px">';
+      for (const d of days) {
+        const h = Math.max(Math.round((d.total / maxPV) * 56), 2);
+        const dt = d.date.slice(5); // MM-DD
+        html += `<div title="${dt}: ${d.total} views" style="flex:1;height:${h}px;background:linear-gradient(180deg,#6366f1,#a5b4fc);border-radius:2px 2px 0 0;min-width:2px;cursor:default"></div>`;
+      }
+      html += '</div>';
+      html += `<div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--g300);margin-top:2px">
+        <span>${days[0]?.date?.slice(5) || ''}</span>
+        <span>${days[days.length-1]?.date?.slice(5) || ''}</span>
+      </div></div>`;
+    }
+
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div style="color:var(--red);font-size:0.85rem;padding:8px">Error: ${esc(e.message)}</div>
+      <button class="save-btn" style="width:100%;margin-top:4px" onclick="loadAnalytics()">Retry</button>`;
+  }
+}
+
+// ─── CLUB ADMIN MANAGEMENT ──────────────────────────────────────────────────
+
+let _cachedAdmins = []; // cache for admin list operations
+
+async function loadClubAdmins() {
+  try {
+    const res = await api('GET', '/admin/club-admins');
+    if (!res.ok) throw new Error('Failed: ' + res.status);
+    const data = await res.json();
+    const list = document.getElementById('club-admins-list');
+    if (!list) return;
+    const admins = data.admins || [];
+    _cachedAdmins = admins;
+    if (!admins.length) {
+      list.innerHTML = '<div style="font-size:0.82rem;color:var(--g400)">No admin list configured yet. Click "Bootstrap" below to register yourself.</div>';
+      return;
+    }
+    list.innerHTML = admins.map(a => {
+      const role = a.role || 'admin';
+      return `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--g100);flex-wrap:wrap">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.85rem;font-weight:600;color:var(--g700)">${esc(a.name || 'Unnamed Admin')}</div>
+          <div style="font-size:0.72rem;color:var(--g400)">${esc(a.email || '')}</div>
+          <code style="font-size:0.65rem;color:var(--g400);overflow:hidden;text-overflow:ellipsis;display:block">${esc(a.uid)}</code>
+        </div>
+        <select onchange="changeAdminRole('${esc(a.uid)}', this.value)" style="font-size:0.72rem;padding:3px 6px;border:1px solid var(--g200);border-radius:6px;background:${role==='scorer'?'#fef3c7':'#ecfdf5'};font-weight:700;color:${role==='scorer'?'#92400e':'#065f46'}">
+          <option value="admin" ${role==='admin'?'selected':''}>Admin</option>
+          <option value="scorer" ${role==='scorer'?'selected':''}>Scorer</option>
+        </select>
+        <button class="save-btn" style="font-size:0.68rem;padding:3px 8px" onclick="editAdminName('${esc(a.uid)}')">✏️ Name</button>
+        <button class="save-btn" style="font-size:0.68rem;padding:3px 8px;background:var(--red-lt);color:var(--red);border-color:var(--red)"
+                onclick="removeClubAdminUid('${esc(a.uid)}')">Remove</button>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    showStatus('Failed to load admins: ' + e.message, 'err');
+  }
+}
+
+async function editAdminName(uid) {
+  const admin = _cachedAdmins.find(a => a.uid === uid);
+  const newName = prompt('Set display name for this admin:', admin?.name || '');
+  if (newName === null) return; // cancelled
+  try {
+    const updatedAdmins = _cachedAdmins.map(a => {
+      if (a.uid === uid) return { ...a, name: newName.trim() };
+      return a;
+    });
+    const putRes = await api('PUT', '/admin/club-admins', { adminUIDs: updatedAdmins });
+    if (!putRes.ok) throw new Error('Failed to save');
+    showStatus('✓ Admin name updated', 'ok');
+    loadClubAdmins();
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  }
+}
+
+async function changeAdminRole(uid, newRole) {
+  try {
+    const updatedAdmins = _cachedAdmins.map(a => {
+      if (a.uid === uid) return { ...a, role: newRole };
+      return a;
+    });
+    const putRes = await api('PUT', '/admin/club-admins', { adminUIDs: updatedAdmins });
+    if (!putRes.ok) throw new Error('Failed to save');
+    showStatus(`✓ Role updated to ${newRole}`, 'ok');
+    loadClubAdmins();
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  }
+}
+
+async function addClubAdminUid() {
+  const uidInput = document.getElementById('new-admin-uid');
+  const nameInput = document.getElementById('new-admin-name');
+  const uid = (uidInput?.value || '').trim();
+  const name = (nameInput?.value || '').trim();
+  if (!uid) { showStatus('Enter a Google UID', 'err'); return; }
+  try {
+    const getRes = await api('GET', '/admin/club-admins');
+    if (!getRes.ok) throw new Error('Failed to fetch current admins');
+    const data = await getRes.json();
+    const admins = data.admins || [];
+    if (admins.some(a => a.uid === uid)) { showStatus('UID already in admin list', 'info'); return; }
+    admins.push({ uid, name: name, email: '' });
+    const putRes = await api('PUT', '/admin/club-admins', { adminUIDs: admins });
+    if (!putRes.ok) throw new Error('Failed to save');
+    if (typeof fbAddClubAdmin === 'function') await fbAddClubAdmin(typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club', uid);
+    uidInput.value = '';
+    nameInput.value = '';
+    showStatus('✓ Admin added' + (name ? ': ' + name : ''), 'ok');
+    loadClubAdmins();
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  }
+}
+
+async function removeClubAdminUid(uid) {
+  const admin = _cachedAdmins.find(a => a.uid === uid);
+  const label = admin?.name ? `${admin.name} (${uid})` : uid;
+  if (!confirm('Remove this admin?\n\n' + label)) return;
+  try {
+    const admins = _cachedAdmins.filter(a => a.uid !== uid);
+    const putRes = await api('PUT', '/admin/club-admins', { adminUIDs: admins });
+    if (!putRes.ok) throw new Error('Failed to save');
+    if (typeof fbRemoveClubAdmin === 'function') await fbRemoveClubAdmin(typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club', uid);
+    showStatus('✓ Admin removed', 'ok');
+    loadClubAdmins();
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  }
+}
+
+async function initClubAdminList() {
+  if (S.authMode !== 'google') {
+    showStatus('Sign in with Google first to bootstrap the admin list', 'err');
+    return;
+  }
+  try {
+    const res = await api('POST', '/admin/init-club', {});
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.description || 'Init failed');
+    // Also ensure club doc exists in Firestore with this UID
+    const user = typeof fbGetUser === 'function' ? fbGetUser() : null;
+    if (user && typeof fbEnsureClub === 'function') {
+      await fbEnsureClub(S.tournament?.clubName || (user.displayName ? user.displayName + "'s Club" : ''), user.uid);
+    }
+    showStatus('✓ You are now the first admin for this club!', 'ok');
+    loadClubAdmins();
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  }
+}
+
+// ─── INVITE MANAGEMENT ──────────────────────────────────────────────────────
+
+async function generateInviteLink() {
+  const emailInput = document.getElementById('invite-email');
+  const email = (emailInput?.value || '').trim();
+  try {
+    const res = await api('POST', '/admin/invite', { email });
+    if (!res.ok) throw new Error('Failed: ' + res.status);
+    const data = await res.json();
+    const link = window.location.origin + '/admin.html?invite=' + data.token;
+    const output = document.getElementById('invite-link-output');
+    const value = document.getElementById('invite-link-value');
+    output.style.display = 'block';
+    value.value = link;
+    if (emailInput) emailInput.value = '';
+    showStatus('✓ Invite link generated' + (email ? ' for ' + email : ''), 'ok');
+    loadPendingInvites();
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  }
+}
+
+function copyInviteLink() {
+  const input = document.getElementById('invite-link-value');
+  if (!input) return;
+  navigator.clipboard.writeText(input.value).then(() => {
+    showStatus('✓ Link copied to clipboard!', 'ok');
+  }).catch(() => {
+    input.select();
+    document.execCommand('copy');
+    showStatus('✓ Link copied!', 'ok');
+  });
+}
+
+async function loadPendingInvites() {
+  const el = document.getElementById('pending-invites-list');
+  if (!el) return;
+  try {
+    const res = await api('GET', '/admin/invites');
+    if (!res.ok) throw new Error('Failed: ' + res.status);
+    const data = await res.json();
+    const invites = data.invites || [];
+    if (!invites.length) {
+      el.innerHTML = '<div style="color:var(--g400)">No pending invites.</div>';
+      return;
+    }
+    el.innerHTML = invites.map(inv => {
+      const created = inv.createdAt ? new Date(inv.createdAt).toLocaleDateString() : '?';
+      const expires = inv.expiration ? new Date(inv.expiration).toLocaleDateString() : '7 days';
+      return `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--g100)">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:0.82rem;font-weight:600">${esc(inv.email || 'No email')}</div>
+            <div style="font-size:0.68rem;color:var(--g400)">Created ${created} · Expires ${expires}</div>
+          </div>
+          <button class="save-btn" style="font-size:0.68rem;padding:3px 8px;background:var(--red-lt);color:var(--red)"
+                  onclick="revokeInvite('${esc(inv.token)}')">Revoke</button>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = '<div style="color:var(--g400);font-size:0.82rem;padding:8px 0">Could not load invites — check your connection.</div>';
+  }
+}
+
+async function revokeInvite(token) {
+  if (!confirm('Revoke this invite?')) return;
+  try {
+    const res = await api('DELETE', '/admin/invite?token=' + encodeURIComponent(token));
+    if (!res.ok) throw new Error('Failed: ' + res.status);
+    showStatus('✓ Invite revoked', 'ok');
+    loadPendingInvites();
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  }
+}
+
+// ─── CLUB LOGO UPLOAD ───────────────────────────────────────────────────────
+
+let _pendingLogo = null;
+
+/**
+ * Remove the outer background from a logo PNG using BFS flood-fill from the
+ * four corners. Only pixels connected to the corners that match the background
+ * color (within tolerance) are made transparent — internal whites are preserved.
+ */
+function removeLogoBackground(dataUrl) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width  = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      const w = canvas.width, h = canvas.height;
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const d = imageData.data;
+
+      // Sample background from top-left corner
+      const bgR = d[0], bgG = d[1], bgB = d[2];
+
+      // Only strip if background is near-white (r,g,b all ≥ 200)
+      if (bgR < 200 || bgG < 200 || bgB < 200) { resolve(dataUrl); return; }
+
+      const TOLERANCE = 30;
+      const visited   = new Uint8Array(w * h);
+
+      function matches(pi) {
+        if (d[pi + 3] === 0) return true;
+        const dr = d[pi] - bgR, dg = d[pi + 1] - bgG, db = d[pi + 2] - bgB;
+        return (dr * dr + dg * dg + db * db) <= TOLERANCE * TOLERANCE;
+      }
+
+      // Seed BFS from all four corners
+      const queue = [];
+      for (const [sx, sy] of [[0,0],[w-1,0],[0,h-1],[w-1,h-1]]) {
+        const si = sy * w + sx;
+        if (!visited[si]) { visited[si] = 1; queue.push(si); }
+      }
+
+      let qi = 0;
+      while (qi < queue.length) {
+        const idx = queue[qi++];
+        const pi  = idx * 4;
+        d[pi + 3] = 0; // make transparent
+        const x = idx % w, y = (idx / w) | 0;
+        if (x > 0)   { const n = idx - 1; if (!visited[n] && matches(n*4)) { visited[n]=1; queue.push(n); } }
+        if (x < w-1) { const n = idx + 1; if (!visited[n] && matches(n*4)) { visited[n]=1; queue.push(n); } }
+        if (y > 0)   { const n = idx - w; if (!visited[n] && matches(n*4)) { visited[n]=1; queue.push(n); } }
+        if (y < h-1) { const n = idx + w; if (!visited[n] && matches(n*4)) { visited[n]=1; queue.push(n); } }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+function previewClubLogo(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 150 * 1024) {
+    showStatus('❌ Logo too large — max 150KB', 'err');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const processed = await removeLogoBackground(reader.result);
+    _pendingLogo = processed;
+    const preview = document.getElementById('club-logo-preview');
+    if (preview) {
+      preview.innerHTML = `<img src="${_pendingLogo}" style="max-height:100px;max-width:100%;display:block;">`;
+    }
+    const btn = document.getElementById('upload-logo-btn');
+    if (btn) btn.disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function uploadClubLogo() {
+  if (!_pendingLogo) { showStatus('Choose an image first', 'err'); return; }
+  const btn = document.getElementById('upload-logo-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
+  try {
+    const res = await api('PUT', '/admin/club-logo', { logo: _pendingLogo });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => 'Error');
+      throw new Error(errText);
+    }
+    showStatus('✓ Club logo uploaded!', 'ok');
+    // Update the admin header logo immediately
+    const uploaded = _pendingLogo;
+    S._clubLogo = uploaded;
+    _pendingLogo = null;
+    applyAdminBranding(S._branding?.primaryColor || '#002868', S._branding?.secondaryColor || '#0d9488', uploaded);
+    const status = document.getElementById('logo-upload-status');
+    if (status) status.innerHTML = '<span style="color:var(--green)">✓ Logo saved</span>';
+  } catch (e) {
+    showStatus('❌ Logo upload failed: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⬆️ Upload Logo'; }
+  }
+}
+
+// ─── SYNC FROM TOURNAMENT DIRECTOR ───────────────────────────────────────────
+
+// ── Push Notification Manager ────────────────────────────────────────────────
+
+async function toggleReminders(enabled) {
+  const toggle = document.getElementById('reminders-toggle');
+  const slider = document.getElementById('reminders-slider');
+  try {
+    await api('PUT', '/admin/club-settings', { remindersEnabled: enabled });
+    if (toggle) _updateToggleVisual(toggle, slider, enabled);
+    showStatus(enabled ? '✅ Game reminders enabled' : '⏸ Game reminders disabled', 'ok');
+  } catch (e) {
+    showStatus('Failed to update: ' + e.message, 'err');
+    if (toggle) toggle.checked = !enabled; // revert
+  }
+}
+
+function _updateToggleVisual(input, slider, on) {
+  const track = input?.nextElementSibling;
+  if (track) track.style.background = on ? 'var(--royal)' : 'var(--g200)';
+  if (slider) slider.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
+}
+
+async function loadRemindersSetting() {
+  try {
+    const res = await api('GET', '/admin/club-settings');
+    if (!res.ok) return;
+    const data = await res.json();
+    const enabled = data.remindersEnabled !== false; // default true
+    const toggle = document.getElementById('reminders-toggle');
+    const slider = document.getElementById('reminders-slider');
+    if (toggle) {
+      toggle.checked = enabled;
+      _updateToggleVisual(toggle, slider, enabled);
+    }
+  } catch {}
+}
+
+async function loadPushStats() {
+  const container = document.getElementById('push-stats-container');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;color:var(--g400);font-size:0.85rem;padding:8px">Loading…</div>';
+
+  try {
+    const res = await api('GET', '/admin/push-stats');
+    if (!res.ok) throw new Error('Failed to load');
+    const data = await res.json();
+
+    const teams = getAdminTeams();
+    const ageRows = Object.entries(data.byAgeGroup).map(([key, count]) => {
+      const label = key === 'all' ? 'All Groups' : (teams.find(t => t.key === key)?.label || key);
+      return `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.82rem">
+        <span>${esc(label)}</span>
+        <span style="font-weight:700;color:var(--royal)">${count}</span>
+      </div>`;
+    }).join('');
+
+    const prefLabels = {
+      gameScores: '🤽‍♀️ Game Scores',
+      scheduleChanges: '📅 Schedule Changes',
+      tournamentAnnouncements: '📢 Announcements',
+      gameReminders: '⏰ Game Reminders',
+    };
+    const prefRows = Object.entries(data.byPref).map(([key, count]) => {
+      const pct = data.total ? Math.round((count / data.total) * 100) : 0;
+      return `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.82rem">
+        <span>${prefLabels[key] || key}</span>
+        <span style="font-weight:700">${count} <span style="color:var(--g400);font-weight:400">(${pct}%)</span></span>
+      </div>`;
+    }).join('');
+
+    container.innerHTML = `
+      <div style="display:flex;align-items:center;gap:14px;padding:10px 14px;background:linear-gradient(135deg,#eff6ff,#e0e7ff);border-radius:10px;margin-bottom:10px">
+        <div style="width:52px;height:52px;border-radius:50%;background:var(--royal);color:white;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;flex-shrink:0">${data.total}</div>
+        <div>
+          <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6366f1">Total Subscribers</div>
+          <div style="font-size:0.82rem;color:var(--g400)">${Object.keys(data.byAgeGroup).length} age group${Object.keys(data.byAgeGroup).length !== 1 ? 's' : ''}</div>
+        </div>
+      </div>
+      <div style="margin-bottom:8px">
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--g400);margin-bottom:4px">By Age Group</div>
+        ${ageRows || '<div style="font-size:0.82rem;color:var(--g300)">No subscribers yet</div>'}
+      </div>
+      <div>
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--g400);margin-bottom:4px">Notification Preferences</div>
+        ${prefRows}
+      </div>
+      <button class="save-btn btn-neutral-lt" style="width:100%;margin-top:8px" onclick="loadPushStats()">🔄 Refresh</button>
+    `;
+  } catch (e) {
+    container.innerHTML = `<div style="color:var(--red);font-size:0.85rem;padding:8px">Error: ${esc(e.message)}</div>
+      <button class="save-btn" style="width:100%;margin-top:4px" onclick="loadPushStats()">Retry</button>`;
+  }
+}
+
+function confirmAnnouncement() {
+  const title = document.getElementById('announce-title')?.value.trim();
+  const body = document.getElementById('announce-body')?.value.trim();
+  if (!title) { showStatus('Enter a title for your announcement', 'err'); return; }
+  if (!body) { showStatus('Enter a message body', 'err'); return; }
+
+  const checked = [...document.querySelectorAll('.announce-ag-cb:checked')];
+  const ageGroups = checked.map(c => c.value);
+  const teams = getAdminTeams();
+  const labels = ageGroups.map(k => teams.find(t => t.key === k)?.label || k);
+
+  const isScheduled = document.getElementById('announce-schedule-toggle')?.checked;
+  if (isScheduled) {
+    const sendAt = document.getElementById('announce-sendAt')?.value;
+    if (!sendAt) { showStatus('Pick a date/time for the scheduled announcement', 'err'); return; }
+    const isoTime = new Date(sendAt).toISOString();
+    const msg = `📅 Schedule this announcement?\n\nTitle: ${title}\nBody: ${body}\nTo: ${labels.length ? labels.join(', ') : 'ALL subscribers'}\nSend at: ${new Date(sendAt).toLocaleString()}\n\nThe announcement will be sent automatically.`;
+    if (!confirm(msg)) return;
+    scheduleAnnouncement(title, body, ageGroups, isoTime);
+  } else {
+    const msg = `📢 Send this announcement?\n\nTitle: ${title}\nBody: ${body}\nTo: ${labels.length ? labels.join(', ') : 'ALL subscribers'}\n\nThis will send a push notification immediately.`;
+    if (!confirm(msg)) return;
+    sendAnnouncement(title, body, ageGroups);
+  }
+}
+
+function toggleScheduleMode(checked) {
+  const picker = document.getElementById('announce-schedule-picker');
+  const btn = document.getElementById('announce-send-btn');
+  if (picker) picker.style.display = checked ? 'block' : 'none';
+  if (btn) btn.innerHTML = checked ? '📅 Schedule Announcement' : '📢 Send Announcement';
+}
+
+async function scheduleAnnouncement(title, body, ageGroups, sendAt) {
+  const statusEl = document.getElementById('announce-status');
+  statusEl.textContent = '⏳ Scheduling…';
+  statusEl.style.color = 'var(--g400)';
+
+  try {
+    const res = await api('POST', '/admin/schedule-announce', { title, body, ageGroups, sendAt });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.description || 'Failed');
+
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = `✅ Announcement scheduled for ${new Date(sendAt).toLocaleString()}`;
+    document.getElementById('announce-title').value = '';
+    document.getElementById('announce-body').value = '';
+    document.getElementById('announce-sendAt').value = '';
+    loadScheduledAnnouncements();
+  } catch (e) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = `❌ ${e.message}`;
+  }
+}
+
+async function loadScheduledAnnouncements() {
+  const container = document.getElementById('scheduled-list');
+  if (!container) return;
+
+  try {
+    const res = await api('GET', '/admin/scheduled-announces');
+    if (!res.ok) return;
+    const data = await res.json();
+    const list = data.announcements || [];
+
+    if (!list.length) {
+      container.innerHTML = '';
+      return;
+    }
+
+    container.innerHTML = `<div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--g400);margin-bottom:4px">Pending Scheduled (${list.length})</div>` +
+      list.map(a => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--g50)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.82rem;font-weight:600">${esc(a.title)}</div>
+          <div style="font-size:0.72rem;color:var(--g400)">📅 ${new Date(a.sendAt).toLocaleString()}</div>
+        </div>
+        <button style="font-size:0.72rem;background:none;border:1px solid var(--red);color:var(--red);border-radius:6px;padding:3px 8px;cursor:pointer" onclick="cancelScheduledAnnouncement('${a.id}')">Cancel</button>
+      </div>`).join('');
+  } catch {}
+}
+
+async function cancelScheduledAnnouncement(id) {
+  if (!confirm('Cancel this scheduled announcement?')) return;
+  try {
+    await api('DELETE', `/admin/cancel-announce?id=${encodeURIComponent(id)}`);
+    showStatus('Scheduled announcement cancelled', 'ok');
+    loadScheduledAnnouncements();
+  } catch (e) {
+    showStatus('Failed to cancel: ' + e.message, 'err');
+  }
+}
+
+async function sendAnnouncement(title, body, ageGroups) {
+  const statusEl = document.getElementById('announce-status');
+  statusEl.textContent = '⏳ Sending…';
+  statusEl.style.color = 'var(--g400)';
+
+  try {
+    const res = await api('POST', '/admin/announce', { title, body, ageGroups });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.description || 'Failed');
+
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = `✅ Sent to ${data.sent} subscriber${data.sent !== 1 ? 's' : ''}${data.failed ? ` (${data.failed} failed)` : ''}`;
+    document.getElementById('announce-title').value = '';
+    document.getElementById('announce-body').value = '';
+  } catch (e) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = `❌ ${e.message}`;
+  }
+}
+
+function renderDirSyncResult() {
+  const pkg = S.dirPkg;
+  if (!pkg) return '';
+  const ags = pkg.ageGroups || [];
+  if (!ags.length) return '<div style="color:var(--red);font-size:0.82rem;margin-top:8px">No age groups found in this package.</div>';
+
+  // Age group pills
+  let html = `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--g200)">
+    <div style="font-size:0.82rem;font-weight:700;color:var(--royal);margin-bottom:8px">
+      📋 ${esc(pkg.tournamentName || 'Tournament')}${pkg.dates ? ' · ' + esc(pkg.dates) : ''}
+    </div>
+    <div style="font-size:0.82rem;color:var(--g600);margin-bottom:8px">Select your age group:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">`;
+  ags.forEach((ag, ai) => {
+    const sel = S.dirSelectedAg === ai;
+    html += `<button class="add-btn" style="font-size:0.8rem;padding:5px 12px;border-radius:20px;${sel ? 'background:var(--royal);color:white;border-color:var(--royal)' : ''}"
+      onclick="selectDirSyncAg(${ai})">${esc(ag.name)}</button>`;
+  });
+  html += '</div>';
+
+  // If an age group is selected, show team list from divisions
+  if (S.dirSelectedAg >= 0 && S.dirSelectedAg < ags.length) {
+    const ag = ags[S.dirSelectedAg];
+    const teams = [];
+    (ag.divisionGroups || []).forEach(grp => {
+      (grp.divisions || []).forEach(dv => {
+        (dv.teams || []).forEach(t => {
+          const name = (Array.isArray(t) ? t[0] : t) || '';
+          if (name && !teams.includes(name)) teams.push(name);
+        });
+      });
+    });
+    if (teams.length) {
+      html += `<div style="font-size:0.82rem;color:var(--g600);margin-bottom:8px">Select your team:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">`;
+      teams.forEach(t => {
+        const sel = S.dirSelectedTeam === t;
+        html += `<button class="add-btn" style="font-size:0.8rem;padding:5px 12px;border-radius:20px;${sel ? 'background:var(--royal);color:white;border-color:var(--royal)' : ''}"
+          onclick="selectDirSyncTeam('${esc(t.replace(/'/g, "\\'"))}')">${esc(t)}</button>`;
+      });
+      html += '</div>';
+    }
+
+    // Push button (enabled only when team selected)
+    if (S.dirSelectedTeam) {
+      html += `<button class="save-btn" style="width:100%;background:var(--royal);color:white;border-color:var(--royal);font-weight:700;padding:10px;font-size:0.88rem"
+        onclick="pushDirSyncToApp(this)">🚀 Push "${esc(S.dirSelectedTeam)}" Schedule to App</button>`;
+    }
+  }
+
+  html += '</div>';
+  return html;
+}
+
+async function importDirSync() {
+  const input = document.getElementById('dir-sync-code');
+  if (!input) return;
+  const code = (input.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (code.length < 6) { document.getElementById('dir-sync-status').textContent = 'Enter the 6-character share code'; return; }
+  document.getElementById('dir-sync-status').textContent = 'Importing…';
+  try {
+    const res = await fetch(WORKER + '/tournament-pkg?code=' + encodeURIComponent(code));
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.description || 'Import failed');
+    S.dirPkg = data.pkg;
+    S.dirPkgCode = code;
+    S.dirSelectedAg = -1;
+    S.dirSelectedTeam = '';
+    localStorage.setItem('ebadmin-dir-sync-code', code);
+    localStorage.setItem('ebadmin-dir-sync-pkg', JSON.stringify(data.pkg));
+    document.getElementById('dir-sync-status').innerHTML = '<span style="color:var(--green)">✅ Package imported!</span>';
+    renderTab();
+  } catch (e) {
+    document.getElementById('dir-sync-status').innerHTML = '<span style="color:var(--red)">❌ ' + esc(e.message) + '</span>';
+  }
+}
+
+function selectDirSyncAg(ai) {
+  S.dirSelectedAg = ai;
+  S.dirSelectedTeam = '';
+  renderTab();
+}
+
+function selectDirSyncTeam(name) {
+  S.dirSelectedTeam = name;
+  renderTab();
+}
+
+async function pushDirSyncToApp(btn) {
+  if (!S.dirPkg || S.dirSelectedAg < 0 || !S.dirSelectedTeam) return;
+  const pkg = S.dirPkg;
+  const ag = pkg.ageGroups[S.dirSelectedAg];
+  if (!ag) return;
+  const teamName = S.dirSelectedTeam;
+
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Pushing…';
+
+  try {
+    // Build games for this team from the director package
+    const games = [];
+    let gameNum = 1;
+    (ag.divisionGroups || []).forEach(grp => {
+      (grp.divisions || []).forEach(dv => {
+        const teamsList = (dv.teams || []).map(t => Array.isArray(t) ? t[0] : t);
+        const teamIdx = teamsList.indexOf(teamName);
+        if (teamIdx < 0) return;
+        // Parse format to find games involving this team
+        const fmt = (dv.format || '').trim();
+        if (!fmt) return;
+        fmt.split('\n').forEach(line => {
+          line = line.trim();
+          if (!line) return;
+          // Match patterns like "1v2", "1 vs 2", "1-2", "team1 vs team2"
+          const m = line.match(/^(\d+)\s*(?:v|vs\.?|-)\s*(\d+)$/i);
+          if (m) {
+            const a = parseInt(m[1]) - 1, b = parseInt(m[2]) - 1;
+            if (a === teamIdx || b === teamIdx) {
+              const opp = a === teamIdx ? (teamsList[b] || 'TBD') : (teamsList[a] || 'TBD');
+              games.push({
+                id: 'dir-' + Date.now() + '-' + gameNum,
+                gameNum: 'G' + gameNum,
+                opponent: opp,
+                date: pkg.dates || '',
+                time: '',
+                location: ag.venueName || pkg.location || '',
+                pool: ag.pool || '',
+                cap: '',
+                team: 'A',
+              });
+              gameNum++;
+            }
+          }
+        });
+      });
+    });
+
+    // Also pull any directorGames that reference this team
+    (pkg.directorGames || []).forEach(dg => {
+      const t1 = (dg.team1 || '').trim();
+      const t2 = (dg.team2 || '').trim();
+      if (t1 === teamName || t2 === teamName) {
+        const opp = t1 === teamName ? t2 : t1;
+        // Avoid duplicating if we already matched from format
+        const already = games.some(g => g.opponent === opp);
+        if (!already) {
+          games.push({
+            id: 'dir-' + Date.now() + '-' + gameNum,
+            gameNum: dg.gameId || ('G' + gameNum),
+            opponent: opp || 'TBD',
+            date: dg.date || pkg.dates || '',
+            time: dg.time || '',
+            location: dg.venue || ag.venueName || pkg.location || '',
+            pool: dg.pool || ag.pool || '',
+            cap: '',
+            team: 'A',
+          });
+          gameNum++;
+        }
+      }
+    });
+
+    // Update tournament info from package
+    S.tournament.name = pkg.tournamentName || S.tournament.name || '';
+    S.tournament.dates = pkg.dates || S.tournament.dates || '';
+    S.tournament.location = pkg.location || S.tournament.location || '';
+    S.tournament.address = pkg.address || S.tournament.address || '';
+
+    // Update clock settings from age group
+    S.tournament.clockSettings = S.tournament.clockSettings || {};
+    S.tournament.clockSettings.quarterMins = ag.quarterMins ?? S.tournament.clockSettings.quarterMins ?? 7;
+    S.tournament.clockSettings.breakMins = ag.breakMins ?? S.tournament.clockSettings.breakMins ?? 2;
+    S.tournament.clockSettings.halftimeMins = ag.halftimeMins ?? S.tournament.clockSettings.halftimeMins ?? 5;
+    S.tournament.clockSettings.timeoutsPerTeam = ag.timeoutsPerTeam ?? S.tournament.clockSettings.timeoutsPerTeam ?? 2;
+    S.tournament.clockSettings.timeoutLengths = ag.timeoutLengths || S.tournament.clockSettings.timeoutLengths || [1, 0.5];
+
+    // Merge games (replace director-synced games, keep manually added ones)
+    const existingManual = (S.tournament.games || []).filter(g => !g.id.startsWith('dir-'));
+    S.tournament.games = [...existingManual, ...games];
+
+    // Store the share code + scoring password for the main app
+    S.tournament.directorCode = S.dirPkgCode;
+
+    // Save & deploy
+    const res = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+    if (!res.ok) throw new Error('Save failed: ' + res.status);
+    const dep = await api('POST', '/admin/deploy');
+    if (!dep.ok) throw new Error('Deploy failed');
+
+    showStatus('✅ Pushed "' + teamName + '" schedule to app!', 'ok');
+    btn.textContent = '✅ Pushed!';
+    setTimeout(() => { btn.disabled = false; btn.textContent = orig; }, 3000);
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+
+// Restore persisted dir sync on login
+function restoreDirSync() {
+  try {
+    const code = localStorage.getItem('ebadmin-dir-sync-code');
+    const pkgStr = localStorage.getItem('ebadmin-dir-sync-pkg');
+    if (code && pkgStr) {
+      S.dirPkgCode = code;
+      S.dirPkg = JSON.parse(pkgStr);
+    }
+  } catch {}
+}
+
+// ─── MULTI-TEAM ADMIN HELPERS ─────────────────────────────────────────────────
+
+function isMultiTeamAdmin() {
+  // Multi-team is the default. Only disabled when explicitly set.
+  return S.tournament.singleTeam !== true;
+}
+
+// disable=true  → single-team mode (checkbox checked  = "Disable multi-team")
+// disable=false → multi-team mode  (checkbox unchecked = keep default)
+function toggleMultiTeam(disable) {
+  if (disable) {
+    S.tournament.singleTeam = true;
+    // Convert S.roster back to flat array (keep Team A players)
+    if (S.roster && !Array.isArray(S.roster)) S.roster = S.roster.A || [];
+  } else {
+    delete S.tournament.singleTeam;
+    // Ensure teams + labels are set
+    S.tournament.teams      = ['A', 'B'];
+    S.tournament.teamLabels = S.tournament.teamLabels || { A: 'Team A', B: 'Team B' };
+    // Convert S.roster to object format if it's currently a plain array
+    if (Array.isArray(S.roster)) S.roster = { A: S.roster, B: [] };
+    if (!S.roster) S.roster = { A: [], B: [] };
+  }
+  // Show/hide the team label fields without full re-render
+  const el = document.getElementById('ti-team-labels');
+  if (el) el.style.display = disable ? 'none' : 'contents';
+}
+
+function toggleCTeam(enable) {
+  S.tournament.enableCTeam = enable ? true : false;
+  if (enable) {
+    if (!S.tournament.teams || !S.tournament.teams.includes('C')) {
+      S.tournament.teams = ['A', 'B', 'C'];
+    }
+    if (!S.tournament.teamLabels) S.tournament.teamLabels = {};
+    if (!S.tournament.teamLabels.C) S.tournament.teamLabels.C = 'Team C';
+    if (!S.roster) S.roster = { A: [], B: [], C: [] };
+    else if (Array.isArray(S.roster)) S.roster = { A: S.roster, B: [], C: [] };
+    else if (!S.roster.C) S.roster.C = [];
+  } else {
+    if (Array.isArray(S.tournament.teams)) {
+      S.tournament.teams = S.tournament.teams.filter(t => t !== 'C');
+    }
+    // Preserve roster.C data — don't delete it, just hide it
+  }
+  const el = document.getElementById('ti-cteam-fields');
+  if (el) el.style.display = enable ? 'contents' : 'none';
+}
+
+function setTeamLabel(team, val) {
+  if (!S.tournament.teamLabels) S.tournament.teamLabels = {};
+  S.tournament.teamLabels[team] = val;
+}
+
+// ─── GAMES FROM SHEET ─────────────────────────────────────────────────────────
+
+function saveGamesSheetUrl() {
+  const url = document.getElementById('games-sheet-url')?.value.trim();
+  if (!url) { document.getElementById('games-sheet-status').textContent = '⚠️ Enter a URL first'; return; }
+  localStorage.setItem('ebadmin-games-sheet-url', url);
+  document.getElementById('games-sheet-status').textContent = '✅ URL saved';
+}
+
+// Parse a date string (various formats) into YYYY-MM-DD ISO format.
+// Supports: YYYY-MM-DD · M/D/YYYY · MM/DD/YY · "April 25, 2026" · "Sat Apr 25 2026"
+function parseDateToISO(dateStr) {
+  if (!dateStr) return '';
+  const s = dateStr.trim();
+  // Already ISO
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // M/D/YYYY or M/D/YY
+  const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (mdy) {
+    let [, m, d, y] = mdy;
+    if (y.length === 2) y = '20' + y;
+    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  // Try native Date parse (handles "April 25, 2026", "Sat Apr 25 2026", etc.)
+  try {
+    const parsed = new Date(s);
+    if (!isNaN(parsed)) return parsed.toISOString().split('T')[0];
+  } catch (_) {}
+  return '';
+}
+
+async function syncGamesFromSheet() {
+  const url = document.getElementById('games-sheet-url')?.value.trim();
+  const statusEl = document.getElementById('games-sheet-status');
+  if (!url) { statusEl.textContent = '⚠️ Enter a Google Sheets URL first'; return; }
+
+  // Save URL for next time
+  localStorage.setItem('ebadmin-games-sheet-url', url);
+  statusEl.textContent = '⏳ Fetching schedule sheet…';
+
+  try {
+    const res  = await api('POST', '/admin/games-sync', { url });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.description || 'Sync failed');
+
+    const rawGames = data.games; // [{ gameNum, opponent, dateRaw, time, location, pool, cap, team }]
+    if (!rawGames.length) throw new Error('No games found in sheet');
+
+    // Map raw rows → game objects, reusing or generating IDs
+    const existingById = {};
+    for (const g of (S.tournament.games || [])) existingById[g.id] = g;
+
+    const games = rawGames.map((row, idx) => {
+      // Try to match by game number to preserve any existing edits/IDs
+      const existing = (S.tournament.games || []).find(g =>
+        row.gameNum && g.gameNum && g.gameNum.toString() === row.gameNum.toString()
+      );
+      const id     = existing?.id || ('g' + (Date.now() + idx).toString(36));
+      const dateISO = parseDateToISO(row.dateRaw);
+      const date    = dateISO ? isoToDate(dateISO) : (row.dateRaw || '');
+      const cap     = row.cap || (existing?.cap || 'White');
+      const team    = isMultiTeamAdmin() ? resolveTeamKey(row.team) : (row.team || '');
+
+      return {
+        id,
+        gameNum:  row.gameNum  || String(idx + 1),
+        opponent: row.opponent || 'TBD',
+        time:     row.time     || '',
+        dateISO,
+        date,
+        location: row.location || '',
+        pool:     row.pool     || '',
+        cap,
+        ...(isMultiTeamAdmin() ? { team } : {}),
+      };
+    });
+
+    // Sort by game number
+    games.sort((a, b) => gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum));
+
+    S.tournament.games = games;
+
+    // Count team breakdown for multi-team
+    let teamSummary = '';
+    if (isMultiTeamAdmin()) {
+      const countA = games.filter(g => g.team !== 'B').length;
+      const countB = games.filter(g => g.team === 'B').length;
+      const labelA = (S.tournament.teamLabels && S.tournament.teamLabels.A) || 'A';
+      const labelB = (S.tournament.teamLabels && S.tournament.teamLabels.B) || 'B';
+      teamSummary = ` (${labelA}: ${countA}, ${labelB}: ${countB})`;
+    }
+
+    statusEl.textContent = `✅ Found ${games.length} game(s)${teamSummary} — saving…`;
+
+    // Auto-save tournament data to KV
+    const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+    if (!saveRes.ok) throw new Error('Games synced but KV save failed — tap 💾 Save & Deploy to retry');
+    statusEl.textContent = `✅ ${games.length} game(s) synced${teamSummary} — tap 💾 Save & Deploy to go live!`;
+
+    // Switch to Schedule tab so user can review
+    switchTab('schedule');
+  } catch (e) {
+    statusEl.textContent = '❌ ' + e.message;
+  }
+}
+
+// ─── RAW TAB (Option 2 backup) ────────────────────────────────────────────────
+
+function renderRawTab() {
+  return `
+    <div class="card">
+      <div class="raw-section">
+        <h3>📋 Deploy from Claude</h3>
+        <p style="font-size:.82rem;color:var(--g600);line-height:1.5">
+          Paste a full <code>tournament.js</code> file generated by Claude.
+          It will be parsed, saved to KV, and published live.
+        </p>
+        <textarea class="raw-textarea" id="raw-content"
+                  placeholder="Paste tournament.js content here…"></textarea>
+        <button class="raw-btn raw-btn-deploy" onclick="deployRaw()">🚀 Parse & Deploy</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="raw-section">
+        <h3>🔧 Bootstrap File Manifest</h3>
+        <p style="font-size:.82rem;color:var(--g600);line-height:1.5">
+          Required one time (or after any laptop deploy).
+          Paste the JSON manifest from <code>seed-kv.js</code> output.
+        </p>
+        <textarea class="raw-textarea" id="manifest-content" style="height:120px"
+                  placeholder='{"\/index.html":"abc123…","\/app.js":"def456…",…}'></textarea>
+        <button class="raw-btn raw-btn-manifest" onclick="storeManifest()">📦 Store Manifest</button>
+      </div>
+    </div>`;
+}
+
+async function deployRaw() {
+  const content = document.getElementById('raw-content').value.trim();
+  if (!content) { showStatus('Paste tournament.js content first', 'err'); return; }
+
+  showStatus('Parsing…', 'info');
+  let parsed;
+  try {
+    parsed = await parseRawTournamentJs(content);
+  } catch (e) {
+    showStatus('Parse failed: ' + e.message, 'err');
+    return;
+  }
+
+  showStatus('Saving to KV…', 'info');
+  try {
+    const saveRes = await api('PUT', '/admin/data', { tournament: parsed.tournament, history: parsed.history });
+    if (!saveRes.ok) throw new Error('KV save failed: ' + saveRes.status);
+    S.tournament = parsed.tournament;
+    S.history    = parsed.history;
+    document.getElementById('header-sub').textContent =
+      (S.tournament.name || 'Tournament') + ' · ' + (S.tournament.subtitle || '');
+  } catch (e) {
+    showStatus('Save error: ' + e.message, 'err');
+    return;
+  }
+
+  showStatus('Publishing live…', 'info');
+  try {
+    const deployRes = await api('POST', '/admin/deploy');
+    if (!deployRes.ok) {
+      const txt = await deployRes.text();
+      throw new Error(txt);
+    }
+    showStatus('✅ Deployed! Live at eggbeater.app', 'ok');
+    document.getElementById('raw-content').value = '';
+  } catch (e) {
+    showStatus('Deploy error: ' + e.message, 'err');
+  }
+}
+
+async function storeManifest() {
+  const raw = document.getElementById('manifest-content').value.trim();
+  if (!raw) { showStatus('Paste the manifest JSON first', 'err'); return; }
+  let manifest;
+  try { manifest = JSON.parse(raw); } catch { showStatus('Invalid JSON', 'err'); return; }
+
+  showStatus('Storing manifest…', 'info');
+  try {
+    const res = await api('PUT', '/admin/manifest', { manifest });
+    if (!res.ok) throw new Error('Status ' + res.status);
+    showStatus('✅ Manifest stored! Admin panel can now deploy.', 'ok');
+    document.getElementById('manifest-content').value = '';
+  } catch (e) {
+    showStatus('Error: ' + e.message, 'err');
+  }
+}
+
+// Parse a tournament.js file using an iframe sandbox
+function parseRawTournamentJs(rawText) {
+  return new Promise((resolve, reject) => {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    const cleanup = () => { try { document.body.removeChild(iframe); } catch {} };
+    const timeout = setTimeout(() => { cleanup(); reject(new Error('Timeout parsing file')); }, 6000);
+
+    iframe.onload = () => {
+      clearTimeout(timeout);
+      try {
+        const iw = iframe.contentWindow;
+        const tournament = iw.TOURNAMENT;
+        const history    = iw.HISTORY_SEED || [];
+        cleanup();
+        if (!tournament) reject(new Error('TOURNAMENT not found — make sure the file sets window.TOURNAMENT'));
+        else resolve({ tournament, history });
+      } catch (e) { cleanup(); reject(e); }
+    };
+
+    // srcdoc executes in iframe's window context; window.TOURNAMENT becomes iw.TOURNAMENT
+    // The <\/script> escape prevents the HTML parser from ending the tag prematurely
+    iframe.srcdoc = `<!DOCTYPE html><html><body><script>${rawText.replace(/<\/script>/gi, '<\\/script>')}<\/script></body></html>`;
+  });
+}
+
+// ─── SAVE & DEPLOY ────────────────────────────────────────────────────────────
+
+async function saveAndDeploy() {
+  const btn = document.getElementById('deploy-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Deploying…';
+
+  showStatus('Saving to KV…', 'info');
+  try {
+    // Save current team's data
+    const saveRes = await api('PUT', '/admin/data', {
+      tournament: S.tournament,
+      history:    S.history,
+    });
+    if (!saveRes.ok) throw new Error('KV save failed: ' + saveRes.status);
+
+    // Phase 2: mirror tournament data to Firestore so parent apps update in real-time
+    const teamKey = S.team;
+    if (typeof fbSaveTournamentMirror === 'function') {
+      const mirrored = await fbSaveTournamentMirror(teamKey, {
+        tournament: S.tournament,
+        history:    S.history,
+      });
+      if (mirrored) showStatus('Saved to KV + Firestore ☁️ · Deploying…', 'info');
+    }
+    // Phase 3: dual-write to multi-tournament path
+    if (S.tournamentId && typeof fbSaveTournamentAgeGroup === 'function') {
+      await fbSaveTournamentAgeGroup(S.tournamentId, teamKey, {
+        tournament: S.tournament,
+        history:    S.history,
+        roster:     S.roster,
+      });
+    }
+
+    // ── HIGH SCHOOL: push season metadata to ALL other HS teams ──
+    if (S.clubType === 'highschool') {
+      const hsTeams = ADMIN_TEAMS_HS.map(t => t.key).filter(k => k !== S.team);
+      const seasonMeta = {
+        id: S.tournament.id,
+        name: S.tournament.name,
+        subtitle: S.tournament.subtitle,
+        dates: S.tournament.dates,
+        location: S.tournament.location,
+        address: S.tournament.address,
+        pool: S.tournament.pool,
+        clubName: S.tournament.clubName,
+        clockSettings: S.tournament.clockSettings,
+        singleTeam: S.tournament.singleTeam,
+      };
+      for (const otherTeam of hsTeams) {
+        try {
+          // Load other team's existing data, merge season meta, save back
+          const r = await api('GET', `/admin/data?team=${encodeURIComponent(otherTeam)}`);
+          let otherData = { tournament: {}, history: [] };
+          if (r.ok) otherData = await r.json();
+          // Preserve that team's games, results, roster — only update season metadata
+          const merged = { ...otherData.tournament, ...seasonMeta };
+          // Keep that team's games array intact
+          if (otherData.tournament && otherData.tournament.games) merged.games = otherData.tournament.games;
+          if (otherData.tournament && otherData.tournament.bracket) merged.bracket = otherData.tournament.bracket;
+          await api('PUT', `/admin/data?team=${encodeURIComponent(otherTeam)}`, {
+            tournament: merged,
+            history: otherData.history || [],
+          });
+        } catch (e) {
+          console.warn(`[HS sync] failed for ${otherTeam}:`, e.message);
+        }
+      }
+      showStatus('Season synced to all HS teams · Deploying…', 'info');
+    }
+
+    showStatus('Publishing live…', 'info');
+    const deployRes = await api('POST', '/admin/deploy');
+    if (!deployRes.ok) {
+      const txt = await deployRes.text();
+      throw new Error(txt);
+    }
+    showStatus('✅ Deployed! Live at eggbeater.app', 'ok');
+    _clearDirty();
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Save & Deploy';
+  }
+}
+
+async function saveSavedTournaments() {
+  try {
+    const res = await api('PUT', '/admin/saved-tournaments', { savedTournaments: S.savedTournaments });
+    if (!res.ok) throw new Error('Failed to save library');
+  } catch (e) {
+    showStatus('Error saving library: ' + e.message, 'err');
+  }
+}
+
+async function saveToLibrary() {
+  const name = prompt('Enter a name for this tournament draft:', S.tournament.name || 'New Draft');
+  if (!name) return;
+  
+  const draftId = S.activeDraftId || 'draft_' + Date.now().toString(36);
+  
+  const draftIndex = S.savedTournaments.findIndex(d => d.id === draftId);
+  const snapshot = {
+    id: draftId,
+    name: name,
+    updatedAt: new Date().toISOString(),
+    tournament: JSON.parse(JSON.stringify(S.tournament)),
+    roster: S.roster ? JSON.parse(JSON.stringify(S.roster)) : null
+  };
+  
+  if (draftIndex >= 0) {
+    S.savedTournaments[draftIndex] = snapshot;
+  } else {
+    S.savedTournaments.push(snapshot);
+    S.activeDraftId = draftId;
+  }
+  
+  await saveSavedTournaments();
+  showStatus(`✅ Saved "${name}" to Library!`, 'ok');
+  renderTab();
+}
+
+function loadFromLibrary(draftId) {
+  if (!draftId) return;
+  const draft = S.savedTournaments.find(d => d.id === draftId);
+  if (!draft) return;
+  
+  if (!confirm(`Load "${draft.name}" into your workspace? This will replace your current unsaved edits.`)) return;
+  
+  S.tournament = JSON.parse(JSON.stringify(draft.tournament));
+  if (draft.roster) {
+    S.roster = JSON.parse(JSON.stringify(draft.roster));
+  }
+  S.activeDraftId = draft.id;
+  
+  showStatus(`📂 Loaded "${draft.name}" into workspace.`, 'info');
+  renderTab();
+}
+
+async function removeFromLibrary(draftId) {
+  if (!draftId) return;
+  const draft = S.savedTournaments.find(d => d.id === draftId);
+  if (!draft) return;
+
+  if (!confirm(`Permanently delete "${draft.name}" from your library? This cannot be undone.`)) return;
+
+  showStatus('Deleting draft…', 'info');
+  S.savedTournaments = S.savedTournaments.filter(d => d.id !== draftId);
+  if (S.activeDraftId === draftId) S.activeDraftId = null;
+
+  try {
+    await saveSavedTournaments();
+    showStatus(`🗑 Deleted "${draft.name}"`, 'ok');
+    renderTab();
+  } catch (e) {
+    showStatus('❌ Delete failed: ' + e.message, 'err');
+  }
+}
+
+async function deployDraft(draftId) {
+  if (!draftId) return;
+  const draft = S.savedTournaments.find(d => d.id === draftId);
+  if (!draft) return;
+  
+  if (!confirm(`Deploy "${draft.name}" to Live? This will overwrite the currently live tournament and roster.`)) return;
+
+  // Load into workspace
+  S.tournament = JSON.parse(JSON.stringify(draft.tournament));
+  if (draft.roster) {
+    S.roster = JSON.parse(JSON.stringify(draft.roster));
+  }
+  S.activeDraftId = draft.id;
+  
+  // Save draft roster to KV
+  if (draft.roster) {
+    showStatus('Saving draft roster…', 'info');
+    try {
+      const rosterRes = await api('PUT', '/admin/roster', { roster: S.roster });
+      if (!rosterRes.ok) throw new Error('Failed to save roster');
+    } catch (e) {
+      showStatus('❌ ' + e.message, 'err');
+      return;
+    }
+  }
+
+  // Trigger global saveAndDeploy which will deploy the current workspace
+  await saveAndDeploy();
+}
+
+function resetWorkspace() {
+  if (!confirm('Clear all games and rosters in your current workspace to start fresh?\n\n(This will NOT delete your saved drafts or the live tournament)')) return;
+  
+  // Keep core metadata but clear games/roster
+  const clubId = S.tournament?.clubId || '';
+  const clubName = S.tournament?.clubName || '';
+  
+  S.tournament = {
+    id: 't' + Date.now(),
+    name: 'New Tournament',
+    clubId: clubId,
+    clubName: clubName,
+    games: [],
+    bracket: [],
+    upcomingMode: true
+  };
+  S.roster = null;
+  S.activeDraftId = null;
+  
+  showStatus('✨ Workspace cleared. Start adding games!', 'ok');
+  renderTab();
+}
+
+// ─── GLOBAL ACTIONS (all age groups at once) ──────────────────────────────────
+
+const ALL_TEAM_KEYS = ['10u-coed','12u-girls','12u-boys','14u-girls','14u-boys','16u-girls','16u-boys','18u-girls','18u-boys'];
+const ALL_HS_TEAM_KEYS = ['boys-varsity','boys-jv','girls-varsity','girls-jv'];
+
+function getAllTeamKeys() {
+  return S.clubType === 'highschool' ? ALL_HS_TEAM_KEYS : ALL_TEAM_KEYS;
+}
+
+/**
+ * Deploy All — saves the current team's in-memory state; all teams' KV data
+ * is live immediately since the app reads from CF KV at runtime.
+ */
+
+// ─── UNSAVED CHANGES TRACKING ─────────────────────────────────────────────────
+
+/** Call whenever the admin mutates tournament or roster data. */
+function _markDirty() {
+  if (S._dirty) return;
+  S._dirty = true;
+  const bar = document.getElementById('unsaved-bar');
+  if (bar) bar.style.display = 'block';
+}
+
+/** Call after a successful deploy to clear dirty state. */
+function _clearDirty() {
+  S._dirty = false;
+  const bar = document.getElementById('unsaved-bar');
+  if (bar) bar.style.display = 'none';
+}
+
+/**
+ * Lightweight confirmation bottom-sheet.
+ * opts: { title, body (HTML), confirmText, dangerConfirm, requireType, onConfirm }
+ * requireType: if set (e.g. 'DELETE'), the confirm button is disabled until the user types that word.
+ */
+function _adminConfirm({ title, body, confirmText = 'Confirm', dangerConfirm = false, requireType = null, onConfirm }) {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const bgCard     = isDark ? '#1c2128' : 'white';
+  const textColor  = isDark ? '#e6edf3' : '#111827';
+  const bodyColor  = isDark ? '#8b949e' : '#374151';
+  const cancelBg   = isDark ? '#2d333b' : 'white';
+  const cancelBdr  = isDark ? '#444c56' : '#e5e7eb';
+  const inputBg    = isDark ? '#0d1117' : '#f9fafb';
+  const inputBdr   = isDark ? '#30363d' : '#d1d5db';
+  const typeHtml = requireType ? `
+    <div style="margin-bottom:16px">
+      <div style="font-size:0.78rem;color:${bodyColor};margin-bottom:6px">Type <strong style="font-family:monospace;color:${textColor}">${requireType}</strong> to confirm:</div>
+      <input id="_conf-type" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+        style="width:100%;padding:10px 12px;border:1.5px solid ${inputBdr};border-radius:8px;font-size:0.95rem;font-family:monospace;background:${inputBg};color:${textColor};letter-spacing:0.08em;outline:none"
+        placeholder="${requireType}">
+    </div>` : '';
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;inset:0;z-index:400;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(3px)';
+  el.innerHTML = `
+    <div style="background:${bgCard};border-radius:18px 18px 0 0;padding:22px 20px calc(26px + env(safe-area-inset-bottom,0));width:100%;max-width:480px;box-shadow:0 -8px 32px rgba(0,0,0,.25)">
+      <div style="font-size:1.05rem;font-weight:800;color:${textColor};margin-bottom:8px">${title}</div>
+      <div style="font-size:0.88rem;color:${bodyColor};margin-bottom:18px;line-height:1.5">${body}</div>
+      ${typeHtml}
+      <div style="display:flex;gap:10px">
+        <button id="_conf-cancel" style="flex:1;padding:13px;border:1.5px solid ${cancelBdr};border-radius:10px;background:${cancelBg};font-size:0.9rem;font-weight:700;cursor:pointer;color:${textColor}">Cancel</button>
+        <button id="_conf-ok" ${requireType ? 'disabled' : ''} style="flex:1;padding:13px;border:none;border-radius:10px;background:${dangerConfirm ? '#dc2626' : 'var(--royal)'};color:white;font-size:0.9rem;font-weight:700;cursor:pointer;opacity:${requireType ? '0.35' : '1'};transition:opacity 0.15s">${confirmText}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+  const okBtn = el.querySelector('#_conf-ok');
+  if (requireType) {
+    el.querySelector('#_conf-type').addEventListener('input', function() {
+      const match = this.value === requireType;
+      okBtn.disabled = !match;
+      okBtn.style.opacity = match ? '1' : '0.35';
+    });
+  }
+  el.querySelector('#_conf-cancel').onclick = () => el.remove();
+  okBtn.onclick = () => { el.remove(); onConfirm(); };
+  el.addEventListener('click', e => { if (e.target === el) el.remove(); });
+}
+
+function confirmDeployAll() {
+  const teamKeys = getAllTeamKeys();
+  const label = S.clubType === 'highschool' ? 'all groups' : 'all age groups';
+  _adminConfirm({
+    title: '🌐 Deploy All',
+    body: `Push live schedules for <strong>all ${teamKeys.length} ${label}</strong> to parents right now?<br><br>This publishes scores and games for every group simultaneously.`,
+    confirmText: '🌐 Deploy All',
+    onConfirm: deployAll,
+  });
+}
+
+async function deployAll() {
+  const teamKeys = getAllTeamKeys();
+  const label = S.clubType === 'highschool' ? 'all groups' : 'ALL age groups';
+  if (!confirm(`Deploy ${label} live now?\n\nGroups with tournament data will be published.\nEmpty groups will show a "Stay Tuned" message.`)) return;
+  const btn = document.getElementById('deploy-all-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Deploying…';
+
+  const stayTunedTournament = {
+    id: 'stay-tuned',
+    name: 'Stay Tuned!',
+    subtitle: '',
+    location: '',
+    address: '',
+    dates: '',
+    pool: '',
+    comingSoon: 'stay-tuned',
+    stayTuned: true,
+    teams: ['A'],
+    teamLabels: { A: '' },
+    singleTeam: true,
+    games: [],
+    bracket: { paths: [] }
+  };
+
+  let deployed = 0, placeholders = 0, failed = [];
+  const savedTeam = S.team; // remember current team to restore later
+
+  try {
+    for (const key of teamKeys) {
+      showStatus(`Checking ${key} (${deployed + placeholders + 1}/${teamKeys.length})…`, 'info');
+
+      // Fetch data for this age group
+      const origTeam = S.team;
+      S.team = key;
+      const res = await api('GET', '/admin/data');
+      S.team = origTeam;
+
+      if (!res.ok) { failed.push(key); continue; }
+      const data = await res.json();
+      const tournament = data.tournament;
+      const history = data.history || [];
+
+      // Check if this age group has real tournament data
+      const hasData = tournament
+        && tournament.name
+        && tournament.name !== 'New Tournament'
+        && tournament.name !== 'Stay Tuned!'
+        && !tournament.stayTuned
+        && ((tournament.games && tournament.games.length > 0) || history.length > 0);
+
+      if (hasData) {
+        // Real data — save as-is and deploy
+        showStatus(`Deploying ${key} (has data)…`, 'info');
+        S.team = key;
+        const depRes = await api('POST', '/admin/deploy');
+        S.team = origTeam;
+        if (!depRes.ok) { failed.push(key); continue; }
+        deployed++;
+      } else {
+        // No data — save "Stay Tuned" placeholder and deploy
+        showStatus(`Setting ${key} to "Stay Tuned"…`, 'info');
+        S.team = key;
+        const saveRes = await api('PUT', '/admin/data', {
+          tournament: stayTunedTournament,
+          history: []
+        });
+        if (!saveRes.ok) { S.team = origTeam; failed.push(key); continue; }
+        const depRes = await api('POST', '/admin/deploy');
+        S.team = origTeam;
+        if (!depRes.ok) { failed.push(key); continue; }
+        placeholders++;
+      }
+    }
+
+    // Restore original team selection
+    S.team = savedTeam;
+    await refreshAdminData();
+
+    const msg = `✅ Deployed: ${deployed} with data, ${placeholders} with "Stay Tuned"` +
+      (failed.length ? ` · ❌ ${failed.length} failed: ${failed.join(', ')}` : '');
+    showStatus(msg, failed.length ? 'err' : 'ok');
+  } catch (e) {
+    S.team = savedTeam;
+    showStatus('❌ ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🌐 Deploy All';
+  }
+}
+
+/**
+ * Set All → Upcoming Mode — iterates every age group, sets upcomingMode: true,
+ * saves to KV, then does a single deploy. Games stay intact in KV; the app
+ * shows "coming soon" until you tap Go Live on each team.
+ */
+async function setAllUpcomingMode() {
+  if (!confirm(
+    'Set ALL age groups to Upcoming Mode?\n\n' +
+    'The app will show a "coming soon" message for every age group. ' +
+    'All saved games and rosters stay intact — use "🟢 Go Live" on each team to bring them back one by one, or Deploy All to push everything live at once.'
+  )) return;
+
+  const upBtn = document.getElementById('upcoming-all-btn');
+  const depBtn = document.getElementById('deploy-all-btn');
+  upBtn.disabled = true;
+  depBtn.disabled = true;
+  upBtn.textContent = '⏳ Working…';
+
+  let done = 0, failed = [];
+
+  for (const key of ALL_TEAM_KEYS) {
+    showStatus(`Setting upcoming mode: ${key} (${done + 1}/${ALL_TEAM_KEYS.length})…`, 'info');
+    try {
+      const res = await api('GET', `/admin/data?team=${encodeURIComponent(key)}`);
+      if (!res.ok) throw new Error('fetch failed ' + res.status);
+      const data = await res.json();
+      const t = data.tournament || {};
+      t.upcomingMode = true;
+      t.comingSoon   = t.comingSoon || 'Schedule coming soon — check back closer to tournament day!';
+      const saveRes = await api('PUT', `/admin/data?team=${encodeURIComponent(key)}`, { tournament: t, history: data.history || [] });
+      if (!saveRes.ok) throw new Error('save failed ' + saveRes.status);
+      done++;
+    } catch (e) {
+      console.warn('[setAllUpcoming] failed for', key, e.message);
+      failed.push(key);
+    }
+  }
+
+  // Refresh current team's in-memory state to reflect the change
+  await refreshAdminData().catch(() => {});
+
+  if (failed.length) {
+    showStatus(`⚠️ ${done} teams set to upcoming, ${failed.length} failed (${failed.join(', ')}) — deploy manually`, 'err');
+    upBtn.disabled = false;
+    depBtn.disabled = false;
+    upBtn.textContent = '📅 Set All → Upcoming';
+    return;
+  }
+
+  // Single deploy covers everything
+  showStatus('Deploying all age groups in upcoming mode…', 'info');
+  try {
+    const depRes = await api('POST', `/admin/deploy?team=${encodeURIComponent(S.team)}`);
+    if (!depRes.ok) throw new Error('deploy failed ' + depRes.status);
+    showStatus(`✅ All ${ALL_TEAM_KEYS.length} age groups set to Upcoming Mode and deployed!`, 'ok');
+  } catch (e) {
+    showStatus('⚠️ Upcoming mode saved for all teams — but deploy failed: ' + e.message, 'err');
+  } finally {
+    upBtn.disabled = false;
+    depBtn.disabled = false;
+    upBtn.textContent = '📅 Set All → Upcoming';
+  }
+}
+
+// ─── STATUS BAR ───────────────────────────────────────────────────────────────
+
+let _statusTimer;
+function showStatus(msg, type = 'info') {
+  const el = document.getElementById('status-bar');
+  if (!msg) { el.classList.remove('show'); return; }
+  el.textContent = msg;
+  el.className   = 'show ' + type;
+  clearTimeout(_statusTimer);
+  // Auto-dismiss success and info messages; errors stay until next action
+  if (type === 'ok')   _statusTimer = setTimeout(() => el.classList.remove('show'), 3500);
+  if (type === 'info') _statusTimer = setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+// ─── UTILITIES ────────────────────────────────────────────────────────────────
+
+function esc(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+const _esc = esc; // alias used by renderAdminSettingsTab
+
+function timeToMinutes(t) {
+  if (!t) return 9999;
+  const m = t.match(/(\d+):(\d+)\s*(am|pm)?/i);
+  if (!m) return 9999;
+  let h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  const ampm = (m[3] || '').toLowerCase();
+  if (ampm === 'pm' && h !== 12) h += 12;
+  if (ampm === 'am' && h === 12) h = 0;
+  return h * 60 + min;
+}
+
+function gameNumToInt(n) {
+  if (!n) return 9999;
+  const m = String(n).match(/\d+/);
+  return m ? parseInt(m[0], 10) : 9999;
+}
+
+function isoToDate(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', {
+      month: 'long', day: 'numeric', year: 'numeric',
+    });
+  } catch { return iso; }
+}
+
+// ─── BOTS TAB ─────────────────────────────────────────────────────────────────
+
+const BOT_KEYS = {
+  TG_TOKEN:    'ebadmin-tg-token',
+  TG_CHAT:     'ebadmin-tg-chatid',
+  TS_TOKEN:    'ebadmin-ts-token',
+  TS_TEAM_ID:  'ebadmin-ts-teamid',
+  TS_MEMBER_ID:'ebadmin-ts-memberid',
+  GM_BOT_ID:   'ebadmin-gm-botid',
+};
+
+function botGet(key)       { return localStorage.getItem(key) || ''; }
+function botSet(key, val)  { if (val) localStorage.setItem(key, val); else localStorage.removeItem(key); }
+
+function botSaved(key) {
+  return botGet(key) ? '<span class="bot-saved-badge">✓ saved</span>' : '';
+}
+
+function renderTeamCommTab() {
+  if (!tierHasFeature('push_notify')) return renderTieredNudge('teamcomm');
+  const t = S.tournament;
+  // Push Notification Manager section
+  const pushSection = `
+    <details class="card collapsible-card" style="margin-bottom:12px" open>
+      <summary class="card-header collapsible-header">📱 Push Notification Manager <span class="collapse-icon">▾</span></summary>
+      <div style="padding:10px 14px">
+        <div style="font-size:0.78rem;color:var(--g400);margin-bottom:10px">View subscriber stats and send announcements to your users.</div>
+
+        <div id="push-stats-container" style="margin-bottom:14px">
+          <button class="save-btn" style="width:100%" onclick="loadPushStats()">📊 Load Subscriber Stats</button>
+        </div>
+
+        <div style="border-top:1px solid var(--g100);padding-top:10px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:0.82rem;font-weight:700;color:var(--royal)">⏰ Game Day Reminders</div>
+              <div style="font-size:0.72rem;color:var(--g400);margin-top:2px">Auto-send push notifications 2hr, 1hr, and 30min before game time</div>
+            </div>
+            <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer">
+              <input type="checkbox" id="reminders-toggle" checked onchange="toggleReminders(this.checked)"
+                     style="opacity:0;width:0;height:0">
+              <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--g200);border-radius:24px;transition:.3s"></span>
+              <span id="reminders-slider" style="position:absolute;content:'';height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
+            </label>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid var(--g100);padding-top:10px">
+          <div style="font-size:0.82rem;font-weight:700;color:var(--royal);margin-bottom:8px">📢 Send Announcement</div>
+          <div class="info-field" style="margin-bottom:8px">
+            <div class="info-label">Title</div>
+            <input class="info-input" id="announce-title" placeholder="e.g. Schedule Change for Saturday" maxlength="100">
+          </div>
+          <div class="info-field" style="margin-bottom:8px">
+            <div class="info-label">Message</div>
+            <textarea class="info-input" id="announce-body" rows="3" placeholder="Enter your announcement message…" maxlength="500" style="resize:vertical"></textarea>
+          </div>
+          <div class="info-field" style="margin-bottom:10px">
+            <div class="info-label">Send to Age Groups</div>
+            <div id="announce-groups" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+              ${getAdminTeams().map(t => `
+                <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;cursor:pointer;padding:4px 10px;background:var(--g50);border:1px solid var(--g200);border-radius:20px">
+                  <input type="checkbox" class="announce-ag-cb" value="${esc(t.key)}" checked style="cursor:pointer">
+                  ${esc(t.label)}
+                </label>
+              `).join('')}
+            </div>
+            <div style="margin-top:4px">
+              <button style="font-size:0.72rem;background:none;border:none;color:var(--royal);cursor:pointer;font-weight:600;padding:0" onclick="document.querySelectorAll('.announce-ag-cb').forEach(c=>c.checked=true)">Select All</button>
+              <span style="color:var(--g300);margin:0 4px">·</span>
+              <button style="font-size:0.72rem;background:none;border:none;color:var(--royal);cursor:pointer;font-weight:600;padding:0" onclick="document.querySelectorAll('.announce-ag-cb').forEach(c=>c.checked=false)">Deselect All</button>
+            </div>
+          </div>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:6px">
+            <label style="font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:4px">
+              <input type="checkbox" id="announce-schedule-toggle" onchange="toggleScheduleMode(this.checked)">
+              📅 Schedule for later
+            </label>
+          </div>
+          <div id="announce-schedule-picker" style="display:none;margin-top:6px">
+            <input type="datetime-local" id="announce-sendAt" class="info-input" style="font-size:0.82rem">
+          </div>
+          <button class="save-btn" id="announce-send-btn" style="width:100%;background:var(--amber);border-color:var(--amber);font-weight:700;margin-top:8px" onclick="confirmAnnouncement()">📢 Send Announcement</button>
+          <div id="announce-status" style="font-size:0.82rem;margin-top:6px;color:var(--g400)"></div>
+          <div style="font-size:0.72rem;color:var(--g300);margin-top:4px">Rate limit: max 5 announcements per hour.</div>
+          <div id="scheduled-list" style="margin-top:10px;border-top:1px solid var(--g100);padding-top:8px"></div>
+        </div>
+      </div>
+    </details>`;
+
+  // Bots section from existing renderBotsTab
+  const botsSection = renderBotsTab();
+
+  return pushSection + botsSection;
+}
+
+function renderBotsTab() {
+  const tgToken  = botGet(BOT_KEYS.TG_TOKEN);
+  const tgChat   = botGet(BOT_KEYS.TG_CHAT);
+  const tsTeam   = botGet(BOT_KEYS.TS_TEAM_ID);
+  const tsMember = botGet(BOT_KEYS.TS_MEMBER_ID);
+  const gmBotId  = botGet(BOT_KEYS.GM_BOT_ID);
+  const tsConn   = S.tsConnected; // set by refreshTsStatus() at login / tab switch
+
+  const defaultMsg = buildDefaultBotMessage();
+
+  return `
+    <!-- ── Send Update ────────────────────────────────────────── -->
+    <details class="card collapsible-card bot-card" open>
+      <summary class="card-header collapsible-header">📣 Send Score Update <span class="collapse-icon">▾</span></summary>
+      <div class="bot-body">
+        <div class="bot-field">
+          <div class="bot-label">Message</div>
+          <textarea class="bot-textarea" id="bot-message">${esc(defaultMsg)}</textarea>
+        </div>
+        <div class="bot-btn-row">
+          <button class="bot-btn bot-btn-ghost" onclick="resetBotMessage()">↺ Reset</button>
+          <button class="bot-btn bot-btn-tg"    onclick="sendToTelegram()"  ${!tgToken||!tgChat?'disabled title="Configure Telegram below first"':''}>✈️ Telegram</button>
+          <button class="bot-btn bot-btn-gm"    onclick="sendToGroupMe()"   ${!gmBotId?'disabled title="Configure GroupMe below first"':''}>💬 GroupMe</button>
+          <button class="bot-btn bot-btn-ts"    onclick="sendToTeamSnap()"  ${!tsConn||!tsTeam?'disabled title="Connect TeamSnap and set Team ID below first"':''}>🏆 TeamSnap</button>
+        </div>
+        <div id="bot-send-status" class="bot-status"></div>
+      </div>
+    </details>
+
+    <!-- ── Telegram ───────────────────────────────────────────── -->
+    <details class="card collapsible-card bot-card" open>
+      <summary class="card-header collapsible-header">✈️ Telegram Bot ${tgToken && tgChat ? '<span class="bot-saved-badge">✓ configured</span>' : ''} <span class="collapse-icon">▾</span></summary>
+      <div style="padding:4px 16px 2px;font-size:0.78rem;color:var(--g400)">Posts score updates to a Telegram group or channel</div>
+      <div class="bot-body">
+        <div class="bot-field">
+          <div class="bot-label">Bot Token ${botSaved(BOT_KEYS.TG_TOKEN)}</div>
+          <input class="bot-input" id="tg-token" type="password"
+                 value="${esc(tgToken)}" placeholder="123456789:AAFxxxxxxxx"
+                 autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        </div>
+        <div class="bot-field">
+          <div class="bot-label">Chat ID ${botSaved(BOT_KEYS.TG_CHAT)}</div>
+          <input class="bot-input" id="tg-chat" type="text"
+                 value="${esc(tgChat)}" placeholder="-1001234567890"
+                 autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+        <div class="bot-btn-row">
+          <button class="bot-btn bot-btn-primary" onclick="saveTelegramCreds()">💾 Save</button>
+          <button class="bot-btn bot-btn-secondary" onclick="testTelegram()">📨 Test</button>
+          <button class="bot-btn bot-btn-secondary" onclick="findTelegramChatId()">🔍 Find Chat ID</button>
+        </div>
+        <div id="tg-status" class="bot-status"></div>
+        <hr class="bot-divider">
+        <div class="bot-hint">
+          <strong>Setup (one time):</strong><br>
+          1. Open Telegram → message <a href="https://t.me/BotFather" target="_blank">@BotFather</a><br>
+          2. Send <code>/newbot</code> → follow prompts → copy the <strong>Bot Token</strong><br>
+          3. Add the bot to your team group/channel<br>
+          4. Send a message in the group, then tap <strong>🔍 Find Chat ID</strong> to auto-detect it<br>
+          5. Paste both above and tap <strong>💾 Save</strong>
+        </div>
+      </div>
+    </details>
+
+    <!-- ── GroupMe ────────────────────────────────────────────── -->
+    <details class="card collapsible-card bot-card" open>
+      <summary class="card-header collapsible-header">💬 GroupMe Bot ${gmBotId ? '<span class="bot-saved-badge">✓ configured</span>' : ''} <span class="collapse-icon">▾</span></summary>
+      <div class="bot-body">
+        <div class="bot-field">
+          <div class="bot-label">Bot ID ${botSaved(BOT_KEYS.GM_BOT_ID)}</div>
+          <input class="bot-input" id="gm-botid" type="password"
+                 value="${esc(gmBotId)}" placeholder="e.g. f5e43fec2c8bd7df4c3b995b7d"
+                 autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        </div>
+        <div class="bot-btn-row">
+          <button class="bot-btn bot-btn-primary"   onclick="saveGroupMeCreds()">💾 Save</button>
+          <button class="bot-btn bot-btn-secondary"  onclick="testGroupMe()">📨 Test</button>
+        </div>
+        <div id="gm-status" class="bot-status"></div>
+        <hr class="bot-divider">
+        <div class="bot-hint">
+          <strong>Setup (one time):</strong><br>
+          1. Go to <a href="https://dev.groupme.com/bots/new" target="_blank">dev.groupme.com/bots/new</a><br>
+          2. Select your group, set the name, callback URL and avatar<br>
+          3. Copy the <strong>Bot ID</strong> from the confirmation page<br>
+          4. Paste it above and tap <strong>💾 Save</strong><br><br>
+          <strong>Callback URL:</strong> <code>https://ebwp-push.sarah-new.workers.dev/groupme</code><br>
+          <strong>Avatar URL:</strong> <code>https://eggbeater.app/logo_large.svg</code><br><br>
+          Parents in the group can also message: <code>score</code>, <code>schedule</code>, or <code>help</code>
+        </div>
+      </div>
+    </details>
+
+    <!-- ── TeamSnap ───────────────────────────────────────────── -->
+    <details class="card collapsible-card bot-card" open>
+      <summary class="card-header collapsible-header">🏆 TeamSnap ${tsConn ? '<span class="bot-saved-badge">✓ connected</span>' : ''} <span class="collapse-icon">▾</span></summary>
+      <div class="bot-body">
+
+        ${tsConn ? `
+        <!-- Connected state -->
+        <div class="bot-field" style="display:flex;align-items:center;gap:10px;padding:8px 0">
+          <span style="color:#22c55e;font-size:1.1em">✅ TeamSnap OAuth connected</span>
+          <button class="bot-btn bot-btn-secondary" style="margin-left:auto" onclick="disconnectTeamSnap()">🔌 Disconnect</button>
+        </div>
+        ` : `
+        <!-- Not connected state -->
+        <div class="bot-field">
+          <div class="bot-hint" style="margin-bottom:10px">
+            Click below to sign in to TeamSnap and authorize this app. You'll be redirected back automatically.
+          </div>
+          <button class="bot-btn bot-btn-primary" style="width:100%" onclick="connectTeamSnap()">🔗 Connect with TeamSnap</button>
+        </div>
+        `}
+
+        <div class="bot-field">
+          <div class="bot-label">Team ID ${botSaved(BOT_KEYS.TS_TEAM_ID)}</div>
+          <input class="bot-input" id="ts-team" type="text"
+                 value="${esc(tsTeam)}" placeholder="e.g. 1234567"
+                 autocomplete="off" spellcheck="false">
+        </div>
+        <div class="bot-field">
+          <div class="bot-label">Your Member ID ${botSaved(BOT_KEYS.TS_MEMBER_ID)}</div>
+          <input class="bot-input" id="ts-member" type="text"
+                 value="${esc(tsMember)}" placeholder="e.g. 9876543"
+                 autocomplete="off" spellcheck="false">
+        </div>
+        <div class="bot-btn-row">
+          <button class="bot-btn bot-btn-primary" onclick="saveTeamSnapIds()">💾 Save IDs</button>
+          <button class="bot-btn bot-btn-secondary" onclick="testTeamSnap()" ${!tsConn?'disabled':''}">📨 Test</button>
+          <button class="bot-btn bot-btn-secondary" onclick="findTeamSnapIds()" ${!tsConn?'disabled':''}">🔍 Find IDs</button>
+        </div>
+        <div id="ts-status" class="bot-status"></div>
+        <hr class="bot-divider">
+        <div class="bot-hint">
+          <strong>Setup (one time):</strong><br>
+          1. Tap <strong>🔗 Connect with TeamSnap</strong> — sign in and approve access<br>
+          2. Tap <strong>🔍 Find IDs</strong> — auto-fills both Team ID and your Member ID<br>
+          3. Tap <strong>💾 Save IDs</strong> to remember them<br><br>
+          That's it — no manual ID hunting needed!
+        </div>
+      </div>
+    </details>`;
+}
+
+// ── Default message builder ────────────────────────────────────────────────
+
+function buildDefaultBotMessage() {
+  const t = S.tournament;
+  if (!t) return 'Eggbeater Water Polo — schedule update';
+  const lines = [];
+  lines.push(`🤽‍♀️ Eggbeater Water Polo`);
+  lines.push(`📅 ${t.name || 'Tournament'}${t.dates ? ' · ' + t.dates : ''}`);
+  if (t.location) lines.push(`📍 ${t.location}`);
+  lines.push('');
+  const games = t.games || [];
+  if (games.length) {
+    games.forEach(g => {
+      const time = g.time ? `${g.time} ` : '';
+      const cap  = g.cap ? ` · ${g.cap} caps` : '';
+      lines.push(`${time}vs ${g.opponent || 'TBD'}${cap}`);
+    });
+  }
+  lines.push('');
+  lines.push(`📲 Live updates: https://eggbeater.app`);
+  return lines.join('\n');
+}
+
+function resetBotMessage() {
+  const el = document.getElementById('bot-message');
+  if (el) el.value = buildDefaultBotMessage();
+}
+
+// ── Telegram ───────────────────────────────────────────────────────────────
+// All Telegram API calls are proxied through the Cloudflare Worker so they
+// run server-side (avoids any browser CORS / token-exposure issues).
+
+async function saveTelegramCreds() {
+  const token  = document.getElementById('tg-token').value.trim();
+  const chatId = document.getElementById('tg-chat').value.trim();
+  if (!token || !chatId) { showStatus('⚠️ Enter both Bot Token and Chat ID before saving', 'err'); return; }
+  // Save to localStorage for display
+  botSet(BOT_KEYS.TG_TOKEN, token);
+  botSet(BOT_KEYS.TG_CHAT,  chatId);
+  // Also persist to worker KV so tg-send can use them without re-supplying
+  try {
+    const res = await api('PUT', '/admin/tg-creds', { token, chatId });
+    if (!res.ok) throw new Error('Worker returned ' + res.status);
+  } catch (e) {
+    showStatus('⚠️ Saved locally but could not sync to server: ' + e.message, 'err');
+    renderTab();
+    return;
+  }
+  showStatus('✅ Telegram credentials saved', 'ok');
+  renderTab();
+}
+
+async function findTelegramChatId() {
+  const token = document.getElementById('tg-token').value.trim();
+  if (!token) { setBotStatus('tg', 'Paste your Bot Token first, then tap this button', 'err'); return; }
+  setBotStatus('tg', 'Fetching updates…', 'ok');
+  try {
+    const res  = await api('POST', '/admin/tg-updates', { token });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.description || 'Telegram error');
+    const updates = data.result || [];
+    if (!updates.length) {
+      setBotStatus('tg', 'No messages found — send a message in your channel first, then try again', 'err');
+      return;
+    }
+    // Prefer a group/channel chat; fall back to any chat
+    const chats = updates.map(u => u.message?.chat || u.channel_post?.chat || u.my_chat_member?.chat).filter(Boolean);
+    const group = chats.find(c => c.type === 'group' || c.type === 'supergroup' || c.type === 'channel') || chats[chats.length - 1];
+    if (!group) { setBotStatus('tg', 'Could not detect a chat — make sure the bot is in the channel and a message was sent', 'err'); return; }
+    document.getElementById('tg-chat').value = String(group.id);
+    setBotStatus('tg', `✅ Found: "${group.title || group.username}" (${group.id}) — tap 💾 Save to confirm`, 'ok');
+  } catch (e) {
+    setBotStatus('tg', 'Error: ' + e.message, 'err');
+  }
+}
+
+async function testTelegram() {
+  const token  = document.getElementById('tg-token').value.trim();
+  const chatId = document.getElementById('tg-chat').value.trim();
+  if (!token || !chatId) { setBotStatus('tg', 'Enter Bot Token and Chat ID first', 'err'); return; }
+  setBotStatus('tg', 'Sending test message…', 'ok');
+  try {
+    const res  = await api('POST', '/admin/tg-test', { token, chatId });
+    const data = await res.json();
+    setBotStatus('tg', data.ok ? '✅ Test message sent!' : '❌ ' + (data.description || JSON.stringify(data)), data.ok ? 'ok' : 'err');
+  } catch (e) {
+    setBotStatus('tg', '❌ Error: ' + e.message, 'err');
+  }
+}
+
+async function sendToTelegram() {
+  const text = document.getElementById('bot-message')?.value.trim();
+  if (!text) { setBotStatus('send', 'Message is empty', 'err'); return; }
+  // Verify credentials are saved locally (as a quick pre-check)
+  if (!botGet(BOT_KEYS.TG_TOKEN) || !botGet(BOT_KEYS.TG_CHAT)) {
+    setBotStatus('send', 'Telegram not configured — set up credentials below first', 'err'); return;
+  }
+  setBotStatus('send', 'Sending to Telegram…', 'ok');
+  try {
+    const res  = await api('POST', '/admin/tg-send', { text });
+    const data = await res.json();
+    setBotStatus('send', data.ok ? '✅ Sent to Telegram!' : '❌ Telegram: ' + (data.description || JSON.stringify(data)), data.ok ? 'ok' : 'err');
+  } catch (e) {
+    setBotStatus('send', '❌ Error: ' + e.message, 'err');
+  }
+}
+
+// ── GroupMe ────────────────────────────────────────────────────────────────
+
+async function saveGroupMeCreds() {
+  const botId = document.getElementById('gm-botid').value.trim();
+  if (!botId) { setBotStatus('gm', '⚠️ Paste your Bot ID first', 'err'); return; }
+  botSet(BOT_KEYS.GM_BOT_ID, botId);
+  try {
+    const res = await api('PUT', '/admin/gm-creds', { botId });
+    if (!res.ok) throw new Error('Worker returned ' + res.status);
+  } catch (e) {
+    setBotStatus('gm', '⚠️ Saved locally but KV sync failed: ' + e.message, 'err');
+    return;
+  }
+  setBotStatus('gm', '✅ GroupMe Bot ID saved', 'ok');
+  renderTab();
+}
+
+async function testGroupMe() {
+  const botId = document.getElementById('gm-botid').value.trim();
+  if (!botId) { setBotStatus('gm', 'Paste your Bot ID first', 'err'); return; }
+  setBotStatus('gm', 'Sending test message…', 'ok');
+  try {
+    const res  = await api('POST', '/admin/gm-test', { botId });
+    const data = await res.json();
+    setBotStatus('gm', data.ok ? '✅ Test message sent to GroupMe!' : '❌ ' + (data.description || JSON.stringify(data)), data.ok ? 'ok' : 'err');
+  } catch (e) {
+    setBotStatus('gm', '❌ Error: ' + e.message, 'err');
+  }
+}
+
+async function sendToGroupMe() {
+  const text = document.getElementById('bot-message')?.value.trim();
+  if (!text) { setBotStatus('send', 'Message is empty', 'err'); return; }
+  if (!botGet(BOT_KEYS.GM_BOT_ID)) {
+    setBotStatus('send', 'GroupMe not configured — set up Bot ID below first', 'err'); return;
+  }
+  setBotStatus('send', 'Sending to GroupMe…', 'ok');
+  try {
+    const res  = await api('POST', '/admin/gm-send', { text });
+    const data = await res.json();
+    setBotStatus('send', data.ok ? '✅ Sent to GroupMe!' : '❌ GroupMe: ' + (data.description || JSON.stringify(data)), data.ok ? 'ok' : 'err');
+  } catch (e) {
+    setBotStatus('send', '❌ Error: ' + e.message, 'err');
+  }
+}
+
+// ── TeamSnap ───────────────────────────────────────────────────────────────
+
+// Fetch TeamSnap connection status from worker and cache in S.tsConnected
+async function refreshTsStatus() {
+  try {
+    const res  = await api('GET', '/admin/ts-status');
+    const data = await res.json();
+    S.tsConnected = data.connected === true;
+  } catch (_) {
+    S.tsConnected = false;
+  }
+}
+
+// Redirect browser to worker /teamsnap/auth — worker handles the OAuth redirect
+function connectTeamSnap() {
+  window.location.href = WORKER + '/teamsnap/auth?pw=' + encodeURIComponent(S.pw);
+}
+
+// Remove stored OAuth token from worker KV
+async function disconnectTeamSnap() {
+  try {
+    await api('DELETE', '/admin/ts-disconnect');
+  } catch (_) {}
+  S.tsConnected = false;
+  showStatus('TeamSnap disconnected', 'ok');
+  renderTab();
+}
+
+// Save Team ID + Member ID to localStorage (these don't expire)
+function saveTeamSnapIds() {
+  const team   = document.getElementById('ts-team')?.value.trim();
+  const member = document.getElementById('ts-member')?.value.trim();
+  botSet(BOT_KEYS.TS_TEAM_ID,   team);
+  botSet(BOT_KEYS.TS_MEMBER_ID, member);
+  showStatus('✅ TeamSnap IDs saved', 'ok');
+  renderTab();
+}
+
+// Auto-fill Team ID AND Member ID using stored OAuth token (proxied through worker)
+async function findTeamSnapIds() {
+  setBotStatus('ts', 'Looking up your TeamSnap team and member ID…', 'ok');
+  try {
+    // Step 1: get Team ID
+    const teamsRes  = await api('GET', '/admin/ts-teams');
+    const teamsData = await teamsRes.json();
+    if (!teamsRes.ok || !teamsData.ok) {
+      if (teamsRes.status === 401) { S.tsConnected = false; renderTab(); }
+      throw new Error(teamsData.description || 'Could not fetch teams');
+    }
+    const items  = teamsData.data?.collection?.items || [];
+    if (!items.length) throw new Error('No teams found for this account');
+    const teamId = items[0]?.data?.find(d => d.name === 'id')?.value;
+    if (!teamId) throw new Error('Could not parse team ID from response');
+    document.getElementById('ts-team').value = String(teamId);
+
+    // Step 2: look up Member ID for the logged-in user in this team
+    setBotStatus('ts', `Team ID: ${teamId} — looking up your member ID…`, 'ok');
+    const meRes  = await api('GET', `/admin/ts-me?teamId=${teamId}`);
+    const meData = await meRes.json();
+    if (!meRes.ok || !meData.ok) {
+      if (meRes.status === 401) { S.tsConnected = false; renderTab(); }
+      // Team ID was found — partial success
+      setBotStatus('ts', `✅ Team ID: ${teamId} found. Member ID lookup failed: ${meData.description || 'unknown error'} — enter it manually`, 'err');
+      return;
+    }
+    document.getElementById('ts-member').value = String(meData.memberId);
+    setBotStatus('ts', `✅ Found! Team ID: ${teamId} · Member ID: ${meData.memberId} — tap 💾 Save IDs to keep them`, 'ok');
+  } catch (e) {
+    setBotStatus('ts', 'Error: ' + e.message, 'err');
+  }
+}
+
+async function testTeamSnap() {
+  const teamId   = document.getElementById('ts-team')?.value.trim();
+  const memberId = document.getElementById('ts-member')?.value.trim();
+  if (!teamId || !memberId) { setBotStatus('ts', 'Enter Team ID and Member ID first', 'err'); return; }
+  setBotStatus('ts', 'Sending test alert…', 'ok');
+  const result = await callTsBroadcast(teamId, memberId, '🤽‍♀️ Eggbeater WP — test message from admin panel ✅');
+  setBotStatus('ts', result.ok ? '✅ Test alert sent!' : '❌ ' + result.error, result.ok ? 'ok' : 'err');
+}
+
+async function sendToTeamSnap() {
+  const teamId   = botGet(BOT_KEYS.TS_TEAM_ID);
+  const memberId = botGet(BOT_KEYS.TS_MEMBER_ID);
+  const text     = document.getElementById('bot-message')?.value.trim();
+  if (!S.tsConnected) { setBotStatus('send', 'TeamSnap not connected — use Connect button in the Bots tab', 'err'); return; }
+  if (!teamId || !memberId) { setBotStatus('send', 'TeamSnap Team ID / Member ID not set — configure in the Bots tab', 'err'); return; }
+  if (!text) { setBotStatus('send', 'Message is empty', 'err'); return; }
+  setBotStatus('send', 'Sending to TeamSnap…', 'ok');
+  const result = await callTsBroadcast(teamId, memberId, text);
+  setBotStatus('send', result.ok ? '✅ Sent to TeamSnap!' : '❌ TeamSnap: ' + result.error, result.ok ? 'ok' : 'err');
+}
+
+// Send a TeamSnap broadcast alert via the worker (uses server-side OAuth token)
+async function callTsBroadcast(teamId, memberId, text) {
+  try {
+    const res  = await api('POST', '/admin/ts-broadcast', { teamId, memberId, text });
+    const data = await res.json();
+    if (res.status === 401) { S.tsConnected = false; renderTab(); }
+    if (data.ok) return { ok: true };
+    return { ok: false, error: data.description || 'Unknown error' };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+// ── Bot status helpers ─────────────────────────────────────────────────────
+
+function setBotStatus(section, msg, type) {
+  const id = section === 'send' ? 'bot-send-status'
+           : section === 'tg'   ? 'tg-status'
+           :                      'ts-status';
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.className   = 'bot-status ' + type;
+}
+
+// ─── HISTORY TAB ──────────────────────────────────────────────────────────────
+
+function guessSeasonFromDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return '';
+  const mon = d.getMonth(); // 0-indexed
+  const yr = d.getFullYear();
+  // Aug-Dec = Fall, Jan-Jul = Spring
+  if (mon >= 7) return `Fall ${yr}`;
+  return `Spring ${yr}`;
+}
+
+function renderHistoryAdminTab() {
+  if (!tierHasFeature('season_stats')) return renderTieredNudge('history');
+  const teamObj = getAdminTeams().find(t => t.key === S.team);
+  const teamLabel = teamObj ? teamObj.label : S.team;
+  const isHS = S.clubType === 'highschool';
+  let html = '';
+
+  // ── MaxPreps Import for HS clubs ──
+  if (isHS) {
+    html += `
+    <details class="card collapsible-card" style="margin-bottom:10px" open>
+      <summary class="card-header collapsible-header">📊 Import from MaxPreps <span class="collapse-icon">▾</span></summary>
+      <div style="padding:10px 14px">
+        <div style="font-size:0.82rem;color:var(--g400);margin-bottom:8px;line-height:1.5">
+          Import a season's W/L history from MaxPreps.
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <input class="form-input" id="maxpreps-url" placeholder="https://www.maxpreps.com/…/schedule/"
+                 style="flex:1;font-size:0.8rem">
+          <button class="save-btn" onclick="importMaxPreps()">📥 Import</button>
+        </div>
+        <details id="maxpreps-paste-section" style="margin-top:6px">
+          <summary style="font-size:0.78rem;color:var(--royal);cursor:pointer;font-weight:600">
+            ⚡ Import not working? Paste page source instead
+          </summary>
+          <div style="margin-top:8px;font-size:0.78rem;color:var(--g400);line-height:1.5">
+            1. Open the MaxPreps schedule page in your browser<br>
+            2. Press <b>Ctrl+U</b> (or ⌘+U on Mac) to view page source<br>
+            3. Press <b>Ctrl+A</b> then <b>Ctrl+C</b> to copy all<br>
+            4. Paste below and click Import
+          </div>
+          <textarea id="maxpreps-paste" rows="4" placeholder="Paste page source HTML here…"
+                    style="width:100%;margin-top:6px;font-size:0.72rem;font-family:monospace;padding:8px;border:1.5px solid var(--g200);border-radius:8px;resize:vertical"></textarea>
+          <button class="save-btn" onclick="importMaxPrepsPaste()" style="margin-top:6px">📥 Import from Paste</button>
+        </details>
+        <div id="maxpreps-import-status" style="font-size:0.78rem;margin-top:6px;min-height:16px"></div>
+      </div>
+    </details>`;
+  }
+
+  // ── Add History Entry form ──
+  html += `
+    <details class="card collapsible-card" open>
+      <summary class="card-header collapsible-header">📝 Add Tournament Result — ${esc(teamLabel)} <span class="collapse-icon">▾</span></summary>
+      <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Tournament Name *</label>
+            <input id="hist-name" class="form-input" placeholder="e.g. KAP7 Invitational">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="flex:2">
+            <label class="form-label">Dates</label>
+            <input id="hist-dates" class="form-input" placeholder="e.g. Oct 12–13, 2025">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Season</label>
+            <select id="hist-season" class="form-input" style="padding:9px 8px">
+              <option value="">— None —</option>
+              ${buildSeasonOptions()}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Location</label>
+            <input id="hist-location" class="form-input" placeholder="e.g. Woollett Aquatics">
+          </div>
+          <div class="form-group" style="flex:0 0 90px">
+            <label class="form-label">Placement</label>
+            <input id="hist-place" class="form-input" placeholder="e.g. 1st">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="flex:0 0 65px">
+            <label class="form-label">Wins</label>
+            <input id="hist-wins" type="number" min="0" class="form-input" value="0">
+          </div>
+          <div class="form-group" style="flex:0 0 65px">
+            <label class="form-label">Losses</label>
+            <input id="hist-losses" type="number" min="0" class="form-input" value="0">
+          </div>
+          <div class="form-group" style="flex:0 0 65px">
+            <label class="form-label">Ties</label>
+            <input id="hist-ties" type="number" min="0" class="form-input" value="0">
+          </div>
+          <div class="form-group" style="flex:0 0 80px">
+            <label class="form-label">Points</label>
+            <input id="hist-points" type="number" class="form-input" value="">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <input id="hist-notes" class="form-input" placeholder="e.g. Won championship bracket">
+        </div>
+        <button class="btn-save" onclick="addHistoryEntry()" style="margin-top:4px">➕ Add Tournament Result</button>
+      </div>
+    </details>`;
+
+  // ── CSV Upload card ──
+  html += `
+    <details class="card collapsible-card" open>
+      <summary class="card-header collapsible-header">📊 Import from Spreadsheet — ${esc(teamLabel)} <span class="collapse-icon">▾</span></summary>
+      <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:0.82rem;color:var(--g600);line-height:1.55">
+          Upload a CSV with columns: <strong>Name, Dates, Location, Wins, Losses, Ties, Points, Placement, Season, Notes</strong><br>
+          <em>Only "Name" is required. Order must match. First row = headers (skipped).</em>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label class="btn-save" style="cursor:pointer;flex:1;min-width:160px">
+            📁 Choose CSV File
+            <input type="file" accept=".csv,.tsv,.txt" onchange="importHistoryCsv(this)" style="display:none">
+          </label>
+          <button class="btn-save" style="background:var(--g100);color:var(--g600);flex:0" onclick="downloadHistoryTemplate()">📄 Template</button>
+        </div>
+        <div id="csv-preview" style="display:none;font-size:0.82rem;color:var(--green)"></div>
+      </div>
+    </details>`;
+
+  // ── Existing History entries ──
+  const entries = S.history || [];
+  if (entries.length) {
+    // Group by season if any have season set
+    const bySeason = {};
+    const seasonOrder = [];
+    for (const h of entries) {
+      const s = h.season || 'Unsorted';
+      if (!bySeason[s]) { bySeason[s] = []; seasonOrder.push(s); }
+      bySeason[s].push(h);
+    }
+
+    html += `<details class="card collapsible-card" open>
+      <summary class="card-header collapsible-header">📋 Tournament History — ${esc(teamLabel)} (${entries.length}) <span class="collapse-icon">▾</span></summary>`;
+
+    for (const season of seasonOrder) {
+      const seasonEntries = bySeason[season];
+      const totalW = seasonEntries.reduce((s, h) => s + (h.wins || 0), 0);
+      const totalL = seasonEntries.reduce((s, h) => s + (h.losses || 0), 0);
+      html += `<div style="padding:8px 14px 4px;font-size:0.78rem;font-weight:800;color:var(--royal);text-transform:uppercase;letter-spacing:.04em;border-top:1px solid var(--g100);display:flex;align-items:center;gap:8px">
+        ${esc(season)}
+        <span style="font-weight:400;color:var(--g400);text-transform:none;letter-spacing:0">${totalW}W–${totalL}L (${seasonEntries.length} tournaments)</span>
+      </div>`;
+
+      for (let i = 0; i < entries.length; i++) {
+        const h = entries[i];
+        if ((h.season || 'Unsorted') !== season) continue;
+        const record = [h.wins != null ? `${h.wins}W` : null, h.losses != null ? `${h.losses}L` : null, h.ties ? `${h.ties}T` : null].filter(Boolean).join('–');
+        html += `<div class="game-row">
+          <div class="game-summary" onclick="toggleHistoryEdit(${i})">
+            <div class="game-info">
+              <div class="game-opp">${esc(h.name || 'Untitled')}</div>
+              <div class="game-meta">${[h.dates, h.location, record, h.placement ? esc(h.placement) : null].filter(Boolean).join(' · ')}</div>
+            </div>
+            <div class="game-edit-icon">✏️</div>
+          </div>
+          ${S.editingHistory === i ? renderHistoryEditForm(i, h) : ''}
+        </div>`;
+      }
+    }
+    html += `</details>`;
+  } else {
+    html += `<details class="card collapsible-card" open>
+      <summary class="card-header collapsible-header">📋 Tournament History — ${esc(teamLabel)} <span class="collapse-icon">▾</span></summary>
+      <div style="padding:20px;text-align:center;color:var(--g400)">
+        <div style="font-size:1.5rem;margin-bottom:6px">📭</div>
+        No history entries yet. Add one manually or import a CSV above.
+      </div>
+    </details>`;
+  }
+
+  return html;
+}
+
+function buildSeasonOptions() {
+  const now = new Date();
+  const yr = now.getFullYear();
+  const opts = [];
+  // Generate last 5 years of seasons
+  for (let y = yr + 1; y >= yr - 5; y--) {
+    opts.push(`<option value="Spring ${y}">Spring ${y}</option>`);
+    opts.push(`<option value="Fall ${y}">Fall ${y}</option>`);
+  }
+  return opts.join('');
+}
+
+function addHistoryEntry() {
+  const name = (document.getElementById('hist-name')?.value || '').trim();
+  if (!name) { showStatus('Tournament name is required', 'err'); return; }
+
+  const entry = {
+    id: 'hist-' + Date.now(),
+    name,
+    dates: (document.getElementById('hist-dates')?.value || '').trim(),
+    location: (document.getElementById('hist-location')?.value || '').trim(),
+    season: document.getElementById('hist-season')?.value || '',
+    placement: (document.getElementById('hist-place')?.value || '').trim(),
+    wins: parseInt(document.getElementById('hist-wins')?.value) || 0,
+    losses: parseInt(document.getElementById('hist-losses')?.value) || 0,
+    ties: parseInt(document.getElementById('hist-ties')?.value) || 0,
+    totalPoints: parseInt(document.getElementById('hist-points')?.value) || 0,
+    notes: (document.getElementById('hist-notes')?.value || '').trim(),
+    record: '',
+    games: [],
+    archivedAt: new Date().toISOString(),
+  };
+  const w = entry.wins, l = entry.losses, t = entry.ties;
+  entry.record = t ? `${w}-${l}-${t}` : `${w}-${l}`;
+
+  if (!S.history) S.history = [];
+  S.history.unshift(entry);
+  saveHistory();
+}
+
+async function importMaxPreps() {
+  const urlInput = document.getElementById('maxpreps-url');
+  const statusEl = document.getElementById('maxpreps-import-status');
+  if (!urlInput) return;
+  const mpUrl = urlInput.value.trim();
+  if (!mpUrl || !mpUrl.includes('maxpreps.com')) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:#dc2626">Please paste a valid MaxPreps URL.</span>';
+    return;
+  }
+  if (statusEl) statusEl.innerHTML = '<span style="color:var(--royal)">⏳ Fetching MaxPreps data…</span>';
+
+  try {
+    let html = '';
+    const isValidPage = (h) => h && h.length > 50000 && (h.includes('water polo') || h.includes('maxpreps'));
+
+    // Try worker proxy first
+    try {
+      const workerUrl = typeof WORKER !== 'undefined' ? WORKER : 'https://ebwp-push.sarah-new.workers.dev';
+      const res = await fetch(workerUrl + '/maxpreps-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: mpUrl }),
+      });
+      if (res.ok) {
+        const text = await res.text();
+        console.log('[maxpreps] Worker proxy:', text.length, 'bytes');
+        if (isValidPage(text)) html = text;
+      }
+    } catch (e) { console.warn('[maxpreps] Worker:', e.message); }
+
+    // Try CORS proxies
+    if (!isValidPage(html)) {
+      const proxies = [
+        { url: `https://api.allorigins.win/raw?url=${encodeURIComponent(mpUrl)}`, json: false },
+        { url: `https://api.allorigins.win/get?url=${encodeURIComponent(mpUrl)}`, json: true },
+        { url: `https://corsproxy.io/?${encodeURIComponent(mpUrl)}`, json: false },
+      ];
+      for (const proxy of proxies) {
+        if (isValidPage(html)) break;
+        try {
+          if (statusEl) statusEl.innerHTML = '<span style="color:var(--royal)">⏳ Trying alternative fetch…</span>';
+          const res2 = await fetch(proxy.url);
+          if (!res2.ok) continue;
+          const text = await res2.text();
+          let candidate = text;
+          if (proxy.json) { try { candidate = JSON.parse(text).contents || ''; } catch { candidate = text; } }
+          if (isValidPage(candidate)) { html = candidate; break; }
+        } catch (e) { /* try next */ }
+      }
+    }
+
+    if (!isValidPage(html)) {
+      // Open the paste section automatically
+      const details = document.getElementById('maxpreps-paste-section');
+      if (details) details.open = true;
+      throw new Error('Could not fetch MaxPreps page — the site is blocking requests. Use the "Paste page source" option below.');
+    }
+
+    const games = parseMaxPrepsHtml(html);
+    _processMaxPrepsGames(games, mpUrl, statusEl);
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:#dc2626">❌ ${e.message}</span>`;
+  }
+}
+
+function importMaxPrepsPaste() {
+  const pasteEl = document.getElementById('maxpreps-paste');
+  const statusEl = document.getElementById('maxpreps-import-status');
+  if (!pasteEl) return;
+  const html = pasteEl.value.trim();
+  if (!html || html.length < 1000) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:#dc2626">Please paste the full page source HTML.</span>';
+    return;
+  }
+  try {
+    const urlInput = document.getElementById('maxpreps-url');
+    const mpUrl = urlInput?.value.trim() || '';
+    const games = parseMaxPrepsHtml(html);
+    _processMaxPrepsGames(games, mpUrl, statusEl);
+    pasteEl.value = ''; // clear after success
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:#dc2626">❌ ${e.message}</span>`;
+  }
+}
+
+function parseMaxPrepsHtml(html) {
+  const games = [];
+  let match;
+
+  // Extract ALL "W/L score" entries
+  const allResults = [];
+  const rRx = /"(W|L|T) (\d+)-(\d+)"/g;
+  while ((match = rRx.exec(html)) !== null) {
+    allResults.push({ wl: match[1], s1: +match[2], s2: +match[3], pos: match.index });
+  }
+
+  // Extract description strings
+  const allDescs = [];
+  const dRx = /On (\d{1,2})\/(\d{1,2}), the (.+?) (?:varsity|junior varsity|jv|freshman|frosh) .*?water polo team (won|lost|tied) .*?(?:against|vs\.?) (.+?) (?:\([A-Z]{2}\) )?by a score of (\d+)-(\d+)/gi;
+  while ((match = dRx.exec(html)) !== null) {
+    const month = match[1].padStart(2, '0');
+    const day = match[2].padStart(2, '0');
+    const oppTeam = match[3].trim();
+    const result = match[4].toLowerCase();
+    const sc1 = +match[6], sc2 = +match[7];
+    const wl = result === 'won' ? 'L' : result === 'lost' ? 'W' : 'T';
+    const ourScore = wl === 'W' ? Math.max(sc1, sc2) : Math.min(sc1, sc2);
+    const theirScore = wl === 'W' ? Math.min(sc1, sc2) : Math.max(sc1, sc2);
+    allDescs.push({ opponent: oppTeam, wl, ourScore, theirScore, date: `${month}/${day}`, pos: match.index });
+  }
+
+  if (allDescs.length > 0) {
+    const seen = new Set();
+    for (const d of allDescs) {
+      const key = `${d.opponent}|${d.date}|${d.ourScore}-${d.theirScore}`;
+      if (!seen.has(key)) { seen.add(key); games.push(d); }
+    }
+  } else if (allResults.length > 0) {
+    for (const r of allResults) {
+      games.push({ opponent: 'Opponent', result: r.wl, ourScore: r.s1, theirScore: r.s2, date: '' });
+    }
+  }
+
+  console.log('[maxpreps] Parse: HTML=' + html.length + ' results=' + allResults.length + ' descs=' + allDescs.length + ' games=' + games.length);
+
+  if (!games.length) {
+    throw new Error(`No game results found (page: ${html.length} bytes, results:${allResults.length}, descs:${allDescs.length}). Make sure the page has completed games.`);
+  }
+  return games;
+}
+
+function _processMaxPrepsGames(games, mpUrl, statusEl) {
+  const wins = games.filter(g => g.result === 'W' || g.wl === 'W').length;
+  const losses = games.filter(g => g.result === 'L' || g.wl === 'L').length;
+  const ties = games.filter(g => g.result === 'T' || g.wl === 'T').length;
+
+  const seasonMatch = mpUrl.match(/\/(\d{2})-(\d{2})\//);
+  let seasonLabel = '';
+  if (seasonMatch) {
+    seasonLabel = `Fall 20${seasonMatch[1]}`;
+  } else {
+    const firstDate = games[0]?.date;
+    if (firstDate) seasonLabel = guessSeasonFromDate(firstDate);
+  }
+
+  const gamesDetail = games.map(g => `${g.wl || g.result} ${g.ourScore}-${g.theirScore} vs ${g.opponent}${g.date ? ' (' + g.date + ')' : ''}`).join('\n');
+
+  const entry = {
+    id: 'mp-' + Date.now().toString(36),
+    name: seasonLabel + ' Season',
+    dates: games[0]?.date && games[games.length-1]?.date
+      ? games[0].date + ' – ' + games[games.length-1].date
+      : '',
+    location: 'MaxPreps Import',
+    wins, losses, ties,
+    points: null,
+    placement: `${wins}-${losses}${ties ? '-' + ties : ''}`,
+    season: seasonLabel,
+    notes: gamesDetail,
+    source: 'maxpreps',
+    sourceUrl: mpUrl,
+    games: games.map(g => ({
+      id: 'mp-' + Math.random().toString(36).slice(2, 8),
+      opponent: g.opponent || 'Opponent',
+      result: g.wl || g.result || null,
+      score: `${g.ourScore}-${g.theirScore}`,
+      date: g.date || '',
+      ourScore: g.ourScore,
+      theirScore: g.theirScore,
+    })),
+  };
+
+  S.history.push(entry);
+  if (statusEl) statusEl.innerHTML = `<span style="color:var(--green)">✅ Imported ${games.length} games: ${wins}W-${losses}L${ties ? '-' + ties + 'T' : ''} (${seasonLabel})</span>`;
+  renderTab();
+}
+
+async function saveHistory() {
+  try {
+    const res = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+    if (!res.ok) throw new Error('Save failed');
+    showStatus('✓ History saved', 'ok');
+    renderTab();
+  } catch (e) {
+    showStatus('Error saving history: ' + e.message, 'err');
+  }
+}
+
+function toggleHistoryEdit(idx) {
+  S.editingHistory = S.editingHistory === idx ? null : idx;
+  renderTab();
+}
+
+function renderHistoryEditForm(idx, h) {
+  const ps = h.playerStats || {};
+  const playerNames = Object.keys(ps).sort();
+  const hasPlayers = playerNames.length > 0;
+
+  let playerStatsHtml = '';
+  if (hasPlayers) {
+    playerStatsHtml = `
+      <div style="overflow-x:auto;margin-top:6px">
+        <table style="width:100%;font-size:0.75rem;border-collapse:collapse">
+          <thead>
+            <tr style="background:var(--g50)">
+              <th style="text-align:left;padding:6px 8px;font-weight:700;color:var(--royal)">Player</th>
+              <th style="text-align:center;padding:6px 4px;font-weight:700;color:var(--royal);width:40px">#</th>
+              <th style="text-align:center;padding:6px 4px;font-weight:700;color:var(--royal);width:42px">G</th>
+              <th style="text-align:center;padding:6px 4px;font-weight:700;color:var(--royal);width:42px">A</th>
+              <th style="text-align:center;padding:6px 4px;font-weight:700;color:var(--royal);width:42px">S</th>
+              <th style="text-align:center;padding:6px 4px;font-weight:700;color:var(--royal);width:42px">E</th>
+              <th style="text-align:center;padding:6px 4px;font-weight:700;color:var(--royal);width:42px">GP</th>
+              <th style="width:30px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${playerNames.map(name => {
+              const p = ps[name];
+              return `<tr style="border-bottom:1px solid var(--g100)">
+                <td style="padding:4px 8px;font-weight:600">${esc(name)}</td>
+                <td style="text-align:center;padding:4px 2px">
+                  <input type="text" value="${esc(p.cap||'')}" style="width:32px;text-align:center;border:1px solid var(--g200);border-radius:4px;padding:2px;font-size:0.72rem"
+                         onchange="S.history[${idx}].playerStats['${esc(name)}'].cap=this.value">
+                </td>
+                <td style="text-align:center;padding:4px 2px">
+                  <input type="number" min="0" value="${p.goals||0}" style="width:36px;text-align:center;border:1px solid var(--g200);border-radius:4px;padding:2px;font-size:0.72rem"
+                         onchange="S.history[${idx}].playerStats['${esc(name)}'].goals=+this.value">
+                </td>
+                <td style="text-align:center;padding:4px 2px">
+                  <input type="number" min="0" value="${p.assists||0}" style="width:36px;text-align:center;border:1px solid var(--g200);border-radius:4px;padding:2px;font-size:0.72rem"
+                         onchange="S.history[${idx}].playerStats['${esc(name)}'].assists=+this.value">
+                </td>
+                <td style="text-align:center;padding:4px 2px">
+                  <input type="number" min="0" value="${p.steals||0}" style="width:36px;text-align:center;border:1px solid var(--g200);border-radius:4px;padding:2px;font-size:0.72rem"
+                         onchange="S.history[${idx}].playerStats['${esc(name)}'].steals=+this.value">
+                </td>
+                <td style="text-align:center;padding:4px 2px">
+                  <input type="number" min="0" value="${p.exclusions||0}" style="width:36px;text-align:center;border:1px solid var(--g200);border-radius:4px;padding:2px;font-size:0.72rem"
+                         onchange="S.history[${idx}].playerStats['${esc(name)}'].exclusions=+this.value">
+                </td>
+                <td style="text-align:center;padding:4px 2px">
+                  <input type="number" min="0" value="${p.gamesPlayed||0}" style="width:36px;text-align:center;border:1px solid var(--g200);border-radius:4px;padding:2px;font-size:0.72rem"
+                         onchange="S.history[${idx}].playerStats['${esc(name)}'].gamesPlayed=+this.value">
+                </td>
+                <td style="text-align:center">
+                  <button onclick="deleteHistoryPlayer(${idx},'${esc(name)}')" style="background:none;border:none;cursor:pointer;font-size:0.7rem;color:#dc2626" title="Remove">✕</button>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  return `<div class="game-edit-form">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Name</label>
+        <input class="form-input" value="${esc(h.name || '')}" onchange="S.history[${idx}].name=this.value">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Dates</label>
+        <input class="form-input" value="${esc(h.dates || '')}" onchange="S.history[${idx}].dates=this.value">
+      </div>
+      <div class="form-group"><label class="form-label">Season</label>
+        <select class="form-input" onchange="S.history[${idx}].season=this.value" style="padding:9px 8px">
+          <option value="">— None —</option>
+          ${buildSeasonOptions().replace(`value="${esc(h.season || '')}"`, `value="${esc(h.season || '')}" selected`)}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Location</label>
+        <input class="form-input" value="${esc(h.location || '')}" onchange="S.history[${idx}].location=this.value">
+      </div>
+      <div class="form-group" style="flex:0 0 90px"><label class="form-label">Placement</label>
+        <input class="form-input" value="${esc(h.placement || '')}" onchange="S.history[${idx}].placement=this.value">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:0 0 65px"><label class="form-label">W</label>
+        <input type="number" min="0" class="form-input" value="${h.wins||0}" onchange="S.history[${idx}].wins=+this.value">
+      </div>
+      <div class="form-group" style="flex:0 0 65px"><label class="form-label">L</label>
+        <input type="number" min="0" class="form-input" value="${h.losses||0}" onchange="S.history[${idx}].losses=+this.value">
+      </div>
+      <div class="form-group" style="flex:0 0 65px"><label class="form-label">T</label>
+        <input type="number" min="0" class="form-input" value="${h.ties||0}" onchange="S.history[${idx}].ties=+this.value">
+      </div>
+      <div class="form-group" style="flex:0 0 80px"><label class="form-label">Pts</label>
+        <input type="number" class="form-input" value="${h.totalPoints||0}" onchange="S.history[${idx}].totalPoints=+this.value">
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Notes</label>
+      <input class="form-input" value="${esc(h.notes || '')}" onchange="S.history[${idx}].notes=this.value">
+    </div>
+
+    <!-- Player Stats Section -->
+    <details style="margin-top:8px;border:1px solid var(--g200);border-radius:8px;padding:0;overflow:hidden" ${hasPlayers ? 'open' : ''}>
+      <summary style="padding:10px 14px;font-size:0.82rem;font-weight:700;color:var(--royal);cursor:pointer;background:var(--g50)">
+        📊 Player Stats (${playerNames.length} players)
+      </summary>
+      <div style="padding:10px 14px">
+        ${playerStatsHtml}
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">
+          <input id="hist-player-name-${idx}" class="form-input" placeholder="Player name" style="flex:1;min-width:120px;font-size:0.8rem">
+          <input id="hist-player-cap-${idx}" class="form-input" placeholder="#" style="flex:0 0 40px;font-size:0.8rem;text-align:center">
+          <button class="save-btn" onclick="addHistoryPlayer(${idx})" style="font-size:0.78rem;padding:6px 12px">+ Add</button>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+          <label class="save-btn btn-neutral-lt" style="cursor:pointer;font-size:0.78rem;padding:6px 12px">
+            📁 Upload Roster CSV
+            <input type="file" accept=".csv" onchange="uploadHistoryRoster(event,${idx})" style="display:none">
+          </label>
+          <button class="save-btn btn-neutral-lt" onclick="copyCurrentRoster(${idx})" style="font-size:0.78rem;padding:6px 12px">📋 Copy Current Roster</button>
+        </div>
+        <div style="font-size:0.7rem;color:var(--g400);margin-top:4px;line-height:1.4">
+          CSV format: <em>Name, Cap#, Goals, Assists, Steals, Exclusions, GP</em><br>
+          Or just: <em>Name, Cap#</em> (stats default to 0)
+        </div>
+      </div>
+    </details>
+
+    <div class="form-actions">
+      <button class="btn-save" onclick="updateHistoryEntry(${idx})">💾 Save</button>
+      <button class="btn-del" onclick="deleteHistoryEntry(${idx})">🗑 Delete</button>
+      <button class="btn-cancel" onclick="S.editingHistory=null;renderTab()">Cancel</button>
+    </div>
+  </div>`;
+}
+
+function addHistoryPlayer(idx) {
+  const nameEl = document.getElementById('hist-player-name-' + idx);
+  const capEl = document.getElementById('hist-player-cap-' + idx);
+  if (!nameEl) return;
+  const name = nameEl.value.trim();
+  if (!name) { showStatus('Enter a player name', 'err'); return; }
+  if (!S.history[idx].playerStats) S.history[idx].playerStats = {};
+  if (S.history[idx].playerStats[name]) {
+    showStatus('Player "' + name + '" already exists', 'err');
+    return;
+  }
+  S.history[idx].playerStats[name] = {
+    goals: 0, assists: 0, steals: 0, exclusions: 0, gamesPlayed: 0,
+    cap: capEl?.value.trim() || '',
+  };
+  nameEl.value = '';
+  if (capEl) capEl.value = '';
+  renderTab();
+}
+
+function deleteHistoryPlayer(idx, name) {
+  if (!confirm('Remove ' + name + ' from this entry?')) return;
+  if (S.history[idx].playerStats) delete S.history[idx].playerStats[name];
+  renderTab();
+}
+
+function uploadHistoryRoster(event, idx) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const text = reader.result;
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 1) return;
+    if (!S.history[idx].playerStats) S.history[idx].playerStats = {};
+    let added = 0;
+    // Skip header if it looks like a header
+    const startIdx = /^name/i.test(lines[0]) ? 1 : 0;
+    for (let i = startIdx; i < lines.length; i++) {
+      const delimiter = text.includes('\t') ? '\t' : ',';
+      const cols = lines[i].split(delimiter).map(c => c.trim().replace(/^"|"$/g, ''));
+      const name = cols[0];
+      if (!name) continue;
+      S.history[idx].playerStats[name] = {
+        cap: cols[1] || '',
+        goals: parseInt(cols[2]) || 0,
+        assists: parseInt(cols[3]) || 0,
+        steals: parseInt(cols[4]) || 0,
+        exclusions: parseInt(cols[5]) || 0,
+        gamesPlayed: parseInt(cols[6]) || 0,
+      };
+      added++;
+    }
+    showStatus(`✓ Added ${added} players to this entry`, 'ok');
+    renderTab();
+  };
+  reader.readAsText(file);
+}
+
+function copyCurrentRoster(idx) {
+  // Copy the current team's master roster into this history entry's playerStats
+  const roster = S.roster;
+  if (!roster) { showStatus('No current roster loaded', 'err'); return; }
+  if (!S.history[idx].playerStats) S.history[idx].playerStats = {};
+  const players = Array.isArray(roster) ? roster : Object.values(roster).flat();
+  let added = 0;
+  for (const p of players) {
+    const name = [p.first, p.last].filter(Boolean).join(' ').trim();
+    if (!name) continue;
+    if (!S.history[idx].playerStats[name]) {
+      S.history[idx].playerStats[name] = {
+        goals: 0, assists: 0, steals: 0, exclusions: 0, gamesPlayed: 0,
+        cap: p.cap || p.number || '',
+      };
+      added++;
+    }
+  }
+  if (added) {
+    showStatus(`✓ Copied ${added} players from current roster`, 'ok');
+    renderTab();
+  } else {
+    showStatus('All current roster players already in this entry', 'info');
+  }
+}
+
+function updateHistoryEntry(idx) {
+  const h = S.history[idx];
+  h.record = h.ties ? `${h.wins||0}-${h.losses||0}-${h.ties}` : `${h.wins||0}-${h.losses||0}`;
+  saveHistory();
+}
+
+function deleteHistoryEntry(idx) {
+  const h = S.history[idx];
+  if (!confirm(`Delete "${h.name || 'Untitled'}"?`)) return;
+  S.history.splice(idx, 1);
+  S.editingHistory = null;
+  saveHistory();
+}
+
+function importHistoryCsv(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const text = reader.result;
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) { showStatus('CSV needs at least a header row and one data row', 'err'); return; }
+
+      const delimiter = text.includes('\t') ? '\t' : ',';
+      const rows = lines.slice(1); // skip header
+      let added = 0;
+
+      for (const row of rows) {
+        const cols = parseCSVRow(row, delimiter);
+        const name = (cols[0] || '').trim();
+        if (!name) continue;
+        const entry = {
+          id: 'hist-' + Date.now() + '-' + added,
+          name,
+          dates:       (cols[1] || '').trim(),
+          location:    (cols[2] || '').trim(),
+          wins:        parseInt(cols[3]) || 0,
+          losses:      parseInt(cols[4]) || 0,
+          ties:        parseInt(cols[5]) || 0,
+          totalPoints: parseInt(cols[6]) || 0,
+          placement:   (cols[7] || '').trim(),
+          season:      (cols[8] || '').trim() || guessSeasonFromDate((cols[1] || '').trim()),
+          notes:       (cols[9] || '').trim(),
+          record: '',
+          games: [],
+          archivedAt: new Date().toISOString(),
+        };
+        entry.record = entry.ties ? `${entry.wins}-${entry.losses}-${entry.ties}` : `${entry.wins}-${entry.losses}`;
+        if (!S.history) S.history = [];
+        S.history.unshift(entry);
+        added++;
+      }
+
+      if (added) {
+        saveHistory();
+        showStatus(`✓ Imported ${added} tournament(s) from CSV`, 'ok');
+      } else {
+        showStatus('No valid rows found in CSV', 'err');
+      }
+    } catch (e) {
+      showStatus('CSV parse error: ' + e.message, 'err');
+    }
+  };
+  reader.readAsText(file);
+  input.value = ''; // reset
+}
+
+function parseCSVRow(row, delimiter) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < row.length; i++) {
+    const ch = row[i];
+    if (inQuotes) {
+      if (ch === '"' && row[i + 1] === '"') { current += '"'; i++; }
+      else if (ch === '"') { inQuotes = false; }
+      else { current += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === delimiter) { result.push(current); current = ''; }
+      else { current += ch; }
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+function downloadHistoryTemplate() {
+  const csv = 'Name,Dates,Location,Wins,Losses,Ties,Points,Placement,Season,Notes\n"KAP7 Invitational","Oct 12-13 2025","Woollett Aquatics",5,1,0,15,"1st","Fall 2025","Won championship"\n';
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'history_template.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function saveClubSettings() {
+  const statusEl = document.getElementById('club-settings-status');
+  try {
+    const res = await api('PUT', '/admin/club-settings', {
+      clubName: S.tournament.clubName || '',
+      clubType: S.clubType || 'club',
+    });
+    if (!res.ok) throw new Error('Save failed: ' + res.status);
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--green)">✅ Club settings saved</span>';
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:#dc2626">❌ ' + e.message + '</span>';
+  }
+}
+
+async function loadClubSettings() {
+  try {
+    const res = await api('GET', '/admin/club-settings');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.clubType) {
+      S.clubType = data.clubType;
+      localStorage.setItem('ebadmin-clubType', data.clubType);
+    }
+    if (data.clubName) {
+      S.tournament.clubName = data.clubName;
+    }
+    // Load branding for THIS club (fresh from KV, not stale state)
+    S._branding = {
+      primaryColor: data.primaryColor || '#002868',
+      secondaryColor: data.secondaryColor || '#0d9488',
+      headerStyle: data.headerStyle || 'default',
+    };
+    // Store club logo for use when re-applying branding after saves
+    S._clubLogo = data.logoUrl || data.clubLogo || null;
+    // Populate the logo preview with the existing logo if the Club Info tab is open
+    if (S._clubLogo) {
+      const preview = document.getElementById('club-logo-preview');
+      if (preview) preview.innerHTML = `<img src="${S._clubLogo}" style="max-height:100px;max-width:100%;display:block;">`;
+    }
+    // Apply to admin panel header so admin sees the club's colors
+    applyAdminBranding(S._branding.primaryColor, S._branding.secondaryColor, S._clubLogo);
+  } catch (e) {
+    console.warn('[club-settings] load failed:', e.message);
+  }
+}
+
+// ─── BRANDING ─────────────────────────────────────────────────────────────────
+
+/** Returns perceived luminance 0–1 for a hex color. */
+function _hexLuminance(hex) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c+c).join('');
+  const r = parseInt(hex.slice(0,2),16)/255;
+  const g = parseInt(hex.slice(2,4),16)/255;
+  const b = parseInt(hex.slice(4,6),16)/255;
+  // sRGB weighted luminance
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function updateBrandingPreview() {
+  const primary = document.getElementById('brand-primary')?.value || '#002868';
+  const secondary = document.getElementById('brand-secondary')?.value || '#0d9488';
+  const style = document.getElementById('brand-header-style')?.value || 'default';
+
+  // Sync hex inputs and swatches
+  const pHex = document.getElementById('brand-primary-hex');
+  const sHex = document.getElementById('brand-secondary-hex');
+  if (pHex) pHex.value = primary;
+  if (sHex) sHex.value = secondary;
+  const pSwatch = document.getElementById('brand-primary-swatch');
+  const sSwatch = document.getElementById('brand-secondary-swatch');
+  if (pSwatch) {
+    pSwatch.style.background = primary;
+    // Add white ring when color is very dark so it's visible on dark backgrounds
+    pSwatch.style.outline = _hexLuminance(primary) < 0.12 ? '2px solid rgba(255,255,255,0.45)' : 'none';
+    pSwatch.style.outlineOffset = '1px';
+  }
+  if (sSwatch) {
+    sSwatch.style.background = secondary;
+    sSwatch.style.outline = _hexLuminance(secondary) < 0.12 ? '2px solid rgba(255,255,255,0.45)' : 'none';
+    sSwatch.style.outlineOffset = '1px';
+  }
+
+  // Compute a darker shade for gradient
+  function darken(hex, amount) {
+    hex = hex.replace('#', '');
+    const r = Math.round(parseInt(hex.slice(0,2),16) * (1 - amount));
+    const g = Math.round(parseInt(hex.slice(2,4),16) * (1 - amount));
+    const b = Math.round(parseInt(hex.slice(4,6),16) * (1 - amount));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  // Update preview header
+  const header = document.getElementById('brand-preview-header');
+  if (header) {
+    if (style === 'solid') {
+      header.style.background = primary;
+    } else if (style === 'gradient') {
+      header.style.background = `linear-gradient(135deg, ${primary} 0%, ${darken(primary, 0.4)} 100%)`;
+    } else {
+      header.style.background = `linear-gradient(135deg, ${primary} 0%, ${darken(primary, 0.3)} 100%)`;
+    }
+  }
+
+  // Update buttons
+  const btn1 = document.getElementById('brand-preview-btn');
+  const btn2 = document.getElementById('brand-preview-btn2');
+  if (btn1) btn1.style.background = primary;
+  if (btn2) btn2.style.background = secondary;
+
+  // Update accent text
+  const accent = document.getElementById('brand-preview-accent');
+  if (accent) accent.style.color = secondary;
+}
+
+function syncBrandingFromHex(which) {
+  const hex = document.getElementById(which === 'primary' ? 'brand-primary-hex' : 'brand-secondary-hex')?.value;
+  if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+  const picker = document.getElementById(which === 'primary' ? 'brand-primary' : 'brand-secondary');
+  if (picker) picker.value = hex;
+  updateBrandingPreview();
+}
+
+async function saveBranding() {
+  const statusEl = document.getElementById('branding-status');
+  const primary = document.getElementById('brand-primary')?.value || '#002868';
+  const secondary = document.getElementById('brand-secondary')?.value || '#0d9488';
+  const headerStyle = document.getElementById('brand-header-style')?.value || 'default';
+  try {
+    const res = await api('PUT', '/admin/club-settings', {
+      primaryColor: primary,
+      secondaryColor: secondary,
+      headerStyle: headerStyle,
+    });
+    if (!res.ok) throw new Error('Save failed');
+    S._branding = { primaryColor: primary, secondaryColor: secondary, headerStyle };
+    // Apply branding to admin panel header so admin sees the club's colors
+    applyAdminBranding(primary, secondary, S._clubLogo || null);
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--green)">✅ Branding saved — parents will see the new colors on their next visit</span>';
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:#dc2626">❌ ' + e.message + '</span>';
+  }
+}
+
+function resetBranding() {
+  const p = document.getElementById('brand-primary');
+  const s = document.getElementById('brand-secondary');
+  const hs = document.getElementById('brand-header-style');
+  if (p) p.value = '#002868';
+  if (s) s.value = '#0d9488';
+  if (hs) hs.value = 'default';
+  updateBrandingPreview();
+}
+
+// Initialize branding preview when Club Info tab is shown
+function initBrandingPreview() {
+  setTimeout(updateBrandingPreview, 50);
+}
+
+/**
+ * Apply club branding colors to the admin panel header and accent elements.
+ * Called after saving branding AND when loading a club's settings.
+ */
+function applyAdminBranding(primaryColor, secondaryColor, clubLogo) {
+  if (!primaryColor) return;
+  const root = document.documentElement;
+
+  // Parse hex → {r, g, b}
+  function hexToRgb(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+    return { r: parseInt(hex.slice(0,2),16), g: parseInt(hex.slice(2,4),16), b: parseInt(hex.slice(4,6),16) };
+  }
+  function rgbToHex(r,g,b) {
+    return '#' + [r,g,b].map(c => Math.max(0,Math.min(255,Math.round(c))).toString(16).padStart(2,'0')).join('');
+  }
+  function mix(c, white, t) {
+    return { r: c.r + (white.r - c.r) * t, g: c.g + (white.g - c.g) * t, b: c.b + (white.b - c.b) * t };
+  }
+  function darken(c, amount) {
+    return { r: c.r * (1 - amount), g: c.g * (1 - amount), b: c.b * (1 - amount) };
+  }
+
+  const pc = hexToRgb(primaryColor);
+  const white = { r: 255, g: 255, b: 255 };
+
+  // Set primary and all computed variants (same as parent app)
+  root.style.setProperty('--royal', primaryColor);
+  const dark = darken(pc, 0.3);
+  root.style.setProperty('--royal-dark', rgbToHex(dark.r, dark.g, dark.b));
+  const mid = mix(pc, white, 0.2);
+  root.style.setProperty('--royal-mid', rgbToHex(mid.r, mid.g, mid.b));
+  const light = mix(pc, white, 0.85);
+  root.style.setProperty('--royal-light', rgbToHex(light.r, light.g, light.b));
+  const subtle = mix(pc, white, 0.93);
+  root.style.setProperty('--royal-subtle', rgbToHex(subtle.r, subtle.g, subtle.b));
+
+  // Set secondary color variants
+  if (secondaryColor) {
+    root.style.setProperty('--teal', secondaryColor);
+    const sc = hexToRgb(secondaryColor);
+    const tl = mix(sc, white, 0.9);
+    root.style.setProperty('--teal-light', rgbToHex(tl.r, tl.g, tl.b));
+  }
+
+  // Update admin header gradient using computed dark shade
+  const darkHex = rgbToHex(dark.r, dark.g, dark.b);
+  const header = document.querySelector('.admin-header');
+  if (header) {
+    header.style.background = `linear-gradient(135deg, ${primaryColor} 0%, ${darkHex} 100%)`;
+  }
+  // Let the header-bar keep its CSS dark overlay (rgba(0,0,0,.18))
+  const bar = document.querySelector('.admin-header-bar');
+  if (bar) bar.style.background = '';
+
+  // Update meta theme-color
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = primaryColor;
+
+  function recolorEggbeaterSvg(imgEl) {
+    if (!imgEl) return;
+    fetch('logo_large.svg')
+      .then(r => r.text())
+      .then(svg => {
+        const recolored = svg.replace('fill="#002868"', `fill="${primaryColor}"`);
+        const blob = new Blob([recolored], { type: 'image/svg+xml' });
+        if (imgEl._blobUrl) URL.revokeObjectURL(imgEl._blobUrl);
+        imgEl._blobUrl = URL.createObjectURL(blob);
+        imgEl.src = imgEl._blobUrl;
+      })
+      .catch(() => {});
+  }
+
+  // Handle custom club logo vs default eggbeater logo
+  // Scope to #admin-app so we don't accidentally touch the #club-dashboard header logo
+  const adminApp       = document.getElementById('admin-app');
+  const defaultLogoImg = adminApp ? adminApp.querySelector('.admin-logo-img') : null;
+  const customWrap     = adminApp ? adminApp.querySelector('.admin-custom-logo-wrap') : null;
+  const customImg      = adminApp ? adminApp.querySelector('.admin-custom-logo-img') : null;
+  const poweredByBar   = adminApp ? adminApp.querySelector('.admin-poweredby-bar') : null;
+  const inlineLogo     = poweredByBar ? poweredByBar.querySelector('.eggbeater-inline-logo') : null;
+
+  if (clubLogo) {
+    if (customWrap)     customWrap.classList.remove('hidden');
+    if (poweredByBar)   poweredByBar.classList.remove('hidden');
+    if (defaultLogoImg) {
+      defaultLogoImg.classList.add('hidden');
+      defaultLogoImg.style.display = 'none'; // Force hide
+    }
+    recolorEggbeaterSvg(inlineLogo);
+    if (customImg) {
+      removeLogoBackground(clubLogo).then(processed => { customImg.src = processed; });
+    }
+  } else {
+    if (customWrap)     customWrap.classList.add('hidden');
+    if (poweredByBar)   poweredByBar.classList.add('hidden');
+    if (defaultLogoImg) {
+      defaultLogoImg.classList.remove('hidden');
+      defaultLogoImg.style.display = ''; // Restore display
+      recolorEggbeaterSvg(defaultLogoImg);
+    }
+  }
+}
+
+async function setClubType(type) {
+  S.clubType = type;
+  localStorage.setItem('ebadmin-clubType', type);
+  try {
+    const res = await api('PUT', '/admin/club-settings', { clubType: type, clubName: S.tournament.clubName || '' });
+    if (!res.ok) throw new Error('Failed');
+    showStatus(`✓ Club type set to ${type === 'highschool' ? 'High School' : 'Club'}`, 'ok');
+    // Re-render pills with the correct team set
+    renderAdminTeamPills();
+    renderTab();
+  } catch (e) {
+    showStatus('Error saving club type: ' + e.message, 'err');
+  }
+}
+
+function getSeasonYear(seasonId) {
+  if (!seasonId) return new Date().getFullYear();
+  const m = seasonId.match(/(\d{4})/);
+  return m ? m[1] : new Date().getFullYear();
+}
+
+function setHSSeasonYear(year) {
+  if (!year || isNaN(year)) return;
+  setHSSeason('fall-' + year);
+}
+
+async function setHSSeason(seasonId) {
+  if (!seasonId) return;
+  const oldId = S.tournament.id;
+  if (seasonId === oldId) return;
+
+  // Confirm before changing (triggers archive)
+  if (oldId && !confirm(`Changing season from "${oldId}" to "${seasonId}" will archive the current season data for ALL groups.\n\nProceed?`)) {
+    // Reset dropdown
+    const sel = document.getElementById('hs-season-select');
+    if (sel) sel.value = oldId;
+    return;
+  }
+
+  S.tournament.id = seasonId;
+  // Always Fall for water polo
+  const yr = seasonId.match(/(\d{4})/);
+  const year = yr ? yr[1] : new Date().getFullYear();
+  S.tournament.name = 'Fall ' + year;
+  S.tournament.dates = `Aug–Nov ${year}`;
+
+  showStatus('Setting season for all groups…', 'info');
+
+  // Save current team
+  await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+
+  // Push season metadata to all other HS teams
+  const seasonMeta = {
+    id: S.tournament.id,
+    name: S.tournament.name,
+    subtitle: S.tournament.subtitle || '',
+    dates: S.tournament.dates,
+    location: S.tournament.location || '',
+    address: S.tournament.address || '',
+    pool: S.tournament.pool || '',
+    clubName: S.tournament.clubName || '',
+    singleTeam: S.tournament.singleTeam,
+  };
+  for (const t of ADMIN_TEAMS_HS) {
+    if (t.key === S.team) continue;
+    try {
+      const r = await api('GET', `/admin/data?team=${encodeURIComponent(t.key)}`);
+      let other = { tournament: {}, history: [] };
+      if (r.ok) other = await r.json();
+      const merged = { ...other.tournament, ...seasonMeta };
+      if (other.tournament?.games) merged.games = other.tournament.games;
+      await api('PUT', `/admin/data?team=${encodeURIComponent(t.key)}`, {
+        tournament: merged,
+        history: other.history || [],
+      });
+    } catch (e) {
+      console.warn(`[HS season] sync failed for ${t.key}:`, e.message);
+    }
+  }
+
+  showStatus(`✓ Season set to ${S.tournament.name} for all groups`, 'ok');
+  renderTab();
+}
+
+// ─── ARCHIVE TAB ──────────────────────────────────────────────────────────────
+
+async function loadArchiveTab() {
+  const el = document.getElementById('tab-content');
+  try {
+    // Load archive for ALL age groups so admin sees the full picture
+    const allArchives = {};
+    for (const t of getAdminTeams()) {
+      const res = await api('GET', `/admin/archive?team=${encodeURIComponent(t.key)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.archives?.length) allArchives[t.key] = { label: t.label, archives: data.archives };
+      }
+    }
+
+    if (!Object.keys(allArchives).length) {
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-header">📦 Tournament Archive</div>
+          <div style="padding:20px;text-align:center;color:var(--g400)">
+            <div style="font-size:2rem;margin-bottom:8px">📦</div>
+            <div>No archived tournaments yet.</div>
+            <div style="font-size:0.82rem;margin-top:4px">Tournaments are automatically archived each time you deploy. Deploy a tournament and it will appear here.</div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    // ── Season Dashboard Card ──────────────────────────────────────────────
+    let dashHtml = '';
+    {
+      const groupStats = [];
+      let totalW = 0, totalL = 0, totalT = 0, totalGames = 0;
+
+      for (const [teamKey, { label, archives }] of Object.entries(allArchives)) {
+        let w = 0, l = 0, t = 0, g = 0;
+        for (const a of archives) {
+          const r = a.record || {};
+          w += r.wins || 0;
+          l += r.losses || 0;
+          t += r.ties || 0;
+          g += a.games || 0;
+        }
+        const played = w + l + t;
+        const pct = played ? Math.round((w / played) * 100) : 0;
+        groupStats.push({ label, w, l, t, g, played, pct, tourneys: archives.length });
+        totalW += w; totalL += l; totalT += t; totalGames += g;
+      }
+
+      const totalPlayed = totalW + totalL + totalT;
+      const totalPct = totalPlayed ? Math.round((totalW / totalPlayed) * 100) : 0;
+
+      // Color for win%
+      const pctColor = (p) => p >= 70 ? '#16a34a' : p >= 50 ? '#ca8a04' : p >= 30 ? '#ea580c' : '#dc2626';
+      const pctBg = (p) => p >= 70 ? '#dcfce7' : p >= 50 ? '#fef9c3' : p >= 30 ? '#fff7ed' : '#fef2f2';
+
+      dashHtml += `<details class="card collapsible-card" style="margin-bottom:12px" open>
+        <summary class="card-header collapsible-header">📊 Season Dashboard <span class="collapse-icon">▾</span></summary>
+        <div style="padding:12px 14px">`;
+
+      // Overall club record banner
+      dashHtml += `<div style="display:flex;align-items:center;gap:16px;padding:12px 16px;background:linear-gradient(135deg,#eff6ff,#e0e7ff);border-radius:10px;margin-bottom:14px">
+        <div style="flex:1">
+          <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6366f1;margin-bottom:2px">Overall Club Record</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--royal)">${totalW}W - ${totalL}L${totalT ? ' - ' + totalT + 'T' : ''}</div>
+          <div style="font-size:0.78rem;color:var(--g400)">${totalGames} games across ${Object.keys(allArchives).length} age groups · ${totalPlayed ? totalPct + '% win rate' : 'No results'}</div>
+        </div>
+        <div style="width:56px;height:56px;border-radius:50%;background:${pctBg(totalPct)};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <span style="font-size:1.1rem;font-weight:800;color:${pctColor(totalPct)}">${totalPct}%</span>
+        </div>
+      </div>`;
+
+      // Per age group rows
+      dashHtml += `<div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--g400);padding:0 0 6px">By Age Group</div>`;
+      for (const gs of groupStats) {
+        const recordStr = `${gs.w}W-${gs.l}L${gs.t ? '-' + gs.t + 'T' : ''}`;
+        dashHtml += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--g100)">
+          <div style="width:80px;font-size:0.82rem;font-weight:700;color:var(--royal);flex-shrink:0">${esc(gs.label)}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+              <span style="font-size:0.82rem;font-weight:700;color:${pctColor(gs.pct)}">${recordStr}</span>
+              <span style="font-size:0.72rem;color:var(--g400)">${gs.g} games · ${gs.tourneys} tourney${gs.tourneys !== 1 ? 's' : ''}</span>
+            </div>
+            <div style="height:6px;background:var(--g100);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${gs.pct}%;background:${pctColor(gs.pct)};border-radius:3px;transition:width .3s"></div>
+            </div>
+          </div>
+          <div style="width:36px;text-align:right;font-size:0.78rem;font-weight:700;color:${pctColor(gs.pct)};flex-shrink:0">${gs.pct}%</div>
+        </div>`;
+      }
+      dashHtml += `</div></details>`;
+    }
+
+    let html = dashHtml;
+    html += '<details class="card collapsible-card" open><summary class="card-header collapsible-header">📦 Tournament Archive <span class="collapse-icon">▾</span></summary><div style="padding:10px 14px">';
+    html += '<p style="font-size:0.82rem;color:var(--g400);margin-bottom:12px">Tournaments are automatically archived on every deploy. Click to view details or load a past roster.</p>';
+
+    let groupIdx = 0;
+    for (const [teamKey, { label, archives }] of Object.entries(allArchives)) {
+      const gid = 'archive-group-' + groupIdx++;
+      html += `<div style="margin-bottom:16px">`;
+      html += `<div style="font-size:0.9rem;font-weight:700;color:var(--royal);padding:8px 0 6px;border-bottom:2px solid var(--g200);cursor:pointer;display:flex;align-items:center;gap:6px;user-select:none"
+                   onclick="const el=document.getElementById('${gid}');const arr=this.querySelector('.archive-arrow');if(el.style.display==='none'){el.style.display='';arr.textContent='▾'}else{el.style.display='none';arr.textContent='▸'}">
+        <span class="archive-arrow" style="font-size:0.75rem;color:var(--g400)">▾</span> ${esc(label)} <span style="font-size:0.72rem;font-weight:400;color:var(--g400)">(${archives.length})</span>
+      </div>`;
+      html += `<div id="${gid}" style="margin-top:6px">`;
+
+      for (const a of archives) {
+        const rec = a.record || {};
+        const recordStr = (rec.wins || rec.losses || rec.ties)
+          ? `${rec.wins || 0}W-${rec.losses || 0}L${rec.ties ? '-' + rec.ties + 'T' : ''}`
+          : '';
+        const dateStr = a.dates || '';
+        const locStr = a.location || '';
+        const details = [dateStr, locStr, recordStr, a.games + ' games'].filter(Boolean).join(' · ');
+
+        html += `
+          <div style="background:var(--g50);border:1px solid var(--g200);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:6px;cursor:pointer;transition:background .15s;position:relative"
+               onmouseenter="this.style.background='var(--g100)';this.querySelector('.archive-del-btn').style.opacity='1'"
+               onmouseleave="this.style.background='var(--g50)';this.querySelector('.archive-del-btn').style.opacity='0'"
+               onclick="viewArchiveDetail('${esc(teamKey)}', '${esc(a.id)}')">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:0.88rem;font-weight:600">${esc(a.name)}</div>
+                <div style="font-size:0.75rem;color:var(--g400)">${esc(details)}</div>
+              </div>
+              ${recordStr ? `<div style="font-size:0.78rem;font-weight:700;color:${(rec.wins||0)>=(rec.losses||0)?'var(--green)':'var(--red)'};white-space:nowrap">${recordStr}</div>` : ''}
+              <button class="archive-del-btn" style="opacity:0;background:none;border:none;padding:4px;cursor:pointer;font-size:1.1rem;transition:opacity .15s" 
+                      onclick="event.stopPropagation();deleteArchiveEntry('${esc(teamKey)}', '${esc(a.id)}', '${esc(a.name)}')">🗑️</button>
+              <div style="color:var(--g400);font-size:1.1rem">›</div>
+            </div>
+          </div>`;
+      }
+      html += '</div></div>';
+    }
+
+    html += '</div></details>';
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = `<div class="card"><div style="padding:20px;color:var(--red)">Error loading archive: ${esc(e.message)}</div></div>`;
+  }
+}
+
+async function deleteArchiveEntry(teamKey, tournId, name) {
+  if (!confirm(`Permanently delete arched tournament "${name}" for ${teamKey}?\n\nThis will remove it from the KV archive entirely. It cannot be recovered.`)) return;
+
+  showStatus('Deleting archive…', 'info');
+  try {
+    const res = await api('DELETE', `/admin/archive?team=${encodeURIComponent(teamKey)}&tournId=${encodeURIComponent(tournId)}`);
+    if (!res.ok) throw new Error('Delete failed: ' + res.status);
+    showStatus('✓ Archive deleted', 'ok');
+    loadArchiveTab(); // Refresh the list
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  }
+}
+
+async function viewArchiveDetail(teamKey, tournId) {
+  const el = document.getElementById('tab-content');
+  el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--g400)">Loading tournament…</div>';
+
+  try {
+    const origTeam = S.team;
+    S.team = teamKey;
+    const res = await api('GET', `/admin/archive-detail?tournId=${encodeURIComponent(tournId)}`);
+    S.team = origTeam;
+    if (!res.ok) throw new Error('Not found');
+    const data = await res.json();
+    const t = data.tournament || {};
+    const roster = data.roster || [];
+    const rec = data.record || {};
+    const recordStr = `${rec.wins || 0}W-${rec.losses || 0}L${rec.ties ? '-' + rec.ties + 'T' : ''}`;
+    const teamLabel = ADMIN_TEAMS.find(at => at.key === teamKey)?.label || teamKey;
+
+    let html = `
+      <div style="padding:8px 14px">
+        <button class="save-btn" style="margin-bottom:12px" onclick="switchTab('archive')">← Back to Archive</button>
+      </div>
+      <div class="card">
+        <div class="card-header">📦 ${esc(t.name || 'Tournament')} — ${esc(teamLabel)}</div>
+        <div style="padding:10px 14px">
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">
+            ${t.dates ? `<div style="font-size:0.82rem"><strong>Dates:</strong> ${esc(t.dates)}</div>` : ''}
+            ${t.location ? `<div style="font-size:0.82rem"><strong>Venue:</strong> ${esc(t.location)}</div>` : ''}
+            <div style="font-size:0.82rem"><strong>Record:</strong> <span style="font-weight:700;color:${(rec.wins||0)>=(rec.losses||0)?'var(--green)':'var(--red)'}">${recordStr}</span></div>
+            <div style="font-size:0.82rem"><strong>Archived:</strong> ${new Date(data.archivedAt).toLocaleDateString()}</div>
+          </div>`;
+
+    // Games list
+    if (t.games?.length) {
+      html += '<div style="font-size:0.85rem;font-weight:700;margin:12px 0 6px">Games</div>';
+      for (const g of t.games) {
+        const s = g.score || {};
+        const scoreStr = (typeof s.team === 'number') ? `${s.team}–${s.opp}` : 'No score';
+        const result = (typeof s.team === 'number' && typeof s.opp === 'number')
+          ? (s.team > s.opp ? '✅' : s.team < s.opp ? '❌' : '➖') : '';
+        html += `<div style="display:flex;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--g100);font-size:0.82rem">
+          <span style="width:20px;text-align:center">${result}</span>
+          <span style="flex:1">${esc(g.opponent || 'TBD')}</span>
+          <span style="font-weight:600">${scoreStr}</span>
+          <span style="color:var(--g400);font-size:0.72rem">${esc(g.dateISO || '')}</span>
+        </div>`;
+      }
+    }
+
+    // Roster
+    if (roster.length) {
+      html += `<div style="font-size:0.85rem;font-weight:700;margin:16px 0 6px">Roster (${roster.length} players)</div>`;
+      html += '<div style="display:flex;flex-wrap:wrap;gap:4px">';
+      for (const p of roster) {
+        const name = typeof p === 'string' ? p : (p.name || p.firstName + ' ' + (p.lastName || ''));
+        const num = typeof p === 'object' ? p.number || p.capNumber || '' : '';
+        html += `<span style="background:var(--g100);padding:3px 8px;border-radius:4px;font-size:0.78rem">${num ? '#' + esc(String(num)) + ' ' : ''}${esc(name)}</span>`;
+      }
+      html += '</div>';
+      html += `<button class="save-btn" style="margin-top:12px;background:var(--royal);color:white;border-color:var(--royal);width:100%"
+               onclick="loadArchiveRoster('${esc(teamKey)}', '${esc(tournId)}')">📋 Load This Roster into Current ${esc(teamLabel)} Tournament</button>`;
+    }
+
+    html += '</div></div>';
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = `<div class="card"><div style="padding:20px;color:var(--red)">Error: ${esc(e.message)}</div></div>`;
+  }
+}
+
+async function loadArchiveRoster(teamKey, tournId) {
+  if (!confirm('Load the roster from this archived tournament into the current ' + teamKey + ' tournament? This will replace the current roster.')) return;
+  try {
+    const origTeam = S.team;
+    S.team = teamKey;
+    const res = await api('GET', `/admin/archive-detail?tournId=${encodeURIComponent(tournId)}`);
+    S.team = origTeam;
+    if (!res.ok) throw new Error('Archive not found');
+    const data = await res.json();
+    const roster = data.roster || [];
+    if (!roster.length) { showStatus('Archive has no roster', 'err'); return; }
+
+    // Save roster to current team
+    const saveRes = await fetch(WORKER + `/admin/roster?team=${encodeURIComponent(teamKey)}&club=${encodeURIComponent(localStorage.getItem('ebadmin-clubId') || 'my-club')}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...(S.pw ? { 'X-Admin-Password': S.pw } : { 'Authorization': 'Bearer ' + S.idToken }) },
+      body: JSON.stringify({ roster })
+    });
+    if (!saveRes.ok) throw new Error('Save failed');
+
+    // If we're currently viewing that team, update local state
+    if (S.team === teamKey) {
+      S.roster = roster;
+    }
+    showStatus('✓ Roster loaded from archive (' + roster.length + ' players)', 'ok');
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  }
+}
+
+// ─── HELP TAB ─────────────────────────────────────────────────────────────────
+
+function renderHelpTab() {
+  const sections = [
+    {
+      icon: '🚀',
+      title: 'Getting Started',
+      body: `<p style="font-weight:600;color:var(--royal)">Your five-step pre-tournament checklist.</p>
+      <ol style="margin-top:8px">
+        <li><strong>Pick your age group</strong> — use the dropdown in the top-right header (e.g. "14u Girls"). Each age group is managed independently. 🟢 = has games · 🟡 = set up, no games yet · ⚫ = not started.</li>
+        <li><strong>Games tab</strong> — enter the tournament name, dates, venue, and add your game schedule.</li>
+        <li><strong>Roster tab</strong> — add your players. Only needed once per season — rosters carry over between tournaments.</li>
+        <li><strong>Schedule tab</strong> — preview what parents will see before you go live.</li>
+        <li><strong>💾 Save &amp; Deploy</strong> — the blue button in the top-right corner. Tap it to push everything live to parents. Nothing is visible to parents until you do this.</li>
+      </ol>
+      <p style="margin-top:10px;padding:10px 12px;background:var(--g50);border-radius:8px;font-size:0.82rem;border-left:3px solid var(--royal)">💡 <strong>Nothing goes live automatically.</strong> You control exactly when parents see changes by tapping Save &amp; Deploy.</p>`
+    },
+    {
+      icon: '📅',
+      title: 'Adding &amp; Editing Games',
+      body: `<p style="font-weight:600;color:var(--royal)">Build your game schedule in the Games tab.</p>
+      <ul style="margin-top:8px">
+        <li><strong>+ Add Game</strong> — fills in: Game # (e.g. G1), Opponent, Time, Date, Location, Pool, and Cap Color.</li>
+        <li><strong>Tap any game row</strong> to expand it and edit inline. Tap ✓ Done to save or Cancel to discard.</li>
+        <li><strong>Cap Color</strong> — ⚪ White or ⚫ Dark. Tells parents which color your team is wearing.</li>
+        <li><strong>🗑 Delete</strong> — tap the trash icon on any game. Cannot be undone.</li>
+        <li><strong>📋 Paste Schedule</strong> — paste rows directly from Excel or Google Sheets. Fastest way to import a full schedule.</li>
+        <li><strong>Sync from Google Sheets</strong> — paste a public Sheet URL. Columns needed: <code>Game, Opponent, Date, Time, Location, Pool, Cap</code>.</li>
+      </ul>
+      <p style="margin-top:10px;padding:10px 12px;background:var(--g50);border-radius:8px;font-size:0.82rem;border-left:3px solid var(--royal)">💡 Tap <strong>💾 Save &amp; Deploy</strong> after any changes — games are only visible to parents after you publish.</p>`
+    },
+    {
+      icon: '👥',
+      title: 'Roster Tab — Managing Players',
+      body: `<p>Manage the player roster for each team. The roster carries over between tournaments — you only need to set it up once per season.</p>
+      <ul>
+        <li><strong>+ Add Player</strong> — tap to add a player with their Cap #, First Name, and Last Name.</li>
+        <li><strong>Editing a player</strong> — tap any player row to edit inline. Tap <strong>✓ Save</strong> to confirm.</li>
+        <li><strong>Deleting a player</strong> — tap the 🗑 icon. Deleting a player removes them from the picker in live scoring.</li>
+        <li><strong>Multi-team</strong> — in multi-team mode, there are separate A Team, B Team, and (when enabled) C Team rosters. Each team's roster is managed independently.</li>
+        <li><strong>CSV Import</strong> — tap <strong>Import CSV</strong> and upload a file with columns: <code>cap, first, last</code>. This replaces the current roster for that team.</li>
+        <li><strong>Sync from Google Sheets</strong> — paste a publicly shared Google Sheet URL and tap <strong>Sync Roster</strong>. The sheet must have columns: <code>Team, Cap #, First Name, Last Name</code>.</li>
+      </ul>
+      <p style="margin-top:8px">💡 <strong>Tip:</strong> The roster is independent of the tournament schedule — updating cap numbers mid-season won't affect past stats, which are tracked by player name.</p>`
+    },
+    {
+      icon: 'ℹ️',
+      title: 'Tournament Setup — Name, Dates &amp; Settings',
+      body: `<p style="font-weight:600;color:var(--royal)">Fill in the tournament details parents see in the app.</p>
+      <ul style="margin-top:8px">
+        <li><strong>Name / Subtitle / Dates / Location</strong> — shown in the app header and on each game card.</li>
+        <li><strong>Club Name</strong> — how your club appears in matchup lines (e.g. "Pacific Waves vs. NorCal Gold"). Leave blank for "vs." only.</li>
+        <li><strong>Coming Soon message</strong> — what parents see before you post games. Clear it once games are added.</li>
+        <li><strong>Scoring Password</strong> — parents need this to submit live scores from poolside. Set a simple word like <em>bawl2026</em>. Leave blank to let anyone score.</li>
+        <li><strong>Tournament ID</strong> ⚠️ — a unique code for this tournament. <em>Only change this when starting a brand-new tournament</em> — changing it archives the current schedule for all parents and resets to a blank slate.</li>
+      </ul>`
+    },
+    {
+      icon: '🏊',
+      title: 'Multi-Team Mode',
+      body: `<p><strong>👑 Requires Club Plan.</strong> The Multi-Team Mode section is a collapsible card in the <strong>Club Info</strong> tab (under More → Club Info).</p>
+      <ul>
+        <li><strong>Enable / Disable</strong> — multi-team is on by default for Club plan clubs. Check "Disable multi-team" to run a single-team tournament.</li>
+        <li><strong>Team A / Team B Labels</strong> — set custom labels (e.g. "Red" / "Blue") that appear throughout the app instead of the default "A" / "B".</li>
+        <li><strong>C Team</strong> — enable a third team for tournaments where three squads are entered. Can be toggled on/off without losing any C Team data.</li>
+      </ul>
+      <p style="margin-top:8px">Free and Parent tier users do not see team labels or multi-team controls — upgrade to Club plan to unlock.</p>`
+    },
+    {
+      icon: '⏱',
+      title: 'Game Clock Settings',
+      body: `<p style="font-weight:600;color:var(--royal)">Set these before game day so the live scorer's clock is correct for your age group.</p>
+      <ul style="margin-top:8px">
+        <li><strong>Quarter Length (min)</strong> — how long each quarter runs (e.g. 6 min for 14U, 7 min for 18U).</li>
+        <li><strong>Quarter Break (min)</strong> — rest between quarters. Usually 2 minutes.</li>
+        <li><strong>Halftime (min)</strong> — halftime duration. Usually 3–5 minutes.</li>
+        <li><strong>Timeouts per Team</strong> — how many each team gets per game. This adds/removes timeout buttons in the scorer.</li>
+        <li><strong>Timeout Length</strong> — duration of each timeout (e.g. <code>1</code> = 1 min, <code>0.5</code> = 30 sec). Each button grays out after it's been used so the scorer knows what's left.</li>
+      </ul>
+      <p style="margin-top:10px;padding:10px 12px;background:var(--g50);border-radius:8px;font-size:0.82rem;border-left:3px solid var(--royal)">💡 <strong>14U Futures example:</strong> Quarter = 6, Break = 2, Halftime = 3, Timeouts = 2, Lengths = 1 and 0.5</p>`
+    },
+    {
+      icon: '</>',
+      title: 'Advanced: Raw Data Tab',
+      body: `<p style="font-weight:600;color:var(--royal)">Power-user tab — most admins never need this.</p>
+      <ul style="margin-top:8px">
+        <li><strong>Deploy from file</strong> — if you've been given a pre-built tournament file, paste it here and tap <strong>Parse &amp; Deploy</strong>. The panel validates and publishes it automatically.</li>
+        <li><strong>Bootstrap File Manifest</strong> — a one-time setup step only needed during initial club onboarding. If you're seeing this mentioned in a setup guide, follow those specific instructions.</li>
+      </ul>
+      <p style="margin-top:10px;padding:10px 12px;background:var(--amber-lt);border-radius:8px;font-size:0.82rem;border-left:3px solid var(--amber)">⚠️ Day-to-day: use the Schedule, Games, and Roster tabs and the main Save &amp; Deploy button. You won't need the Raw tab for normal operation.</p>`
+    },
+    {
+      icon: '🤖',
+      title: 'Team Communication — Messaging Integrations',
+      body: `<p><strong>👑 Requires Club Plan.</strong> Tap the upgrade button on any locked feature, or visit <a href="https://eggbeater.app" target="_blank" style="color:var(--royal)">eggbeater.app</a> to see current pricing.</p>
+      <p>Set up automated messaging so you can send score updates and alerts directly from the app to your team channels.</p>
+      <p><strong>Send Score Update (top section)</strong> — compose a message and send it to any configured channel. A default message with tournament info and game results is pre-filled — you can edit it or reset it.</p>
+      <p><strong>Telegram Bot:</strong></p>
+      <ol>
+        <li>Go to <a href="https://t.me/BotFather" target="_blank" style="color:var(--royal)">@BotFather</a> on Telegram → create a new bot → copy the <strong>Bot Token</strong>.</li>
+        <li>Add the bot to your team group/channel as an admin.</li>
+        <li>Tap <strong>Find Chat ID</strong> in the admin panel to auto-detect the group's Chat ID, then tap <strong>Save</strong>.</li>
+      </ol>
+      <p><strong>GroupMe Bot:</strong></p>
+      <ol>
+        <li>Go to <a href="https://dev.groupme.com/bots/new" target="_blank" style="color:var(--royal)">dev.groupme.com/bots/new</a> → create a bot in your team group.</li>
+        <li>Copy the <strong>Bot ID</strong>, paste it in the admin panel, and tap <strong>Save</strong>.</li>
+        <li>Parents can message the bot: <em>score</em>, <em>schedule</em>, or <em>help</em> to get info back.</li>
+      </ol>
+      <p><strong>TeamSnap:</strong></p>
+      <ol>
+        <li>Tap <strong>Connect with TeamSnap</strong> and sign in with your TeamSnap account.</li>
+        <li>Tap <strong>Find IDs</strong> to auto-detect your Team ID and Member ID, then tap <strong>Save IDs</strong>.</li>
+        <li>Use <strong>Test</strong> to confirm the connection before game day.</li>
+      </ol>`
+    },
+    {
+      icon: '💾',
+      title: 'Publishing Your Schedule to Parents',
+      body: `<p style="font-weight:600;color:var(--royal)">The <strong>💾 Save &amp; Deploy</strong> button (top-right) is how you push everything live. Nothing is visible to parents until you tap it.</p>
+      <ul style="margin-top:8px">
+        <li><strong>Use it after:</strong> adding games, editing the schedule, updating the tournament name/dates, or changing the roster.</li>
+        <li><strong>How fast?</strong> Usually 5–10 seconds. The button shows a spinner, then a ✓ when done.</li>
+        <li><strong>Parents see changes</strong> within about 10 seconds. If a parent doesn't see your update, they can pull down to refresh their schedule.</li>
+        <li><strong>🌐 Deploy All</strong> (Schedule tab, top bar) — pushes live schedules for all age groups at once. Useful on tournament day when all groups are running simultaneously.</li>
+      </ul>
+      <p style="margin-top:10px;padding:10px 12px;background:var(--g50);border-radius:8px;font-size:0.82rem;border-left:3px solid var(--royal)">💡 You can make multiple changes before deploying — they all go live together when you tap Save &amp; Deploy.</p>`
+    },
+    {
+      icon: '🔐',
+      title: 'Login &amp; Security',
+      body: `<p style="font-weight:600;color:var(--royal)">Sign in with Google — it's faster and more secure than a shared password.</p>
+      <ul style="margin-top:8px">
+        <li><strong>Google Sign-In (recommended)</strong> — sign in with your Google account. Your account is verified on every action, so only authorized admins can make changes.</li>
+        <li><strong>Password login</strong> — a shared password fallback, still supported if Google Sign-In isn't configured yet for your club.</li>
+        <li>Your session stays active all day — you won't get logged out mid-tournament.</li>
+        <li>The admin panel URL is not public — keep it private to your coaching staff and tournament managers.</li>
+        <li>The <strong>Scoring Password</strong> (in Games → Tournament Setup) is a separate, simpler password just for parents who want to enter live scores poolside. It has nothing to do with admin access.</li>
+      </ul>`
+    },
+    {
+      icon: '🏆',
+      title: 'Managing Multiple Tournaments',
+      body: `<p style="font-weight:600;color:var(--royal)">The tournament bar below the header lets you switch between and manage all your club's tournaments.</p>
+      <ul style="margin-top:8px">
+        <li><strong>Dropdown</strong> — switch tournaments. Green "Active" badge = currently live; gray "Archived" = past tournament.</li>
+        <li><strong>+ New</strong> — creates a new blank tournament. All your age groups start fresh.</li>
+        <li><strong>Activate / Archive</strong> — archive a tournament to put it in read-only history. Only one tournament can be active at a time. Archiving saves a full snapshot automatically.</li>
+        <li><strong>Delete</strong> — permanently removes a tournament. Cannot be undone.</li>
+      </ul>
+      <p style="margin-top:10px;padding:10px 12px;background:var(--g50);border-radius:8px;font-size:0.82rem;border-left:3px solid var(--royal)">💡 To start a new season or tournament day, tap <strong>+ New</strong> rather than overwriting your existing data.</p>`
+    },
+    {
+      icon: '👥',
+      title: 'Club Admin Management',
+      body: `<p>The <strong>Club Admins</strong> card in the <strong>Club Info</strong> tab lets you control who has admin access to your club.</p>
+      <ul>
+        <li><strong>Your UID</strong> — shown at the top of the card. This is your Google account's unique Firebase UID, automatically detected when you sign in with Google.</li>
+        <li><strong>Admin list</strong> — shows all UIDs authorized to manage this club. Each admin can sign in with Google and access the full admin panel.</li>
+        <li><strong>Add Admin</strong> — paste another person's Firebase UID to grant them admin access. They'll need to share their UID with you (visible in their own admin panel after signing in).</li>
+        <li><strong>Remove Admin</strong> — tap the ✕ next to any UID to revoke their access. You cannot remove yourself.</li>
+        <li><strong>Bootstrap Admin List</strong> — a one-time setup button that registers your UID as the first admin in the server's authorization list. Only works if no admin list exists yet for this club.</li>
+        <li>Admin access is enforced at both the Firestore level (security rules) and the Cloudflare Worker level (JWT verification + admin UID check).</li>
+      </ul>`
+    },
+    {
+      icon: '🏢',
+      title: 'Managing Multiple Clubs',
+      body: `<p style="font-weight:600;color:var(--royal)">Each club is completely independent — separate rosters, schedules, admins, and scores.</p>
+      <ul style="margin-top:8px">
+        <li>Each club has a unique <strong>Club Code</strong> (e.g. <code>pacific-waves</code>) set in Games → Tournament Setup. Parents use this to find your club in the app.</li>
+        <li>All data is strictly separated per club — one club's data never mixes with another's.</li>
+        <li>Each club has its own admin list — an admin for Club A cannot see or edit Club B's data.</li>
+        <li>Parents open the app and enter your Club Code (or use the join link you share) to connect to your specific club.</li>
+        <li>To set up a new club: set the Club Code in Games → Tournament Setup, sign in with Google, and tap <strong>Bootstrap Admin List</strong> in Club Info to register yourself as the first admin.</li>
+      </ul>`
+    },
+    {
+      icon: '📐',
+      title: 'Tournament Templates',
+      body: `<p>Save and reuse tournament structures so you don't have to recreate the schedule from scratch each time.</p>
+      <ul>
+        <li><strong>💾 Save as Template</strong> — saves the current tournament structure (opponents, locations, pools) as a reusable template. Scores, dates, and times are stripped out.</li>
+        <li><strong>📐 Load Template</strong> — opens a picker with saved templates and 3 built-in templates: "3-Game Saturday," "Round Robin 4-Team," and "8-Team Bracket."</li>
+        <li>Each template shows name, description, and number of games.</li>
+        <li>Loading a template pre-populates the Games tab — similar to cloning but from a template.</li>
+        <li>Templates are stored per club and shared across all admins for that club.</li>
+        <li>Delete templates you no longer need from the template picker modal.</li>
+      </ul>`
+    },
+    {
+      icon: '📋',
+      title: 'Paste Schedule — Bulk Game Entry',
+      body: `<p>Quickly import a full schedule from a spreadsheet by pasting or uploading a CSV/TSV file.</p>
+      <ul>
+        <li><strong>📋 Paste Schedule</strong> button is in the Games tab.</li>
+        <li>Paste rows from Excel, Google Sheets, or any spreadsheet app. Expected columns: <code>Date, Time, Opponent, Location, Pool</code>.</li>
+        <li><strong>Auto-detects delimiter</strong> — tabs (from copy-paste) or commas (CSV).</li>
+        <li><strong>Smart column mapping</strong> — recognizes header rows like "Date," "Time," "Opponent/Vs/Team," "Location/Venue/Site," "Pool." If no header row, assumes the column order listed above.</li>
+        <li>Shows a <strong>preview table</strong> before import so you can verify the games look right.</li>
+        <li><strong>CSV file upload</strong> — alternatively, click the file chooser to upload a .csv file directly.</li>
+        <li>Handles common date formats: MM/DD, MM/DD/YYYY, M/D, YYYY-MM-DD.</li>
+        <li>Imported games are appended to the existing schedule.</li>
+      </ul>`
+    },
+    {
+      icon: '🔐',
+      title: 'Admin Roles — Admin vs. Scorer',
+      body: `<p>Granular role levels let you give full admin access or limited scoring-only access.</p>
+      <ul>
+        <li><strong>Admin role</strong> — full access to all tabs and features: Schedule, Roster, Games, Settings, Deploy, etc.</li>
+        <li><strong>Scorer role</strong> — can only access the Schedule tab for live scoring. All other tabs show a "🔒 Scorer Access Only" message.</li>
+        <li>Roles are set per admin in the <strong>Club Info → Admin Management</strong> section using the role dropdown next to each admin.</li>
+        <li>When inviting a new admin, you can set their role at invite time.</li>
+        <li>Role guards are enforced on the server — scorer accounts cannot call write endpoints (save data, deploy, manage roster, etc.).</li>
+        <li>The super admin password always grants full admin access.</li>
+      </ul>`
+    },
+    {
+      icon: '📊',
+      title: 'Cumulative Player Stats',
+      body: `<p><strong>👑 Requires Club Plan ($24.99/mo · $199/yr).</strong> Upgrade in the <em>Subscription</em> tab.</p>
+      <p>View aggregated player performance across all archived tournaments.</p>
+      <ul>
+        <li>Found in the <strong>Roster tab → 📊 Player Stats</strong> section.</li>
+        <li>Shows per-player totals: Games Played, Goals, Assists, Steals, Ejections, and Goals/Game average.</li>
+        <li>Stats are collected from all archived tournaments for the selected club and team.</li>
+        <li>Players are matched by cap number across tournaments.</li>
+        <li><strong>Sortable columns</strong> — click any column header (GP, Goals, Assists, etc.) to sort the table by that stat.</li>
+        <li>Sorted by total goals descending by default.</li>
+      </ul>`
+    },
+    {
+      icon: '⏰',
+      title: 'Scheduled Announcements & Game Reminders',
+      body: `<p><strong>👑 Requires Club Plan ($24.99/mo · $199/yr).</strong> Upgrade in the <em>Subscription</em> tab.</p>
+      <p>Set up automated push notifications to keep parents informed.</p>
+      <ul>
+        <li><strong>Scheduled Announcements</strong> — create push notifications scheduled for a future date/time. Set the title, body, and schedule time in the <strong>Team Communication</strong> tab.</li>
+        <li><strong>Game Day Reminders</strong> — when enabled, automatic push notifications are sent to subscribers before each game (default 60 minutes before game time).</li>
+        <li>Toggle game reminders on/off per club in the <strong>Team Communication → ⏰ Game Day Reminders</strong> section.</li>
+        <li>Reminders include the game number, opponent, time, and location.</li>
+        <li>Deduplication prevents sending the same reminder twice for the same game.</li>
+      </ul>`
+    },
+    {
+      icon: '🏆',
+      title: 'Tournament Host',
+      body: `<p><strong>👑 Requires Tournament Host ($199 one-time per event).</strong> Purchase in the <em>Subscription</em> tab.</p>
+      <p>The <strong>Tournament Host</strong> tab lets you run a full multi-club tournament from one dashboard.</p>
+      <ul>
+        <li><strong>Import scores from the tournament host package</strong> — enter the director code to pull official results directly, no double entry.</li>
+        <li><strong>Manage all clubs &amp; age groups</strong> from a single tournament host dashboard.</li>
+        <li><strong>Public shareable bracket URL</strong> — share live standings and brackets with spectators, coaches, and parents without an account.</li>
+        <li><strong>Live public scoring</strong> — visible to anyone with the link; no app or login required.</li>
+        <li><strong>Score entry password</strong> — separate from the club scoring password; controls who can submit official results.</li>
+      </ul>`
+    },
+    {
+      icon: '🎨',
+      title: 'Club Branding — Custom Colors',
+      body: `<p>Customize your club's appearance in the parent app with custom colors.</p>
+      <ul>
+        <li><strong>Primary Color</strong> — controls the header, buttons, and accent colors throughout the app. Default is navy blue (#002868).</li>
+        <li><strong>Secondary Color</strong> — controls accent highlights like the "Live" badge and teal-colored elements. Default is teal (#0d9488).</li>
+        <li><strong>Header Style</strong> — choose between "Default" (subtle gradient), "Bold gradient" (stronger contrast), or "Solid color" (flat header).</li>
+        <li>The <strong>Live Preview</strong> strip shows exactly how the header and buttons will look with your chosen colors.</li>
+        <li>Changes take effect for parents on their next visit — no deploy needed for branding changes.</li>
+        <li><strong>Reset to Default</strong> restores the original Eggbeater navy/teal colors.</li>
+        <li>Found in the <strong>Club Info</strong> tab → 🎨 Club Branding card.</li>
+      </ul>`
+    },
+    {
+      icon: '🏫',
+      title: 'Club Settings — Type & Name',
+      body: `<p>Configure your club's identity and appearance in the <strong>Club Info</strong> tab.</p>
+      <ul>
+        <li><strong>Club Type</strong> — choose "Club" (🤽‍♀️) or "High School" (🎓). This badge appears in the public club directory.</li>
+        <li><strong>Club Name</strong> — your club's display name as it appears to parents and in the directory.</li>
+        <li>Club settings are stored separately from tournament data and persist across tournaments.</li>
+        <li>Changes here are saved to the server immediately when you tap "💾 Save Club Settings."</li>
+      </ul>`
+    },
+    {
+      icon: '♿',
+      title: 'Accessibility',
+      body: `<p>The Eggbeater admin panel is designed to work with the accessibility tools built into iOS and Android. All controls have descriptive labels, modals trap focus correctly and restore it when closed, and score changes are announced automatically.</p>
+      <ul>
+        <li><strong>VoiceOver (iOS) / TalkBack (Android)</strong> — all buttons, tabs, and form fields have descriptive labels. Dialogs trap focus and return it to the triggering element when closed. Score changes are read aloud automatically during live games.</li>
+        <li><strong>Voice Control (iOS) / Voice Access (Android)</strong> — every interactive element has a unique spoken label so you can navigate and activate controls by voice.</li>
+        <li><strong>Dark Mode</strong> — automatically follows your device's Dark Mode setting with a full dark color scheme.</li>
+        <li><strong>Larger Text</strong> — all text scales with your device's font size setting.</li>
+        <li><strong>Reduce Motion</strong> — transitions and animations are disabled when Reduce Motion is on.</li>
+        <li><strong>Increase Contrast / High Contrast Text</strong> — text and UI elements increase in contrast when system contrast settings are on.</li>
+        <li><strong>Colour Independence</strong> — all status information (live indicators, active tabs, result badges) uses non-colour cues in addition to colour.</li>
+      </ul>
+      <p style="margin-top:8px">Full accessibility details and tips: <a href="https://eggbeater.app/accessibility.html" target="_blank" style="color:var(--royal)">eggbeater.app/accessibility.html</a></p>
+      <p style="margin-top:4px">Feedback: <a href="mailto:hello@eggbeater.app?subject=Accessibility%20Feedback" style="color:var(--royal)">hello@eggbeater.app</a></p>`
+    },
+  ];
+
+  return `
+    <div class="card" style="padding:16px 16px 8px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <span style="font-size:1.5rem">⚙️</span>
+        <div>
+          <div style="font-weight:800;font-size:1rem;color:var(--royal)">Admin Panel Guide</div>
+          <div style="font-size:0.8rem;color:var(--g400)">Everything you need to run your club on Eggbeater</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:4px 0 12px">
+      <input id="help-search" type="search" placeholder="Search help…" autocomplete="off" spellcheck="false"
+        style="width:100%;padding:10px 14px;border:1.5px solid var(--g200);border-radius:10px;font-size:0.88rem;font-family:inherit;background:var(--g50);color:var(--g900);outline:none"
+        oninput="filterHelp(this.value)">
+    </div>
+    <div id="help-sections">
+      ${sections.map(s => `
+        <details class="card collapsible-card help-section" style="margin-bottom:8px" data-title="${s.title.toLowerCase()}" data-body="${(s.body||'').toLowerCase().replace(/"/g,'&quot;')}">
+          <summary class="card-header collapsible-header">
+            <span style="margin-right:8px">${s.icon}</span>${s.title} <span class="collapse-icon">▾</span>
+          </summary>
+          <div style="padding:14px 16px;font-size:0.88rem;line-height:1.6;color:var(--g600)">${s.body}</div>
+        </details>`).join('')}
+    </div>
+
+    <div style="text-align:center;padding:8px 0 16px;font-size:0.75rem;color:var(--g400)">
+      Eggbeater Water Polo · Admin Panel · Built with ❤️
+    </div>`;
+}
+
+function filterHelp(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.help-section').forEach(el => {
+    if (!q) { el.style.display = ''; return; }
+    const title = el.dataset.title || '';
+    const body  = el.dataset.body  || '';
+    el.style.display = (title.includes(q) || body.includes(q)) ? '' : 'none';
+  });
+}
+
+// ─── PLACES AUTOCOMPLETE ──────────────────────────────────────────────────────
+
+function initPlacesAutocomplete() {
+  const venueInput = document.getElementById('info-venue-input');
+  if (!venueInput || !window.google?.maps?.places) return;
+  if (venueInput._placesInit) return; // already wired up
+  venueInput._placesInit = true;
+  const ac = new google.maps.places.Autocomplete(venueInput, {
+    types: ['establishment'],
+    fields: ['name', 'formatted_address'],
+  });
+  ac.addListener('place_changed', () => {
+    const place = ac.getPlace();
+    if (!place?.name) return;
+    venueInput.value = place.name;
+    S.tournament.location = place.name;
+    const addrInput = document.getElementById('info-address-input');
+    if (addrInput && place.formatted_address) {
+      addrInput.value = place.formatted_address;
+      S.tournament.address = place.formatted_address;
+    }
+  });
+}
+
+function initGamePlaces() {
+  const inp = document.getElementById('ge-loc');
+  if (!inp || inp._placesInit || !window.google?.maps?.places) return;
+  inp._placesInit = true;
+  const ac = new google.maps.places.Autocomplete(inp, { types: ['establishment'], fields: ['name'] });
+  ac.addListener('place_changed', () => {
+    const place = ac.getPlace();
+    if (!place?.name) return;
+    inp.value = place.name;
+  });
+}
+
+function toggleDirImport(ai, gi) {
+  const el = document.getElementById('dir-import-' + ai + '-' + gi);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cur = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"' && text[i+1] === '"') { cur += '"'; i++; }
+      else if (c === '"') { inQ = false; }
+      else { cur += c; }
+    } else {
+      if (c === '"') { inQ = true; }
+      else if (c === ',') { row.push(cur); cur = ''; }
+      else if (c === '\n' || (c === '\r' && text[i+1] === '\n')) {
+        row.push(cur); rows.push(row); row = []; cur = '';
+        if (c === '\r') i++;
+      } else { cur += c; }
+    }
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim()));
+}
+
+function toggleBracketPreview() {
+  S.bracketPreviewOpen = !S.bracketPreviewOpen;
+  renderTab();
+}
+
+function buildBracketPreviewHtml() {
+  const d = S.director;
+  if (!d || !d.ageGroups.length) return '<div class="bracket-empty">Add age groups and set up game formats to preview brackets.</div>';
+  let html = '';
+  for (const ag of d.ageGroups) {
+    if (!ag.divisionGroups?.length) continue;
+    let agHtml = '';
+    for (const grp of ag.divisionGroups) {
+      if (!grp.divisions?.length) continue;
+      let grpHtml = '';
+      for (const dv of grp.divisions) {
+        if (!dv.format) continue;
+        const matchups = dv.format.trim().split(/\s+/).filter(Boolean);
+        if (!matchups.length) continue;
+        let gamesHtml = '';
+        matchups.forEach((m, i) => {
+          const parts = m.split('-');
+          if (parts.length !== 2) return;
+          const [s1, s2] = parts;
+          const resolve = (label) => {
+            const letter = label.replace(/\d/g, '').toUpperCase();
+            const idx = parseInt(label.replace(/\D/g, '')) - 1;
+            const div = grp.divisions.find(dd => dd.name === letter) || dv;
+            const team = (div.teams || [])[idx] || {};
+            return dv.seedByDay ? (team.seedSource || label) : (team.name || label);
+          };
+          gamesHtml += '<div class="bracket-game">' +
+            '<div class="bracket-game-num">G' + (i+1) + '</div>' +
+            '<div class="bracket-team bracket-team-top">' + esc(resolve(s1)) + '</div>' +
+            '<div class="bracket-team">' + esc(resolve(s2)) + '</div></div>';
+        });
+        grpHtml += '<div class="bracket-division"><div class="bracket-div-label">' +
+          esc(dv.name || '?') + '</div><div class="bracket-games">' + gamesHtml + '</div></div>';
+      }
+      if (grpHtml) {
+        agHtml += '<div class="bracket-section"><div class="bracket-section-name">' +
+          esc(grp.name || 'Division Section') + '</div>' + grpHtml + '</div>';
+      }
+    }
+    if (agHtml) {
+      html += '<div class="bracket-ag"><div class="bracket-ag-name">' +
+        esc(ag.name || 'Age Group') + '</div>' + agHtml + '</div>';
+    }
+  }
+  return html || '<div class="bracket-empty">No game formats defined yet. Add formats in your division sections above, then preview here.</div>';
+}
+
+async function importDivisionFromSheet(ai, gi) {
+  const urlInp    = document.getElementById('dir-import-url-'    + ai + '-' + gi);
+  const rangeInp  = document.getElementById('dir-import-range-'  + ai + '-' + gi);
+  const hdrCb     = document.getElementById('dir-import-hdr-'    + ai + '-' + gi);
+  const statusEl  = document.getElementById('dir-import-status-' + ai + '-' + gi);
+  if (!urlInp || !statusEl) return;
+  const url     = urlInp.value.trim();
+  const range   = (rangeInp?.value || '').trim();
+  const hasHeader = hdrCb?.checked ?? true;
+  const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if (!match) { statusEl.textContent = '❌ Could not parse sheet URL — make sure you pasted the full Google Sheets URL.'; return; }
+  const sheetId = match[1];
+  const csvUrl  = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:csv' + (range ? '&range=' + encodeURIComponent(range) : '');
+  statusEl.textContent = '⏳ Fetching…';
+  try {
+    const resp = await fetch(csvUrl);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — make sure the sheet is publicly viewable.');
+    const text = await resp.text();
+    const rows = parseCSV(text);
+    if (!rows.length) { statusEl.textContent = '❌ No data found in that range.'; return; }
+    const grp = S.director.ageGroups[ai].divisionGroups[gi];
+    let dataRows = rows;
+    if (hasHeader) {
+      rows[0].forEach((h, ci) => {
+        if (h.trim()) {
+          while (grp.divisions.length <= ci) grp.divisions.push(_defaultDivision(String.fromCharCode(65 + grp.divisions.length)));
+          grp.divisions[ci].name = h.trim();
+        }
+      });
+      dataRows = rows.slice(1);
+    }
+    const numCols = Math.max(...dataRows.map(r => r.length));
+    while (grp.divisions.length < numCols) grp.divisions.push(_defaultDivision(String.fromCharCode(65 + grp.divisions.length)));
+    dataRows.forEach((row, ri) => {
+      row.forEach((cell, ci) => {
+        if (ci >= grp.divisions.length) return;
+        const dv = grp.divisions[ci];
+        if (!dv.teams) dv.teams = [];
+        while (dv.teams.length <= ri) dv.teams.push({ name: '', seedSource: '' });
+        dv.teams[ri].name = cell.trim();
+      });
+    });
+    grp.divisions.forEach(dv => {
+      const filled = (dv.teams || []).filter(t => t.name).length;
+      dv.numTeams = Math.max(filled, 1);
+    });
+    saveDirectorLocally();
+    renderTab();
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '❌ ' + e.message;
+  }
+}
+
+// ─── TOURNAMENT DIRECTOR TAB ──────────────────────────────────────────────────
+
+function saveDirectorLocally() {
+  localStorage.setItem('ebadmin-director-' + S.team, JSON.stringify(S.director));
+}
+
+function defaultDirector() {
+  return {
+    ageGroups: [],
+    schedDays: [{ date: '', startTime: '8:00 AM', endTime: '6:00 PM' }],
+    publishedCode: null,
+    publishedAt: null,
+  };
+}
+
+function _defaultDivision(name) {
+  return { name: name || '', numTeams: 3, teams: [{name:'',seedSource:''},{name:'',seedSource:''},{name:'',seedSource:''}], seedByDay: false, format: '' };
+}
+
+function addDirectorAgeGroup() {
+  if (!S.director) S.director = defaultDirector();
+  const divisions = ['A','B','C','D','E','F'].map(n => _defaultDivision(n));
+  S.director.ageGroups.push({
+    id: 'ag-' + Date.now(),
+    name: '', venueName: '', venueAddress: '', pool: '',
+    quarterMins: 7, breakMins: 2, halftimeMins: 5, timeoutsPerTeam: 2,
+    divisionGroups: [{ id: 'dg-' + Date.now(), name: '', divisions }],
+  });
+  saveDirectorLocally();
+  renderTab();
+}
+
+function deleteDirectorAgeGroup(ai) {
+  if (!confirm('Remove this age group?')) return;
+  S.director.ageGroups.splice(ai, 1);
+  saveDirectorLocally();
+  renderTab();
+}
+
+function addDirectorDivisionGroup(ai) {
+  const divs = ['A','B','C','D','E','F'].map(n => _defaultDivision(n));
+  S.director.ageGroups[ai].divisionGroups.push({ id: 'dg-' + Date.now(), name: '', divisions: divs });
+  saveDirectorLocally();
+  renderTab();
+}
+
+function deleteDirectorDivisionGroup(ai, gi) {
+  if (!confirm('Remove this division section?')) return;
+  S.director.ageGroups[ai].divisionGroups.splice(gi, 1);
+  saveDirectorLocally();
+  renderTab();
+}
+
+function addDirectorDivision(ai, gi) {
+  const divs = S.director.ageGroups[ai].divisionGroups[gi].divisions;
+  const nextLetter = String.fromCharCode(65 + divs.length);
+  divs.push(_defaultDivision(nextLetter));
+  saveDirectorLocally();
+  renderTab();
+}
+
+function deleteDirectorDivision(ai, gi, di) {
+  S.director.ageGroups[ai].divisionGroups[gi].divisions.splice(di, 1);
+  saveDirectorLocally();
+  renderTab();
+}
+
+function setDivisionTeamCount(ai, gi, di, n) {
+  const div = S.director.ageGroups[ai].divisionGroups[gi].divisions[di];
+  div.numTeams = n;
+  while (div.teams.length < n) div.teams.push({ name: '', seedSource: '' });
+  saveDirectorLocally();
+  renderTab();
+}
+
+function addDirectorSeedRow(ai, gi) {
+  const divs = S.director.ageGroups[ai].divisionGroups[gi].divisions;
+  divs.forEach(dv => {
+    dv.numTeams = (dv.numTeams || 3) + 1;
+    while (dv.teams.length < dv.numTeams) dv.teams.push({ name: '', seedSource: '' });
+  });
+  saveDirectorLocally();
+  renderTab();
+}
+
+function removeDirectorSeedRow(ai, gi, ri) {
+  const divs = S.director.ageGroups[ai].divisionGroups[gi].divisions;
+  divs.forEach(dv => {
+    if ((dv.teams || []).length > ri) dv.teams.splice(ri, 1);
+    dv.numTeams = Math.max(1, (dv.numTeams || 3) - 1);
+  });
+  saveDirectorLocally();
+  renderTab();
+}
+
+function updateDivisionLabels(ai, gi, di, name) {
+  S.director.ageGroups[ai].divisionGroups[gi].divisions[di].name = name;
+  saveDirectorLocally();
+  document.querySelectorAll(`.dir-seed-lbl[data-ag="${ai}"][data-gi="${gi}"][data-di="${di}"]`)
+    .forEach((el, i) => { el.textContent = (name || '?') + (i + 1); });
+  const fmt = document.querySelector(`[data-fmt="${ai}-${gi}-${di}"]`);
+  if (fmt) { const n = name||'?'; fmt.placeholder = `${n}1-${n}3 ${n}2-${n}3 ${n}1-${n}2`; }
+}
+
+function initDirectorPlaces() {
+  if (!window.google?.maps?.places) return;
+  // Tournament-level venue
+  const tvInp = document.getElementById('dir-tournament-venue');
+  if (tvInp && !tvInp._placesInit) {
+    tvInp._placesInit = true;
+    const tvAc = new google.maps.places.Autocomplete(tvInp, { types: ['establishment'], fields: ['name','formatted_address'] });
+    tvAc.addListener('place_changed', () => {
+      const place = tvAc.getPlace();
+      if (!place?.name) return;
+      tvInp.value = place.name;
+      S.tournament.location = place.name;
+      const adr = document.getElementById('dir-tournament-addr');
+      if (adr && place.formatted_address) { adr.value = place.formatted_address; S.tournament.address = place.formatted_address; }
+    });
+  }
+}
+
+function addDirectorDay() {
+  if (!S.director) S.director = defaultDirector();
+  S.director.schedDays.push({ date: '', startTime: '8:00 AM', endTime: '6:00 PM' });
+  saveDirectorLocally();
+  renderTab();
+}
+
+function deleteDirectorDay(di) {
+  if (S.director.schedDays.length <= 1) { showStatus('Need at least one tournament day', 'err'); return; }
+  S.director.schedDays.splice(di, 1);
+  saveDirectorLocally();
+  renderTab();
+}
+
+function generateDirectorGames() {
+  if (!S.director) return [];
+  const games = [];
+  for (const ag of (S.director.ageGroups || [])) {
+    for (const grp of (ag.divisionGroups || [])) {
+      for (const dv of (grp.divisions || [])) {
+        if (!dv.format) continue;
+        const matchups = dv.format.trim().split(/\s+/).filter(Boolean);
+        matchups.forEach((m, gi) => {
+          const parts = m.split('-');
+          if (parts.length !== 2) return;
+          const [s1, s2] = parts;
+          const resolveName = (seedLabel) => {
+            const letter = seedLabel.replace(/\d/g, '').toUpperCase();
+            const idx = parseInt(seedLabel.replace(/\D/g, '')) - 1;
+            const div = (grp.divisions || []).find(d => d.name === letter) || dv;
+            const team = (div.teams || [])[idx] || {};
+            return div.seedByDay ? (team.seedSource || seedLabel) : (team.name || seedLabel);
+          };
+          games.push({
+            id: `dg-${(ag.name||'ag').replace(/\W+/g,'-')}-${dv.name}-${gi}`,
+            ageGroupName: ag.name || '',
+            divisionName: (grp.name ? grp.name + ' ' : '') + (dv.name || ''),
+            team1Seed: s1, team2Seed: s2,
+            team1Name: resolveName(s1),
+            team2Name: resolveName(s2),
+            gameNum: gi + 1,
+          });
+        });
+      }
+    }
+  }
+  return games;
+}
+
+async function publishDirectorPkg(btn) {
+  if (!S.director) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Publishing…'; }
+  try {
+    const directorGames = generateDirectorGames();
+    const pkg = {
+      version: 2,
+      tournamentName:          S.tournament.name     || '',
+      tournamentSubtitle:      S.tournament.subtitle || '',
+      dates:                   S.tournament.dates     || '',
+      location:                S.tournament.location  || '',
+      address:                 S.tournament.address   || '',
+      directorGames,
+      ageGroups: S.director.ageGroups.map(ag => ({
+        name: ag.name,
+        venueName: ag.venueName || '',
+        venueAddress: ag.venueAddress || ag.poolAddress || '',
+        pool: ag.pool || '',
+        quarterMins: ag.quarterMins ?? 7, breakMins: ag.breakMins ?? 2, halftimeMins: ag.halftimeMins ?? 5,
+        timeoutsPerTeam: ag.timeoutsPerTeam ?? 2, timeoutLengths: ag.timeoutLengths || [1, 0.5],
+        divisionGroups: (ag.divisionGroups || []).map(grp => ({
+          id: grp.id || 'dg-' + Date.now(),
+          name: grp.name || '',
+          divisions: (grp.divisions || []).map(dv => ({
+            name: dv.name,
+            numTeams: dv.numTeams || 3,
+            teams: (dv.teams || []).slice(0, dv.numTeams || 3),
+            seedByDay: dv.seedByDay || false,
+            format: dv.format || '',
+          })),
+        })),
+      })),
+      schedDays:   S.director.schedDays,
+      publishedAt: Date.now(),
+    };
+    const res  = await api('PUT', '/admin/tournament-pkg', { pkg });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.description || 'Publish failed');
+    S.director.publishedCode = data.code;
+    S.director.publishedAt   = Date.now();
+    saveDirectorLocally();
+    showStatus('✅ Published! Share code: ' + data.code, 'ok');
+    renderTab();
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+    if (btn) { btn.disabled = false; btn.innerHTML = '📤 Publish &amp; Generate Share Code'; }
+  }
+}
+
+async function loadDirScoresAdmin() {
+  const el = document.getElementById('dir-scores-content');
+  if (!el || !S.director?.publishedCode) return;
+  el.innerHTML = '<div style="color:var(--g400);font-size:0.85rem">Loading…</div>';
+  try {
+    const code = S.director.publishedCode;
+    const res = await api('GET', `/admin/dir-scores?code=${encodeURIComponent(code)}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.description || 'Failed to load scores');
+    const games = generateDirectorGames();
+    renderDirScoresAdmin(data.scores || {}, games, code);
+  } catch (e) {
+    el.innerHTML = `<div style="color:var(--red);font-size:0.85rem">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderDirScoresAdmin(scores, games, code) {
+  const el = document.getElementById('dir-scores-content');
+  if (!el) return;
+  if (!games.length) {
+    el.innerHTML = '<div style="color:var(--g400);font-size:0.85rem">No games generated yet — add Division Formats and re-publish.</div>';
+    return;
+  }
+  // Group by ageGroup + division
+  const groups = {};
+  for (const g of games) {
+    const key = `${g.ageGroupName} · Div ${g.divisionName}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(g);
+  }
+  let html = '';
+  for (const [label, grpGames] of Object.entries(groups)) {
+    html += `<div style="margin-bottom:14px">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--royal);text-transform:uppercase;margin-bottom:6px">${esc(label)}</div>`;
+    for (const g of grpGames) {
+      const sc = scores[g.id] || {};
+      const isFinal = sc.status === 'final';
+      html += `
+        <div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--g100);flex-wrap:wrap">
+          <div style="flex:1;min-width:160px;font-size:0.85rem">
+            <span style="font-weight:600">${esc(g.team1Name||g.team1Seed)}</span>
+            <span style="color:var(--g400);margin:0 4px">vs</span>
+            <span style="font-weight:600">${esc(g.team2Name||g.team2Seed)}</span>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="number" min="0" max="99" id="adm-s1-${g.id}"
+                   value="${isFinal ? sc.score1 : ''}" placeholder="–"
+                   style="width:46px;text-align:center;padding:4px 6px;border:1px solid var(--g200);border-radius:6px;font-size:0.9rem">
+            <span style="color:var(--g400);font-weight:700">–</span>
+            <input type="number" min="0" max="99" id="adm-s2-${g.id}"
+                   value="${isFinal ? sc.score2 : ''}" placeholder="–"
+                   style="width:46px;text-align:center;padding:4px 6px;border:1px solid var(--g200);border-radius:6px;font-size:0.9rem">
+            <button class="add-btn" style="font-size:0.78rem;padding:4px 10px"
+                    onclick="adminSaveDirScore('${esc(g.id)}','${esc(code)}')">
+              ${isFinal ? '✓ Saved' : 'Save'}
+            </button>
+          </div>
+        </div>`;
+    }
+    html += '</div>';
+  }
+  // Standings
+  html += `<div style="margin-top:12px;padding-top:10px;border-top:2px solid var(--g200)">
+    <div style="font-size:0.78rem;font-weight:700;color:var(--g500);text-transform:uppercase;margin-bottom:8px">Standings</div>
+    ${renderDirStandings(scores, games)}
+  </div>`;
+  el.innerHTML = html;
+}
+
+async function adminSaveDirScore(gameId, code) {
+  const s1 = document.getElementById('adm-s1-' + gameId);
+  const s2 = document.getElementById('adm-s2-' + gameId);
+  if (!s1 || !s2) return;
+  const score1 = parseInt(s1.value);
+  const score2 = parseInt(s2.value);
+  if (isNaN(score1) || isNaN(score2)) { showStatus('Enter both scores', 'err'); return; }
+  try {
+    const res = await api('GET', `/admin/dir-scores?code=${encodeURIComponent(code)}`);
+    const data = await res.json();
+    const scores = data.scores || {};
+    scores[gameId] = { score1, score2, status: 'final', updatedAt: Date.now() };
+    await api('PUT', `/admin/dir-scores?code=${encodeURIComponent(code)}`, { scores });
+    showStatus('✅ Score saved', 'ok');
+    loadDirScoresAdmin();
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  }
+}
+
+function renderDirStandings(scores, games) {
+  // Calculate standings per division
+  const divStats = {}; // {divKey: {teamName: {w,l,t,gf,ga}}}
+  for (const g of games) {
+    const sc = scores[g.id];
+    if (!sc || sc.status !== 'final') continue;
+    const divKey = `${g.ageGroupName}|${g.divisionName}`;
+    if (!divStats[divKey]) divStats[divKey] = {};
+    const ds = divStats[divKey];
+    const t1 = g.team1Name || g.team1Seed;
+    const t2 = g.team2Name || g.team2Seed;
+    if (!ds[t1]) ds[t1] = { w:0, l:0, t:0, gf:0, ga:0 };
+    if (!ds[t2]) ds[t2] = { w:0, l:0, t:0, gf:0, ga:0 };
+    ds[t1].gf += sc.score1; ds[t1].ga += sc.score2;
+    ds[t2].gf += sc.score2; ds[t2].ga += sc.score1;
+    if (sc.score1 > sc.score2)      { ds[t1].w++; ds[t2].l++; }
+    else if (sc.score1 < sc.score2) { ds[t2].w++; ds[t1].l++; }
+    else                             { ds[t1].t++; ds[t2].t++; }
+  }
+  if (!Object.keys(divStats).length) return '<div style="color:var(--g400);font-size:0.82rem">No final scores yet.</div>';
+  let html = '';
+  for (const [divKey, teams] of Object.entries(divStats)) {
+    const [agName, divName] = divKey.split('|');
+    const sorted = Object.entries(teams).sort(([,a],[,b]) => {
+      const pa = a.w*3+a.t, pb = b.w*3+b.t;
+      if (pa !== pb) return pb - pa;
+      return (b.gf-b.ga) - (a.gf-a.ga);
+    });
+    html += `<div style="margin-bottom:10px">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--g600);margin-bottom:4px">${esc(agName)} · Div ${esc(divName)}</div>
+      <table style="width:100%;font-size:0.82rem;border-collapse:collapse">
+        <tr style="color:var(--g400);font-size:0.72rem">
+          <th style="text-align:left;padding:2px 4px">Team</th>
+          <th style="padding:2px 6px">W</th><th style="padding:2px 6px">L</th><th style="padding:2px 6px">T</th>
+          <th style="padding:2px 6px">GF</th><th style="padding:2px 6px">GA</th><th style="padding:2px 6px">GD</th>
+        </tr>
+        ${sorted.map(([name, s], i) => `
+          <tr style="border-top:1px solid var(--g100)">
+            <td style="padding:3px 4px;font-weight:${i===0?'700':'400'}">${i+1}. ${esc(name)}</td>
+            <td style="text-align:center;padding:3px 6px">${s.w}</td>
+            <td style="text-align:center;padding:3px 6px">${s.l}</td>
+            <td style="text-align:center;padding:3px 6px">${s.t}</td>
+            <td style="text-align:center;padding:3px 6px">${s.gf}</td>
+            <td style="text-align:center;padding:3px 6px">${s.ga}</td>
+            <td style="text-align:center;padding:3px 6px">${s.gf-s.ga>0?'+':''}${s.gf-s.ga}</td>
+          </tr>`).join('')}
+      </table>
+    </div>`;
+  }
+  return html;
+}
+
+function copyDirectorCode(code) {
+  navigator.clipboard.writeText(code).then(() => showStatus('✅ Code copied: ' + code, 'ok'));
+}
+
+async function exportDirectorToSheets(btn) {
+  if (!window.google?.accounts?.oauth2) { showStatus('Google API not loaded — try refreshing', 'err'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Connecting to Google…'; }
+  const CLIENT_ID = '334438983134-th4thsf0upc8pabe245d2l41fon2oun9.apps.googleusercontent.com';
+  const tc = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    callback: async (resp) => {
+      if (resp.error) {
+        showStatus('Auth error: ' + resp.error, 'err');
+        if (btn) { btn.disabled = false; btn.textContent = '📊 Export All Brackets to Google Sheets'; }
+        return;
+      }
+      try { await _doSheetsExport(resp.access_token, btn); }
+      catch (e) {
+        showStatus('Export failed: ' + e.message, 'err');
+        if (btn) { btn.disabled = false; btn.textContent = '📊 Export All Brackets to Google Sheets'; }
+      }
+    },
+  });
+  tc.requestAccessToken();
+}
+
+async function _doSheetsExport(token, btn) {
+  if (btn) btn.textContent = 'Creating sheet…';
+  const d = S.director;
+  const t = S.tournament || {};
+  const sheetTitle = (t.name || 'Tournament') + ' — Brackets';
+
+  // Build sheet tabs: "Bracket Info" + one per age group
+  const sheetDefs = [{ properties: { title: 'Bracket Info' } }];
+  const ags = (d.ageGroups || []).filter(ag => ag.name);
+  ags.forEach(ag => sheetDefs.push({ properties: { title: (ag.name || 'Age Group').slice(0, 100) } }));
+
+  // ── Tab 1: Bracket Info ──
+  const infoRows = [];
+  infoRows.push(['TOURNAMENT INFO']);
+  infoRows.push(['Tournament Name', t.name || '']);
+  infoRows.push(['Dates', t.dates || '']);
+  infoRows.push(['Venue Name', t.location || '']);
+  infoRows.push(['Venue Address', t.address || '']);
+  infoRows.push(['Scorer Password', t.scoringPassword || '']);
+  infoRows.push([]);
+  infoRows.push(['AGE GROUP SETTINGS']);
+  infoRows.push(['Age Group', 'Pool', 'Quarter (min)', 'Break (min)', 'Halftime (min)', 'Timeouts', 'Timeout Lengths']);
+  for (const ag of ags) {
+    const tl = (ag.timeoutLengths || [1, 0.5]).join(', ');
+    infoRows.push([ag.name || '', ag.pool || '', ag.quarterMins ?? 7, ag.breakMins ?? 2, ag.halftimeMins ?? 5, ag.timeoutsPerTeam ?? 2, tl]);
+  }
+
+  // ── Per-age-group tabs ──
+  let dirScores = {};
+  if (d.publishedCode) {
+    try { const sr = await api('GET', '/admin/dir-scores?code=' + encodeURIComponent(d.publishedCode)); const sd = await sr.json(); dirScores = sd.scores || {}; } catch {}
+  }
+  const agData = ags.map(ag => {
+    const rows = [];
+    for (const grp of (ag.divisionGroups || [])) {
+      const divs = grp.divisions || [];
+      if (!divs.length) continue;
+      if (grp.name) { rows.push([grp.name.toUpperCase()]); rows.push([]); }
+      // Seeding grid
+      rows.push(['TEAMS IN DIVISION']);
+      rows.push(['Seed', ...divs.map(dv => dv.name || '')]);
+      const maxTeams = Math.max(...divs.map(dv => dv.numTeams || 3));
+      for (let si = 0; si < maxTeams; si++) {
+        const row = [si + 1];
+        for (const dv of divs) {
+          const slot = (dv.teams || [])[si] || {};
+          row.push(dv.seedByDay ? (slot.seedSource || '') : (slot.name || ''));
+        }
+        rows.push(row);
+      }
+      rows.push([]);
+      // Division formats
+      rows.push(['GAME FORMATS']);
+      rows.push(['Division', 'Game 1', 'Game 2', 'Game 3', 'Game 4', 'Game 5', 'Game 6']);
+      for (const dv of divs) {
+        const parts = (dv.format || '').split(/\s+/).filter(Boolean);
+        rows.push([dv.name || '', ...parts]);
+      }
+      rows.push([]);
+      // Game matchups with team names
+      rows.push(['BRACKET GAMES']);
+      rows.push(['Game #', 'Division', 'Team 1', 'Score 1', 'Score 2', 'Team 2', 'Status']);
+      let gn = 0;
+      for (const dv of divs) {
+        if (!dv.format) continue;
+        dv.format.trim().split(/\s+/).filter(Boolean).forEach(m => {
+          const parts = m.split('-');
+          if (parts.length !== 2) return;
+          gn++;
+          const resolve = (label) => {
+            const letter = label.replace(/\d/g, '').toUpperCase();
+            const idx = parseInt(label.replace(/\D/g, '')) - 1;
+            const div = (grp.divisions || []).find(dd => dd.name === letter) || dv;
+            const team = (div.teams || [])[idx] || {};
+            return dv.seedByDay ? (team.seedSource || label) : (team.name || label);
+          };
+          const gameId = 'dg-' + ((ag.name||'ag').replace(/\W+/g,'-')) + '-' + dv.name + '-' + (gn-1);
+          const sc = dirScores[gameId] || {};
+          rows.push([gn, dv.name, resolve(parts[0]), sc.status === 'final' ? sc.score1 : '', sc.status === 'final' ? sc.score2 : '', resolve(parts[1]), sc.status || 'scheduled']);
+        });
+      }
+      rows.push([]);
+    }
+    // Schedule template at bottom
+    rows.push(['SCHEDULE TEMPLATE']);
+    rows.push(['Game #', 'Date', 'Time', 'White Hats', 'Dark Hats', 'Division', 'Score', 'Note']);
+    return rows;
+  });
+
+  // Create spreadsheet with all tabs
+  const create = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ properties: { title: sheetTitle }, sheets: sheetDefs }),
+  });
+  const sheet = await create.json();
+  if (!sheet.spreadsheetId) throw new Error(sheet.error?.message || 'Could not create sheet');
+
+  // Batch write all tabs
+  const batchData = [{ range: "'Bracket Info'!A1", majorDimension: 'ROWS', values: infoRows }];
+  ags.forEach((ag, i) => {
+    const safeName = (ag.name || 'Age Group').slice(0, 100);
+    batchData.push({ range: "'" + safeName + "'!A1", majorDimension: 'ROWS', values: agData[i] });
+  });
+  await fetch('https://sheets.googleapis.com/v4/spreadsheets/' + sheet.spreadsheetId + '/values:batchUpdate', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ valueInputOption: 'RAW', data: batchData }),
+  });
+
+  if (btn) { btn.disabled = false; btn.textContent = '📊 Export All Brackets to Google Sheets'; }
+  showStatus('✅ Google Sheet created!', 'ok');
+  window.open(sheet.spreadsheetUrl, '_blank');
+}
+
+
+function renderDirectorTab() {
+  if (!S.director) { S.director = defaultDirector(); saveDirectorLocally(); }
+  const d = S.director;
+
+  // ── Migrate old data format ──
+  for (const ag of d.ageGroups) {
+    if (ag.brackets && !ag.divisions) {
+      ag.divisions = ag.brackets.map(br => {
+        const teamNames = (br.teams || '').split('\n').map(t => t.trim()).filter(Boolean);
+        const teams = Array.from({length: 3}, (_, i) => ({ name: teamNames[i] || '', seedSource: '' }));
+        return { name: br.name || '', numTeams: 3, teams, seedByDay: false, format: '' };
+      });
+      delete ag.brackets;
+    }
+    if (ag.pool && !ag.venueName) { ag.venueName = ag.pool; }
+    if (ag.poolAddress && !ag.venueAddress) { ag.venueAddress = ag.poolAddress; }
+    // Migrate from flat divisions to divisionGroups
+    if (ag.divisions && !ag.divisionGroups) {
+      ag.divisionGroups = [{ id: 'dg-legacy', name: ag.divisionSectionName || '', divisions: ag.divisions }];
+      delete ag.divisions;
+      delete ag.divisionSectionName;
+    }
+    if (!ag.divisionGroups) ag.divisionGroups = [{ id: 'dg-' + Date.now(), name: '', divisions: [] }];
+    // Ensure each group's divisions have proper structure
+    ag.divisionGroups.forEach(grp => {
+      if (!grp.divisions) grp.divisions = [];
+      grp.divisions.forEach(dv => {
+        if (!dv.numTeams) dv.numTeams = 3;
+        if (!dv.teams) dv.teams = [];
+        while (dv.teams.length < dv.numTeams) dv.teams.push({ name: '', seedSource: '' });
+      });
+    });
+  }
+
+  // ── Age group cards ──
+  const ord = n => ['','1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th','13th','14th','15th','16th','17th','18th'][n] || n+'th';
+
+  // Snake-draft seeding placeholder: given division index, row index, total divisions and rows
+  // Groups divisions into pods (first half / second half), snake within each pod
+  const seedPh = (di, ri, numDivs, numRows) => {
+    const podSize = numDivs > 4 ? Math.ceil(numDivs / 2) : numDivs;
+    const podIdx  = Math.floor(di / podSize);
+    const dip     = di % podSize;
+    const podStart = podIdx * podSize * numRows;
+    const seedInPod = ri % 2 === 0
+      ? ri * podSize + dip + 1
+      : ri * podSize + (podSize - 1 - dip) + 1;
+    return ord(podStart + seedInPod);
+  };
+
+  const ageGroupCards = d.ageGroups.length ? d.ageGroups.map((ag, ai) => {
+
+    const divisionGroupSections = ag.divisionGroups.map((grp, gi) => {
+      const divs = grp.divisions;
+      const numDivs = divs.length;
+      const maxRows = numDivs ? Math.max(...divs.map(dv => dv.numTeams || 3)) : 3;
+
+      // Column headers — blue, division name editable, seedByDay toggle, delete
+      const colHeaders = divs.map((dv, di) => `
+        <th class="seed-th-div" style="padding:0;min-width:86px;vertical-align:top;border-left:1px solid rgba(255,255,255,.2)">
+          <div style="background:var(--royal);padding:5px 6px 4px;text-align:center">
+            <input style="background:transparent;border:none;color:white;font-weight:800;font-size:1rem;text-align:center;width:100%;outline:none"
+                   placeholder="${String.fromCharCode(65+di)}" value="${esc(dv.name||'')}"
+                   oninput="updateDivisionLabels(${ai},${gi},${di},this.value)">
+            <div style="margin-top:2px">
+              <label style="display:inline-flex;align-items:center;gap:3px;font-size:0.6rem;color:rgba(255,255,255,.8);cursor:pointer;white-space:nowrap">
+                <input type="checkbox" ${dv.seedByDay?'checked':''}
+                       onchange="S.director.ageGroups[${ai}].divisionGroups[${gi}].divisions[${di}].seedByDay=this.checked;saveDirectorLocally();renderTab()"
+                       style="width:10px;height:10px;cursor:pointer;accent-color:white">
+                Prior day
+              </label>
+            </div>
+          </div>
+          <div style="text-align:center;border-top:1px solid var(--g100)">
+            <button onclick="deleteDirectorDivision(${ai},${gi},${di})" title="Remove division"
+                    style="font-size:0.62rem;color:var(--red);background:none;border:none;padding:2px 6px;cursor:pointer;line-height:1.5">✕</button>
+          </div>
+        </th>`).join('');
+
+      // Seed rows — row header is blue badge, cells have seeding placeholder
+      const rows = Array.from({length: maxRows}, (_, ri) => {
+        const cells = divs.map((dv, di) => {
+          const team  = (dv.teams||[])[ri] || {};
+          const ph    = dv.seedByDay ? `e.g. ${ord(ri+1)} Div ${dv.name||'?'}` : seedPh(di, ri, numDivs, maxRows);
+          const val   = dv.seedByDay ? (team.seedSource||'') : (team.name||'');
+          const save  = dv.seedByDay
+            ? `S.director.ageGroups[${ai}].divisionGroups[${gi}].divisions[${di}].teams[${ri}].seedSource=this.value;saveDirectorLocally()`
+            : `S.director.ageGroups[${ai}].divisionGroups[${gi}].divisions[${di}].teams[${ri}].name=this.value;saveDirectorLocally()`;
+          return `<td style="padding:3px 3px;border-left:1px solid var(--g100)">
+            <input class="info-input seed-td-input" style="margin:0;min-width:76px;font-size:0.82rem;border-color:transparent;background:transparent"
+                   placeholder="${esc(ph)}" value="${esc(val)}" oninput="${save}">
+          </td>`;
+        }).join('');
+        return `
+          <tr style="border-top:1px solid var(--g100)">
+            <td style="padding:3px 6px;text-align:center;white-space:nowrap;background:var(--g50)">
+              <span style="background:var(--royal);color:white;font-weight:700;font-size:0.78rem;border-radius:4px;padding:3px 9px;display:inline-block">${ri+1}</span>
+            </td>
+            ${cells}
+            <td style="padding:3px 2px;text-align:center;border-left:1px solid var(--g100)">
+              <button onclick="removeDirectorSeedRow(${ai},${gi},${ri})" title="Remove row"
+                      style="color:var(--red);background:none;border:none;padding:2px 6px;cursor:pointer;font-size:0.85rem;line-height:1.4">–</button>
+            </td>
+          </tr>`;
+      }).join('');
+
+      const seedingGrid = numDivs ? `
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:10px;border:1px solid var(--g200);border-radius:8px">
+          <table style="border-collapse:collapse;width:100%">
+            <thead>
+              <tr>
+                <th style="padding:4px;background:var(--royal);width:38px;border-right:1px solid rgba(255,255,255,.2)"></th>
+                ${colHeaders}
+                <th style="padding:4px;background:var(--g50);border-left:1px solid var(--g200);width:32px;vertical-align:middle;text-align:center">
+                  <button class="add-btn" style="font-size:0.68rem;padding:3px 6px;line-height:1.3"
+                          onclick="addDirectorDivision(${ai},${gi})" title="Add division">+</button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>${rows}
+              <tr style="border-top:1px solid var(--g100);background:var(--g50)">
+                <td colspan="${numDivs+2}" style="padding:5px 8px">
+                  <button class="add-btn" style="font-size:0.75rem;padding:4px 12px"
+                          onclick="addDirectorSeedRow(${ai},${gi})">+ Add Row</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>` :
+        `<button class="add-btn" style="font-size:0.78rem;padding:6px 14px;margin-bottom:10px"
+                 onclick="addDirectorDivision(${ai},${gi})">+ Add First Division</button>`;
+
+      // Game formats — one input per division
+      const formatRows = divs.map((dv, di) => {
+        const n = dv.name || String.fromCharCode(65+di);
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="background:var(--royal);color:white;font-weight:700;font-size:0.82rem;border-radius:4px;padding:3px 10px;flex-shrink:0;min-width:26px;text-align:center">${esc(n)}</span>
+          <input class="info-input" style="flex:1;margin:0;font-family:monospace;font-size:0.8rem"
+                 placeholder="${esc(n)}1-${esc(n)}3 ${esc(n)}2-${esc(n)}3 ${esc(n)}1-${esc(n)}2"
+                 data-fmt="${ai}-${gi}-${di}" value="${esc(dv.format||'')}"
+                 oninput="S.director.ageGroups[${ai}].divisionGroups[${gi}].divisions[${di}].format=this.value;saveDirectorLocally()">
+        </div>`;
+      }).join('');
+
+      const canDelete = ag.divisionGroups.length > 1;
+      return `
+        <div style="background:#f0f4ff;border:1.5px solid #c5d3f5;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+            <div style="font-size:0.75rem;font-weight:700;color:var(--royal);text-transform:uppercase;letter-spacing:0.05em;flex-shrink:0">Division Section</div>
+            <input class="info-input" style="flex:1;margin:0;font-weight:600"
+                   placeholder="e.g. Pool Play, Saturday Pools, Day 1 Divisions"
+                   value="${esc(grp.name||'')}"
+                   oninput="S.director.ageGroups[${ai}].divisionGroups[${gi}].name=this.value;saveDirectorLocally()">
+            ${canDelete ? `<button onclick="deleteDirectorDivisionGroup(${ai},${gi})"
+                    style="font-size:0.72rem;color:white;background:var(--red);border:none;border-radius:5px;padding:3px 9px;cursor:pointer;flex-shrink:0">– Remove Section</button>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="font-size:0.82rem;font-weight:700;color:var(--royal)">Teams in Division</div>
+            <button onclick="toggleDirImport(${ai},${gi})"
+                    style="font-size:0.72rem;background:var(--g50);border:1px solid var(--g200);color:var(--royal);border-radius:5px;padding:3px 8px;cursor:pointer">📥 Import from Sheets</button>
+          </div>
+          <div id="dir-import-${ai}-${gi}" style="display:none;background:var(--g50);border:1px solid var(--g200);border-radius:8px;padding:12px;margin-bottom:10px">
+            <div style="font-size:0.8rem;font-weight:700;color:var(--royal);margin-bottom:6px">Import from Google Sheets</div>
+            <div class="info-hint" style="margin-bottom:8px">Sheet must be publicly viewable. Each column = one division, each row = one team in seed order. Optionally set first row as column headers to auto-fill division names.</div>
+            <input id="dir-import-url-${ai}-${gi}" class="info-input" placeholder="Paste Google Sheets URL" style="margin-bottom:6px">
+            <div style="display:flex;gap:8px;margin-bottom:6px">
+              <input id="dir-import-range-${ai}-${gi}" class="info-input" placeholder="Cell range, e.g. B2:G5" style="flex:1;max-width:180px">
+              <label style="display:flex;align-items:center;gap:5px;font-size:0.82rem;cursor:pointer;white-space:nowrap">
+                <input type="checkbox" id="dir-import-hdr-${ai}-${gi}" checked style="width:14px;height:14px;cursor:pointer">
+                First row = div names
+              </label>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <button onclick="importDivisionFromSheet(${ai},${gi})"
+                      style="background:var(--royal);color:white;border:none;border-radius:6px;padding:6px 16px;font-size:0.82rem;font-weight:700;cursor:pointer">Import</button>
+              <span id="dir-import-status-${ai}-${gi}" style="font-size:0.78rem;color:var(--g600)"></span>
+            </div>
+          </div>
+          <div class="info-hint" style="margin-bottom:8px">Column headers are division letters (editable). Grey placeholder text shows the recommended seeding position. Enter team names directly or import from a sheet above.</div>
+          ${seedingGrid}
+          ${numDivs ? `
+            <div style="font-size:0.82rem;font-weight:700;color:var(--royal);margin-bottom:6px;padding-top:10px;border-top:1px solid #c5d3f5">Game Formats</div>
+            <div class="info-hint" style="margin-bottom:8px">Matchup pairs per division (e.g. A1-A3 A2-A3 A1-A2)</div>
+            ${formatRows}
+            <button class="add-btn" style="font-size:0.75rem;padding:4px 12px;margin-top:4px"
+                    onclick="addDirectorDivision(${ai},${gi})">+ Add Division</button>` : ''}
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="dir-age-card" style="border:1.5px solid var(--royal-lt);border-radius:10px;padding:12px 14px;margin-bottom:12px;background:var(--g50)">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+          <input class="info-input" style="flex:1;font-weight:700;font-size:1rem"
+                 placeholder="Age Group (e.g. 14U Girls)"
+                 value="${esc(ag.name||'')}"
+                 oninput="S.director.ageGroups[${ai}].name=this.value;saveDirectorLocally()">
+          <button class="btn-icon btn-del-sm" onclick="deleteDirectorAgeGroup(${ai})" title="Remove age group">🗑</button>
+        </div>
+        <div class="info-field" style="margin-bottom:10px">
+          <div class="info-label">Pool</div>
+          <input class="info-input" value="${esc(ag.pool||'')}" placeholder="e.g. Pool A, Main Pool"
+                 oninput="S.director.ageGroups[${ai}].pool=this.value;saveDirectorLocally()">
+          <div class="info-hint" style="margin-top:3px">Which pool this age group plays in.</div>
+        </div>
+        <div style="margin-bottom:10px;padding:10px 12px;border:1px solid var(--g100);border-radius:8px;background:var(--g50)">
+          <div style="font-size:0.82rem;font-weight:700;color:var(--royal);margin-bottom:8px">⏱ Clock Settings</div>
+          <div class="dir-clock-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="info-field">
+              <div class="info-label">Quarter Length (min)</div>
+              <input class="info-input" type="number" min="1" max="20" step="0.5"
+                     value="${esc(ag.quarterMins??7)}"
+                     oninput="S.director.ageGroups[${ai}].quarterMins=+this.value;saveDirectorLocally()">
+            </div>
+            <div class="info-field">
+              <div class="info-label">Quarter Break (min)</div>
+              <input class="info-input" type="number" min="0" max="10" step="0.5"
+                     value="${esc(ag.breakMins??2)}"
+                     oninput="S.director.ageGroups[${ai}].breakMins=+this.value;saveDirectorLocally()">
+            </div>
+            <div class="info-field">
+              <div class="info-label">Halftime (min)</div>
+              <input class="info-input" type="number" min="1" max="20" step="0.5"
+                     value="${esc(ag.halftimeMins??5)}"
+                     oninput="S.director.ageGroups[${ai}].halftimeMins=+this.value;saveDirectorLocally()">
+            </div>
+            <div class="info-field">
+              <div class="info-label"># Timeouts per Team</div>
+              <input class="info-input" type="number" min="0" max="5" step="1"
+                     value="${esc(ag.timeoutsPerTeam??2)}"
+                     oninput="S.director.ageGroups[${ai}].timeoutsPerTeam=+this.value;saveDirectorLocally();renderDirToLengthInputs(${ai})">
+            </div>
+          </div>
+          <div id="dir-to-lengths-${ai}"></div>
+        </div>
+
+        ${divisionGroupSections}
+        <button class="add-btn" style="font-size:0.75rem;padding:5px 14px;margin-top:4px"
+                onclick="addDirectorDivisionGroup(${ai})">+ Add Division Section</button>
+      </div>`;
+  }).join('') : `<div style="padding:12px;text-align:center;color:var(--g400);font-size:.85rem">No age groups yet — tap + Add Age Group below</div>`;
+
+  // ── Check if any brackets (game formats) are defined ──
+  const hasBrackets = d.ageGroups.some(ag =>
+    (ag.divisionGroups || []).some(grp =>
+      (grp.divisions || []).some(dv => dv.format && dv.format.trim())
+    )
+  );
+
+  // ── Publish section ──
+  // publishSection removed — publish UI is now inline in the Brackets & Publishing card
+
+  const t = S.tournament || {};
+  const tournamentInfoCard = `
+    <div class="card">
+      <div class="card-header">📋 Tournament Info</div>
+      <div style="padding:10px 14px 14px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div class="info-field">
+            <div class="info-label">Tournament Name</div>
+            <input class="info-input" value="${esc(t.name||'')}" placeholder="e.g. BAWL Spring 2026"
+                   oninput="S.tournament.name=this.value">
+          </div>
+          <div class="info-field">
+            <div class="info-label">Dates</div>
+            <input class="info-input" value="${esc(t.dates||'')}" placeholder="April 25–26, 2026"
+                   oninput="S.tournament.dates=this.value">
+          </div>
+        </div>
+        <div class="info-field" style="margin-bottom:8px">
+          <div class="info-label">Venue Name</div>
+          <input id="dir-tournament-venue" class="info-input" value="${esc(t.location||'')}"
+                 placeholder="Start typing a venue…" spellcheck="false"
+                 oninput="S.tournament.location=this.value">
+          <div class="info-hint" style="margin-top:3px">Type to search via Google Places — selecting a result auto-fills the address below.</div>
+        </div>
+        <div class="info-field" style="margin-bottom:8px">
+          <div class="info-label">Venue Address</div>
+          <input id="dir-tournament-addr" class="info-input" value="${esc(t.address||'')}"
+                 placeholder="Full address (auto-filled when you pick a venue)"
+                 oninput="S.tournament.address=this.value">
+        </div>
+        <div class="info-field" style="margin-bottom:10px">
+          <div class="info-label">Scorer Password (stat entry)</div>
+          <input class="info-input" type="text" autocomplete="off" spellcheck="false"
+                 value="${esc(t.scoringPassword||'')}" placeholder="e.g. bawl2026"
+                 oninput="S.tournament.scoringPassword=this.value">
+          <div class="info-hint" style="margin-top:3px">Parents enter this to use live play-by-play scoring on game day.</div>
+        </div>
+        <button class="add-btn btn-warning-lt" style="font-weight:700;width:100%;justify-content:center"
+                onclick="saveUpcomingInfo(this)">💾 Save &amp; Deploy Info</button>
+      </div>
+    </div>`;
+
+  return `
+    ${tournamentInfoCard}
+    <div class="card">
+      <div class="card-header">🏆 Tournament Host — Age Groups &amp; Divisions</div>
+      <div style="padding:6px 14px 12px">
+        <div class="info-hint" style="margin-bottom:10px">Configure each age group, then add division sections. Each section is an independent bracket with its own seeding grid and game formats.</div>
+        ${ageGroupCards}
+        <button class="add-btn" onclick="addDirectorAgeGroup()">+ Add Age Group</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">📊 Brackets &amp; Publishing</div>
+      <div style="padding:10px 14px">
+        <div class="info-hint" style="margin-bottom:12px">Preview your brackets, then publish to generate a share code. Make changes in the age group sections above before publishing.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+          <button class="add-btn" style="font-weight:700;flex:1;justify-content:center;min-width:160px;padding:10px 16px;font-size:0.88rem"
+                  onclick="toggleBracketPreview()" ${hasBrackets ? '' : 'disabled style="opacity:0.5;cursor:default;font-weight:700;flex:1;justify-content:center;min-width:160px;padding:10px 16px;font-size:0.88rem"'}>
+            👁 ${S.bracketPreviewOpen ? 'Hide Bracket Preview' : 'Preview All Brackets'}
+          </button>
+          <button class="add-btn" style="background:var(--royal);color:white;border-color:var(--royal);font-weight:700;flex:1;justify-content:center;min-width:160px;padding:10px 16px;font-size:0.88rem"
+                  onclick="publishDirectorPkg(this)" ${hasBrackets ? '' : 'disabled style="opacity:0.5;cursor:default;background:var(--royal);color:white;border-color:var(--royal);font-weight:700;flex:1;justify-content:center;min-width:160px;padding:10px 16px;font-size:0.88rem"'}>
+            📤 Publish All Brackets
+          </button>
+        </div>
+        ${S.bracketPreviewOpen ? '<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--g100)">' + buildBracketPreviewHtml() + '</div>' : ''}
+        ${d.publishedCode ? `
+          <div style="background:var(--green-lt);border:1.5px solid var(--green);border-radius:8px;padding:14px 16px;margin-bottom:12px">
+            <div style="font-weight:700;color:var(--green);font-size:0.9rem;margin-bottom:8px">✅ Published — Share this code with other team admins:</div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <code style="font-size:1.6rem;font-weight:800;letter-spacing:0.15em;color:var(--royal);background:var(--g50);padding:8px 18px;border-radius:8px;border:2px solid var(--g200)">${esc(d.publishedCode)}</code>
+              <button class="add-btn" style="font-size:0.82rem" onclick="copyDirectorCode('${esc(d.publishedCode)}')">📋 Copy Code</button>
+            </div>
+            <div style="margin-top:10px">
+              <button class="add-btn" style="font-size:0.82rem;background:var(--g700);color:white;border-color:var(--g700)"
+                      onclick="exportDirectorToSheets(this)">📊 Export All Brackets to Google Sheets</button>
+            </div>
+            <div style="font-size:0.78rem;color:var(--g600);margin-top:8px;line-height:1.5">
+              Other teams enter this code in the parent app under <strong>Sync from Tournament Host</strong> to import tournament info.
+              Expires in 30 days. ·
+              <a href="#" onclick="S.director.publishedCode=null;saveDirectorLocally();renderTab();return false" style="color:var(--red)">Clear</a>
+            </div>
+          </div>` : ''}
+      </div>
+    </div>
+
+    ${d.publishedCode ? `
+    <div class="card" id="dir-scores-card">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <span>📊 Tournament Scores</span>
+        <button class="add-btn" style="font-size:0.75rem;padding:4px 10px" onclick="loadDirScoresAdmin()">↺ Refresh</button>
+      </div>
+      <div style="padding:10px 14px" id="dir-scores-content">
+        <div style="color:var(--g400);font-size:0.85rem">Tap Refresh to load scores.</div>
+      </div>
+    </div>` : ''}`;
+}
+
+// ─── AUTO-FOCUS ───────────────────────────────────────────────────────────────
+
+// Auto-focus password on load
+document.getElementById('pw-input').focus();

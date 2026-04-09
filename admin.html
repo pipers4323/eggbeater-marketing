@@ -8302,6 +8302,13 @@
 
     // ─── SAVE & DEPLOY ────────────────────────────────────────────────────────────
 
+    
+    async function _pushToFirebaseMirror(teamKey, tournament, history) {
+      if (typeof fbSaveTournamentMirror === 'function') {
+        try { await fbSaveTournamentMirror(teamKey, { tournament, history }); } catch(e){}
+      }
+    }
+
     async function saveAndDeploy() {
       const btn = document.getElementById('deploy-btn');
       btn.disabled = true;
