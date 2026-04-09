@@ -563,6 +563,14 @@ function fbListenToTournament(teamKey) {
         return;
       }
 
+      // Never let stale Firestore data (upcomingMode:true) overwrite KV data that is already live
+      if (data.tournament.upcomingMode &&
+          typeof TEAM_CACHE !== 'undefined' && TEAM_CACHE[teamKey] &&
+          TEAM_CACHE[teamKey].tournament && !TEAM_CACHE[teamKey].tournament.upcomingMode) {
+        console.info('[firebase] Ignoring stale Firestore snapshot for', teamKey, '— KV data is live, Firestore still shows upcomingMode');
+        return;
+      }
+
       // Update TEAM_CACHE so multi-team rendering picks up the fresh data
       if (typeof TEAM_CACHE !== 'undefined') {
         TEAM_CACHE[teamKey] = {

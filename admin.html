@@ -7310,6 +7310,9 @@
         const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
         if (!saveRes.ok) throw new Error('Games synced but save failed — tap 💾 Deploy in the header to retry');
 
+        // Also mirror to Firestore so real-time listeners get the live data immediately
+        await _pushToFirebaseMirror(S.team, S.tournament, S.history || []);
+
         if (status) { status.style.color = '#059669'; status.textContent = `✅ ${games.length} game(s) imported and LIVE in parent app!${S.bsync.pollMins ? ` Auto-sync every ${S.bsync.pollMins} min.` : ''} Fill in tournament name/dates below and tap 💾 Save & Deploy to publish those details.`; }
         if (S.bsync.pollMins > 0) bsStartPoll();
         // Scroll to Game/Tournament Setup so admin fills in name, dates, venue, etc. before deploying
