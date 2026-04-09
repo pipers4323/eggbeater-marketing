@@ -4,8 +4,8 @@
     {
       "name": "eggbeater-marketing",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-p", "3456", "."],
-      "port": 3456
+      "runtimeArgs": ["serve", "-l", "3400", "."],
+      "port": 3400
     }
   ]
 }
