@@ -3116,6 +3116,7 @@ function switchTab(tab) {
   if (tab !== 'scores') _setLiveBanner(false); // hide banner when leaving scores tab
   // Sync selected tab to native Liquid Glass tab bar (iOS only, no-op elsewhere)
   try { window.webkit?.messageHandlers?.tabSync?.postMessage({ tab }); } catch(_){}
+  if (tab === 'possible')    renderPossibleTab();
   if (tab === 'roster')      renderRosterTab();
   if (tab === 'scores')      renderScoresTab();
   if (tab === 'tournscore')  renderTournScoreTab();
@@ -5192,6 +5193,7 @@ function renderPossibleTab() {
   const listEl  = $('possible-list');
   const emptyEl = $('possible-empty');
   const descEl  = $('possible-desc');
+  if (!listEl || !emptyEl) return; // tab not in DOM yet — will re-render when tab is switched to
   listEl.innerHTML = '';
 
   // Upcoming mode — no games loaded yet, or upcomingMode flag is set
