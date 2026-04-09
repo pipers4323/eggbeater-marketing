@@ -3647,7 +3647,11 @@ function renderScoresTab() {
       const allGames = cache ? (cache.tournament.games || []) : [];
       const firstTeam = cache && Array.isArray(cache.tournament.teams) ? cache.tournament.teams[0] : 'A';
       const letters = letter ? [letter] : getTeamLettersForGroup(groupKey);
-      const games = allGames.filter(g => g.team ? letters.includes(g.team) : letters.includes(firstTeam));
+      // If no letters configured for this group (single-team setup), show all games —
+      // same logic as getTournamentGames() which returns all games when letters is null.
+      const games = !letters.length
+        ? allGames
+        : allGames.filter(g => g.team ? letters.includes(g.team) : letters.includes(firstTeam));
       const today = _localDateStr();
       const active = games.filter(g => (!g.dateISO || g.dateISO >= today));
 
@@ -3674,12 +3678,18 @@ function renderScoresTab() {
         if (!byDate[dk]) { byDate[dk] = []; dateOrder.push(dk); }
         byDate[dk].push(g);
       }
+      // Switch TOURNAMENT context to this slot's tournament so buildGameCard uses the
+      // right password, clubName, and scoring config (restored below after each slot).
+      const _savedT = window.TOURNAMENT, _savedH = window.HISTORY_SEED;
+      if (cache) { window.TOURNAMENT = cache.tournament; window.HISTORY_SEED = cache.history || []; }
       for (const dk of dateOrder) {
         html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dk))}</div>`;
         html += `<div class="games-section">`;
-        for (const g of byDate[dk]) html += buildGameCard(g, true);
+        // viewerOnly = scorerLocked: when scorer is unlocked, games are tappable/scoreable
+        for (const g of byDate[dk]) html += buildGameCard(g, scorerLocked);
         html += `</div>`;
       }
+      if (cache) { window.TOURNAMENT = _savedT; window.HISTORY_SEED = _savedH; }
     }
     html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
     el.innerHTML = dirHtml + html;
