@@ -980,8 +980,22 @@ h2 {
 .game-card.result-win  { border-left-color: var(--green); }
 .game-card.result-loss { border-left-color: var(--red); }
 
-/* Cap color-coded cards — Dark cap gets a subtle club-primary tint; White cap stays white */
-.game-card.cap-dark-bg  { background: rgba(var(--royal-rgb), 0.06); }
+/* Cap color-coded cards — Dark cap: solid club primary with white text; White cap stays white */
+.game-card.cap-dark-bg {
+  background: rgb(var(--royal-rgb));
+  border-color: rgba(255,255,255,0.12);
+  border-left-color: rgba(255,255,255,0.3);
+  box-shadow: 0 1px 4px rgba(0,0,0,.25);
+}
+.game-card.cap-dark-bg .game-vs,
+.game-card.cap-dark-bg .game-card-age-label   { color: rgba(255,255,255,0.95); }
+.game-card.cap-dark-bg .game-info-row,
+.game-card.cap-dark-bg .icon-label            { color: rgba(255,255,255,0.75); }
+.game-card.cap-dark-bg .game-num-tag          { background: rgba(255,255,255,0.18); color: white; }
+.game-card.cap-dark-bg .points-badge          { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.85); }
+/* Result border colours pop on dark background */
+.game-card.cap-dark-bg.result-win  { border-left-color: #4ade80; }
+.game-card.cap-dark-bg.result-loss { border-left-color: #f87171; }
 .game-card.cap-white-bg { background: white; }
 
 .game-card-age-label {
