@@ -8254,7 +8254,8 @@ function renderHelpTab() {
       body: `<p>The <strong>Schedule</strong> tab shows all upcoming games for the selected team sorted by game number.</p>
       <ul>
         <li>The <strong>Next Game</strong> card at the top highlights your next upcoming game in blue — when a game is being live-scored it turns red, shows <strong>🔴 LIVE</strong>, and displays the current score, quarter, and live clock so you can follow the action at a glance.</li>
-        <li>Games below the Next Game card show opponent, game number, time, pool, location, and cap color. The next game only appears once — it won't duplicate in the list below.</li>
+        <li>Games below the Next Game card show opponent, game number, time, pool, location, and cap color. Dark-cap games use the club's dark card treatment; white-cap games stay on the white card treatment so Schedule and Scores match visually.</li>
+        <li>The next game only appears once — it won't duplicate in the list below.</li>
         <li>Once a game is marked with a result it automatically moves to the <strong>History</strong> tab — keeping this screen clean and future-focused.</li>
         <li>Tap <strong>Add to Calendar</strong> to sync all games to your Google Calendar.</li>
         <li>Tap <strong>Get Notified</strong> to enable push notifications when the schedule is updated.</li>
@@ -8451,6 +8452,19 @@ function renderHelpTab() {
         <li><strong>Android 16+ (Live Updates)</strong> — a persistent notification chip shows the current score (e.g. "Q2 7&ndash;5") and updates on every poll tick. Make sure notifications are enabled in your device settings.</li>
         <li>Tap <strong>Follow Live</strong> on any in-progress game in the Schedule tab to start the Live Activity.</li>
         <li>Live Activities work alongside push notifications — you can have both enabled.</li>
+      </ul>`
+    },
+    {
+      icon: '⌚',
+      title: 'Apple Watch Companion App',
+      body: `<p>The native iOS app includes an <strong>Apple Watch companion app</strong> for quick tournament-day checks from your wrist.</p>
+      <ul>
+        <li>The Watch app uses your club branding colors and shows the selected club and team at the top.</li>
+        <li>Tap <strong>Choose team</strong> on the Watch to switch between teams you are following in the parent app.</li>
+        <li>Tap <strong>Featured Game</strong> to pin a specific game to the Watch home screen, or choose <strong>Auto Next Game</strong> to let Eggbeater pick the next upcoming game automatically.</li>
+        <li>Tap <strong>Team Schedule</strong> to see today's games and later upcoming games for the selected team.</li>
+        <li>When the selected or featured live game receives a goal update, the Watch gives a haptic and can show a local goal alert if Watch notifications are allowed.</li>
+        <li>The Watch updates from the iPhone app's live payload, so keep the iPhone app installed and signed into the same club/team setup.</li>
       </ul>`
     },
     {
