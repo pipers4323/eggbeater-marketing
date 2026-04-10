@@ -711,12 +711,13 @@ function _fbUpdateAuthUI(user) {
 let _fbClubId = '';  // default — overridden via fbSetClubId()
 
 /** Set the active club ID (call before any tournament operations). */
-function fbSetClubId(id) {
-  if (id) {
-    _fbClubId = id;
-    // Save club selection to Firestore so sign-in on splash can restore it
-    fbSavePrefs();
-  }
+function fbSetClubId(id, opts = {}) {
+  const persist = !!opts.persist;
+  if (!id) return;
+  _fbClubId = id;
+  // Avoid hidden writes during splash/init flows; persist only on explicit
+  // user-driven club changes so preference ordering stays predictable.
+  if (persist) void fbSavePrefs();
 }
 
 /** Get the current club ID. */

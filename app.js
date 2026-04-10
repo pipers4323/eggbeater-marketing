@@ -6704,7 +6704,7 @@ function _selectClub(clubId, clubName, clubType) {
   document.getElementById('bottom-nav').style.display = '';
 
   // Set club for Firestore routing
-  if (typeof fbSetClubId === 'function') fbSetClubId(clubId);
+  if (typeof fbSetClubId === 'function') fbSetClubId(clubId, { persist: true });
 
   // Reload all team data with the new club ID
   loadAllSelectedTeams().then(() => {
