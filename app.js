@@ -8664,6 +8664,8 @@ function _buildWatchPayload(availableTeams, clubName) {
 
   return {
     clubName: clubName || 'Eggbeater Water Polo',
+    primaryColor: (state.clubInfo?.primaryColor) || '#002868',
+    secondaryColor: (state.clubInfo?.secondaryColor) || '#00A693',
     teams: availableTeams,
     games,
     updatedAt: Date.now() / 1000,

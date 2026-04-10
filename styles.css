@@ -2851,13 +2851,15 @@ body.modal-open { overflow: hidden; }
 .scorer-summary {
   cursor: pointer;
   padding: 11px 14px;
-  background: var(--royal);
-  color: white;
+  background: linear-gradient(135deg, #ffffff 0%, #dbeafe 100%);
+  color: var(--royal-dark);
+  border: 1px solid rgba(255, 255, 255, 0.88);
   border-radius: 8px;
   font-weight: 700;
   font-size: 0.9rem;
   text-align: center;
   margin-bottom: 4px;
+  box-shadow: 0 8px 22px rgba(0, 40, 104, 0.25);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   display: block;
@@ -5346,6 +5348,22 @@ details[open] .help-chevron { transform: rotate(180deg); }
   background: #1e3a5f;
   border-color: #30363d;
   color: #58a6ff;
+}
+
+[data-theme="dark"] .scorer-summary,
+.native-ios .scorer-summary {
+  background: linear-gradient(135deg, #ffffff 0%, #bfdbfe 58%, #7dd3fc 100%);
+  color: #082f49;
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 26px rgba(14, 165, 233, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.24) inset;
+}
+
+[data-theme="dark"] .scorer-details[open] > .scorer-summary,
+.native-ios .scorer-details[open] > .scorer-summary {
+  background: none;
+  color: var(--gray-400);
+  border: none;
+  box-shadow: none;
 }
 
 /* ── Stat pills in scores tab ─────────────────────────────────────────── */
