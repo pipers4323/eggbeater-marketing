@@ -86,6 +86,10 @@ body {
   position: relative;
 }
 
+.native-ios #app {
+  padding-bottom: calc(128px + env(safe-area-inset-bottom, 0px));
+}
+
 .hidden { display: none !important; }
 
 /* ── Offline Banner (Phase 5E) ───────────────────────────────────────────── */
@@ -2741,7 +2745,6 @@ body.modal-open { overflow: hidden; }
 
 /* GK → red */
 .stat-save  { border-color: #fca5a5; color: #dc2626; background: #fff1f2; }
-.stat-block { border-color: #fca5a5; color: #dc2626; background: #fff1f2; }
 
 /* T/O row — long skinny like GK row */
 .stat-btns-row-to .stat-btn { padding: 5px 4px; font-size: 0.7rem; }

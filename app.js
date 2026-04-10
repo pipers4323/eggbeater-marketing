@@ -1288,7 +1288,7 @@ function buildEventLog(events) {
   }
 
   const WP_BALL = '<span class="wp-ball">🏐</span>';
-  const TYPE_ICONS = { goal:WP_BALL, opp_goal:WP_BALL, goal_5m:WP_BALL, opp_goal_5m:WP_BALL, shot_miss:'❌', opp_shot_miss:'❌', miss_5m:'❌', opp_miss_5m:'❌', so_goal:WP_BALL, opp_so_goal:WP_BALL, so_miss:'❌', opp_so_miss:'❌', assist:'🤝', exclusion:'❌', opp_exclusion:'❌', brutality:'🟥', timeout:'⏱', opp_timeout:'⏱', save:'🧤', block:'🛡️' };
+  const TYPE_ICONS = { goal:WP_BALL, opp_goal:WP_BALL, goal_5m:WP_BALL, opp_goal_5m:WP_BALL, shot_miss:'❌', opp_shot_miss:'❌', miss_5m:'❌', opp_miss_5m:'❌', so_goal:WP_BALL, opp_so_goal:WP_BALL, so_miss:'❌', opp_so_miss:'❌', assist:'🤝', exclusion:'❌', opp_exclusion:'❌', brutality:'🟥', timeout:'⏱', opp_timeout:'⏱', save:'🧤', block:'🧤' };
   const TYPE_LABEL = {
     goal:          ev => ev.sixOnFive ? 'GOAL (6v5)' : 'GOAL',
     opp_goal:      ()  => 'GOAL',
@@ -1309,7 +1309,7 @@ function buildEventLog(events) {
     timeout:       ()  => 'TIMEOUT',
     opp_timeout:   ()  => 'OPP T/O',
     save:          ()  => 'SAVE',
-    block:         ()  => 'BLOCK',
+    block:         ()  => 'SAVE',
   };
 
   let html = '<div class="event-log">';
@@ -1347,7 +1347,7 @@ function buildBoxScoreHtml(events, oppName) {
     if (ev.type === 'timeout')    { teamTimeouts++; continue; }
     if (ev.side !== 'team')       continue;
     const key = ev.cap || ev.name || '_unknown';
-    if (!playerMap[key]) playerMap[key] = { cap: ev.cap||'', name: ev.name||'', G:0, SM:0, G5:0, M5:0, SOG:0, SOM:0, A:0, Excl:0, EE:0, Sv:0, Blk:0 };
+    if (!playerMap[key]) playerMap[key] = { cap: ev.cap||'', name: ev.name||'', G:0, SM:0, G5:0, M5:0, SOG:0, SOM:0, A:0, Excl:0, EE:0, Sv:0 };
     if (ev.type === 'goal')                              playerMap[key].G++;
     if (ev.type === 'shot_miss')                         playerMap[key].SM++;
     if (ev.type === 'goal_5m')                           playerMap[key].G5++;
@@ -1357,8 +1357,7 @@ function buildBoxScoreHtml(events, oppName) {
     if (ev.type === 'assist')                            playerMap[key].A++;
     if (ev.type === 'exclusion' || ev.type === 'brutality') playerMap[key].Excl++;
     if (ev.type === 'earned_excl')                       playerMap[key].EE++;
-    if (ev.type === 'save')                              playerMap[key].Sv++;
-    if (ev.type === 'block')                             playerMap[key].Blk++;
+    if (ev.type === 'save' || ev.type === 'block')       playerMap[key].Sv++;
   }
 
   const players = Object.values(playerMap)
@@ -1399,7 +1398,6 @@ function buildBoxScoreHtml(events, oppName) {
     return `<div class="bs-row">
       <span class="bs-player">${pName}</span>
       <span class="bs-stat${p.Sv?'  has-stat gk-stat':''}">${p.Sv}</span>
-      <span class="bs-stat${p.Blk?' has-stat gk-stat':''}">${p.Blk}</span>
       <span class="bs-stat${p.Excl?' has-stat excl-stat':''}">${p.Excl}</span>
     </div>`;
   }).join('');
@@ -1409,7 +1407,6 @@ function buildBoxScoreHtml(events, oppName) {
     <div class="bs-header-row">
       <span class="bs-player bs-col-hdr">Player</span>
       <span class="bs-stat bs-col-hdr">Sv</span>
-      <span class="bs-stat bs-col-hdr">Blk</span>
       <span class="bs-stat bs-col-hdr">Ex</span>
     </div>
     ${gkRows}` : '';
@@ -1479,7 +1476,7 @@ function shareBoxScore(gameId) {
     timeout:       ()  => 'TIMEOUT',
     opp_timeout:   ()  => 'OPP TIMEOUT',
     save:          ()  => 'SAVE',
-    block:         ()  => 'BLOCK',
+    block:         ()  => 'SAVE',
   };
 
   let text = `${TOURNAMENT.name || 'Eggbeater'}\n`;
@@ -1515,13 +1512,12 @@ function shareBoxScore(gameId) {
     if (ev.type === 'timeout')  { ttls++; continue; }
     if (ev.side !== 'team')     continue;
     const k = ev.cap || ev.name || '?';
-    if (!playerMap[k]) playerMap[k] = { cap:ev.cap||'', name:ev.name||'', G:0, A:0, Excl:0, EE:0, Sv:0, Blk:0 };
+    if (!playerMap[k]) playerMap[k] = { cap:ev.cap||'', name:ev.name||'', G:0, A:0, Excl:0, EE:0, Sv:0 };
     if (ev.type==='goal')                              playerMap[k].G++;
     if (ev.type==='assist')                            playerMap[k].A++;
     if (ev.type==='exclusion'||ev.type==='brutality')  playerMap[k].Excl++;
     if (ev.type==='earned_excl')                       playerMap[k].EE++;
-    if (ev.type==='save')                              playerMap[k].Sv++;
-    if (ev.type==='block')                             playerMap[k].Blk++;
+    if (ev.type==='save' || ev.type==='block')         playerMap[k].Sv++;
   }
   const ps = Object.values(playerMap).sort((a,b)=>parseInt(a.cap||'999')-parseInt(b.cap||'999'));
   const fieldPs = ps.filter(p => !isGoalie(p.cap));
@@ -1537,10 +1533,10 @@ function shareBoxScore(gameId) {
   }
   if (gkPs.length) {
     text += `── Goalkeeper ──\n`;
-    text += `${'Player'.padEnd(15)} Sv Blk Ex\n`;
+    text += `${'Player'.padEnd(15)} Sv Ex\n`;
     for (const p of gkPs) {
       const n = (p.cap ? `#${p.cap} ${(p.name||'').split(' ')[0]}` : p.name||'GK').padEnd(15);
-      text += `${n} ${p.Sv}  ${p.Blk}  ${p.Excl}\n`;
+      text += `${n} ${p.Sv}  ${p.Excl}\n`;
     }
   }
   text += `\nGenerated by ${getActiveTeamLabel()} WP App`;
@@ -1730,7 +1726,7 @@ function buildBoxScoreText(gameId) {
     timeout:       ()  => 'TIMEOUT',
     opp_timeout:   ()  => 'OPP TIMEOUT',
     save:          ()  => 'SAVE',
-    block:         ()  => 'BLOCK',
+    block:         ()  => 'SAVE',
   };
 
   // ── Status line: smart summary based on game state ──
@@ -1781,13 +1777,12 @@ function buildBoxScoreText(gameId) {
     if (ev.type === 'opp_timeout') { oppTtls++; continue; }
     if (ev.side !== 'team')     continue;
     const k = ev.cap || ev.name || '?';
-    if (!playerMap[k]) playerMap[k] = { cap:ev.cap||'', name:ev.name||'', G:0, A:0, Excl:0, EE:0, Sv:0, Blk:0 };
+    if (!playerMap[k]) playerMap[k] = { cap:ev.cap||'', name:ev.name||'', G:0, A:0, Excl:0, EE:0, Sv:0 };
     if (ev.type==='goal')                              playerMap[k].G++;
     if (ev.type==='assist')                            playerMap[k].A++;
     if (ev.type==='exclusion'||ev.type==='brutality')  playerMap[k].Excl++;
     if (ev.type==='earned_excl')                       playerMap[k].EE++;
-    if (ev.type==='save')                              playerMap[k].Sv++;
-    if (ev.type==='block')                             playerMap[k].Blk++;
+    if (ev.type==='save' || ev.type==='block')         playerMap[k].Sv++;
   }
   const ps = Object.values(playerMap).sort((a,b)=>parseInt(a.cap||'999')-parseInt(b.cap||'999'));
   const fieldPs = ps.filter(p => !isGoalie(p.cap));
@@ -1804,10 +1799,10 @@ function buildBoxScoreText(gameId) {
   }
   if (gkPs.length) {
     text += `── Goalkeeper ──\n`;
-    text += `Player          Sv Blk Ex\n`;
+    text += `Player          Sv Ex\n`;
     for (const p of gkPs) {
       const n = (p.cap ? `#${p.cap} ${(p.name||'').split(' ')[0]}` : p.name||'GK').padEnd(15);
-      text += `${n} ${p.Sv}  ${p.Blk}  ${p.Excl}\n`;
+      text += `${n} ${p.Sv}  ${p.Excl}\n`;
     }
   }
   text += `\n— ${getActiveTeamLabel()} WP App\nhttps://eggbeater.app`;
@@ -1998,7 +1993,7 @@ function buildPlayerLookupResult(name) {
   const stats  = getMyPlayerSummaryStats(name);
   const roster = state.roster || [];
   const entry  = roster.find(p => `${p.first} ${p.last}`.toLowerCase() === name.toLowerCase());
-  const isGK   = entry ? isGoalie(entry.cap) : ((stats?.Sv || 0) > 0 || (stats?.Blk || 0) > 0);
+  const isGK   = entry ? isGoalie(entry.cap) : ((stats?.Sv || 0) > 0);
 
   const G          = stats?.G          || 0;
   const A          = stats?.A          || 0;
@@ -2006,7 +2001,6 @@ function buildPlayerLookupResult(name) {
   const EE         = stats?.EE         || 0;
   const sixOnFive  = stats?.sixOnFive  || 0;
   const Sv         = stats?.Sv         || 0;
-  const Blk        = stats?.Blk        || 0;
   const gameCount  = stats?.gameCount  || 0;
   const nameEnc    = encodeURIComponent(name);
   const capBadge   = entry?.cap ? `<span class="plookup-cap">#${escHtml(entry.cap)}</span>` : '';
@@ -2022,11 +2016,8 @@ function buildPlayerLookupResult(name) {
     ? `<div class="mp-stat-rows">
         <div class="mp-stat-row-lg">
           <div class="mp-stat-box"><span class="mp-stat-num">${Sv}</span><span class="mp-stat-lbl">Saves</span></div>
-          <div class="mp-stat-box"><span class="mp-stat-num">${Blk}</span><span class="mp-stat-lbl">Blocks</span></div>
           <div class="mp-stat-box"><span class="mp-stat-num">${Excl}</span><span class="mp-stat-lbl">Exclusions</span></div>
-        </div>
-        <div class="mp-stat-row-3">
-          <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${gameCount}</span><span class="mp-stat-lbl-sm">Games</span></div>
+          <div class="mp-stat-box"><span class="mp-stat-num">${gameCount}</span><span class="mp-stat-lbl">Games</span></div>
         </div>
        </div>`
     : `<div class="mp-stat-rows">
@@ -2055,7 +2046,7 @@ function buildPlayerLookupResult(name) {
     const res   = r.result ? `<span class="mp-game-result mp-res-${r.result.toLowerCase()}">${resultLabel(r.result)}</span>` : '';
     const score = (r.teamScore !== '' && r.oppScore !== '') ? `<span class="mp-game-score">${r.teamScore}–${r.oppScore}</span>` : '';
     const st    = isGK
-      ? `Sv&nbsp;${r.Sv||0}&nbsp; Blk&nbsp;${r.Blk||0}&nbsp; Ex&nbsp;${r.Excl}`
+      ? `Sv&nbsp;${r.Sv||0}&nbsp; Ex&nbsp;${r.Excl}`
       : `G&nbsp;${r.G}&nbsp; A&nbsp;${r.A}&nbsp; Ex&nbsp;${r.Excl}&nbsp; EE&nbsp;${r.EE||0}`;
     return `<div class="mp-game-row">
       <div class="mp-game-opp">${escHtml(r.opponent)}${res ? ' '+res : ''}${score ? ' '+score : ''}</div>
@@ -2592,7 +2583,6 @@ function openEventPicker(gameId, eventType) {
       brutality:    'Brutality foul — who?',
       earned_excl:  'Who earned the exclusion?',
       save:         'Who made the save?',
-      block:        'Who blocked?',
     };
 
     const titleEl = $('roster-modal-title');
@@ -2604,8 +2594,8 @@ function openEventPicker(gameId, eventType) {
     if (row6v5)  row6v5.classList.toggle('hidden', realType !== 'goal');
     if (cb)      cb.checked = isSixOnFive;
 
-    // For save/block, show only goalkeepers; for everything else show full roster
-    const goalieOnly    = realType === 'save' || realType === 'block';
+    // For saves, show only goalkeepers; for everything else show full roster
+    const goalieOnly    = realType === 'save';
     const displayRoster = goalieOnly
       ? sortedRoster(roster).filter(p => isGoalie(p.cap))
       : sortedRoster(roster);
@@ -5090,7 +5080,6 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       </div>` : ''}
       <div class="stat-btns-row">
         <button class="stat-btn stat-save"  onclick="openEventPicker('${gid}','save')">🧤 GK Save</button>
-        <button class="stat-btn stat-block" onclick="openEventPicker('${gid}','block')">🛡️ GK Block</button>
       </div>
       ${(cs.timeoutLengths||[]).map(m => {
         const teamUsed = (s.teamTimeoutsUsed||[]).includes(m);
@@ -5991,8 +5980,10 @@ async function reloadTournamentJs() {
 
 function init() {
   // Tag the HTML element with the native platform so CSS can scope native-only styles.
-  // iOS gets its styles via ViewController.swift injection; Android uses this class.
-  if (window.Capacitor?.getPlatform?.() === 'android') {
+  const platform = window.Capacitor?.getPlatform?.();
+  if (platform === 'ios') {
+    document.documentElement.classList.add('native-ios');
+  } else if (platform === 'android') {
     document.documentElement.classList.add('native-android');
   }
 
@@ -7853,7 +7844,7 @@ function getAllPlayersWithStats() {
       const key = nameKey(ev);
       if (!key) continue;
       const name = String(ev.name || '').trim();
-      if (!map[key]) map[key] = { name, G: 0, SM: 0, G5: 0, M5: 0, SOG: 0, SOM: 0, A: 0, Excl: 0, EE: 0, sixOnFive: 0, Sv: 0, Blk: 0, games: new Set() };
+      if (!map[key]) map[key] = { name, G: 0, SM: 0, G5: 0, M5: 0, SOG: 0, SOM: 0, A: 0, Excl: 0, EE: 0, sixOnFive: 0, Sv: 0, games: new Set() };
       // Keep the longest / most complete name seen for this player
       if (name.length > map[key].name.length) map[key].name = name;
       map[key].games.add(gameKey);
@@ -7866,8 +7857,7 @@ function getAllPlayersWithStats() {
       if (ev.type === 'assist')                               map[key].A++;
       if (ev.type === 'exclusion' || ev.type === 'brutality') map[key].Excl++;
       if (ev.type === 'earned_excl')                          map[key].EE++;
-      if (ev.type === 'save')                                 map[key].Sv++;
-      if (ev.type === 'block')                                map[key].Blk++;
+      if (ev.type === 'save' || ev.type === 'block')          map[key].Sv++;
     }
   }
 
@@ -7915,7 +7905,7 @@ function collectPlayerGameRows(name) {
   }
 
   function extractFromEvts(evts) {
-    let G = 0, SM = 0, G5 = 0, M5 = 0, SOG = 0, SOM = 0, A = 0, Excl = 0, EE = 0, sixOnFive = 0, Sv = 0, Blk = 0, hasAny = false;
+    let G = 0, SM = 0, G5 = 0, M5 = 0, SOG = 0, SOM = 0, A = 0, Excl = 0, EE = 0, sixOnFive = 0, Sv = 0, hasAny = false;
     for (const ev of (evts || [])) {
       if (ev.type === 'game_state') continue;
       if (!matchesPlayer(ev)) continue;
@@ -7929,10 +7919,9 @@ function collectPlayerGameRows(name) {
       if (ev.type === 'assist')                               A++;
       if (ev.type === 'exclusion' || ev.type === 'brutality') Excl++;
       if (ev.type === 'earned_excl')                          EE++;
-      if (ev.type === 'save')                                 Sv++;
-      if (ev.type === 'block')                                Blk++;
+      if (ev.type === 'save' || ev.type === 'block')          Sv++;
     }
-    return { hasAny, G, SM, G5, M5, SOG, SOM, A, Excl, EE, sixOnFive, Sv, Blk };
+    return { hasAny, G, SM, G5, M5, SOG, SOM, A, Excl, EE, sixOnFive, Sv };
   }
 
   // Current tournament
@@ -7995,21 +7984,20 @@ function buildPlayerStatsCSV(playerLabel, rows) {
   const totalExcl = rows.reduce((s, r) => s + r.Excl, 0);
   const total6v5  = rows.reduce((s, r) => s + r.sixOnFive, 0);
   const totalSv   = rows.reduce((s, r) => s + (r.Sv  || 0), 0);
-  const totalBlk  = rows.reduce((s, r) => s + (r.Blk || 0), 0);
   const totalWins = rows.filter(r => isWin(r.result)).length;
-  const isGkPlayer = totalSv > 0 || totalBlk > 0;
+  const isGkPlayer = totalSv > 0;
 
   const q = str => `"${String(str || '').replace(/"/g, '""')}"`;
 
   const header = isGkPlayer
-    ? 'Tournament,Date,Opponent,Result,Team Score,Opp Score,Goals,Assists,Exclusions,6v5 Goals,Saves,Blocks'
+    ? 'Tournament,Date,Opponent,Result,Team Score,Opp Score,Goals,Assists,Exclusions,6v5 Goals,Saves'
     : 'Tournament,Date,Opponent,Result,Team Score,Opp Score,Goals,Assists,Exclusions,6v5 Goals';
 
   const lines = [
     q('Eggbeater Water Polo — Player Stats Export'),
     q(`Player: ${playerLabel}`),
     q(`Exported: ${now}`),
-    q(`${rows.length} game${rows.length !== 1 ? 's' : ''}  |  Record: ${totalWins}-${rows.length - totalWins}  |  Goals: ${totalG}  Assists: ${totalA}  Exclusions: ${totalExcl}${total6v5 ? '  6v5: ' + total6v5 : ''}${isGkPlayer ? `  Saves: ${totalSv}  Blocks: ${totalBlk}` : ''}`),
+    q(`${rows.length} game${rows.length !== 1 ? 's' : ''}  |  Record: ${totalWins}-${rows.length - totalWins}  |  Goals: ${totalG}  Assists: ${totalA}  Exclusions: ${totalExcl}${total6v5 ? '  6v5: ' + total6v5 : ''}${isGkPlayer ? `  Saves: ${totalSv}` : ''}`),
     '',
     header,
   ];
@@ -8033,13 +8021,13 @@ function buildPlayerStatsCSV(playerLabel, rows) {
       r.Excl,
       r.sixOnFive,
     ];
-    if (isGkPlayer) base.push(r.Sv || 0, r.Blk || 0);
+    if (isGkPlayer) base.push(r.Sv || 0);
     lines.push(base.join(','));
   }
 
   lines.push('');
   const totalsBase = [q('SEASON TOTALS'), '', '', '', '', '', totalG, totalA, totalExcl, total6v5];
-  if (isGkPlayer) totalsBase.push(totalSv, totalBlk);
+  if (isGkPlayer) totalsBase.push(totalSv);
   lines.push(totalsBase.join(','));
 
   return lines.join('\n');
@@ -8068,7 +8056,7 @@ function openPlayerStatsModal() {
   } else {
     listEl.innerHTML = players.map(p => {
       const displayName = escHtml(p.name || '?');
-      const gkExtra     = (p.Sv || p.Blk) ? `&nbsp;&nbsp;Sv&nbsp;${p.Sv||0}&nbsp;&nbsp;Blk&nbsp;${p.Blk||0}` : '';
+      const gkExtra     = p.Sv ? `&nbsp;&nbsp;Sv&nbsp;${p.Sv||0}` : '';
       const totals      = `<span class="pstats-totals">G&nbsp;${p.G}&nbsp;&nbsp;A&nbsp;${p.A}&nbsp;&nbsp;Ex&nbsp;${p.Excl}${gkExtra}</span>`;
       const gamesStr    = `<span class="pstats-games">${p.gameCount} game${p.gameCount !== 1 ? 's' : ''}</span>`;
       const nameEncoded = encodeURIComponent(p.name || '');
@@ -8300,7 +8288,7 @@ function renderHelpTab() {
         <li><strong>Earned Excl</strong> — tap and pick the player who drew the exclusion (forced the defender into the foul). Tracked separately from regular exclusions so you can see who is creating power-play opportunities.</li>
         <li><strong>5m / Opp 5m</strong> — records a 5-meter penalty shot as a goal.</li>
         <li><strong>5m Attempt / Opp 5m Attempt</strong> — records a 5-meter shot that didn't score.</li>
-        <li><strong>🧤 GK Save / 🛡️ GK Block</strong> — records goalie saves and blocks.</li>
+        <li><strong>🧤 GK Save</strong> — records goalie saves.</li>
         <li><strong>Timeouts</strong> — separate buttons for each timeout length (e.g. <em>1 Min T/O</em> and <em>30s T/O</em>). Each button can only be used once — it grays out after use. The clock pauses automatically during a timeout.</li>
         <li><strong>↺ Reset Clock</strong> — resets the clock back to the full quarter length without changing the game state.</li>
         <li><strong>↩ Undo</strong> — removes the last logged event if you make a mistake.</li>
@@ -8360,7 +8348,7 @@ function renderHelpTab() {
         <li>Three <strong>Shooting % boxes</strong> show regular shot %, 5m shot %, and SO shot % — each with made/attempts breakdown.</li>
         <li>Recent games are listed with per-game stats and scores.</li>
         <li>The <strong>📊 Download Stats CSV</strong> button exports the full stat history as a spreadsheet.</li>
-        <li>Goalies see Saves and Blocks instead of shooting stats.</li>
+        <li>Goalies see Saves instead of shooting stats.</li>
       </ul>`
     },
     {
@@ -8626,6 +8614,62 @@ function renderHelpTab() {
 // On iOS, LiveActivityPlugin.updateWidgetData() writes to group.com.eggbeater.waterpolo
 // and calls WidgetCenter.shared.reloadAllTimelines() automatically.
 
+function _watchDateLabel(dateISO) {
+  if (!dateISO) return '';
+  try {
+    return new Date(dateISO + 'T12:00:00').toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch {
+    return dateISO;
+  }
+}
+
+function _buildWatchPayload(availableTeams, clubName) {
+  const currentTeamKey = getSelectedTeam();
+  const games = [];
+
+  for (const team of availableTeams) {
+    const tournament = TEAM_CACHE[team.key]?.tournament || (team.key === currentTeamKey ? TOURNAMENT : null);
+    if (!tournament || tournament.upcomingMode || !Array.isArray(tournament.games)) continue;
+
+    tournament.games.forEach((game, index) => {
+      const id = String(game.id || `${team.key}-${index}`);
+      const liveScore = team.key === currentTeamKey ? (state.liveScores[id] || {}) : {};
+      const gameState = liveScore.gameState || '';
+      const isFinal = !!state.results[id] || gameState === 'final' || gameState === 'so_w' || gameState === 'so_l' || gameState === 'ff';
+      const liveIsActive = !!(liveScore && gameState && !['pre', 'final', 'so_w', 'so_l', 'ff'].includes(gameState));
+
+      games.push({
+        id: `${team.key}:${id}`,
+        teamKey: team.key,
+        teamLabel: team.label,
+        opponent: game.opponent || 'TBD',
+        time: game.time || '',
+        dateISO: game.dateISO || game.date || '',
+        dateLabel: game.dateLabel || _watchDateLabel(game.dateISO || game.date || ''),
+        pool: game.pool || game.location || null,
+        cap: game.cap || null,
+        gameNum: game.gameNum || game.number || null,
+        ageGroup: team.label,
+        liveTeamScore: (liveScore.team != null || isFinal) ? (liveScore.team ?? 0) : null,
+        liveOppScore: (liveScore.opp != null || isFinal) ? (liveScore.opp ?? 0) : null,
+        livePeriod: liveScore.period ? `Q${liveScore.period}` : (isFinal ? 'Final' : null),
+        liveIsActive,
+      });
+    });
+  }
+
+  return {
+    clubName: clubName || 'Eggbeater Water Polo',
+    teams: availableTeams,
+    games,
+    updatedAt: Date.now() / 1000,
+  };
+}
+
 async function _syncWidgetsAll() {
   if (!_isNativePlatform()) return;
   const platform  = window.Capacitor?.getPlatform?.() || '';
@@ -8755,6 +8799,7 @@ async function _syncWidgetsAll() {
         { key: 'available_teams',      data: JSON.stringify(availableTeams) },
         { key: 'all_live_scores',      data: JSON.stringify(allLiveScores) },
         { key: 'my_players_stats',     data: JSON.stringify(myPlayersStats) },
+        { key: 'ebwp_watch_payload',   data: JSON.stringify(_buildWatchPayload(availableTeams, clubName)) },
       ];
       if (nextGame) writes.push({ key: 'next_game', data: JSON.stringify(nextGame) });
     }
@@ -8969,7 +9014,6 @@ function _renderPlayerStatsCard(playerName) {
   const Excl     = stats ? stats.Excl       : 0;
   const sixOnFive = stats ? (stats.sixOnFive || 0) : 0;
   const Sv       = stats ? (stats.Sv  || 0) : 0;
-  const Blk      = stats ? (stats.Blk || 0) : 0;
   const gameCount = stats ? stats.gameCount  : 0;
 
   function shotPct(made, missed) {
@@ -8984,7 +9028,7 @@ function _renderPlayerStatsCard(playerName) {
   const hasStats      = stats && gameCount > 0;
   const nameEnc       = encodeURIComponent(playerName);
   const rosterEntry   = roster.find(p => `${p.first} ${p.last}`.toLowerCase() === playerName.toLowerCase());
-  const playerIsGoalie = rosterEntry ? isGoalie(rosterEntry.cap) : (Sv > 0 || Blk > 0);
+  const playerIsGoalie = rosterEntry ? isGoalie(rosterEntry.cap) : (Sv > 0);
 
   const gameRows = (() => {
     const rows = collectPlayerGameRows(playerName);
@@ -8996,7 +9040,7 @@ function _renderPlayerStatsCard(playerName) {
       return `<div class="mp-game-row">
         <div class="mp-game-opp">${escHtml(r.opponent)}${res ? ' ' + res : ''} ${score ? `<span class="mp-game-score">${score}</span>` : ''}</div>
         <div class="mp-game-stats">${playerIsGoalie
-          ? `Sv&nbsp;${r.Sv||0}&nbsp; Blk&nbsp;${r.Blk||0}&nbsp; Ex&nbsp;${r.Excl}`
+          ? `Sv&nbsp;${r.Sv||0}&nbsp; Ex&nbsp;${r.Excl}`
           : `G&nbsp;${r.G}&nbsp; A&nbsp;${r.A}&nbsp; Ex&nbsp;${r.Excl}`}</div>
       </div>`;
     }).join('');
@@ -9029,11 +9073,8 @@ function _renderPlayerStatsCard(playerName) {
       ${playerIsGoalie ? `
       <div class="mp-stat-row-lg">
         <div class="mp-stat-box"><span class="mp-stat-num">${Sv}</span><span class="mp-stat-lbl">Saves</span></div>
-        <div class="mp-stat-box"><span class="mp-stat-num">${Blk}</span><span class="mp-stat-lbl">Blocks</span></div>
         <div class="mp-stat-box"><span class="mp-stat-num">${Excl}</span><span class="mp-stat-lbl">Exclusions</span></div>
-      </div>
-      <div class="mp-stat-row-3">
-        <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${gameCount}</span><span class="mp-stat-lbl-sm">Games</span></div>
+        <div class="mp-stat-box"><span class="mp-stat-num">${gameCount}</span><span class="mp-stat-lbl">Games</span></div>
       </div>
 ` : `
       <div class="mp-stat-row-lg">
