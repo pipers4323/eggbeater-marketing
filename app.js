@@ -3639,10 +3639,25 @@ function renderScoresTab() {
   // Multi-slot: show read-only scores per (ageGroup × letter) slot
   const scoreSlots = getExpandedTeamSlots();
   if (scoreSlots.length > 1) {
-    const scorerLocked = TOURNAMENT.scoringPassword && !isScorerUnlocked();
-    const loginBar = scorerLocked
-      ? `<div class="scorer-gate-bar"><button class="scorer-gate-btn" onclick="openScoringPasswordModal()">🔒 Scorer Login</button></div>`
-      : (!isScorerUnlocked() ? '' : `<div class="scorer-tab-bar"><span class="scorer-tab-label">🔓 Scorer Mode Active</span><button class="scorer-tab-lock-btn" onclick="lockScoring()">🔒 Lock</button></div>`);
+    // Check unlock state per-slot: global TOURNAMENT may differ from individual slot tournaments,
+    // causing isScorerUnlocked() to return false even when the scorer IS unlocked for a slot.
+    const _savedTmpT = window.TOURNAMENT;
+    let anySlotHasPassword = false, anySlotUnlocked = false;
+    for (const { groupKey } of scoreSlots) {
+      const c = TEAM_CACHE[groupKey];
+      if (c) {
+        window.TOURNAMENT = c.tournament;
+        if (c.tournament.scoringPassword) anySlotHasPassword = true;
+        if (isScorerUnlocked()) anySlotUnlocked = true;
+      }
+    }
+    window.TOURNAMENT = _savedTmpT;
+    const scorerLocked = anySlotHasPassword && !anySlotUnlocked;
+    const loginBar = anySlotUnlocked
+      ? `<div class="scorer-tab-bar"><span class="scorer-tab-label">🔓 Scorer Mode Active</span><button class="scorer-tab-lock-btn" onclick="lockScoring()">🔒 Lock</button></div>`
+      : (scorerLocked
+        ? `<div class="scorer-gate-bar"><button class="scorer-gate-btn" onclick="openScoringPasswordModal()">🔒 Scorer Login</button></div>`
+        : '');
     let html = loginBar;
     const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
     for (const { groupKey, letter } of scoreSlots) {
