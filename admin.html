@@ -9628,49 +9628,113 @@
     }
 
     function parseMaxPrepsHtml(html) {
-      const games = [];
-      let match;
+      let games = [];
 
-      // Extract ALL "W/L score" entries
-      const allResults = [];
-      const rRx = /"(W|L|T) (\d+)-(\d+)"/g;
-      while ((match = rRx.exec(html)) !== null) {
-        allResults.push({ wl: match[1], s1: +match[2], s2: +match[3], pos: match.index });
-      }
-
-      // Extract description strings
-      const allDescs = [];
-      const dRx = /On (\d{1,2})\/(\d{1,2}), the (.+?) (?:varsity|junior varsity|jv|freshman|frosh) .*?water polo team (won|lost|tied) .*?(?:against|vs\.?) (.+?) (?:\([A-Z]{2}\) )?by a score of (\d+)-(\d+)/gi;
-      while ((match = dRx.exec(html)) !== null) {
-        const month = match[1].padStart(2, '0');
-        const day = match[2].padStart(2, '0');
-        const oppTeam = match[3].trim();
-        const result = match[4].toLowerCase();
-        const sc1 = +match[6], sc2 = +match[7];
-        const wl = result === 'won' ? 'L' : result === 'lost' ? 'W' : 'T';
-        const ourScore = wl === 'W' ? Math.max(sc1, sc2) : Math.min(sc1, sc2);
-        const theirScore = wl === 'W' ? Math.min(sc1, sc2) : Math.max(sc1, sc2);
-        allDescs.push({ opponent: oppTeam, wl, ourScore, theirScore, date: `${month}/${day}`, pos: match.index });
-      }
-
-      if (allDescs.length > 0) {
-        const seen = new Set();
-        for (const d of allDescs) {
-          const key = `${d.opponent}|${d.date}|${d.ourScore}-${d.theirScore}`;
-          if (!seen.has(key)) { seen.add(key); games.push(d); }
+      // 1. Try __NEXT_DATA__ (Next.js state)
+      try {
+        const nextMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+        if (nextMatch) {
+          const data = JSON.parse(nextMatch[1]);
+          const schedule = data?.props?.pageProps?.initialState?.teamSchedule?.schedule ||
+                           data?.props?.pageProps?.schedule;
+          if (Array.isArray(schedule)) {
+            for (const g of schedule) {
+              if (g.score && g.opponent) {
+                const wl = g.isWin === true ? 'W' : g.isWin === false ? 'L' : 'T';
+                const parts = String(g.score).split('-').map(s => Number(String(s).trim()));
+                if (parts.length !== 2 || !Number.isFinite(parts[0]) || !Number.isFinite(parts[1])) continue;
+                const [s1, s2] = parts;
+                games.push({
+                  opponent: g.opponent.name || 'Opponent',
+                  wl,
+                  ourScore: wl === 'W' ? Math.max(s1, s2) : Math.min(s1, s2),
+                  theirScore: wl === 'W' ? Math.min(s1, s2) : Math.max(s1, s2),
+                  date: g.date ? g.date.split('T')[0].split('-').slice(1).join('/') : ''
+                });
+              }
+            }
+          }
         }
-      } else if (allResults.length > 0) {
-        for (const r of allResults) {
-          games.push({ opponent: 'Opponent', result: r.wl, ourScore: r.s1, theirScore: r.s2, date: '' });
-        }
-      }
+      } catch (e) { console.warn('[maxpreps] NEXT_DATA error:', e.message); }
 
-      console.log('[maxpreps] Parse: HTML=' + html.length + ' results=' + allResults.length + ' descs=' + allDescs.length + ' games=' + games.length);
-
+      // 2. Try application/ld+json (JSON-LD SportsEvent)
       if (!games.length) {
-        throw new Error(`No game results found (page: ${html.length} bytes, results:${allResults.length}, descs:${allDescs.length}). Make sure the page has completed games.`);
+        try {
+          const ldRegex = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g;
+          let ldMatch;
+          while ((ldMatch = ldRegex.exec(html)) !== null) {
+            try {
+              const data = JSON.parse(ldMatch[1]);
+              const events = Array.isArray(data) ? data : [data];
+              for (const ev of events) {
+                if (ev['@type'] === 'SportsEvent' && ev.description) {
+                  const dRx = /On (\d{1,2})\/(\d{1,2}), the (.+?) (?:varsity|junior varsity|jv|freshman|frosh) (?:girls |boys )?.*?water polo team (won|lost|tied) .*?(?:against|vs\.?) (.+?) (?:\([A-Z, ]+\) )?by a score of (\d+)-(\d+)/gi;
+                  const m = dRx.exec(ev.description);
+                  if (m) {
+                    const wl = m[4].toLowerCase() === 'won' ? 'W' : m[4].toLowerCase() === 'lost' ? 'L' : 'T';
+                    const sc1 = +m[6], sc2 = +m[7];
+                    games.push({
+                      opponent: m[5].trim(),
+                      wl,
+                      ourScore: wl === 'W' ? Math.max(sc1, sc2) : Math.min(sc1, sc2),
+                      theirScore: wl === 'W' ? Math.min(sc1, sc2) : Math.max(sc1, sc2),
+                      date: `${m[1].padStart(2, '0')}/${m[2].padStart(2, '0')}`
+                    });
+                  }
+                }
+              }
+            } catch (e) { /* skip */ }
+          }
+        } catch (e) { console.warn('[maxpreps] JSON-LD error:', e.message); }
       }
-      return games;
+
+      // 3. Fallback: Global Regex (corrected capture groups)
+      if (!games.length) {
+        const dRx = /On (\d{1,2})\/(\d{1,2}), the (.+?) (?:varsity|junior varsity|jv|freshman|frosh) (?:girls |boys )?.*?water polo team (won|lost|tied) .*?(?:against|vs\.?) (.+?) (?:\([A-Z, ]+\) )?by a score of (\d+)-(\d+)/gi;
+        let match;
+        while ((match = dRx.exec(html)) !== null) {
+          const wl = match[4].toLowerCase() === 'won' ? 'W' : match[4].toLowerCase() === 'lost' ? 'L' : 'T';
+          const sc1 = +match[6], sc2 = +match[7];
+          games.push({
+            opponent: match[5].trim(),
+            wl,
+            ourScore: wl === 'W' ? Math.max(sc1, sc2) : Math.min(sc1, sc2),
+            theirScore: wl === 'W' ? Math.min(sc1, sc2) : Math.max(sc1, sc2),
+            date: `${match[1].padStart(2, '0')}/${match[2].padStart(2, '0')}`
+          });
+        }
+      }
+
+      // 4. Ultimate fallback: simple "W 10-5" strings
+      if (!games.length) {
+        const rRx = /"(W|L|T) (\d+)-(\d+)"/g;
+        let rMatch;
+        while ((rMatch = rRx.exec(html)) !== null) {
+          games.push({
+            opponent: 'Opponent',
+            wl: rMatch[1],
+            ourScore: +rMatch[2],
+            theirScore: +rMatch[3],
+            date: ''
+          });
+        }
+      }
+
+      const seen = new Set();
+      const uniqueGames = [];
+      for (const g of games) {
+        const key = `${g.opponent}|${g.date}|${g.ourScore}-${g.theirScore}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueGames.push(g);
+        }
+      }
+
+      console.log('[maxpreps] Parse: found ' + uniqueGames.length + ' unique games');
+      if (!uniqueGames.length) {
+        throw new Error('No game results found. Make sure you pasted the full page source for a completed season schedule.');
+      }
+      return uniqueGames;
     }
 
     function _processMaxPrepsGames(games, mpUrl, statusEl) {

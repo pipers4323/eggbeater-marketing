@@ -546,9 +546,18 @@ function fbListenToTournament(teamKey) {
     delete _tournamentListeners[teamKey];
   }
 
-  // Listen to the flat backward-compat collection because the admin panel
-  // dual-writes here. (The club-scoped collection uses a different document
-  // schema where teamKey is a nested field, not the doc ID).
+  // Listen to the flat backward-compat collection because the parent app's
+  // real-time listener contract still depends on the admin panel dual-writing
+  // tournament payloads into `tournaments/{teamKey}`.
+  //
+  // IMPORTANT: the newer club-scoped collection under `clubs/{clubId}/tournaments`
+  // is used for admin CRUD/library flows, but it is NOT the live listener source
+  // for the parent app yet. Any future write path that only updates the club-scoped
+  // document will silently bypass this listener and leave viewers stale.
+  //
+  // If you change this model, either:
+  // 1. keep mirroring writes into the flat collection, or
+  // 2. migrate fbListenToTournament() and all reader code to a single source of truth.
   _tournamentListeners[teamKey] = _fbDb.collection('tournaments')
     .doc(teamKey)
     .onSnapshot(snap => {
@@ -716,6 +725,9 @@ function fbGetClubId() { return _fbClubId; }
 /** Get reference to the club's tournaments collection */
 function _fbTournamentsCol() {
   if (!fbReady()) return null;
+  // Admin/library helpers use the club-scoped collection; live viewer listeners
+  // still read from the flat mirror above. Keep both in sync until the live path
+  // is fully migrated.
   return _fbDb.collection('clubs').doc(_fbClubId).collection('tournaments');
 }
 
