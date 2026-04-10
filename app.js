@@ -4876,6 +4876,7 @@ function renderGamesList() {
 // Clean schedule card — shows game info only, no scoring controls.
 // Completed games (with a result) are filtered out upstream and shown in History.
 function buildScheduleCard(g) {
+  const capBgClass = g.cap === 'Dark' ? 'cap-dark-bg' : g.cap === 'White' ? 'cap-white-bg' : '';
   const capIcon = g.cap === 'Dark' ? '🔵' : '⚪';
   // LIVE badge is handled by the Next Game blue card; plain schedule cards don't show it
   const isLive = getTournamentGames().some(game => game.id === g.id && isGameLive(game.id));
@@ -4883,7 +4884,7 @@ function buildScheduleCard(g) {
   const followBtn = `<button class="follow-live-btn-sm" onclick="toggleLiveActivity('${g.id}')" title="Follow Live on Lock Screen">📡 Follow</button>`;
 
   return `
-    <div class="sched-card">
+    <div class="sched-card ${capBgClass}">
       <div class="sched-card-top">
         <div class="sched-vs">${TOURNAMENT.clubName ? escHtml(TOURNAMENT.clubName) + ' vs ' : 'vs '}${escHtml(g.opponent || 'TBD')}${liveBadge} ${followBtn}</div>
         ${g.gameNum ? `<div class="sched-game-num">${escHtml(g.gameNum)}</div>` : ''}
