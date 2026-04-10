@@ -725,6 +725,10 @@ function fbGetClubId() { return _fbClubId; }
 /** Get reference to the club's tournaments collection */
 function _fbTournamentsCol() {
   if (!fbReady()) return null;
+  if (!_fbClubId) {
+    console.warn('[firebase] _fbTournamentsCol called before club ID was initialized');
+    return null;
+  }
   // Admin/library helpers use the club-scoped collection; live viewer listeners
   // still read from the flat mirror above. Keep both in sync until the live path
   // is fully migrated.
