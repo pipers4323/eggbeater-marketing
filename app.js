@@ -5644,7 +5644,7 @@ function renderHistoryTab() {
   }
   const listEl  = $('history-list');
   const emptyEl = $('history-empty');
-  const history = getHistoryForActiveTeam();
+  const history = getHistoryForActiveTeam().filter(h => h.id !== TOURNAMENT.id);
   listEl.innerHTML = '';
 
   // Clear old top-level standings slot — standings are now embedded per tournament
@@ -5739,17 +5739,22 @@ function renderHistoryTab() {
   if (completedNow.length) {
     emptyEl.classList.add('hidden');
     const curSecId = 'hs-content-current';
+    
+    const cardWrap = document.createElement('div');
+    cardWrap.className = 'history-section-card';
+    listEl.appendChild(cardWrap);
+
     const curHead  = document.createElement('div');
     curHead.className = 'history-section-heading history-section-toggle';
     curHead.setAttribute('aria-expanded', 'false');
     curHead.innerHTML = `<span class="hs-title">${escHtml(TOURNAMENT.name || 'Current Tournament')}</span><span class="hs-chevron">▶</span>`;
     curHead.onclick = () => toggleHistorySection(curSecId, curHead);
-    listEl.appendChild(curHead);
+    cardWrap.appendChild(curHead);
 
     const curContent = document.createElement('div');
     curContent.id = curSecId;
     curContent.className = 'history-section-content';
-    listEl.appendChild(curContent);
+    cardWrap.appendChild(curContent);
 
     for (const g of completedNow) {
       const result = state.results[g.id];
@@ -5820,19 +5825,23 @@ function renderHistoryTab() {
 
     const sectionId = `hs-content-${gi}`;
 
+    const cardWrap = document.createElement('div');
+    cardWrap.className = 'history-section-card';
+    listEl.appendChild(cardWrap);
+
     // ── Collapsible section heading ───────────────────────────────────────────
     const secEl = document.createElement('div');
     secEl.className = 'history-section-heading history-section-toggle';
     secEl.setAttribute('aria-expanded', 'false');
     secEl.innerHTML = `<span class="hs-title">${escHtml(group.heading)}</span><span class="hs-chevron">▶</span>`;
     secEl.onclick = () => toggleHistorySection(sectionId, secEl);
-    listEl.appendChild(secEl);
+    cardWrap.appendChild(secEl);
 
     // ── Collapsible content wrapper (collapsed by default) ────────────────────
     const contentEl = document.createElement('div');
     contentEl.id = sectionId;
     contentEl.className = 'history-section-content';
-    listEl.appendChild(contentEl);
+    cardWrap.appendChild(contentEl);
 
     // ── Standings card (only for tournaments with bracket points) ─────────────
     if (!group.noStandings) {
@@ -5887,6 +5896,11 @@ function renderHistoryTab() {
     seasonOrder.forEach((season, si) => {
       const sEntries = bySeason[season];
       const sectionId = `hs-content-season-${si}`;
+
+      const cardWrap = document.createElement('div');
+      cardWrap.className = 'history-section-card';
+      listEl.appendChild(cardWrap);
+
       const totalW = sEntries.reduce((s, h) => s + (h.wins || 0), 0);
       const totalL = sEntries.reduce((s, h) => s + (h.losses || 0), 0);
       const record = totalW || totalL ? ` · ${totalW}W–${totalL}L` : '';
@@ -5896,12 +5910,12 @@ function renderHistoryTab() {
       secEl.setAttribute('aria-expanded', 'false');
       secEl.innerHTML = `<span class="hs-title">${escHtml(season)}${record}</span><span class="hs-chevron">▶</span>`;
       secEl.onclick = () => toggleHistorySection(sectionId, secEl);
-      listEl.appendChild(secEl);
+      cardWrap.appendChild(secEl);
 
       const contentEl = document.createElement('div');
       contentEl.id = sectionId;
       contentEl.className = 'history-section-content';
-      listEl.appendChild(contentEl);
+      cardWrap.appendChild(contentEl);
 
       sEntries.forEach(t => contentEl.appendChild(buildHistoryCard(t)));
     });

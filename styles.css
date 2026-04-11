@@ -1440,12 +1440,24 @@ h2 {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: #fff;
-  background: var(--royal);
-  padding: 10px 14px;
-  border-radius: 8px;
-  margin-top: 28px;
+  color: var(--gray-900);
+  background: #ffffff;
+  padding: 12px 14px;
+  border-radius: 12px 12px 0 0;
+  border-bottom: 1px solid var(--gray-100);
 }
+.history-section-content {
+  background: #ffffff;
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+}
+.history-section-card {
+  margin-bottom: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
 .history-section-heading:first-child { margin-top: 4px; }
 
 /* Collapsible section toggle behaviour */
