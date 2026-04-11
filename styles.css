@@ -1289,10 +1289,11 @@ h2 {
 
 .bracket-qualifier {
   font-size: 0.76rem;
-  color: var(--gray-400);
-  padding: 5px 13px 6px;
+  color: var(--gray-700);
+  font-weight: 500;
+  padding: 6px 13px 7px;
   background: var(--gray-50);
-  border-bottom: 1px solid var(--gray-100);
+  border-bottom: 2px solid var(--gray-100);
   font-style: italic;
 }
 
@@ -4019,6 +4020,12 @@ details[open] .help-chevron { transform: rotate(180deg); }
   margin-bottom: 10px;
 }
 .help-request-btn:active { background: var(--royal-dark); }
+
+.sched-meta {
+  font-size: 0.78rem;
+  color: var(--gray-500);
+  line-height: 1.45;
+}
 
 .help-feedback-note {
   font-size: 0.75rem;

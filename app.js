@@ -443,11 +443,14 @@ function switchTeam(letter, groupKey) {
 // Single-team mode (no multi-team) → all entries unchanged.
 function getHistoryForActiveTeam() {
   const history = getHistory();
-  if (!isMultiTeam()) return history;
-  const team = getActiveTeam();
-  if (!team) return history;
+  const current = _getVirtualHistoryEntry();
+  const all = current ? [current, ...history] : history;
 
-  return history.filter(entry => {
+  if (!isMultiTeam()) return all;
+  const team = getActiveTeam();
+  if (!team) return all;
+
+  return all.filter(entry => {
     const t = (entry.team || '').trim();
     if (team === 'A') {
       const isB = t === 'B' || /^Team\s*B$/i.test(t);
@@ -462,6 +465,36 @@ function getHistoryForActiveTeam() {
     }
     return true;
   });
+}
+
+/** Create a history-like object from games in the active tournament that have results. */
+function _getVirtualHistoryEntry() {
+  const games = getTournamentGames().filter(g => state.results[g.id]);
+  if (!games.length) return null;
+
+  let wins = 0, losses = 0, pts = 0;
+  const gameEntries = games.map(g => {
+    const res = state.results[g.id];
+    if (isWin(res)) wins++; else if (isLoss(res)) losses++;
+    pts += (POINTS[res] || 0);
+    return {
+      ...g,
+      result: res,
+      liveScore: getLiveScore(g.id)
+    };
+  });
+
+  return {
+    id: 'active-virtual',
+    name: TOURNAMENT.name || 'Current Tournament',
+    subtitle: (TOURNAMENT.date || 'Active') + ' · IN PROGRESS',
+    games: gameEntries,
+    wins,
+    losses,
+    record: `${wins}-${losses}`,
+    totalPoints: pts,
+    virtual: true
+  };
 }
 
 // ─── BRACKET POINTS ───────────────────────────────────────────────────────────
@@ -2681,6 +2714,8 @@ function setResult(gameId, result) {
   state.results[gameId] = state.results[gameId] === result ? null : result;
   localStorage.setItem(STORE.RESULTS, JSON.stringify(state.results));
   renderScheduleTab();
+  renderScoresTab();
+  renderHistoryTab();
   renderPossibleTab();
   // Trigger a calendar re-sync if active
   if (state.syncActive && state.accessToken) syncToCalendar();
@@ -3699,7 +3734,8 @@ function renderScoresTab() {
         ? allGames
         : allGames.filter(g => g.team ? letters.includes(g.team) : letters.includes(firstTeam));
       const today = _localDateStr();
-      const active = games.filter(g => (!g.dateISO || g.dateISO >= today));
+      // Filter out games with results (they move to history) and games from past days
+      const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !state.results[g.id]);
 
       // Slot label — lean header row (not a full card wrapper)
       const slotLabel = _groupSectionLabelFor(groupKey, letter);
@@ -8770,7 +8806,7 @@ function _buildWatchPayload(availableTeams, clubName) {
         time: game.time || '',
         dateISO: game.dateISO || game.date || '',
         dateLabel: game.dateLabel || _watchDateLabel(game.dateISO || game.date || ''),
-        pool: game.pool || game.location || null,
+        pool: (game.pool || game.location) ? `\n${game.pool || game.location}` : null,
         cap: game.cap || null,
         gameNum: game.gameNum || game.number || null,
         ageGroup: team.label,
