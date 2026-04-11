@@ -2728,6 +2728,24 @@ function setBracketResult(stepKey, result) {
   renderNextGameCard(); // bracket projection may have advanced
 }
 
+/** Clear all manual Win/Loss marks from the device */
+function clearManualResults() {
+  if (confirm('Clear all your manual Win/Loss marks? This will move games back to the Schedule and Scores tabs.')) {
+    state.results = {};
+    localStorage.removeItem(STORE.RESULTS);
+    
+    // Refresh all tabs
+    renderScheduleTab();
+    renderScoresTab();
+    renderHistoryTab();
+    renderPossibleTab();
+    renderSettingsTab(); // update button state if needed
+    
+    if (typeof showToast === 'function') showToast('Manual results cleared.');
+  }
+}
+
+
 // ─── GOOGLE OAUTH ─────────────────────────────────────────────────────────────
 
 function ensureTokenClient() {
@@ -3371,6 +3389,19 @@ function renderSettingsTab() {
         </div>
       `}
     </div>
+
+    <div class="settings-section" style="margin-bottom:30px">
+      <div class="settings-section-title">⚙️ Data Management</div>
+      <div class="settings-item" onclick="clearManualResults()">
+        <span class="settings-item-icon">🧹</span>
+        <div class="settings-item-text">
+          <div class="settings-item-label" style="color:#dc2626">Reset manual Win/Loss results</div>
+          <div class="settings-item-value">Undo accidental win marks</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>
+
   `;
 
   // Render team pills into the settings area
