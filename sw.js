@@ -6,8 +6,8 @@
  *   notifies parents when new games are added to the schedule
  */
 
-const CACHE = 'ebwp-v136';
-const VER   = '?v=228';   // bump alongside index.html script tags on every deploy
+const CACHE = 'ebwp-v137';
+const VER   = '?v=229';   // bump alongside index.html script tags on every deploy
 const ASSETS = [
   '/',
   '/index.html',
@@ -189,6 +189,14 @@ const DEFAULT_SHEET_CONFIG = {
   teamName: TEAM_NAME,
   tournamentDates: TOURNAMENT_DATES,
   cacheKey: 'default-diablo-alliance',
+  dateCol: 0,
+  locationCol: 1,
+  timeCol: 2,
+  whiteTeamCol: 3,
+  whiteScoreCol: 4,
+  darkTeamCol: 5,
+  darkScoreCol: 6,
+  gameNumCol: 7,
 };
 
 // ─── KNOWN-GAMES PERSISTENCE (Cache API, accessible in SW context) ────────────
@@ -217,17 +225,18 @@ async function getSheetConfig() {
   try {
     const cache = await caches.open('ebwp-sheet-config');
     const res = await cache.match('/sheet-config.json');
-    if (!res) return DEFAULT_SHEET_CONFIG;
+    if (!res) return [DEFAULT_SHEET_CONFIG];
     const config = await res.json();
-    return {
+    const configs = Array.isArray(config?.configs) ? config.configs : [config];
+    return configs.map(cfg => ({
       ...DEFAULT_SHEET_CONFIG,
-      ...config,
-      tournamentDates: Object.prototype.hasOwnProperty.call(config || {}, 'tournamentDates')
-        ? (config?.tournamentDates || {})
+      ...cfg,
+      tournamentDates: Object.prototype.hasOwnProperty.call(cfg || {}, 'tournamentDates')
+        ? (cfg?.tournamentDates || {})
         : DEFAULT_SHEET_CONFIG.tournamentDates,
-    };
+    }));
   } catch {
-    return DEFAULT_SHEET_CONFIG;
+    return [DEFAULT_SHEET_CONFIG];
   }
 }
 
@@ -273,6 +282,38 @@ function cleanTeamName(raw) {
   return (raw || '').replace(/^[A-Z]\d+-/i, '').trim();
 }
 
+function parseScoreValue(raw) {
+  const str = String(raw || '').trim();
+  if (!str) return null;
+  const n = Number(str);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseGameNum(raw) {
+  const str = String(raw || '').trim();
+  if (!str) return '';
+  const match = str.match(/(?:game\s*#?\s*|#)(\d+)/i);
+  return match ? match[1] : '';
+}
+
+function normalizeTimeLabel(raw) {
+  const str = String(raw || '').trim();
+  if (!str) return '';
+  if (/\b(am|pm)\b/i.test(str)) return str.toUpperCase();
+  const hm = str.match(/^(\d{1,2}):(\d{2})$/);
+  if (!hm) return str;
+  const h = parseInt(hm[1], 10);
+  return `${hm[1]}:${hm[2]} ${h >= 7 && h <= 11 ? 'AM' : 'PM'}`;
+}
+
+function parseDateToISO(raw) {
+  const str = String(raw || '').trim();
+  if (!str) return '';
+  const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+  return str;
+}
+
 // ─── SHEET FETCHER ────────────────────────────────────────────────────────────
 
 async function fetchGamesFromSheet(sheetConfig = DEFAULT_SHEET_CONFIG) {
@@ -289,35 +330,48 @@ async function fetchGamesFromSheet(sheetConfig = DEFAULT_SHEET_CONFIG) {
   const csv  = await res.text();
   const rows = parseCSVRows(csv);
   const games = {};
+  const dateCol = Number.isInteger(sheetConfig?.dateCol) ? sheetConfig.dateCol : DEFAULT_SHEET_CONFIG.dateCol;
+  const locationCol = Number.isInteger(sheetConfig?.locationCol) ? sheetConfig.locationCol : DEFAULT_SHEET_CONFIG.locationCol;
+  const timeCol = Number.isInteger(sheetConfig?.timeCol) ? sheetConfig.timeCol : DEFAULT_SHEET_CONFIG.timeCol;
+  const whiteTeamCol = Number.isInteger(sheetConfig?.whiteTeamCol) ? sheetConfig.whiteTeamCol : DEFAULT_SHEET_CONFIG.whiteTeamCol;
+  const whiteScoreCol = Number.isInteger(sheetConfig?.whiteScoreCol) ? sheetConfig.whiteScoreCol : DEFAULT_SHEET_CONFIG.whiteScoreCol;
+  const darkTeamCol = Number.isInteger(sheetConfig?.darkTeamCol) ? sheetConfig.darkTeamCol : DEFAULT_SHEET_CONFIG.darkTeamCol;
+  const darkScoreCol = Number.isInteger(sheetConfig?.darkScoreCol) ? sheetConfig.darkScoreCol : DEFAULT_SHEET_CONFIG.darkScoreCol;
+  const gameNumCol = Number.isInteger(sheetConfig?.gameNumCol) ? sheetConfig.gameNumCol : DEFAULT_SHEET_CONFIG.gameNumCol;
 
   for (const row of rows) {
-    const dayRaw = (row[0] || '').trim();
-    if (!dayRaw.match(/^day\s+\d+$/i)) continue;
+    const white = cleanTeamName(row[whiteTeamCol] || '');
+    const dark = cleanTeamName(row[darkTeamCol] || '');
+    if (!white && !dark) continue;
 
-    const time    = (row[1] || '').trim();
-    const dateStr = tournamentDates[dayRaw.toLowerCase()] || dayRaw;
+    const isTeamWhite = white.toLowerCase().includes(team);
+    const isTeamDark = dark.toLowerCase().includes(team);
+    if (!isTeamWhite && !isTeamDark) continue;
 
-    const tryGame = (locCol, gameNumCol, whiteCol, darkCol) => {
-      const white = cleanTeamName(row[whiteCol] || '');
-      const dark  = cleanTeamName(row[darkCol]  || '');
-      if (!white && !dark) return;
-
-      const isTeamWhite = white.toLowerCase().includes(team);
-      const isTeamDark  = dark.toLowerCase().includes(team);
-      if (!isTeamWhite && !isTeamDark) return;
-
-      const opponent = isTeamWhite ? dark : white;
-      const location = (row[locCol]     || '').trim();
-      const gameNum  = (row[gameNumCol] || '').trim();
-
-      const key = `${dayRaw}|${gameNum}|${white}|${dark}`;
-      games[key] = { gameNum, date: dateStr, time, location, opponent: opponent || 'Opponent TBD' };
+    const dateRaw = (row[dateCol] || '').trim();
+    const dateISO = parseDateToISO(dateRaw) || tournamentDates[(dateRaw || '').toLowerCase()] || '';
+    const time = normalizeTimeLabel(row[timeCol] || '');
+    const location = (row[locationCol] || '').trim();
+    const gameNum = parseGameNum(row[gameNumCol] || '');
+    const whiteScore = parseScoreValue(row[whiteScoreCol]);
+    const darkScore = parseScoreValue(row[darkScoreCol]);
+    const opponent = isTeamWhite ? dark : white;
+    const teamCap = isTeamWhite ? 'White' : 'Dark';
+    const key = `${dateISO || dateRaw}|${time}|${gameNum}|${white}|${dark}`;
+    games[key] = {
+      gameNum,
+      date: dateISO || dateRaw,
+      dateISO: dateISO || '',
+      time,
+      location,
+      opponent: opponent || 'Opponent TBD',
+      whiteTeam: white,
+      whiteScore,
+      darkTeam: dark,
+      darkScore,
+      teamCap,
+      teamName: isTeamWhite ? white : dark,
     };
-
-    // Left block:  loc=2  gameNum=3  white=4  dark=6
-    // Right block: loc=11 gameNum=12 white=13 dark=15
-    tryGame(2, 3, 4, 6);
-    tryGame(11, 12, 13, 15);
   }
 
   return games;

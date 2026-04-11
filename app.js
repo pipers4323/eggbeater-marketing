@@ -5764,6 +5764,8 @@ function renderHistoryTab() {
   const listEl  = $('history-list');
   const emptyEl = $('history-empty');
   const history = getHistoryForActiveTeam().filter(h => h.id !== TOURNAMENT.id);
+  const virtualT = _getVirtualHistoryEntry();
+  const seasonEntries = virtualT ? [virtualT, ...history] : history;
   listEl.innerHTML = '';
 
   // Clear old top-level standings slot — standings are now embedded per tournament
@@ -5773,17 +5775,18 @@ function renderHistoryTab() {
   renderHistoryTeamSearch();
 
   // ── Season Dashboard (record overview) ─────────────────────────────────────
-  if (standingsEl && history.length) {
+  if (standingsEl && seasonEntries.length) {
     let totalW = 0, totalL = 0, totalGF = 0, totalGA = 0, totalGames = 0;
-    for (const h of history) {
+    for (const h of seasonEntries) {
       totalW += h.wins || 0;
       totalL += h.losses || 0;
-      // Count goals from game scores
       for (const g of (h.games || [])) {
-        if (g.liveScore && typeof g.liveScore.us === 'number') {
-          totalGF += g.liveScore.us || 0;
-          totalGA += g.liveScore.them || 0;
-        }
+        const evts = g.liveScore?.events || [];
+        const rec = evts.length ? recomputeScores(evts) : null;
+        const gf = rec ? rec.team : (g.liveScore?.team ?? g.liveScore?.us);
+        const ga = rec ? rec.opp : (g.liveScore?.opp ?? g.liveScore?.them);
+        if (typeof gf === 'number') totalGF += gf;
+        if (typeof ga === 'number') totalGA += ga;
       }
       totalGames += (h.games || []).filter(g => g.result).length;
     }
@@ -5809,7 +5812,7 @@ function renderHistoryTab() {
           <div style="flex:1">
             <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--royal);margin-bottom:2px">Season Record${teamLabel ? ' · ' + escHtml(teamLabel) : ''}</div>
             <div style="font-size:1.35rem;font-weight:800;color:var(--text)">${totalW}W - ${totalL}L</div>
-            <div style="font-size:0.78rem;color:var(--gray-500)">${totalGames} games · ${history.length} tournament${history.length > 1 ? 's' : ''}${totalGF || totalGA ? ` · ${totalGF} GF / ${totalGA} GA` : ''}</div>
+            <div style="font-size:0.78rem;color:var(--gray-500)">${totalGames} games · ${seasonEntries.length} tournament${seasonEntries.length > 1 ? 's' : ''}${totalGF || totalGA ? ` · ${totalGF} GF / ${totalGA} GA` : ''}</div>
           </div>
           <div style="width:50px;height:50px;border-radius:50%;background:${pctBg};display:flex;align-items:center;justify-content:center;flex-shrink:0">
             <span style="font-size:1rem;font-weight:800;color:${pctColor}">${pct}%</span>
@@ -5823,9 +5826,9 @@ function renderHistoryTab() {
   }
 
   // ── Season Stats aggregate (Phase 5D) ─────────────────────────────────────
-  if (standingsEl && history.length) {
+  if (standingsEl && seasonEntries.length) {
     const seasonStats = {};
-    for (const h of history) {
+    for (const h of seasonEntries) {
       const ps = h.playerStats || {};
       for (const [name, s] of Object.entries(ps)) {
         if (!seasonStats[name]) seasonStats[name] = { goals: 0, assists: 0, steals: 0, exclusions: 0, gamesPlayed: 0, tournaments: 0 };
@@ -5845,7 +5848,7 @@ function renderHistoryTab() {
       standingsEl.innerHTML += `
         <details class="season-stats-details" style="margin-bottom:12px">
           <summary style="font-weight:800;font-size:0.88rem;color:var(--royal);cursor:pointer;padding:8px 0">
-            📊 Season Stats (${history.length} tournament${history.length > 1 ? 's' : ''})
+            📊 Season Stats (${seasonEntries.length} tournament${seasonEntries.length > 1 ? 's' : ''})
           </summary>
           <div style="overflow-x:auto;margin-top:6px">
             <table class="season-stats-table">
@@ -5863,7 +5866,6 @@ function renderHistoryTab() {
     emptyEl.classList.add('hidden');
     
     // Use the rich virtual history entry to get full stats/scores
-    const virtualT = _getVirtualHistoryEntry();
     if (virtualT) {
       const cardWrap = document.createElement('div');
       cardWrap.className = 'history-section-card';
