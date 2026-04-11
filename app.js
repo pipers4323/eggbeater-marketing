@@ -7122,6 +7122,7 @@ async function onAgeGroupToggle(teamKey) {
   renderPossibleTab();
   renderHistoryTab();
   renderRosterTab();
+  await _syncWidgetsAll();
   await syncSheetConfigToServiceWorker();
   // Phase 2: sync Firestore listeners to match current team selection
   if (typeof fbListenToTournament === 'function') {
@@ -7139,6 +7140,7 @@ async function onTeamChange(teamKey) {
   renderPossibleTab();
   renderHistoryTab();
   renderRosterTab();
+  await _syncWidgetsAll();
   await syncSheetConfigToServiceWorker();
 }
 const VAPID_PUBLIC_KEY = 'BLAUkqU0MK0iweY295OlM0ZvnsnW_sY9nimSShbwBZRQc2swcC79ReFT2Abs4drLSZZdrToy3nZRILeta37USBY';
