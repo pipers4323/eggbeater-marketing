@@ -5423,6 +5423,17 @@ details[open] .help-chevron { transform: rotate(180deg); }
 .next-meta .directions-btn:hover {
   background: rgba(255,255,255,0.25);
 }
+.next-game-card.cap-white-bg .location-venue {
+  color: var(--gray-600);
+}
+.next-game-card.cap-white-bg .directions-btn {
+  background: var(--gray-50);
+  color: var(--gray-700);
+  border-color: var(--gray-200);
+}
+.next-game-card.cap-white-bg .directions-btn:hover {
+  background: var(--gray-100);
+}
 
 /* ── Location Link ────────────────────────────────────────────────────── */
 [data-theme="dark"] .location-link {
