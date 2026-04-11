@@ -3874,9 +3874,10 @@ function renderScoresTab() {
       const letters = letter ? [letter] : getTeamLettersForGroup(groupKey);
       // If no letters configured for this group (single-team setup), show all games —
       // same logic as getTournamentGames() which returns all games when letters is null.
-      const games = !letters.length
+      const games = (!letters.length
         ? allGames
-        : allGames.filter(g => g.team ? letters.includes(g.team) : letters.includes(firstTeam));
+        : allGames.filter(g => g.team ? letters.includes(g.team) : letters.includes(firstTeam)))
+        .map(g => ({ ...g, _groupKey: groupKey }));
       const today = _localDateStr();
       // Filter out games with results (they move to history) and games from past days
 const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResultForGame(g));
@@ -3909,6 +3910,7 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
       // right password, clubName, and scoring config (restored below after each slot).
       const _savedT = window.TOURNAMENT, _savedH = window.HISTORY_SEED;
       if (cache) { window.TOURNAMENT = cache.tournament; window.HISTORY_SEED = cache.history || []; }
+      _activeAgeGroup = groupKey;
       for (const dk of dateOrder) {
         html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dk))}</div>`;
         html += `<div class="games-section">`;
@@ -3916,6 +3918,7 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
         for (const g of byDate[dk]) html += buildGameCard(g, scorerLocked, false, slotLabel);
         html += `</div>`;
       }
+      _activeAgeGroup = null;
       if (cache) { window.TOURNAMENT = _savedT; window.HISTORY_SEED = _savedH; }
     }
     html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
@@ -8043,6 +8046,7 @@ async function pollLiveScores() {
       if (state.currentTab === 'schedule') renderScheduleTab();
       else { renderNextGameCard(); renderGamesList(); }
       if (state.currentTab === 'scores') renderScoresTab();
+      renderHistoryTab();
       updateLiveDot();
       // VoiceOver: announce the most recently broadcast game that changed
       if (changedGameIds.length === 1) {
