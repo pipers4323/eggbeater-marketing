@@ -5977,6 +5977,52 @@ async function reloadTournamentJs() {
   renderRosterTab();
 }
 
+function buildSheetConfigFromTournament(tournament) {
+  const sync = tournament?.sheetSync;
+  if (!sync?.sheetUrl || !sync?.teamName) return null;
+
+  const sheetIdMatch = sync.sheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if (!sheetIdMatch) return null;
+  const gidMatch = sync.sheetUrl.match(/[#?&]gid=(\d+)/);
+
+  const dates = new Set();
+  (tournament?.games || []).forEach(g => {
+    if (g?.dateISO) dates.add(g.dateISO);
+  });
+  (tournament?.bracket?.paths || []).forEach(path => {
+    (path?.steps || []).forEach(step => {
+      if (step?.dateISO) dates.add(step.dateISO);
+    });
+  });
+
+  const tournamentDates = {};
+  Array.from(dates).sort().forEach((dateISO, idx) => {
+    tournamentDates[`day ${idx + 1}`] = dateISO;
+  });
+
+  return {
+    sheetId: sheetIdMatch[1],
+    gid: gidMatch?.[1] || '',
+    teamName: sync.teamName,
+    tournamentDates,
+    cacheKey: `${getAppClubId() || 'club'}:${tournament?.id || 'tournament'}:${sync.teamName}`,
+  };
+}
+
+async function syncSheetConfigToServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  const primaryTeam = getSelectedTeams()[0];
+  const tournament = TEAM_CACHE[primaryTeam]?.tournament || window.TOURNAMENT;
+  const config = buildSheetConfigFromTournament(tournament);
+  if (!config) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const msg = { type: 'SYNC_SHEET_CONFIG', config };
+    reg.active?.postMessage(msg);
+    navigator.serviceWorker.controller?.postMessage(msg);
+  } catch (_) {}
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 
 function init() {
@@ -6247,7 +6293,7 @@ function init() {
     });
 
     navigator.serviceWorker.register('/sw.js')
-      .then(reg => {
+      .then(async reg => {
         // Listen for messages from the service worker
         navigator.serviceWorker.addEventListener('message', e => {
           if (e.data?.type === 'PUSH_SYNC' || e.data?.type === 'PERIODIC_SYNC_TRIGGERED') {
@@ -6264,6 +6310,7 @@ function init() {
           reg.periodicSync.register('check-schedule', { minInterval: 30 * 60 * 1000 })
             .catch(() => { /* permission not granted — push will still work */ });
         }
+        await syncSheetConfigToServiceWorker();
       })
       .catch(() => {});
   }
@@ -7027,6 +7074,7 @@ async function loadAllSelectedTeams() {
     window.TOURNAMENT   = TEAM_CACHE[teams[0]].tournament;
     window.HISTORY_SEED = TEAM_CACHE[teams[0]].history || [];
   }
+  await syncSheetConfigToServiceWorker();
 }
 
 /** Deselect all team keys in an HS group (e.g., boys-varsity,boys-jv) */
@@ -7047,6 +7095,7 @@ async function deselectHSGroup(keysStr) {
   renderPossibleTab();
   renderHistoryTab();
   renderRosterTab();
+  await syncSheetConfigToServiceWorker();
 }
 
 async function onAgeGroupToggle(teamKey) {
@@ -7068,6 +7117,7 @@ async function onAgeGroupToggle(teamKey) {
   renderPossibleTab();
   renderHistoryTab();
   renderRosterTab();
+  await syncSheetConfigToServiceWorker();
   // Phase 2: sync Firestore listeners to match current team selection
   if (typeof fbListenToTournament === 'function') {
     teams.forEach(k => fbListenToTournament(k));
@@ -7084,6 +7134,7 @@ async function onTeamChange(teamKey) {
   renderPossibleTab();
   renderHistoryTab();
   renderRosterTab();
+  await syncSheetConfigToServiceWorker();
 }
 const VAPID_PUBLIC_KEY = 'BLAUkqU0MK0iweY295OlM0ZvnsnW_sY9nimSShbwBZRQc2swcC79ReFT2Abs4drLSZZdrToy3nZRILeta37USBY';
 

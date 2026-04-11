@@ -183,25 +183,62 @@ const TOURNAMENT_DATES = {
   'day 3': '2026-04-25',
 };
 
+const DEFAULT_SHEET_CONFIG = {
+  sheetId: SHEET_ID,
+  gid: SHEET_GID,
+  teamName: TEAM_NAME,
+  tournamentDates: TOURNAMENT_DATES,
+  cacheKey: 'default-diablo-alliance',
+};
+
 // ─── KNOWN-GAMES PERSISTENCE (Cache API, accessible in SW context) ────────────
 
-async function getKnownGames() {
+async function getKnownGames(cacheKey = DEFAULT_SHEET_CONFIG.cacheKey) {
   try {
     const cache = await caches.open('ebwp-known-games');
-    const res   = await cache.match('/known-games.json');
+    const res   = await cache.match(`/known-games-${cacheKey}.json`);
     if (!res) return {};
     return await res.json();
   } catch { return {}; }
 }
 
-async function saveKnownGames(games) {
+async function saveKnownGames(games, cacheKey = DEFAULT_SHEET_CONFIG.cacheKey) {
   try {
     const cache = await caches.open('ebwp-known-games');
-    await cache.put('/known-games.json', new Response(JSON.stringify(games), {
+    await cache.put(`/known-games-${cacheKey}.json`, new Response(JSON.stringify(games), {
       headers: { 'Content-Type': 'application/json' },
     }));
   } catch (e) {
     console.error('SW: saveKnownGames failed:', e.message);
+  }
+}
+
+async function getSheetConfig() {
+  try {
+    const cache = await caches.open('ebwp-sheet-config');
+    const res = await cache.match('/sheet-config.json');
+    if (!res) return DEFAULT_SHEET_CONFIG;
+    const config = await res.json();
+    return {
+      ...DEFAULT_SHEET_CONFIG,
+      ...config,
+      tournamentDates: Object.prototype.hasOwnProperty.call(config || {}, 'tournamentDates')
+        ? (config?.tournamentDates || {})
+        : DEFAULT_SHEET_CONFIG.tournamentDates,
+    };
+  } catch {
+    return DEFAULT_SHEET_CONFIG;
+  }
+}
+
+async function saveSheetConfig(config) {
+  try {
+    const cache = await caches.open('ebwp-sheet-config');
+    await cache.put('/sheet-config.json', new Response(JSON.stringify(config), {
+      headers: { 'Content-Type': 'application/json' },
+    }));
+  } catch (e) {
+    console.error('SW: saveSheetConfig failed:', e.message);
   }
 }
 
@@ -238,14 +275,19 @@ function cleanTeamName(raw) {
 
 // ─── SHEET FETCHER ────────────────────────────────────────────────────────────
 
-async function fetchGamesFromSheet() {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${SHEET_GID}`;
+async function fetchGamesFromSheet(sheetConfig = DEFAULT_SHEET_CONFIG) {
+  const sheetId = sheetConfig?.sheetId || DEFAULT_SHEET_CONFIG.sheetId;
+  const gid = sheetConfig?.gid || DEFAULT_SHEET_CONFIG.gid;
+  const team = (sheetConfig?.teamName || DEFAULT_SHEET_CONFIG.teamName || '').toLowerCase();
+  const tournamentDates = Object.prototype.hasOwnProperty.call(sheetConfig || {}, 'tournamentDates')
+    ? (sheetConfig?.tournamentDates || {})
+    : DEFAULT_SHEET_CONFIG.tournamentDates;
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
   const res  = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Sheet fetch failed: ${res.status}`);
 
   const csv  = await res.text();
   const rows = parseCSVRows(csv);
-  const team = TEAM_NAME.toLowerCase();
   const games = {};
 
   for (const row of rows) {
@@ -253,7 +295,7 @@ async function fetchGamesFromSheet() {
     if (!dayRaw.match(/^day\s+\d+$/i)) continue;
 
     const time    = (row[1] || '').trim();
-    const dateStr = TOURNAMENT_DATES[dayRaw.toLowerCase()] || dayRaw;
+    const dateStr = tournamentDates[dayRaw.toLowerCase()] || dayRaw;
 
     const tryGame = (locCol, gameNumCol, whiteCol, darkCol) => {
       const white = cleanTeamName(row[whiteCol] || '');
@@ -293,22 +335,29 @@ function formatDate(dateStr) {
 // Fires when the Cloudflare Worker sends a push every 30 min.
 // iOS REQUIRES showNotification() on every push — no silent pushes allowed.
 
+self.addEventListener('message', e => {
+  if (e.data?.type === 'SYNC_SHEET_CONFIG' && e.data.config) {
+    e.waitUntil(saveSheetConfig(e.data.config));
+  }
+});
+
 self.addEventListener('push', e => {
   e.waitUntil(
     (async () => {
       let newGames = [];
 
       try {
+        const sheetConfig = await getSheetConfig();
         const [currentGames, knownGames] = await Promise.all([
-          fetchGamesFromSheet(),
-          getKnownGames(),
+          fetchGamesFromSheet(sheetConfig),
+          getKnownGames(sheetConfig.cacheKey),
         ]);
 
         for (const [key, game] of Object.entries(currentGames)) {
           if (!knownGames[key]) newGames.push(game);
         }
 
-        await saveKnownGames(currentGames);
+        await saveKnownGames(currentGames, sheetConfig.cacheKey);
 
       } catch (err) {
         console.error('SW push: sheet fetch failed:', err.message);
