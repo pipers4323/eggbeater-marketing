@@ -4952,6 +4952,18 @@ details[open] .help-chevron { transform: rotate(180deg); }
 [data-theme="dark"] .game-card.result-win  { border-left-color: #4ade80; }
 [data-theme="dark"] .game-card.result-loss { border-left-color: #f87171; }
 
+[data-theme="dark"] .game-card.cap-dark-bg,
+[data-theme="dark"] .sched-card.cap-dark-bg {
+  background: rgb(var(--royal-rgb));
+  border-color: rgba(255,255,255,0.12);
+  border-left-color: rgba(255,255,255,0.3);
+}
+[data-theme="dark"] .game-card.cap-white-bg,
+[data-theme="dark"] .sched-card.cap-white-bg {
+  background: #ffffff;
+  color: #111827;
+}
+
 /* ── Standings Card ────────────────────────────────────────────────────── */
 [data-theme="dark"] .standings-card {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
