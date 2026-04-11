@@ -735,11 +735,11 @@ function findNextGameOrProjected() {
   const games = getTournamentGames();
 
   // 1. Next upcoming pool play game by clock time
-  // Keep showing a game as "next" until 50 min past its start time (covers typical game duration)
+  // Keep showing a game as "next" until 90 min past its start time (covers typical game duration)
   const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
   const withTime = games.filter(g => {
     const t = parseGameTime(g.dateISO, g.time);
-    return t && t > new Date(now - 50 * 60 * 1000);
+    return t && t > new Date(now - 90 * 60 * 1000);
   });
   // Fallback: if no games have a valid future dateISO (e.g. dates not yet entered),
   // treat all unplayed games as upcoming and sort by game number.
@@ -964,14 +964,30 @@ function isGameLive(gameId) {
   return isScorerUnlocked();
 }
 
+/** Returns the age-group KEY (e.g. '14u-girls') for a given gameId by checking TEAM_CACHE. */
+function _resolveGameAgeGroupKey(gameId) {
+  const gidStr = String(gameId);
+  for (const [key, cache] of Object.entries(TEAM_CACHE)) {
+    if (cache?.tournament?.games?.some(g => String(g.id) === gidStr)) return key;
+  }
+  // Fallback: check global TOURNAMENT
+  if (TOURNAMENT?.games?.some(g => String(g.id) === gidStr)) return getSelectedTeam();
+  return getSelectedTeams()[0] || '';
+}
+
+/** Returns the age-group LABEL (e.g. '14u Girls') for a given gameId. */
+function _resolveGameAgeGroup(gameId) {
+  const key = _resolveGameAgeGroupKey(gameId);
+  return TEAM_OPTIONS.find(t => t.key === key)?.label || '';
+}
+
 /** Build an enriched score object for EggbeaterLiveUpdate.sync() — adds team name,
  *  opponent name, age group, and last event so the Android notification is descriptive. */
 function _buildLUScore(gameId) {
   const score    = state.liveScores[gameId] || {};
   const game     = getTournamentGames().find(g => g.id === gameId);
-  // Age group: look up the selected team key in TEAM_OPTIONS (e.g. '12u-girls' → '12u Girls')
-  const _agKey   = getSelectedTeams()[0] || '';
-  const _agLabel = TEAM_OPTIONS.find(t => t.key === _agKey)?.label || '';
+  // Age group: resolve from TEAM_CACHE so the correct group is used even with multiple selected
+  const _agLabel = _resolveGameAgeGroup(gameId);
   // Team name: "Big Splash A" format — club name + team letter
   const _club    = localStorage.getItem('ebwp-club-name') || getAppClubId() || '';
   const _tName   = game ? (`${_club}${game.team ? ' ' + game.team : ''}`).trim() : '';
@@ -1104,6 +1120,13 @@ function setGameState(gameId, gstate) {
   if (newPeriod != null) s.period = newPeriod;
   s.events.push({ type: 'game_state', gameState: gstate, clock: s.clock || '', period: s.period, ts: Date.now() });
   state.liveScores[gameId] = s;
+
+  // Feedback: Auto-reset clock when moving to a quarter state
+  const isQuarter = ['q1','q2','q3','q4','ot','shootout'].includes(gstate);
+  if (isQuarter) {
+    resetGameClock(gameId);
+  }
+
   afterScore(gameId);
 }
 
@@ -1275,7 +1298,7 @@ function undoLastGoal(gameId) { undoLastEvent(gameId); }
 // ─── BOX SCORE RENDERING ──────────────────────────────────────────────────────
 
 // Build the event log HTML, grouped by period
-function buildEventLog(events) {
+function buildEventLog(events, currentPeriod = 0) {
   const nonState = events.filter(e => e.type !== 'game_state');
   if (!nonState.length) return '';
 
@@ -1288,7 +1311,7 @@ function buildEventLog(events) {
   }
 
   const WP_BALL = '<span class="wp-ball">🏐</span>';
-  const TYPE_ICONS = { goal:WP_BALL, opp_goal:WP_BALL, goal_5m:WP_BALL, opp_goal_5m:WP_BALL, shot_miss:'❌', opp_shot_miss:'❌', miss_5m:'❌', opp_miss_5m:'❌', so_goal:WP_BALL, opp_so_goal:WP_BALL, so_miss:'❌', opp_so_miss:'❌', assist:'🤝', exclusion:'❌', opp_exclusion:'❌', brutality:'🟥', timeout:'⏱', opp_timeout:'⏱', save:'🧤', block:'🧤' };
+  const TYPE_ICONS = { goal:WP_BALL, opp_goal:WP_BALL, goal_5m:WP_BALL, opp_goal_5m:WP_BALL, shot_miss:'❌', opp_shot_miss:'❌', miss_5m:'❌', opp_miss_5m:'❌', so_goal:WP_BALL, opp_so_goal:WP_BALL, so_miss:'❌', opp_so_miss:'❌', assist:'🤝', steal:'🧤', exclusion:'❌', opp_exclusion:'❌', brutality:'🟥', timeout:'⏱', opp_timeout:'⏱', save:'🧤', block:'🧤' };
   const TYPE_LABEL = {
     goal:          ev => ev.sixOnFive ? 'GOAL (6v5)' : 'GOAL',
     opp_goal:      ()  => 'GOAL',
@@ -1303,6 +1326,7 @@ function buildEventLog(events) {
     so_miss:       ()  => 'SO MISS',
     opp_so_miss:   ()  => 'SO MISS',
     assist:        ()  => 'ASSIST',
+    steal:         ()  => 'STEAL',
     exclusion:     ()  => 'EXCL',
     opp_exclusion: ()  => 'EXCL',
     brutality:     ()  => 'BRUTAL',
@@ -1313,9 +1337,17 @@ function buildEventLog(events) {
   };
 
   let html = '<div class="event-log">';
-  for (const [period, evs] of Object.entries(groups).sort((a,b) => Number(a[0]) - Number(b[0]))) {
+  const sortedPeriods = Object.entries(groups).sort((a,b) => Number(b[0]) - Number(a[0]));
+  const currentP = currentPeriod;
+
+  for (const [period, evs] of sortedPeriods) {
     const label = PERIOD_LABELS[parseInt(period)] || `P${period}`;
-    html += `<div class="event-period-header">${escHtml(label)}</div>`;
+    const pKey  = `${currentP}_p${period}`; // Unique key to check manual toggle
+    const manuallyOpened = state.logQuartersOpened && state.logQuartersOpened[pKey];
+    const isOpen = parseInt(period) === currentP || sortedPeriods.length === 1 || manuallyOpened;
+    
+    html += `<details class="event-log-qtr" ${isOpen?'open':''} ontoggle="onQuarterToggle(this, '${period}')">
+      <summary class="event-period-header">${escHtml(label)}</summary>`;
     for (const ev of evs) {
       const isTeam    = ev.side === 'team';
       const icon      = TYPE_ICONS[ev.type] || '·';
@@ -1330,6 +1362,7 @@ function buildEventLog(events) {
         <span class="event-type">${escHtml(typeLabel)}</span>
       </div>`;
     }
+    html += `</details>`;
   }
   html += '</div>';
   return html;
@@ -1347,7 +1380,7 @@ function buildBoxScoreHtml(events, oppName) {
     if (ev.type === 'timeout')    { teamTimeouts++; continue; }
     if (ev.side !== 'team')       continue;
     const key = ev.cap || ev.name || '_unknown';
-    if (!playerMap[key]) playerMap[key] = { cap: ev.cap||'', name: ev.name||'', G:0, SM:0, G5:0, M5:0, SOG:0, SOM:0, A:0, Excl:0, EE:0, Sv:0 };
+    if (!playerMap[key]) playerMap[key] = { cap: ev.cap||'', name: ev.name||'', G:0, SM:0, G5:0, M5:0, SOG:0, SOM:0, A:0, Stl:0, Excl:0, EE:0, Sv:0 };
     if (ev.type === 'goal')                              playerMap[key].G++;
     if (ev.type === 'shot_miss')                         playerMap[key].SM++;
     if (ev.type === 'goal_5m')                           playerMap[key].G5++;
@@ -1355,6 +1388,7 @@ function buildBoxScoreHtml(events, oppName) {
     if (ev.type === 'so_goal')                           playerMap[key].SOG++;
     if (ev.type === 'so_miss')                           playerMap[key].SOM++;
     if (ev.type === 'assist')                            playerMap[key].A++;
+    if (ev.type === 'steal')                             playerMap[key].Stl++;
     if (ev.type === 'exclusion' || ev.type === 'brutality') playerMap[key].Excl++;
     if (ev.type === 'earned_excl')                       playerMap[key].EE++;
     if (ev.type === 'save' || ev.type === 'block')       playerMap[key].Sv++;
@@ -1371,6 +1405,7 @@ function buildBoxScoreHtml(events, oppName) {
 
   const totalG    = fieldPlayers.reduce((s,p) => s+p.G, 0);
   const totalA    = fieldPlayers.reduce((s,p) => s+p.A, 0);
+  const totalStl  = fieldPlayers.reduce((s,p) => s+(p.Stl||0), 0);
   const totalExcl = fieldPlayers.reduce((s,p) => s+p.Excl, 0);
   const totalEE   = fieldPlayers.reduce((s,p) => s+(p.EE||0), 0);
 
@@ -1388,6 +1423,7 @@ function buildBoxScoreHtml(events, oppName) {
       ${hasSoGoals ? `<span class="bs-stat${p.SOG?' has-stat':''}">${p.SOG||0}</span>` : ''}
       ${hasSoGoals ? `<span class="bs-stat${p.SOM?' has-stat excl-stat':''}">${p.SOM||0}</span>` : ''}
       <span class="bs-stat${p.A?'   has-stat':''}">${p.A}</span>
+      <span class="bs-stat${p.Stl?' has-stat':''}">${p.Stl||0}</span>
       <span class="bs-stat${p.Excl?' has-stat excl-stat':''}">${p.Excl}</span>
       <span class="bs-stat${p.EE?'   has-stat excl-stat':''}">${p.EE||0}</span>
     </div>`;
@@ -1428,6 +1464,7 @@ function buildBoxScoreHtml(events, oppName) {
       ${hasSoGoals ? `<span class="bs-stat bs-col-hdr" title="Shootout Goals">SO✓</span>` : ''}
       ${hasSoGoals ? `<span class="bs-stat bs-col-hdr" title="Shootout Misses">SO✗</span>` : ''}
       <span class="bs-stat bs-col-hdr">A</span>
+      <span class="bs-stat bs-col-hdr">S</span>
       <span class="bs-stat bs-col-hdr">Ex</span>
       <span class="bs-stat bs-col-hdr" title="Earned Exclusions">EE</span>
     </div>
@@ -1441,6 +1478,7 @@ function buildBoxScoreHtml(events, oppName) {
       ${hasSoGoals ? `<span class="bs-stat has-stat">${totalSOG}</span>` : ''}
       ${hasSoGoals ? `<span class="bs-stat">${totalSOM}</span>` : ''}
       <span class="bs-stat">${totalA}</span>
+      <span class="bs-stat">${totalStl}</span>
       <span class="bs-stat">${totalExcl}</span>
       <span class="bs-stat">${totalEE}</span>
     </div>` : ''}
@@ -4902,6 +4940,13 @@ function buildScheduleCard(g) {
     </div>`;
 }
 
+function onQuarterToggle(el, period) {
+  if (!state.logQuartersOpened) state.logQuartersOpened = {};
+  const currentP = state.liveScores[Object.keys(state.liveScores)[0]]?.period || 0;
+  const pKey = `${currentP}_p${period}`;
+  state.logQuartersOpened[pKey] = el.open;
+}
+
 function _onScorerToggle(el) {
   const hdr = document.querySelector('.app-header');
   if (el.open) {
@@ -5027,7 +5072,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
     </div>`;
 
   // Event log + box score
-  const eventLogHtml = buildEventLog(events);
+  const eventLogHtml = buildEventLog(events, s.period);
   const boxScoreHtml = buildBoxScoreHtml(events, g.opponent || 'Opp');
   const hasEvents    = events.filter(e=>e.type!=='game_state').length > 0;
 
@@ -5055,6 +5100,10 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
           <span class="ls-score ls-score-opp">${Number.isInteger(s.opp) ? s.opp : s.opp.toFixed(1)}</span>
         </div>
       </div>
+      <div class="ls-actions-row">
+        <button class="ls-undo-btn" onclick="undoLastEvent('${gid}')">↩ Undo</button>
+        <button class="ls-share-btn" onclick="shareBoxScore('${gid}')">📤 Share</button>
+      </div>
       ${s.gameState === 'shootout' ? `
       <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:6px 10px;margin-bottom:6px;text-align:center">
         <span style="font-weight:700;color:#92400e">🎯 SHOOTOUT MODE</span>
@@ -5071,6 +5120,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       </div>` : ''}
       <div class="stat-btns-row">
         <button class="stat-btn stat-assist"      onclick="openEventPicker('${gid}','assist')">Assist</button>
+        <button class="stat-btn stat-steal"       onclick="openEventPicker('${gid}','steal')">Steal</button>
         <button class="stat-btn stat-attempt"     onclick="openEventPicker('${gid}','shot_miss')">Attempt</button>
         <button class="stat-btn stat-exclusion"   onclick="openEventPicker('${gid}','exclusion')">Excl</button>
         <button class="stat-btn stat-earned-excl"  onclick="openEventPicker('${gid}','earned_excl')">Earned Excl</button>
@@ -5101,11 +5151,6 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
         </div>`;
       }).join('')}
       ${eventLogHtml}
-      ${hasEvents ? `
-        <div class="bs-actions-row">
-          <button class="undo-goal-btn" onclick="undoLastEvent('${gid}')">↩ Undo</button>
-          <button class="bs-share-btn"  onclick="shareBoxScore('${gid}')">📤 Share</button>
-        </div>` : ''}
       ${boxScoreHtml}
     </div>
     </details>`;
@@ -7903,7 +7948,7 @@ function getAllPlayersWithStats() {
       const key = nameKey(ev);
       if (!key) continue;
       const name = String(ev.name || '').trim();
-      if (!map[key]) map[key] = { name, G: 0, SM: 0, G5: 0, M5: 0, SOG: 0, SOM: 0, A: 0, Excl: 0, EE: 0, sixOnFive: 0, Sv: 0, games: new Set() };
+      if (!map[key]) map[key] = { name, G: 0, SM: 0, G5: 0, M5: 0, SOG: 0, SOM: 0, Stl: 0, A: 0, Excl: 0, EE: 0, sixOnFive: 0, Sv: 0, games: new Set() };
       // Keep the longest / most complete name seen for this player
       if (name.length > map[key].name.length) map[key].name = name;
       map[key].games.add(gameKey);
@@ -7913,6 +7958,7 @@ function getAllPlayersWithStats() {
       if (ev.type === 'miss_5m')                              map[key].M5++;
       if (ev.type === 'so_goal')                              map[key].SOG++;
       if (ev.type === 'so_miss')                              map[key].SOM++;
+      if (ev.type === 'steal')                                map[key].Stl++;
       if (ev.type === 'assist')                               map[key].A++;
       if (ev.type === 'exclusion' || ev.type === 'brutality') map[key].Excl++;
       if (ev.type === 'earned_excl')                          map[key].EE++;
@@ -7964,7 +8010,7 @@ function collectPlayerGameRows(name) {
   }
 
   function extractFromEvts(evts) {
-    let G = 0, SM = 0, G5 = 0, M5 = 0, SOG = 0, SOM = 0, A = 0, Excl = 0, EE = 0, sixOnFive = 0, Sv = 0, hasAny = false;
+    let G = 0, SM = 0, G5 = 0, M5 = 0, SOG = 0, SOM = 0, Stl = 0, A = 0, Excl = 0, EE = 0, sixOnFive = 0, Sv = 0, hasAny = false;
     for (const ev of (evts || [])) {
       if (ev.type === 'game_state') continue;
       if (!matchesPlayer(ev)) continue;
@@ -7975,12 +8021,13 @@ function collectPlayerGameRows(name) {
       if (ev.type === 'miss_5m')                              M5++;
       if (ev.type === 'so_goal')                              SOG++;
       if (ev.type === 'so_miss')                              SOM++;
+      if (ev.type === 'steal')                                Stl++;
       if (ev.type === 'assist')                               A++;
       if (ev.type === 'exclusion' || ev.type === 'brutality') Excl++;
       if (ev.type === 'earned_excl')                          EE++;
       if (ev.type === 'save' || ev.type === 'block')          Sv++;
     }
-    return { hasAny, G, SM, G5, M5, SOG, SOM, A, Excl, EE, sixOnFive, Sv };
+    return { hasAny, G, SM, G5, M5, SOG, SOM, Stl, A, Excl, EE, sixOnFive, Sv };
   }
 
   // Current tournament
@@ -8773,27 +8820,25 @@ async function _syncWidgetsAll() {
     for (const [gameId, score] of Object.entries(state.liveScores)) {
       if (!score || score.gameState === 'pre' || score.gameState === 'final' ||
           score.gameState === 'so_w' || score.gameState === 'so_l') continue;
-      if (!score._broadcastAt || (Date.now() - score._broadcastAt) > 30 * 60 * 1000) continue;
+      if (!score._broadcastAt || (Date.now() - score._broadcastAt) > 90 * 60 * 1000) continue;
       const game = games.find(g => g.id === gameId);
-      // Key by age-group label for each selected team that has a live game
-      for (const tk of selectedTeamKeys) {
-        const label = TEAM_OPTIONS.find(t => t.key === tk)?.label || tk;
-        // Match by team label in score data or by selected team (single-team mode)
-        if (score.teamName || selectedTeamKeys.length === 1) {
-          allLiveScores[label] = {
-            homeTeam:        score.teamName  || (game ? `${clubName} ${game.team || ''}`.trim() : clubName) || 'My Team',
-            awayTeam:        score.oppName   || (game?.opponent) || 'Opponent',
-            homeScore:       score.team      ?? 0,
-            awayScore:       score.opp       ?? 0,
-            status:          'LIVE',
-            clock:           score.clock     || '',
-            period:          score.period    ? `Q${score.period}` : '',
-            gameId,
-            timerRunning:    !!(score.timerRunning),
-            timerSecondsLeft: score.timerSecondsLeft || 0,
-            timerStartedAt:  score.timerStartedAt   || 0,
-          };
-        }
+      // Key by the game's actual age-group label (resolved from TEAM_CACHE)
+      const matchedKey = _resolveGameAgeGroupKey(gameId);
+      if (matchedKey && selectedTeamKeys.includes(matchedKey)) {
+        const label = TEAM_OPTIONS.find(t => t.key === matchedKey)?.label || matchedKey;
+        allLiveScores[label] = {
+          homeTeam:        score.teamName  || (game ? `${clubName} ${game.team || ''}`.trim() : clubName) || 'My Team',
+          awayTeam:        score.oppName   || (game?.opponent) || 'Opponent',
+          homeScore:       score.team      ?? 0,
+          awayScore:       score.opp       ?? 0,
+          status:          'LIVE',
+          clock:           score.clock     || '',
+          period:          score.period    ? `Q${score.period}` : '',
+          gameId,
+          timerRunning:    !!(score.timerRunning),
+          timerSecondsLeft: score.timerSecondsLeft || 0,
+          timerStartedAt:  score.timerStartedAt   || 0,
+        };
       }
     }
 
@@ -8821,7 +8866,7 @@ async function _syncWidgetsAll() {
         const dt = dateStr ? new Date(dateStr + 'T' + (timeStr || '00:00') + ':00') : null;
         return { game: g, ts: dt ? dt.getTime() : Infinity };
       })
-      .filter(x => x.ts > now)
+      .filter(x => x.ts > now - 90 * 60 * 1000)
       .sort((a, b) => a.ts - b.ts);
     const nextG = upcoming[0]?.game;
     const nextGame = nextG ? {
@@ -9087,6 +9132,7 @@ function _renderPlayerStatsCard(playerName) {
   const SOM      = stats ? (stats.SOM || 0) : 0;
   const A        = stats ? stats.A          : 0;
   const Excl     = stats ? stats.Excl       : 0;
+  const Stl      = stats ? (stats.Stl || 0) : 0;
   const sixOnFive = stats ? (stats.sixOnFive || 0) : 0;
   const Sv       = stats ? (stats.Sv  || 0) : 0;
   const gameCount = stats ? stats.gameCount  : 0;
@@ -9116,7 +9162,7 @@ function _renderPlayerStatsCard(playerName) {
         <div class="mp-game-opp">${escHtml(r.opponent)}${res ? ' ' + res : ''} ${score ? `<span class="mp-game-score">${score}</span>` : ''}</div>
         <div class="mp-game-stats">${playerIsGoalie
           ? `Sv&nbsp;${r.Sv||0}&nbsp; Ex&nbsp;${r.Excl}`
-          : `G&nbsp;${r.G}&nbsp; A&nbsp;${r.A}&nbsp; Ex&nbsp;${r.Excl}`}</div>
+          : `G&nbsp;${r.G}&nbsp; A&nbsp;${r.A}&nbsp; Stl&nbsp;${r.Stl||0}&nbsp; Ex&nbsp;${r.Excl}`}</div>
       </div>`;
     }).join('');
     const moreNote = rows.length > 5 ? `<div class="mp-game-more">${rows.length - 5} more game${rows.length - 5 !== 1 ? 's' : ''} in download</div>` : '';
@@ -9155,7 +9201,7 @@ function _renderPlayerStatsCard(playerName) {
       <div class="mp-stat-row-lg">
         <div class="mp-stat-box"><span class="mp-stat-num">${G}</span><span class="mp-stat-lbl">Goals</span></div>
         <div class="mp-stat-box"><span class="mp-stat-num">${A}</span><span class="mp-stat-lbl">Assists</span></div>
-        <div class="mp-stat-box"><span class="mp-stat-num">${SM}</span><span class="mp-stat-lbl">Attempts</span></div>
+        <div class="mp-stat-box"><span class="mp-stat-num">${Stl}</span><span class="mp-stat-lbl">Steals</span></div>
       </div>
       <div class="mp-stat-row-4">
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${sixOnFive}</span><span class="mp-stat-lbl-sm">6on5 Goals</span></div>
@@ -9390,7 +9436,7 @@ async function toggleLiveActivity(gameId) {
       awayLogoUrl:   '',   // opponent logo not yet stored
       primaryColor:  primaryColor,
       secondaryColor: secondaryColor,
-      ageGroup:      TEAM_OPTIONS.find(t => t.key === (getSelectedTeams()[0] || ''))?.label || '',
+      ageGroup:      _resolveGameAgeGroup(gameId),
     });
 
     // Track so pollLiveScores can push updates

@@ -932,6 +932,20 @@ h2 {
 .next-game-card.cap-white-bg .follow-live-btn:hover {
   background: rgba(15, 23, 42, 0.08);
 }
+/* Score readability on white-cap next-game card */
+.next-game-card.cap-white-bg .next-live-score-nums {
+  color: var(--gray-900);
+}
+.next-game-card.cap-white-bg .next-live-period {
+  color: var(--royal);
+  background: var(--royal-subtle);
+}
+.next-game-card.cap-white-bg .next-live-clock {
+  color: var(--gray-700);
+}
+.next-game-card.cap-white-bg .live-badge-next {
+  background: rgba(239, 68, 68, 0.9);
+}
 .next-live-score {
   display: flex;
   align-items: center;
@@ -5067,6 +5081,16 @@ details[open] .help-chevron { transform: rotate(180deg); }
   border-color: rgba(15, 23, 42, 0.14);
   color: var(--gray-800);
 }
+[data-theme="dark"] .next-game-card.cap-white-bg .next-live-score-nums {
+  color: var(--gray-900);
+}
+[data-theme="dark"] .next-game-card.cap-white-bg .next-live-period {
+  color: var(--royal);
+  background: var(--royal-subtle);
+}
+[data-theme="dark"] .next-game-card.cap-white-bg .next-live-clock {
+  color: var(--gray-700);
+}
 
 /* ── Standings Card ────────────────────────────────────────────────────── */
 [data-theme="dark"] .standings-card {
@@ -5911,4 +5935,97 @@ details[open] .help-chevron { transform: rotate(180deg); }
     backdrop-filter: blur(12px) saturate(140%) !important;
     -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
   }
+}
+
+/* ── UX & READABILITY FIXES (AGE-GROUP SYNC & UNIFIED STYLE) ── */
+
+/* Score readability on white-cap next-game card */
+.next-game-card.cap-white-bg .next-live-score-nums { color: var(--gray-900); }
+.next-game-card.cap-white-bg .next-live-period { color: var(--royal); background: var(--royal-subtle); }
+.next-game-card.cap-white-bg .next-live-clock { color: var(--gray-700); }
+.next-game-card.cap-white-bg .live-badge-next { background: rgba(239, 68, 68, 0.9); }
+
+/* Restore Roster header/subtitle colors on Native (reversing white-on-white overrides) */
+.native-ios .card.tab-card.roster-main-card h2, .native-ios .card.tab-card.roster-view-card h2, .native-android .card.tab-card.roster-main-card h2, .native-android .card.tab-card.roster-view-card h2 { color: var(--gray-900) !important; }
+.native-ios .card.tab-card.roster-main-card .history-subtitle, .native-ios .card.tab-card.roster-view-card .history-subtitle, .native-android .card.tab-card.roster-main-card .history-subtitle, .native-android .card.tab-card.roster-view-card .history-subtitle { background: var(--gray-100) !important; color: var(--gray-500) !important; }
+
+/* Restore Help accordion text specifically for native white themes */
+.native-ios .card.tab-card.help-accordion-card .help-title,
+.native-android .card.tab-card.help-accordion-card .help-title {
+  color: var(--gray-900) !important;
+}
+
+/* Steal stat styling */
+.stat-btn.stat-steal {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+.stat-btn.stat-steal:active { background: #bbf7d0; }
+
+/* Collapsible Event Log Quarters */
+.event-log-qtr {
+  margin-bottom: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.03);
+}
+[data-theme="dark"] .event-log-qtr { background: rgba(255,255,255,0.05); }
+
+.event-period-header {
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: var(--gray-100);
+  color: var(--gray-700);
+  cursor: pointer;
+  list-style: none; /* Hide default arrow */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+[data-theme="dark"] .event-period-header {
+  background: var(--gray-800);
+  color: var(--gray-300);
+}
+.event-period-header::-webkit-details-marker { display: none; }
+.event-period-header::after {
+  content: '▼';
+  font-size: 0.6rem;
+  opacity: 0.5;
+  transition: transform 0.2s;
+}
+.event-log-qtr[open] .event-period-header::after {
+  transform: rotate(180deg);
+}
+
+/* Scoreboard Actions Row (Undo/Share) */
+.ls-actions-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 4px 0 12px 0;
+}
+.ls-undo-btn, .ls-share-btn {
+  background: var(--gray-100);
+  border: 1px solid var(--gray-200);
+  color: var(--gray-700);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.1s;
+}
+.ls-undo-btn:active, .ls-share-btn:active {
+  background: var(--gray-200);
+  transform: scale(0.96);
+}
+[data-theme="dark"] .ls-undo-btn, [data-theme="dark"] .ls-share-btn {
+  background: var(--gray-800);
+  border-color: var(--gray-700);
+  color: var(--gray-300);
 }
