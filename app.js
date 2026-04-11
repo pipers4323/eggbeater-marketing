@@ -5738,39 +5738,31 @@ function renderHistoryTab() {
   const completedNow = getTournamentGames().filter(g => state.results[g.id]);
   if (completedNow.length) {
     emptyEl.classList.add('hidden');
-    const curSecId = 'hs-content-current';
     
-    const cardWrap = document.createElement('div');
-    cardWrap.className = 'history-section-card';
-    listEl.appendChild(cardWrap);
+    // Use the rich virtual history entry to get full stats/scores
+    const virtualT = _getVirtualHistoryEntry();
+    if (virtualT) {
+      const cardWrap = document.createElement('div');
+      cardWrap.className = 'history-section-card';
+      listEl.appendChild(cardWrap);
 
-    const curHead  = document.createElement('div');
-    curHead.className = 'history-section-heading history-section-toggle';
-    curHead.setAttribute('aria-expanded', 'false');
-    curHead.innerHTML = `<span class="hs-title">${escHtml(TOURNAMENT.name || 'Current Tournament')}</span><span class="hs-chevron">▶</span>`;
-    curHead.onclick = () => toggleHistorySection(curSecId, curHead);
-    cardWrap.appendChild(curHead);
+      // Section heading
+      const curHead = document.createElement('div');
+      curHead.className = 'history-section-heading history-section-toggle';
+      curHead.setAttribute('aria-expanded', 'true'); // expanded by default for active tourney
+      curHead.innerHTML = `<span class="hs-title">${escHtml(TOURNAMENT.name || 'Current Tournament')}</span><span class="hs-chevron">▼</span>`;
+      cardWrap.appendChild(curHead);
 
-    const curContent = document.createElement('div');
-    curContent.id = curSecId;
-    curContent.className = 'history-section-content';
-    cardWrap.appendChild(curContent);
-
-    for (const g of completedNow) {
-      const result = state.results[g.id];
-      const s      = state.liveScores[g.id] || {};
-      const rc     = isWin(result) ? 'win' : isLoss(result) ? 'loss' : 'none';
-      const rl     = resultLabel(result);
-      const scoreStr = (s.team != null && s.opp != null && (s.team > 0 || s.opp > 0))
-        ? `${s.team}–${s.opp}` : '';
-      const row = document.createElement('div');
-      row.className = 'history-game-row';
-      row.innerHTML = `
-        ${g.gameNum ? `<span class="hg-num">${escHtml(g.gameNum)}</span>` : ''}
-        <span class="hg-vs">vs ${escHtml(g.opponent || 'TBD')}</span>
-        ${scoreStr ? `<span class="hg-meta">${escHtml(scoreStr)}</span>` : ''}
-        <span class="hg-result ${rc}">${rl}</span>`;
-      curContent.appendChild(row);
+      // Section content - uses buildHistoryCard for rich score/stat display
+      const curContent = document.createElement('div');
+      curContent.id = 'hs-content-current';
+      curContent.className = 'history-section-content';
+      cardWrap.appendChild(curContent);
+      
+      curContent.appendChild(buildHistoryCard(virtualT));
+      
+      // Allow collapsing if clicked
+      curHead.onclick = () => toggleHistorySection('hs-content-current', curHead);
     }
   }
 
@@ -6210,6 +6202,17 @@ function init() {
   if (showClubPickerIfNeeded()) return; // picker shown — wait for selection
 
   checkTournamentChange(); // also restores state.liveScores from localStorage
+
+  // 🩹 One-time data fix: Untoggle accidental DONS win
+  if (!localStorage.getItem('ebwp-patch-dons-fix-v1')) {
+    const _games = getTournamentGames();
+    const _dons = _games.find(g => (g.opponent || '').toUpperCase().includes('DONS'));
+    if (_dons && state.results[_dons.id]) {
+      state.results[_dons.id] = null;
+      localStorage.setItem(STORE.RESULTS, JSON.stringify(state.results));
+    }
+    localStorage.setItem('ebwp-patch-dons-fix-v1', '1');
+  }
 
   // Resume any auto-clocks that were running before page reload
   const hasRunning = Object.values(state.liveScores).some(s => s && s.timerRunning);
