@@ -444,8 +444,7 @@ function switchTeam(letter, groupKey) {
 // Single-team mode (no multi-team) → all entries unchanged.
 function getHistoryForActiveTeam() {
   const history = getHistory();
-  const current = _getVirtualHistoryEntry();
-  const all = current ? [current, ...history] : history;
+  const all = history;
 
   if (!isMultiTeam()) return all;
   const team = getActiveTeam();
@@ -5571,6 +5570,10 @@ function buildHistoryCard(t) {
       ? ls.goals.map(g2 => ({ type: g2.side === 'team' ? 'goal' : 'opp_goal', ...g2 }))
       : []);
     const nonState = allEvts.filter(e => e.type !== 'game_state');
+    const recomputed = allEvts.length ? recomputeScores(allEvts) : null;
+    const scoreLabel = (recomputed && (recomputed.team != null || recomputed.opp != null))
+      ? `${recomputed.team ?? 0}-${recomputed.opp ?? 0}`
+      : (g.score || g.time || '');
 
     // Goal scorer chips
     const teamGoals   = nonState.filter(ev => ev.type === 'goal');
@@ -5630,7 +5633,7 @@ function buildHistoryCard(t) {
       <div class="history-game-row">
         ${g.gameNum ? `<span class="hg-num">${escHtml(g.gameNum)}</span>` : ''}
         <span class="hg-vs">vs ${escHtml(g.opponent || 'TBD')}</span>
-        <span class="hg-meta">${escHtml(g.score || g.time || '')}</span>
+        <span class="hg-meta">${escHtml(scoreLabel)}</span>
         ${g.points != null ? `<span class="hg-pts">+${g.points}</span>` : ''}
         <span class="hg-result ${rc}">${rl}</span>
       </div>
@@ -5791,6 +5794,10 @@ function renderHistoryTab() {
 
     // Get current team label for the header
     const teamLabel = (() => {
+      if (_activeAgeGroup) {
+        const activeLetter = _activeTeamLetters?.length === 1 ? _activeTeamLetters[0] : null;
+        return _groupSectionLabelFor(_activeAgeGroup, activeLetter);
+      }
       const slot = getExpandedTeamSlots()[0];
       if (slot) return _groupSectionLabelFor(slot.groupKey, slot.letter);
       return '';
