@@ -6153,7 +6153,6 @@ function init() {
         (clubType === 'club' && teamKey && HS_KEYS.includes(teamKey))) {
       localStorage.removeItem(STORE.HISTORY);
       localStorage.removeItem(STORE.SNAPSHOT);
-      localStorage.removeItem(STORE.RESULTS);
       localStorage.removeItem(STORE.BRACKET_RESULTS);
       localStorage.removeItem(STORE.TOURNAMENT_ID);
       localStorage.removeItem('ebwp-team-key');

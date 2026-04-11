@@ -5962,6 +5962,31 @@ details[open] .help-chevron { transform: rotate(180deg); }
   color: var(--gray-900) !important;
 }
 
+/* Force History tab readability on native platforms (prevent dark-on-dark) */
+.native-ios .history-section-heading,
+.native-android .history-section-heading {
+  background: var(--royal) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.native-ios .history-tournament-name,
+.native-android .history-tournament-name {
+  color: var(--gray-900) !important;
+  font-weight: 700 !important;
+}
+
+.native-ios .history-meta,
+.native-android .history-meta {
+  color: var(--gray-600) !important;
+}
+
+.native-ios .history-subtitle,
+.native-android .history-subtitle {
+  color: var(--gray-500) !important;
+}
+
+
 /* Steal stat styling */
 .stat-btn.stat-steal {
   background: #dcfce7;
