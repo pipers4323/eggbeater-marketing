@@ -851,17 +851,18 @@ function toISOLocal(date) {
 function findNextGameOrProjected() {
   const now = new Date();
   const games = getTournamentGames();
+  const unplayedGames = games.filter(g => !_getResultForGame(g));
 
   // 1. Next upcoming pool play game by clock time
   // Keep showing a game as "next" until 90 min past its start time (covers typical game duration)
   const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
-  const withTime = games.filter(g => {
+  const withTime = unplayedGames.filter(g => {
     const t = parseGameTime(g.dateISO, g.time);
     return t && t > new Date(now - 90 * 60 * 1000);
   });
   // Fallback: if no games have a valid future dateISO (e.g. dates not yet entered),
   // treat all unplayed games as upcoming and sort by game number.
-  const pool = withTime.length > 0 ? withTime : games.filter(g => !_getResultForGame(g));
+  const pool = withTime.length > 0 ? withTime : unplayedGames;
   const nextPool = pool
     .sort((a, b) => {
       const ta = parseGameTime(a.dateISO, a.time), tb = parseGameTime(b.dateISO, b.time);
@@ -5555,7 +5556,8 @@ const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && get
 
 // ─── RENDER: HISTORY TAB ──────────────────────────────────────────────────────
 
-function buildHistoryCard(t) {
+function buildHistoryCard(t, options = {}) {
+  const { expanded = false } = options;
   const { wins = 0, losses = 0, record = '0-0', totalPoints } = t;
   const recordClass = wins > losses ? 'winning' : losses > wins ? 'losing' : 'even';
 
@@ -5664,7 +5666,7 @@ function buildHistoryCard(t) {
   ).join('');
 
   const card = document.createElement('div');
-  card.className = 'history-card';
+  card.className = `history-card${expanded ? ' expanded' : ''}`;
   card.id = `history-card-${t.id}`;
   card.innerHTML = `
     <div class="history-card-header" onclick="toggleHistoryCard('${t.id}')">
@@ -5881,10 +5883,10 @@ function renderHistoryTab() {
       // Section content - uses buildHistoryCard for rich score/stat display
       const curContent = document.createElement('div');
       curContent.id = 'hs-content-current';
-      curContent.className = 'history-section-content';
+      curContent.className = 'history-section-content expanded';
       cardWrap.appendChild(curContent);
       
-      curContent.appendChild(buildHistoryCard(virtualT));
+      curContent.appendChild(buildHistoryCard(virtualT, { expanded: true }));
       
       // Allow collapsing if clicked
       curHead.onclick = () => toggleHistorySection('hs-content-current', curHead);
@@ -9078,6 +9080,7 @@ async function _syncWidgetsAll() {
     // 5. Next upcoming game
     const now = Date.now();
     const upcoming = games
+      .filter(g => !g.isFinal)
       .map(g => {
         const dateStr = g.date || '';
         const timeStr = g.time || '';
