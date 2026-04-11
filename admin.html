@@ -10974,7 +10974,7 @@
         <li>Each club has a unique <strong>Club ID</strong> (e.g. <code>pacific-waves</code>) configured in the Add Games tab under "Cloud Club ID".</li>
         <li>All server data (KV storage) is namespaced by club ID — one club's data never mixes with another's.</li>
         <li>Each club has its own admin list — admins for Club A cannot access Club B's data.</li>
-        <li>The parent-facing app loads club-specific data via the <code>?club=</code> URL parameter.</li>
+        <li>The parent-facing app loads club-specific data via the <code>?join=</code> URL parameter.</li>
         <li>Tournaments, rosters, scores, bot credentials, and deploy manifests are all scoped per club.</li>
         <li>To onboard a new club: create a Firestore club document, have the first admin sign in and bootstrap, then share the club-specific app URL with parents.</li>
       </ul>`
@@ -12247,7 +12247,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="firebase.js?v=82"></script>
+  <script src="firebase.js?v=228"></script>
   <script>
     // Initialize Firebase in admin context
     if (typeof fbInit === 'function') fbInit();

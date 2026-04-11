@@ -3403,8 +3403,8 @@ function _settingsSwitchClub(clubId, clubName, clubType) {
   } else {
     localStorage.removeItem('ebwp-club-type');
   }
-  // Reload to re-initialize with the new club
-  window.location.href = window.location.pathname + '?club=' + encodeURIComponent(clubId);
+  // Reload to re-initialize with the new club using the canonical join link format.
+  window.location.href = window.location.pathname + '?join=' + encodeURIComponent(clubId);
 }
 
 /** Remove a club from the joined list; returns to splash if it was the only club */
@@ -6366,14 +6366,13 @@ function renderParentNudge(tabKey) {
 }
 
 function showParentUpgradeSheet() {
-  // Placeholder — will wire to RevenueCat parent_monthly purchase when Phase B is complete
-  alert('Parent Monthly — $4.99/mo\n\nUnlocks: Player Stats History, Tournament Bracket, Live Follow\n\nIn-app purchase coming soon!');
+  alert('Parent Monthly — $4.99/mo\n\nUnlocks: Player Stats History, Tournament Bracket, Live Follow\n\nBilling is not enabled in this beta build yet.\nEmail hello@eggbeater.app if you want Parent access turned on for testing.');
 }
 
 // Phase 3: Club ID detection — URL param > localStorage > tournament data > default
 function getAppClubId() {
   const params = new URLSearchParams(window.location.search);
-  // Accept both ?club= (legacy) and ?join= (preferred — adds to joined list via _handleJoinParam)
+  // Accept both ?club= (legacy) and ?join= (preferred/canonical)
   const fromUrl = params.get('club') || params.get('join');
   if (fromUrl) {
     localStorage.setItem('ebwp-club-id', fromUrl);
@@ -6411,16 +6410,17 @@ function removeJoinedClub(clubId) {
 }
 
 /**
- * Handle ?join=CLUB_ID URL parameter — adds the club to the joined list
- * and auto-selects it so the parent lands directly in the app.
+ * Handle inbound club link parameters. Both ?join= and legacy ?club=
+ * are normalized through the same add/join/password flow.
  */
 async function _handleJoinParam() {
   const params = new URLSearchParams(window.location.search);
-  const joinClub = params.get('join');
+  const joinClub = params.get('join') || params.get('club');
   if (!joinClub) return;
 
-  // Clean up the URL (remove ?join= so refreshes don't re-trigger)
+  // Clean up the URL so refreshes don't re-trigger the join flow.
   params.delete('join');
+  params.delete('club');
   const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
   window.history.replaceState({}, '', newUrl);
 
@@ -8498,7 +8498,7 @@ function renderHelpTab() {
       body: `<p>Eggbeater supports multiple water polo clubs, each with their own tournaments, rosters, and admin teams.</p>
       <ul>
         <li>Each club has a unique <strong>club ID</strong> that scopes all data — schedules, scores, rosters, and history are kept completely separate between clubs.</li>
-        <li>If you receive a link with <code>?club=</code> in the URL, the app automatically loads that club's data. No extra setup needed.</li>
+        <li>If you receive a link with <code>?join=</code> in the URL, the app adds that club and loads its data automatically.</li>
         <li>Your age group selections and My Player picks are saved per club, so switching between clubs doesn't lose your preferences.</li>
         <li>Club admins manage their own tournaments independently — changes by one club's admin never affect another club.</li>
         <li><strong>Custom club colors</strong> — each club's admin can set custom brand colors (primary and secondary). The app automatically applies these colors when you visit that club's page, theming the header, buttons, and accents to match the club's identity.</li>
