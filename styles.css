@@ -1363,6 +1363,16 @@ h2 {
   padding: 2px 8px;
   border-radius: 99px;
 }
+.roster-main-card .history-header-row,
+.roster-view-card .history-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.roster-main-card .history-header-row h2,
+.roster-view-card .history-header-row h2 {
+  margin: 0;
+}
 
 /* ── Tournament-level section heading (Futures / BAWL) ────────────────────── */
 /* ── Season Stats table (Phase 5D) ───────────────────────────────────────── */
