@@ -1890,7 +1890,7 @@ function renderRosterTab() {
 
   el.innerHTML = `${renderMyPlayerCard()}
   ${renderPlayerLookupCard()}
-  <div class="card tab-card">
+  <div class="card tab-card roster-main-card">
     <div class="history-header-row">
       <h2>Roster</h2>
       <span class="history-subtitle">${escHtml(_groupSectionLabelFor(getSelectedTeam(), null))}</span>
@@ -1921,7 +1921,7 @@ function _renderRosterMulti(el, slots) {
         <span class="roster-cap-badge${isGoalie(p.cap) ? ' roster-cap-gk' : ''}">${p.cap ? '#' + escHtml(p.cap) : '—'}</span>
         <span class="roster-view-name">${escHtml([p.first, p.last].filter(Boolean).join(' ') || '—')}</span>
       </div>`).join('');
-    html += `<div class="card tab-card">
+    html += `<div class="card tab-card roster-view-card">
       <div class="history-header-row">
         <h2>Roster</h2>
         <span class="history-subtitle">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span>
@@ -4482,7 +4482,11 @@ function renderScheduleTab() {
     renderDirectorImportCard();
     return;
   }
-  if (slots.length > 1) { _renderScheduleMulti(slots); return; }
+  if (slots.length > 1) {
+    _renderScheduleMulti(slots);
+    _syncWidgetsAll();
+    return;
+  }
   renderNextGameCard();
   renderDirectorImportCard();
   renderGamesList();
@@ -4634,6 +4638,7 @@ function renderNextGameCard() {
   if (next.type === 'pool') {
     const g = next.game;
     const capIcon = g.cap === 'Dark' ? '🔵' : '⚪';
+    const nextCapBgClass = g.cap === 'Dark' ? ' cap-dark-bg' : g.cap === 'White' ? ' cap-white-bg' : '';
     const nextLive = isGameLive(g.id);
     // Live score summary — shown on the IN PROGRESS card
     const liveS = nextLive ? getLiveScore(g.id) : null;
@@ -4653,7 +4658,7 @@ function renderNextGameCard() {
     section.innerHTML = `
       ${nextDateHeader}
       <div class="next-game-wrap">
-        <div class="next-game-card${nextLive ? ' next-game-live' : ''}">
+        <div class="next-game-card${nextCapBgClass}${nextLive ? ' next-game-live' : ''}">
           <div class="next-game-card-top">
             ${g.gameNum ? `<div class="next-game-num">${escHtml(g.gameNum)}</div>` : ''}
             ${nextLive ? `<span class="live-badge-next">🔴 LIVE</span>` : ''}

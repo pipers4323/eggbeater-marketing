@@ -900,6 +900,38 @@ h2 {
 .next-game-live {
   background: linear-gradient(135deg, #002868 0%, #b91c1c 100%);
 }
+.next-game-card.cap-dark-bg {
+  background: rgb(var(--royal-rgb));
+  box-shadow: 0 4px 18px rgba(20,64,176,.35);
+}
+.next-game-card.cap-white-bg {
+  background: white;
+  color: var(--gray-900);
+  border: 1px solid var(--gray-200);
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.08);
+}
+.next-game-card.cap-white-bg::before {
+  background: rgba(15, 23, 42, 0.04);
+}
+.next-game-card.cap-white-bg .next-label { color: var(--gray-500); }
+.next-game-card.cap-white-bg .next-vs { color: var(--gray-900); }
+.next-game-card.cap-white-bg .next-meta { color: var(--gray-600); }
+.next-game-card.cap-white-bg .next-game-num {
+  background: var(--royal-subtle);
+  color: var(--royal);
+}
+.next-game-card.cap-white-bg .next-cap-badge {
+  background: var(--gray-100);
+  color: var(--gray-700);
+}
+.next-game-card.cap-white-bg .follow-live-btn {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.14);
+  color: var(--gray-800);
+}
+.next-game-card.cap-white-bg .follow-live-btn:hover {
+  background: rgba(15, 23, 42, 0.08);
+}
 .next-live-score {
   display: flex;
   align-items: center;
@@ -1009,6 +1041,28 @@ h2 {
 .game-card.cap-dark-bg.result-loss { border-left-color: #f87171; }
 .game-card.cap-white-bg,
 .sched-card.cap-white-bg { background: white; }
+.sched-card.cap-white-bg {
+  border-color: var(--gray-200);
+  border-left-color: var(--gray-200);
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.sched-card.cap-white-bg .sched-vs { color: var(--gray-900); }
+.sched-card.cap-white-bg .sched-meta,
+.sched-card.cap-white-bg .location-venue { color: var(--gray-600); }
+.sched-card.cap-white-bg .sched-game-num {
+  background: var(--royal-subtle);
+  color: var(--royal);
+}
+.sched-card.cap-white-bg .sched-cap-badge {
+  background: var(--gray-100);
+  border-color: var(--gray-200);
+  color: var(--gray-700);
+}
+.sched-card.cap-white-bg .directions-btn {
+  background: var(--gray-50);
+  border-color: var(--gray-200);
+  color: var(--gray-700);
+}
 
 .game-card-age-label {
   font-size: 0.7rem;
@@ -4962,6 +5016,27 @@ details[open] .help-chevron { transform: rotate(180deg); }
 [data-theme="dark"] .sched-card.cap-white-bg {
   background: #ffffff;
   color: #111827;
+}
+[data-theme="dark"] .next-game-card.cap-white-bg {
+  background: #ffffff;
+  color: #111827;
+  border-color: var(--gray-200);
+}
+[data-theme="dark"] .next-game-card.cap-white-bg .next-label { color: var(--gray-500); }
+[data-theme="dark"] .next-game-card.cap-white-bg .next-vs { color: var(--gray-900); }
+[data-theme="dark"] .next-game-card.cap-white-bg .next-meta { color: var(--gray-600); }
+[data-theme="dark"] .next-game-card.cap-white-bg .next-game-num {
+  background: var(--royal-subtle);
+  color: var(--royal);
+}
+[data-theme="dark"] .next-game-card.cap-white-bg .next-cap-badge {
+  background: var(--gray-100);
+  color: var(--gray-700);
+}
+[data-theme="dark"] .next-game-card.cap-white-bg .follow-live-btn {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.14);
+  color: var(--gray-800);
 }
 
 /* ── Standings Card ────────────────────────────────────────────────────── */
