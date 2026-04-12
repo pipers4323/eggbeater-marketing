@@ -5623,7 +5623,12 @@ function buildHistoryCard(t, options = {}) {
     const syncedScore = (g.teamScore !== '' && g.teamScore != null && g.oppScore !== '' && g.oppScore != null)
       ? `${g.teamScore}-${g.oppScore}`
       : '';
-    const scoreLabel = (recomputed && (recomputed.team != null || recomputed.opp != null))
+    const hasMeaningfulLiveScore = !!(recomputed && (
+      nonState.length ||
+      (recomputed.team ?? 0) !== 0 ||
+      (recomputed.opp ?? 0) !== 0
+    ));
+    const scoreLabel = hasMeaningfulLiveScore
       ? `${recomputed.team ?? 0}-${recomputed.opp ?? 0}`
       : (syncedScore || g.score || g.time || '');
 
