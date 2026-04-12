@@ -1282,6 +1282,7 @@ function _setLiveScore(gameId, score) {
 
 // Mapping from game-state key → period number
 const PERIOD_FOR_STATE = { start: 0, q1: 1, q2: 2, half: 2, q3: 3, q4: 4, ot: 5, final: 4, shootout: 6 };
+const TIMER_PHASE_FOR_STATE = { q1: 'q1', q2: 'q2', half: 'halftime', q3: 'q3', q4: 'q4' };
 const PERIOD_LABELS    = { 0: 'Pre-Game', 1: 'Q1', 2: 'Q2', 3: 'Q3', 4: 'Q4', 5: 'OT', 6: 'Shootout' };
 
 // Log a game-state transition (Start, Q1, Q2, Half, Q3, Q4, OT, Final)
@@ -1290,13 +1291,17 @@ function setGameState(gameId, gstate) {
   s.gameState = gstate;
   const newPeriod = PERIOD_FOR_STATE[gstate];
   if (newPeriod != null) s.period = newPeriod;
+  const mappedPhase = TIMER_PHASE_FOR_STATE[gstate];
+  if (mappedPhase) s.timerPhase = mappedPhase;
   s.events.push({ type: 'game_state', gameState: gstate, clock: s.clock || '', period: s.period, ts: Date.now() });
   _setLiveScore(gameId, s);
 
   // Feedback: Auto-reset clock when moving to a quarter state
   const isQuarter = ['q1','q2','q3','q4','ot','shootout'].includes(gstate);
   if (isQuarter) {
-    resetGameClock(gameId);
+    resetGameClock(gameId, mappedPhase || null);
+  } else if (gstate === 'half') {
+    resetGameClock(gameId, 'halftime');
   }
 
   afterScore(gameId);
@@ -2688,10 +2693,11 @@ function resumeGameTimer(gameId) {
   if (state.currentTab === 'scores') renderScoresTab();
 }
 
-function resetGameClock(gameId) {
+function resetGameClock(gameId, phaseOverride = null) {
   const s  = getLiveScore(gameId);
   const cs = getClockSettings();
-  const phase = s.timerPhase || 'q1';
+  const phase = phaseOverride || s.timerPhase || 'q1';
+  if (phaseOverride) s.timerPhase = phaseOverride;
   s.timerRunning     = false;
   s.timerStartedAt   = null;
   s.timerSecondsLeft = _phaseSeconds(phase, cs);
@@ -3910,7 +3916,7 @@ function renderScoresTab() {
     const loginBar = anySlotUnlocked
       ? `<div class="scorer-tab-bar"><span class="scorer-tab-label">🔓 Scorer Mode Active</span><button class="scorer-tab-lock-btn" onclick="lockScoring()">🔒 Lock</button></div>`
       : (scorerLocked
-        ? `<div class="scorer-gate-bar"><button class="scorer-gate-btn" onclick="openScoringPasswordModal()">🔒 Scorer Login</button></div>`
+        ? `<div class="scorer-gate-bar"><button class="scorer-gate-btn" onclick="openScoringPasswordModal()">🔒 Login to Score</button></div>`
         : '');
     let html = loginBar;
     const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
@@ -4014,7 +4020,7 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
     el.innerHTML = dirHtml + `
         <div class="viewer-tab-bar">
           <span class="viewer-tab-label">${anyLive ? '🔴 Live Scores' : '📺 Scores'}</span>
-          <button class="viewer-tab-login-btn" onclick="openScoringPasswordModal()">🔒 Scorer Login</button>
+          <button class="viewer-tab-login-btn" onclick="openScoringPasswordModal()">🔒 Login to Score</button>
         </div>
         ${cardsHtml}${_guideLink}`;
     return;

@@ -356,12 +356,15 @@
       </div>
       <div class="scoring-pw-body">
         <p class="scoring-pw-desc">Enter the scoring password to enable live stat entry for this tournament.</p>
-        <input id="scoring-pw-input" type="password" class="scoring-pw-input"
-               placeholder="Tournament password"
-               autocomplete="off" autocorrect="off" spellcheck="false"
-               onkeydown="if(event.key==='Enter')submitScoringPassword()">
+        <form class="scoring-pw-form" onsubmit="submitScoringPassword(); return false;">
+          <input id="scoring-pw-input" type="password" class="scoring-pw-input"
+                 placeholder="Tournament password"
+                 autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done"
+                 onkeydown="if(event.key==='Enter')submitScoringPassword()">
+          <button type="submit" class="scoring-pw-inline-btn">Login</button>
+        </form>
         <div id="scoring-pw-error" class="scoring-pw-error"></div>
-        <button class="scoring-pw-btn" onclick="submitScoringPassword()">Unlock Scoring</button>
+        <button class="scoring-pw-btn" onclick="submitScoringPassword()">Login to Score</button>
       </div>
     </div>
   </div>
