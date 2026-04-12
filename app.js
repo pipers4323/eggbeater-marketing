@@ -5811,7 +5811,7 @@ function _renderPossibleMulti(slots) {
   $('possible-desc').textContent = '';
   $('possible-list').innerHTML = slots.map(({ groupKey, letter, suffix }) =>
     `<div class="team-section">
-      <div class="team-section-header">${escHtml(_groupSectionLabelFor(groupKey, letter))}</div>
+      <div class="scores-slot-header"><span class="scores-slot-label">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>
       <div id="possible-desc-${suffix}" style="font-size:.85rem;color:var(--gray-600);padding:0 2px 8px"></div>
       <div id="possible-list-${suffix}"></div>
       <div id="possible-empty-${suffix}" class="empty-msg hidden"></div>
@@ -6278,7 +6278,7 @@ function _renderHistoryMulti(slots) {
     <p class="step-desc">Results for all your selected age groups.</p>
     ${slots.map(({ groupKey, letter, suffix }) =>
       `<div class="team-section" style="margin:0 -2px">
-        <div class="team-section-header">${escHtml(_groupSectionLabelFor(groupKey, letter))}</div>
+        <div class="scores-slot-header"><span class="scores-slot-label">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>
         <div id="history-team-search-${suffix}"></div>
         <div id="history-standings-${suffix}"></div>
         <div id="history-list-${suffix}"></div>
