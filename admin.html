@@ -7543,6 +7543,7 @@
     }
 
     async function bsAutoPoll() {
+      _restoreBsyncFromTournament();
       if (!S.bsync?.sheetId || !S.bsync?.teamName) return;
       try {
         const csvUrl = 'https://docs.google.com/spreadsheets/d/'+S.bsync.sheetId+'/gviz/tq?tqx=out:csv';
