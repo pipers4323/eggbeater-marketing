@@ -1412,14 +1412,14 @@ h2 {
   border-radius: 99px;
 }
 
-.team-search-card,
-.season-record-card {
+.card.tab-card.team-search-card,
+.card.tab-card.season-record-card {
   background: #ffffff !important;
   border: 1px solid rgba(0,0,0,0.08) !important;
   box-shadow: 0 1px 4px rgba(0,0,0,.05) !important;
 }
 
-.team-search-card .history-header-row {
+.card.tab-card.team-search-card .history-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1427,17 +1427,17 @@ h2 {
   margin-bottom: 10px;
 }
 
-.team-search-card h2,
-.team-search-card p,
-.team-search-card .step-desc,
-.team-search-card .history-header-row h2,
-.team-search-card .team-search-select,
-.season-record-card,
-.season-record-card * {
+.card.tab-card.team-search-card h2,
+.card.tab-card.team-search-card p,
+.card.tab-card.team-search-card .step-desc,
+.card.tab-card.team-search-card .history-header-row h2,
+.card.tab-card.team-search-card .team-search-select,
+.card.tab-card.season-record-card,
+.card.tab-card.season-record-card * {
   color: var(--gray-900) !important;
 }
 
-.team-search-card .team-search-select {
+.card.tab-card.team-search-card .team-search-select {
   background: #ffffff !important;
   border-color: var(--gray-200) !important;
 }
@@ -1451,19 +1451,19 @@ h2 {
   color: #e6edf3 !important;
 }
 
-[data-theme="dark"] .team-search-card,
-[data-theme="dark"] .season-record-card {
+[data-theme="dark"] .card.tab-card.team-search-card,
+[data-theme="dark"] .card.tab-card.season-record-card {
   background: #ffffff !important;
   border-color: rgba(0,0,0,0.08) !important;
 }
 
-[data-theme="dark"] .team-search-card h2,
-[data-theme="dark"] .team-search-card p,
-[data-theme="dark"] .team-search-card .step-desc,
-[data-theme="dark"] .team-search-card .history-header-row h2,
-[data-theme="dark"] .team-search-card .team-search-select,
-[data-theme="dark"] .season-record-card,
-[data-theme="dark"] .season-record-card * {
+[data-theme="dark"] .card.tab-card.team-search-card h2,
+[data-theme="dark"] .card.tab-card.team-search-card p,
+[data-theme="dark"] .card.tab-card.team-search-card .step-desc,
+[data-theme="dark"] .card.tab-card.team-search-card .history-header-row h2,
+[data-theme="dark"] .card.tab-card.team-search-card .team-search-select,
+[data-theme="dark"] .card.tab-card.season-record-card,
+[data-theme="dark"] .card.tab-card.season-record-card * {
   color: var(--gray-900) !important;
 }
 
