@@ -6708,6 +6708,18 @@ function init() {
   });
 
   // ── Power-aware polling: restart timers when battery or data-saver state changes ──
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      pollLiveScores().catch(() => {});
+      startLivePoller();
+    }
+  });
+  try {
+    window.Capacitor?.Plugins?.App?.addListener?.('resume', () => {
+      pollLiveScores().catch(() => {});
+      startLivePoller();
+    });
+  } catch (_) {}
   if ('getBattery' in navigator) {
     navigator.getBattery().then(battery => {
       battery.addEventListener('chargingchange',  _restartPollOnPowerChange);
