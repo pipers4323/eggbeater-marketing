@@ -6574,6 +6574,15 @@
       return S.tournament.singleTeam !== true;
     }
 
+    function normalizeArchiveRosterForTeam(teamKey, roster) {
+      if (!roster) return isMultiTeamAdmin() ? { A: [], B: [] } : [];
+      if (isMultiTeamAdmin()) {
+        if (Array.isArray(roster)) return { A: roster, B: [] };
+        return roster;
+      }
+      return Array.isArray(roster) ? roster : (roster.A || []);
+    }
+
     // disable=true  → single-team mode (checkbox checked  = "Disable multi-team")
     // disable=false → multi-team mode  (checkbox unchecked = keep default)
     function toggleMultiTeam(disable) {
@@ -10739,9 +10748,8 @@
     async function loadArchiveTab() {
       const el = document.getElementById('tab-content');
       try {
-        // Load archive for ALL age groups so admin sees the full picture
         const allArchives = {};
-        for (const t of getAdminTeams()) {
+        for (const t of getAdminTeams().filter(t => t.key === S.team)) {
           const res = await api('GET', `/admin/archive?team=${encodeURIComponent(t.key)}`);
           if (res.ok) {
             const data = await res.json();
@@ -10898,7 +10906,7 @@
       try {
         const origTeam = S.team;
         S.team = teamKey;
-        const res = await api('GET', `/admin/archive-detail?tournId=${encodeURIComponent(tournId)}`);
+        const res = await api('GET', `/admin/archive-detail?tournId=${encodeURIComponent(tournId)}&team=${encodeURIComponent(teamKey)}`);
         S.team = origTeam;
         if (!res.ok) throw new Error('Not found');
         const data = await res.json();
@@ -10965,11 +10973,11 @@
       try {
         const origTeam = S.team;
         S.team = teamKey;
-        const res = await api('GET', `/admin/archive-detail?tournId=${encodeURIComponent(tournId)}`);
+        const res = await api('GET', `/admin/archive-detail?tournId=${encodeURIComponent(tournId)}&team=${encodeURIComponent(teamKey)}`);
         S.team = origTeam;
         if (!res.ok) throw new Error('Archive not found');
         const data = await res.json();
-        const roster = data.roster || [];
+        const roster = normalizeArchiveRosterForTeam(teamKey, data.roster || []);
         if (!roster.length) { showStatus('Archive has no roster', 'err'); return; }
 
         // Save roster to current team

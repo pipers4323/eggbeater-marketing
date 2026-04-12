@@ -1358,11 +1358,12 @@ function setGameTiming(gameId, field, val) {
 }
 
 // Record any event with a player (goal, assist, exclusion, brutality)
-function recordEventForPlayer(gameId, eventType, cap, name, sixOnFive) {
+function recordEventForPlayer(gameId, eventType, cap, name, extra = false) {
   const s          = getLiveScore(gameId);
   const inShootout = s.gameState === 'shootout';
   const isGoal     = eventType === 'goal';
   const isOppGoal  = eventType === 'opp_goal';
+  const opts = (extra && typeof extra === 'object') ? extra : { sixOnFive: !!extra };
   // In shootout mode goals become SO goals (decimal scoring)
   const actualType = (inShootout && isGoal)    ? 'so_goal'
                    : (inShootout && isOppGoal) ? 'opp_so_goal'
@@ -1371,7 +1372,8 @@ function recordEventForPlayer(gameId, eventType, cap, name, sixOnFive) {
     type: actualType, side: (actualType === 'opp_so_goal' || isOppGoal) ? 'opp' : 'team',
     cap: cap || '', name: name || '',
     clock: _pendingClock || s.clock || '', period: s.period || 0,
-    sixOnFive: (isGoal && sixOnFive && !inShootout) ? true : false,
+    sixOnFive: (isGoal && opts.sixOnFive && !inShootout) ? true : false,
+    forcedBallUnder: actualType === 'steal' ? !!opts.forcedBallUnder : false,
     ts: Date.now(),
   };
   _pendingClock = '';
@@ -1503,7 +1505,8 @@ function buildEventLog(events, currentPeriod = 0) {
     so_miss:       ()  => 'SO MISS',
     opp_so_miss:   ()  => 'SO MISS',
     assist:        ()  => 'ASSIST',
-    steal:         ()  => 'STEAL',
+    steal:         ev  => ev.forcedBallUnder ? 'STEAL (FBU)' : 'STEAL',
+    opp_steal:     ()  => 'OPP STEAL',
     exclusion:     ()  => 'EXCL',
     opp_exclusion: ()  => 'EXCL',
     brutality:     ()  => 'BRUTAL',
@@ -1511,6 +1514,7 @@ function buildEventLog(events, currentPeriod = 0) {
     opp_timeout:   ()  => 'OPP T/O',
     save:          ()  => 'SAVE',
     block:         ()  => 'SAVE',
+    field_block:   ()  => 'FIELD BLOCK',
   };
 
   let html = '<div class="event-log">';
@@ -1557,7 +1561,7 @@ function buildBoxScoreHtml(events, oppName) {
     if (ev.type === 'timeout')    { teamTimeouts++; continue; }
     if (ev.side !== 'team')       continue;
     const key = ev.cap || ev.name || '_unknown';
-    if (!playerMap[key]) playerMap[key] = { cap: ev.cap||'', name: ev.name||'', G:0, SM:0, G5:0, M5:0, SOG:0, SOM:0, A:0, Stl:0, Excl:0, EE:0, Sv:0 };
+    if (!playerMap[key]) playerMap[key] = { cap: ev.cap||'', name: ev.name||'', G:0, SM:0, G5:0, M5:0, SOG:0, SOM:0, A:0, Stl:0, FBU:0, FB:0, Excl:0, EE:0, Sv:0 };
     if (ev.type === 'goal')                              playerMap[key].G++;
     if (ev.type === 'shot_miss')                         playerMap[key].SM++;
     if (ev.type === 'goal_5m')                           playerMap[key].G5++;
@@ -1565,7 +1569,8 @@ function buildBoxScoreHtml(events, oppName) {
     if (ev.type === 'so_goal')                           playerMap[key].SOG++;
     if (ev.type === 'so_miss')                           playerMap[key].SOM++;
     if (ev.type === 'assist')                            playerMap[key].A++;
-    if (ev.type === 'steal')                             playerMap[key].Stl++;
+    if (ev.type === 'steal')                             { playerMap[key].Stl++; if (ev.forcedBallUnder) playerMap[key].FBU++; }
+    if (ev.type === 'field_block')                       playerMap[key].FB++;
     if (ev.type === 'exclusion' || ev.type === 'brutality') playerMap[key].Excl++;
     if (ev.type === 'earned_excl')                       playerMap[key].EE++;
     if (ev.type === 'save' || ev.type === 'block')       playerMap[key].Sv++;
@@ -1583,12 +1588,16 @@ function buildBoxScoreHtml(events, oppName) {
   const totalG    = fieldPlayers.reduce((s,p) => s+p.G, 0);
   const totalA    = fieldPlayers.reduce((s,p) => s+p.A, 0);
   const totalStl  = fieldPlayers.reduce((s,p) => s+(p.Stl||0), 0);
+  const totalFBU  = fieldPlayers.reduce((s,p) => s+(p.FBU||0), 0);
+  const totalFB   = fieldPlayers.reduce((s,p) => s+(p.FB||0), 0);
   const totalExcl = fieldPlayers.reduce((s,p) => s+p.Excl, 0);
   const totalEE   = fieldPlayers.reduce((s,p) => s+(p.EE||0), 0);
 
   const hasShotMiss = fieldPlayers.some(p => p.SM > 0);
   const has5m     = fieldPlayers.some(p => p.G5 > 0 || p.M5 > 0);
   const hasSoGoals = fieldPlayers.some(p => p.SOG > 0 || p.SOM > 0);
+  const hasForcedBallUnder = fieldPlayers.some(p => (p.FBU||0) > 0);
+  const hasFieldBlocks = fieldPlayers.some(p => (p.FB||0) > 0);
   const fieldRows = fieldPlayers.map(p => {
     const pName = p.cap ? `#${escHtml(p.cap)} ${escHtml((p.name||'').split(' ')[0])}` : escHtml(p.name||'?');
     return `<div class="bs-row">
@@ -1601,6 +1610,8 @@ function buildBoxScoreHtml(events, oppName) {
       ${hasSoGoals ? `<span class="bs-stat${p.SOM?' has-stat excl-stat':''}">${p.SOM||0}</span>` : ''}
       <span class="bs-stat${p.A?'   has-stat':''}">${p.A}</span>
       <span class="bs-stat${p.Stl?' has-stat':''}">${p.Stl||0}</span>
+      ${hasForcedBallUnder ? `<span class="bs-stat${p.FBU?' has-stat':''}">${p.FBU||0}</span>` : ''}
+      ${hasFieldBlocks ? `<span class="bs-stat${p.FB?' has-stat':''}">${p.FB||0}</span>` : ''}
       <span class="bs-stat${p.Excl?' has-stat excl-stat':''}">${p.Excl}</span>
       <span class="bs-stat${p.EE?'   has-stat excl-stat':''}">${p.EE||0}</span>
     </div>`;
@@ -1642,6 +1653,8 @@ function buildBoxScoreHtml(events, oppName) {
       ${hasSoGoals ? `<span class="bs-stat bs-col-hdr" title="Shootout Misses">SO✗</span>` : ''}
       <span class="bs-stat bs-col-hdr">A</span>
       <span class="bs-stat bs-col-hdr">S</span>
+      ${hasForcedBallUnder ? `<span class="bs-stat bs-col-hdr" title="Forced Ball Under">FBU</span>` : ''}
+      ${hasFieldBlocks ? `<span class="bs-stat bs-col-hdr" title="Field Blocks">FB</span>` : ''}
       <span class="bs-stat bs-col-hdr">Ex</span>
       <span class="bs-stat bs-col-hdr" title="Earned Exclusions">EE</span>
     </div>
@@ -1656,6 +1669,8 @@ function buildBoxScoreHtml(events, oppName) {
       ${hasSoGoals ? `<span class="bs-stat">${totalSOM}</span>` : ''}
       <span class="bs-stat">${totalA}</span>
       <span class="bs-stat">${totalStl}</span>
+      ${hasForcedBallUnder ? `<span class="bs-stat">${totalFBU}</span>` : ''}
+      ${hasFieldBlocks ? `<span class="bs-stat">${totalFB}</span>` : ''}
       <span class="bs-stat">${totalExcl}</span>
       <span class="bs-stat">${totalEE}</span>
     </div>` : ''}
@@ -2817,6 +2832,8 @@ function openEventPicker(gameId, eventType) {
     const TITLES = {
       goal:         'Who scored?',
       assist:       'Who assisted?',
+      steal:        'Who got the steal?',
+      field_block:  'Who got the field block?',
       exclusion:    'Who was excluded?',
       brutality:    'Brutality foul — who?',
       earned_excl:  'Who earned the exclusion?',
@@ -2827,9 +2844,12 @@ function openEventPicker(gameId, eventType) {
     const row6v5  = $('roster-6v5-row');
     const cb      = $('roster-6v5-checkbox');
     const list    = $('roster-modal-list');
+    const extraLabel = document.querySelector('#roster-6v5-row .roster-6v5-label span');
+    const showExtraToggle = realType === 'goal' || realType === 'steal';
 
     if (titleEl) titleEl.textContent = TITLES[realType] || 'Select Player';
-    if (row6v5)  row6v5.classList.toggle('hidden', realType !== 'goal');
+    if (row6v5)  row6v5.classList.toggle('hidden', !showExtraToggle);
+    if (extraLabel) extraLabel.textContent = realType === 'steal' ? 'Forced Ball Under' : '6-on-5 power play goal';
     if (cb)      cb.checked = isSixOnFive;
 
     // For saves, show only goalkeepers; for everything else show full roster
@@ -2846,8 +2866,11 @@ function openEventPicker(gameId, eventType) {
         <span class="roster-cap">${player.cap ? '#'+escHtml(player.cap) : 'GK'}</span>
         <span class="roster-name">${escHtml(player.first)} ${escHtml(player.last)}</span>`;
       btn.addEventListener('click', () => {
-        const sixOnFive = $('roster-6v5-checkbox')?.checked || _pickerSixOnFive;
-        recordEventForPlayer(gameId, _pickerType, player.cap, `${player.first} ${player.last}`, sixOnFive);
+        const extraChecked = $('roster-6v5-checkbox')?.checked || _pickerSixOnFive;
+        const extra = _pickerType === 'steal'
+          ? { forcedBallUnder: !!extraChecked }
+          : { sixOnFive: !!extraChecked };
+        recordEventForPlayer(gameId, _pickerType, player.cap, `${player.first} ${player.last}`, extra);
         closeEventPicker();
       });
       list.appendChild(btn);
@@ -5355,13 +5378,17 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
         <button class="score-btn" style="background:#fff1f2;color:#be123c;border-color:#fda4af" onclick="recordEventDirect('${gid}','opp_so_miss')">❌ Opp SO Miss</button>
       </div>` : ''}
       <div class="stat-btns-row">
-        <button class="stat-btn stat-assist"      onclick="openEventPicker('${gid}','assist')">Assist</button>
-        <button class="stat-btn stat-steal"       onclick="openEventPicker('${gid}','steal')">Steal</button>
-        <button class="stat-btn stat-attempt"     onclick="openEventPicker('${gid}','shot_miss')">Attempt</button>
-        <button class="stat-btn stat-exclusion"   onclick="openEventPicker('${gid}','exclusion')">Excl</button>
+        <button class="stat-btn stat-assist"       onclick="openEventPicker('${gid}','assist')">Assist</button>
+        <button class="stat-btn stat-steal"        onclick="openEventPicker('${gid}','steal')">Steal</button>
+        <button class="stat-btn stat-field-block"  onclick="openEventPicker('${gid}','field_block')">Field Block</button>
+        <button class="stat-btn stat-attempt"      onclick="openEventPicker('${gid}','shot_miss')">Attempt</button>
+      </div>
+      <div class="stat-btns-row">
+        <button class="stat-btn stat-exclusion"    onclick="openEventPicker('${gid}','exclusion')">Excl</button>
         <button class="stat-btn stat-earned-excl"  onclick="openEventPicker('${gid}','earned_excl')">Earned Excl</button>
-        <button class="stat-btn stat-opp-attempt" onclick="recordEventDirect('${gid}','opp_shot_miss')">Opp Attempt</button>
-        <button class="stat-btn stat-opp-excl"    onclick="recordEventDirect('${gid}','opp_exclusion')">Opp Excl</button>
+        <button class="stat-btn stat-opp-steal"    onclick="recordEventDirect('${gid}','opp_steal')">Opp Steal</button>
+        <button class="stat-btn stat-opp-attempt"  onclick="recordEventDirect('${gid}','opp_shot_miss')">Opp Attempt</button>
+        <button class="stat-btn stat-opp-excl"     onclick="recordEventDirect('${gid}','opp_exclusion')">Opp Excl</button>
       </div>
       ${s.gameState !== 'shootout' ? `
       <div class="stat-btns-row">
@@ -8253,11 +8280,11 @@ function getAllPlayersWithStats() {
   function processEvts(evts, gameKey) {
     for (const ev of (evts || [])) {
       if (ev.side !== 'team' || ev.type === 'game_state') continue;
-      if (!['goal','shot_miss','goal_5m','miss_5m','so_goal','so_miss','assist','exclusion','brutality','earned_excl','save','block'].includes(ev.type)) continue;
+      if (!['goal','shot_miss','goal_5m','miss_5m','so_goal','so_miss','assist','steal','field_block','exclusion','brutality','earned_excl','save','block'].includes(ev.type)) continue;
       const key = nameKey(ev);
       if (!key) continue;
       const name = String(ev.name || '').trim();
-      if (!map[key]) map[key] = { name, G: 0, SM: 0, G5: 0, M5: 0, SOG: 0, SOM: 0, Stl: 0, A: 0, Excl: 0, EE: 0, sixOnFive: 0, Sv: 0, games: new Set() };
+      if (!map[key]) map[key] = { name, G: 0, SM: 0, G5: 0, M5: 0, SOG: 0, SOM: 0, Stl: 0, FBU: 0, FB: 0, A: 0, Excl: 0, EE: 0, sixOnFive: 0, Sv: 0, games: new Set() };
       // Keep the longest / most complete name seen for this player
       if (name.length > map[key].name.length) map[key].name = name;
       map[key].games.add(gameKey);
@@ -8267,7 +8294,8 @@ function getAllPlayersWithStats() {
       if (ev.type === 'miss_5m')                              map[key].M5++;
       if (ev.type === 'so_goal')                              map[key].SOG++;
       if (ev.type === 'so_miss')                              map[key].SOM++;
-      if (ev.type === 'steal')                                map[key].Stl++;
+      if (ev.type === 'steal')                                { map[key].Stl++; if (ev.forcedBallUnder) map[key].FBU++; }
+      if (ev.type === 'field_block')                          map[key].FB++;
       if (ev.type === 'assist')                               map[key].A++;
       if (ev.type === 'exclusion' || ev.type === 'brutality') map[key].Excl++;
       if (ev.type === 'earned_excl')                          map[key].EE++;
@@ -8319,7 +8347,7 @@ function collectPlayerGameRows(name) {
   }
 
   function extractFromEvts(evts) {
-    let G = 0, SM = 0, G5 = 0, M5 = 0, SOG = 0, SOM = 0, Stl = 0, A = 0, Excl = 0, EE = 0, sixOnFive = 0, Sv = 0, hasAny = false;
+    let G = 0, SM = 0, G5 = 0, M5 = 0, SOG = 0, SOM = 0, Stl = 0, FBU = 0, FB = 0, A = 0, Excl = 0, EE = 0, sixOnFive = 0, Sv = 0, hasAny = false;
     for (const ev of (evts || [])) {
       if (ev.type === 'game_state') continue;
       if (!matchesPlayer(ev)) continue;
@@ -8330,13 +8358,14 @@ function collectPlayerGameRows(name) {
       if (ev.type === 'miss_5m')                              M5++;
       if (ev.type === 'so_goal')                              SOG++;
       if (ev.type === 'so_miss')                              SOM++;
-      if (ev.type === 'steal')                                Stl++;
+      if (ev.type === 'steal')                                { Stl++; if (ev.forcedBallUnder) FBU++; }
+      if (ev.type === 'field_block')                          FB++;
       if (ev.type === 'assist')                               A++;
       if (ev.type === 'exclusion' || ev.type === 'brutality') Excl++;
       if (ev.type === 'earned_excl')                          EE++;
       if (ev.type === 'save' || ev.type === 'block')          Sv++;
     }
-    return { hasAny, G, SM, G5, M5, SOG, SOM, Stl, A, Excl, EE, sixOnFive, Sv };
+    return { hasAny, G, SM, G5, M5, SOG, SOM, Stl, FBU, FB, A, Excl, EE, sixOnFive, Sv };
   }
 
   // Current tournament
@@ -8396,6 +8425,9 @@ function buildPlayerStatsCSV(playerLabel, rows) {
   const now      = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const totalG    = rows.reduce((s, r) => s + r.G, 0);
   const totalA    = rows.reduce((s, r) => s + r.A, 0);
+  const totalStl  = rows.reduce((s, r) => s + (r.Stl || 0), 0);
+  const totalFBU  = rows.reduce((s, r) => s + (r.FBU || 0), 0);
+  const totalFB   = rows.reduce((s, r) => s + (r.FB || 0), 0);
   const totalExcl = rows.reduce((s, r) => s + r.Excl, 0);
   const total6v5  = rows.reduce((s, r) => s + r.sixOnFive, 0);
   const totalSv   = rows.reduce((s, r) => s + (r.Sv  || 0), 0);
@@ -8405,14 +8437,14 @@ function buildPlayerStatsCSV(playerLabel, rows) {
   const q = str => `"${String(str || '').replace(/"/g, '""')}"`;
 
   const header = isGkPlayer
-    ? 'Tournament,Date,Opponent,Result,Team Score,Opp Score,Goals,Assists,Exclusions,6v5 Goals,Saves'
-    : 'Tournament,Date,Opponent,Result,Team Score,Opp Score,Goals,Assists,Exclusions,6v5 Goals';
+    ? 'Tournament,Date,Opponent,Result,Team Score,Opp Score,Goals,Assists,Steals,Forced Ball Under,Field Blocks,Exclusions,6v5 Goals,Saves'
+    : 'Tournament,Date,Opponent,Result,Team Score,Opp Score,Goals,Assists,Steals,Forced Ball Under,Field Blocks,Exclusions,6v5 Goals';
 
   const lines = [
     q('Eggbeater Water Polo — Player Stats Export'),
     q(`Player: ${playerLabel}`),
     q(`Exported: ${now}`),
-    q(`${rows.length} game${rows.length !== 1 ? 's' : ''}  |  Record: ${totalWins}-${rows.length - totalWins}  |  Goals: ${totalG}  Assists: ${totalA}  Exclusions: ${totalExcl}${total6v5 ? '  6v5: ' + total6v5 : ''}${isGkPlayer ? `  Saves: ${totalSv}` : ''}`),
+    q(`${rows.length} game${rows.length !== 1 ? 's' : ''}  |  Record: ${totalWins}-${rows.length - totalWins}  |  Goals: ${totalG}  Assists: ${totalA}  Steals: ${totalStl}  Exclusions: ${totalExcl}${totalFBU ? '  FBU: ' + totalFBU : ''}${totalFB ? '  Field Blocks: ' + totalFB : ''}${total6v5 ? '  6v5: ' + total6v5 : ''}${isGkPlayer ? `  Saves: ${totalSv}` : ''}`),
     '',
     header,
   ];
@@ -8433,6 +8465,9 @@ function buildPlayerStatsCSV(playerLabel, rows) {
       r.oppScore  !== '' ? r.oppScore  : '',
       r.G,
       r.A,
+      r.Stl || 0,
+      r.FBU || 0,
+      r.FB || 0,
       r.Excl,
       r.sixOnFive,
     ];
@@ -8441,7 +8476,7 @@ function buildPlayerStatsCSV(playerLabel, rows) {
   }
 
   lines.push('');
-  const totalsBase = [q('SEASON TOTALS'), '', '', '', '', '', totalG, totalA, totalExcl, total6v5];
+  const totalsBase = [q('SEASON TOTALS'), '', '', '', '', '', totalG, totalA, totalStl, totalFBU, totalFB, totalExcl, total6v5];
   if (isGkPlayer) totalsBase.push(totalSv);
   lines.push(totalsBase.join(','));
 
@@ -9347,6 +9382,7 @@ function renderMyPlayersCard() {
           ⭐ ${escHtml(p.name)}
           <button class="mp-multi-remove" onclick="removeMyPlayer('${escHtml(p.name)}','${escHtml(p.teamKey)}')" title="Remove">×</button>
         </span>`).join('');
+      const statCards = tracked.map(p => _renderPlayerStatsCard(p.name, teamKey)).join('');
       html += `<div class="card tab-card mp-multi-card">
         <div class="mp-multi-header"><span class="history-subtitle">${escHtml(label)}</span></div>
         <div class="mp-multi-badges">${badges}</div>
@@ -9356,6 +9392,7 @@ function renderMyPlayersCard() {
           </select>
           <button class="mp-multi-add-btn" onclick="_addPlayerFromSelect('${escHtml(teamKey)}')">Add</button>
         </div>` : ''}
+        <div class="mp-multi-player-cards">${statCards}</div>
       </div>`;
     } else {
       html += `<div class="card tab-card mp-multi-card mp-multi-empty">
@@ -9431,8 +9468,12 @@ function toggleMyPlayerCollapse(key) {
 }
 
 /** Renders a full stats card for one player (used in single-team mode). */
-function _renderPlayerStatsCard(playerName) {
-  const roster   = state.roster || [];
+function _renderPlayerStatsCard(playerName, teamKey = getSelectedTeam()) {
+  const cache = TEAM_CACHE[teamKey];
+  const tournamentRoster = cache
+    ? (Array.isArray(cache.tournament.roster) ? cache.tournament.roster : Object.values(cache.tournament.roster || {}).flat())
+    : null;
+  const roster   = tournamentRoster || state.roster || [];
   const stats    = getMyPlayerSummaryStats(playerName);
   const G        = stats ? stats.G          : 0;
   const SM       = stats ? (stats.SM  || 0) : 0;
@@ -9443,6 +9484,8 @@ function _renderPlayerStatsCard(playerName) {
   const A        = stats ? stats.A          : 0;
   const Excl     = stats ? stats.Excl       : 0;
   const Stl      = stats ? (stats.Stl || 0) : 0;
+  const FBU      = stats ? (stats.FBU || 0) : 0;
+  const FB       = stats ? (stats.FB  || 0) : 0;
   const sixOnFive = stats ? (stats.sixOnFive || 0) : 0;
   const Sv       = stats ? (stats.Sv  || 0) : 0;
   const gameCount = stats ? stats.gameCount  : 0;
@@ -9472,7 +9515,7 @@ function _renderPlayerStatsCard(playerName) {
         <div class="mp-game-opp">${escHtml(r.opponent)}${res ? ' ' + res : ''} ${score ? `<span class="mp-game-score">${score}</span>` : ''}</div>
         <div class="mp-game-stats">${playerIsGoalie
           ? `Sv&nbsp;${r.Sv||0}&nbsp; Ex&nbsp;${r.Excl}`
-          : `G&nbsp;${r.G}&nbsp; A&nbsp;${r.A}&nbsp; Stl&nbsp;${r.Stl||0}&nbsp; Ex&nbsp;${r.Excl}`}</div>
+          : `G&nbsp;${r.G}&nbsp; A&nbsp;${r.A}&nbsp; Stl&nbsp;${r.Stl||0}${r.FBU ? `&nbsp; FBU&nbsp;${r.FBU}` : ''}${r.FB ? `&nbsp; FB&nbsp;${r.FB}` : ''}&nbsp; Ex&nbsp;${r.Excl}`}</div>
       </div>`;
     }).join('');
     const moreNote = rows.length > 5 ? `<div class="mp-game-more">${rows.length - 5} more game${rows.length - 5 !== 1 ? 's' : ''} in download</div>` : '';
@@ -9508,21 +9551,23 @@ function _renderPlayerStatsCard(playerName) {
         <div class="mp-stat-box"><span class="mp-stat-num">${gameCount}</span><span class="mp-stat-lbl">Games</span></div>
       </div>
 ` : `
-      <div class="mp-stat-row-lg">
-        <div class="mp-stat-box"><span class="mp-stat-num">${G}</span><span class="mp-stat-lbl">Goals</span></div>
-        <div class="mp-stat-box"><span class="mp-stat-num">${A}</span><span class="mp-stat-lbl">Assists</span></div>
-        <div class="mp-stat-box"><span class="mp-stat-num">${Stl}</span><span class="mp-stat-lbl">Steals</span></div>
+      <div class="mp-stat-row-4">
+        <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${G}</span><span class="mp-stat-lbl-sm">Goals</span></div>
+        <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${A}</span><span class="mp-stat-lbl-sm">Assists</span></div>
+        <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${Stl}</span><span class="mp-stat-lbl-sm">Steals</span></div>
+        <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${Excl}</span><span class="mp-stat-lbl-sm">Exclusions</span></div>
       </div>
       <div class="mp-stat-row-4">
+        <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${FBU}</span><span class="mp-stat-lbl-sm">Forced Under</span></div>
+        <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${FB}</span><span class="mp-stat-lbl-sm">Field Blocks</span></div>
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${sixOnFive}</span><span class="mp-stat-lbl-sm">6on5 Goals</span></div>
+        <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${gameCount}</span><span class="mp-stat-lbl-sm">Games</span></div>
+      </div>
+      <div class="mp-stat-row-4">
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${G5}</span><span class="mp-stat-lbl-sm">5m Goals</span></div>
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${M5}</span><span class="mp-stat-lbl-sm">5m Attempts</span></div>
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${SOG}</span><span class="mp-stat-lbl-sm">SO Goals</span></div>
-      </div>
-      <div class="mp-stat-row-3">
-        <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${Excl}</span><span class="mp-stat-lbl-sm">Exclusions</span></div>
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${SOM}</span><span class="mp-stat-lbl-sm">SO Attempts</span></div>
-        <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${gameCount}</span><span class="mp-stat-lbl-sm">Games</span></div>
       </div>`}
     </div>
 
@@ -9619,7 +9664,7 @@ function renderMyPlayerCard() {
 
   // Individual stats card per followed player
   for (const p of players) {
-    html += _renderPlayerStatsCard(p.name);
+    html += _renderPlayerStatsCard(p.name, teamKey);
   }
   return html;
 }

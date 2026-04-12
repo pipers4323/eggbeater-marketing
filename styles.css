@@ -2833,6 +2833,7 @@ body.modal-open { overflow: hidden; }
 /* ── Stat Buttons Row ────────────────────────────────────────────────────── */
 .stat-btns-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-top: 5px;
 }
@@ -2863,6 +2864,9 @@ body.modal-open { overflow: hidden; }
 
 /* Assist → green */
 .stat-assist { border-color: #86efac; color: #15803d; background: #f0fdf4; }
+.stat-steal { border-color: #86efac; color: #15803d; background: #f0fdf4; }
+.stat-field-block { border-color: #fca5a5; color: #b91c1c; background: #fff1f2; }
+.stat-opp-steal { border-color: #cbd5e1; color: #475569; background: #f8fafc; }
 
 /* Exclusions → near-black */
 .stat-exclusion  { border-color: #374151; color: #111827; background: #f9fafb; }
