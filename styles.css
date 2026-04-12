@@ -6765,3 +6765,269 @@ html.native-android .card.tab-card.player-lookup-card .mp-multi-select {
   color: #1a202c !important;
   border-color: #e2e6ef !important;
 }
+
+/* Native contrast hardening:
+   dark-surface headers stay white, in-card headers stay navy,
+   and white-card internals get explicit readable colors. */
+html.native-ios .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-android .scores-slot-header:not(.slot-header-in-card) .scores-slot-label {
+  color: #ffffff !important;
+}
+
+html.native-ios #view-possible .scores-slot-header.slot-header-in-card .scores-slot-label,
+html.native-ios .roster-view-card .scores-slot-header.slot-header-in-card .scores-slot-label,
+html.native-android #view-possible .scores-slot-header.slot-header-in-card .scores-slot-label,
+html.native-android .roster-view-card .scores-slot-header.slot-header-in-card .scores-slot-label {
+  color: #002868 !important;
+}
+
+html.native-ios .team-search-select,
+html.native-ios .player-lookup-select,
+html.native-ios .mp-multi-select,
+html.native-android .team-search-select,
+html.native-android .player-lookup-select,
+html.native-android .mp-multi-select {
+  background: #ffffff !important;
+  color: #1a202c !important;
+  -webkit-text-fill-color: #1a202c !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.native-ios .roster-view-card .roster-cap-badge,
+html.native-ios .roster-player-btn .roster-cap,
+html.native-ios .card.tab-card.player-lookup-card .plookup-cap,
+html.native-android .roster-view-card .roster-cap-badge,
+html.native-android .roster-player-btn .roster-cap,
+html.native-android .card.tab-card.player-lookup-card .plookup-cap {
+  background: #edf1f8 !important;
+  color: #002868 !important;
+}
+
+html.native-ios .roster-view-card .roster-cap-badge.roster-cap-gk,
+html.native-ios .roster-player-btn .roster-cap.roster-cap-gk,
+html.native-android .roster-view-card .roster-cap-badge.roster-cap-gk,
+html.native-android .roster-player-btn .roster-cap.roster-cap-gk {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .live-score-bar,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .live-score-bar {
+  background: #1f2937 !important;
+  border-left-color: #ef4444 !important;
+}
+
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .live-score-bar .lsb-scores,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .live-score-bar .lsb-scores {
+  color: #ffffff !important;
+}
+
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .live-score-bar .lsb-period,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .live-score-bar .lsb-period {
+  background: #fff1f2 !important;
+  color: #b91c1c !important;
+}
+
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .live-score-bar .lsb-updated,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .live-score-bar .lsb-updated {
+  color: #cbd5e1 !important;
+}
+
+html.native-ios[data-theme="dark"] .sched-card.cap-white-bg .directions-btn,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .directions-btn,
+html.native-ios[data-theme="dark"] .next-game-card.cap-white-bg .directions-btn,
+html.native-android[data-theme="dark"] .sched-card.cap-white-bg .directions-btn,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .directions-btn,
+html.native-android[data-theme="dark"] .next-game-card.cap-white-bg .directions-btn {
+  background: #1e3a5f !important;
+  border-color: #30363d !important;
+  color: #ffffff !important;
+}
+
+html.native-ios[data-theme="dark"] .sched-card.cap-white-bg .directions-btn *,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .directions-btn *,
+html.native-ios[data-theme="dark"] .next-game-card.cap-white-bg .directions-btn *,
+html.native-android[data-theme="dark"] .sched-card.cap-white-bg .directions-btn *,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .directions-btn *,
+html.native-android[data-theme="dark"] .next-game-card.cap-white-bg .directions-btn * {
+  color: #ffffff !important;
+}
+
+html.native-ios[data-theme="dark"] .settings-item-label[style*="var(--royal)"],
+html.native-android[data-theme="dark"] .settings-item-label[style*="var(--royal)"] {
+  color: #e6edf3 !important;
+}
+
+/* Final native contrast lock:
+   keep dark-surface section headers white,
+   keep in-card headers navy,
+   and explicitly style the inner score/select/button components inside white cards. */
+html.native-ios .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-ios .card.tab-card.mp-multi-card > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-android .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-android .card.tab-card.mp-multi-card > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+html.native-ios #view-possible > .card.tab-card .scores-slot-header.slot-header-in-card .scores-slot-label,
+html.native-ios .roster-view-card .scores-slot-header.slot-header-in-card .scores-slot-label,
+html.native-android #view-possible > .card.tab-card .scores-slot-header.slot-header-in-card .scores-slot-label,
+html.native-android .roster-view-card .scores-slot-header.slot-header-in-card .scores-slot-label {
+  color: #002868 !important;
+  opacity: 1 !important;
+}
+
+html.native-ios #view-possible > .card.tab-card h2,
+html.native-ios #view-possible > .card.tab-card p,
+html.native-ios #view-possible > .card.tab-card .step-desc,
+html.native-ios #view-possible > .card.tab-card .history-subtitle,
+html.native-android #view-possible > .card.tab-card h2,
+html.native-android #view-possible > .card.tab-card p,
+html.native-android #view-possible > .card.tab-card .step-desc,
+html.native-android #view-possible > .card.tab-card .history-subtitle {
+  color: #1f2937 !important;
+}
+
+html.native-ios .game-card.cap-white-bg .game-info-row,
+html.native-ios .game-card.cap-white-bg .game-info-row *,
+html.native-ios .game-card.cap-white-bg .location-venue,
+html.native-ios .sched-card.cap-white-bg .sched-meta,
+html.native-ios .sched-card.cap-white-bg .sched-meta *,
+html.native-ios .sched-card.cap-white-bg .location-venue,
+html.native-ios .next-game-card.cap-white-bg .next-meta,
+html.native-ios .next-game-card.cap-white-bg .next-meta *,
+html.native-ios .next-game-card.cap-white-bg .location-venue,
+html.native-android .game-card.cap-white-bg .game-info-row,
+html.native-android .game-card.cap-white-bg .game-info-row *,
+html.native-android .game-card.cap-white-bg .location-venue,
+html.native-android .sched-card.cap-white-bg .sched-meta,
+html.native-android .sched-card.cap-white-bg .sched-meta *,
+html.native-android .sched-card.cap-white-bg .location-venue,
+html.native-android .next-game-card.cap-white-bg .next-meta,
+html.native-android .next-game-card.cap-white-bg .next-meta *,
+html.native-android .next-game-card.cap-white-bg .location-venue {
+  color: #4b5563 !important;
+}
+
+html.native-ios .game-card.cap-white-bg .directions-btn,
+html.native-ios .sched-card.cap-white-bg .directions-btn,
+html.native-ios .next-game-card.cap-white-bg .directions-btn,
+html.native-android .game-card.cap-white-bg .directions-btn,
+html.native-android .sched-card.cap-white-bg .directions-btn,
+html.native-android .next-game-card.cap-white-bg .directions-btn {
+  background: #1e3a5f !important;
+  border-color: #30486b !important;
+  color: #ffffff !important;
+}
+
+html.native-ios .game-card.cap-white-bg .directions-btn *,
+html.native-ios .sched-card.cap-white-bg .directions-btn *,
+html.native-ios .next-game-card.cap-white-bg .directions-btn *,
+html.native-android .game-card.cap-white-bg .directions-btn *,
+html.native-android .sched-card.cap-white-bg .directions-btn *,
+html.native-android .next-game-card.cap-white-bg .directions-btn * {
+  color: #ffffff !important;
+}
+
+html.native-ios .game-card.cap-white-bg .live-score-bar,
+html.native-ios .game-card.cap-white-bg .viewer-scoreboard,
+html.native-ios .game-card.cap-white-bg .box-score,
+html.native-android .game-card.cap-white-bg .live-score-bar,
+html.native-android .game-card.cap-white-bg .viewer-scoreboard,
+html.native-android .game-card.cap-white-bg .box-score {
+  background: #1f2937 !important;
+  border-color: #334155 !important;
+  color: #ffffff !important;
+}
+
+html.native-ios .game-card.cap-white-bg .viewer-scoreboard,
+html.native-android .game-card.cap-white-bg .viewer-scoreboard {
+  border: 1px solid #334155 !important;
+  border-radius: 12px !important;
+  padding: 12px 10px !important;
+}
+
+html.native-ios .game-card.cap-white-bg .box-score .bs-header-row,
+html.native-ios .game-card.cap-white-bg .box-score .bs-row,
+html.native-ios .game-card.cap-white-bg .box-score .bs-section-label,
+html.native-ios .game-card.cap-white-bg .box-score .bs-total-row,
+html.native-android .game-card.cap-white-bg .box-score .bs-header-row,
+html.native-android .game-card.cap-white-bg .box-score .bs-row,
+html.native-android .game-card.cap-white-bg .box-score .bs-section-label,
+html.native-android .game-card.cap-white-bg .box-score .bs-total-row {
+  background: transparent !important;
+  border-color: #334155 !important;
+}
+
+html.native-ios .game-card.cap-white-bg .ls-label,
+html.native-ios .game-card.cap-white-bg .ls-sep,
+html.native-ios .game-card.cap-white-bg .ls-score,
+html.native-ios .game-card.cap-white-bg .ls-score-team,
+html.native-ios .game-card.cap-white-bg .ls-score-opp,
+html.native-ios .game-card.cap-white-bg .lsb-scores,
+html.native-ios .game-card.cap-white-bg .lsb-updated,
+html.native-ios .game-card.cap-white-bg .box-score .bs-player,
+html.native-ios .game-card.cap-white-bg .box-score .bs-col-hdr,
+html.native-ios .game-card.cap-white-bg .box-score .bs-stat,
+html.native-android .game-card.cap-white-bg .ls-label,
+html.native-android .game-card.cap-white-bg .ls-sep,
+html.native-android .game-card.cap-white-bg .ls-score,
+html.native-android .game-card.cap-white-bg .ls-score-team,
+html.native-android .game-card.cap-white-bg .ls-score-opp,
+html.native-android .game-card.cap-white-bg .lsb-scores,
+html.native-android .game-card.cap-white-bg .lsb-updated,
+html.native-android .game-card.cap-white-bg .box-score .bs-player,
+html.native-android .game-card.cap-white-bg .box-score .bs-col-hdr,
+html.native-android .game-card.cap-white-bg .box-score .bs-stat {
+  color: #ffffff !important;
+}
+
+html.native-ios .game-card.cap-white-bg .lsb-period,
+html.native-ios .game-card.cap-white-bg .box-score .bs-stat.has-stat,
+html.native-android .game-card.cap-white-bg .lsb-period,
+html.native-android .game-card.cap-white-bg .box-score .bs-stat.has-stat {
+  color: #fca5a5 !important;
+}
+
+html.native-ios .team-search-select,
+html.native-ios .player-lookup-select,
+html.native-ios .mp-multi-select,
+html.native-ios .team-search-select option,
+html.native-ios .player-lookup-select option,
+html.native-ios .mp-multi-select option,
+html.native-android .team-search-select,
+html.native-android .player-lookup-select,
+html.native-android .mp-multi-select,
+html.native-android .team-search-select option,
+html.native-android .player-lookup-select option,
+html.native-android .mp-multi-select option {
+  background: #ffffff !important;
+  color: #1a202c !important;
+  -webkit-text-fill-color: #1a202c !important;
+}
+
+html.native-ios .roster-cap-badge,
+html.native-ios .roster-player-btn .roster-cap,
+html.native-ios .card.tab-card.player-lookup-card .plookup-cap,
+html.native-android .roster-cap-badge,
+html.native-android .roster-player-btn .roster-cap,
+html.native-android .card.tab-card.player-lookup-card .plookup-cap {
+  background: #1e3a5f !important;
+  color: #ffffff !important;
+  border-color: #30486b !important;
+}
+
+html.native-ios .roster-cap-badge.roster-cap-gk,
+html.native-ios .roster-player-btn .roster-cap.roster-cap-gk,
+html.native-android .roster-cap-badge.roster-cap-gk,
+html.native-android .roster-player-btn .roster-cap.roster-cap-gk {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+  border-color: #fecaca !important;
+}
+
+html.native-ios .settings-item-label[style*="var(--royal)"],
+html.native-android .settings-item-label[style*="var(--royal)"] {
+  color: #e6edf3 !important;
+}

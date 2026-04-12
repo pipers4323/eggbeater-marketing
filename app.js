@@ -3596,8 +3596,8 @@ function renderSettingsTab() {
       </div>
       <div class="settings-item" onclick="_settingsAddClub()" style="border-top:1px solid var(--gray-100)">
         <span class="settings-item-icon" style="color:var(--royal)">＋</span>
-        <div class="settings-item-text">
-          <div class="settings-item-label" style="color:var(--royal)">Add Club</div>
+          <div class="settings-item-text">
+            <div class="settings-item-label">Add Club</div>
           <div class="settings-item-value">Join another club via code</div>
         </div>
       </div>
