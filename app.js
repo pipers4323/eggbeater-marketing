@@ -632,6 +632,106 @@ function _hydrateOfficialResultsFromTournament() {
   if (changed) _saveResults();
 }
 
+function _warnIntegrity(message, detail = '') {
+  const full = detail ? `${message}: ${detail}` : message;
+  state.integrityWarnings.push(full);
+  if (state.integrityWarnings.length > 50) state.integrityWarnings.shift();
+  console.warn('[integrity]', full);
+}
+
+function _matchingGroupKeysForGameId(gameId) {
+  const gidStr = String(gameId);
+  const keys = new Set();
+  for (const [key, cache] of Object.entries(TEAM_CACHE)) {
+    if (cache?.tournament?.games?.some(g => String(g.id) === gidStr)) keys.add(key);
+  }
+  if (TOURNAMENT?.games?.some(g => String(g.id) === gidStr)) {
+    keys.add(getSelectedTeam() || getSelectedTeams()[0] || '');
+  }
+  return [...keys].filter(Boolean);
+}
+
+function _restorePrimaryTournamentContext() {
+  const primaryKey = getSelectedTeams()[0];
+  if (!primaryKey || !TEAM_CACHE[primaryKey]) return;
+  window.TOURNAMENT = TEAM_CACHE[primaryKey].tournament;
+  window.HISTORY_SEED = TEAM_CACHE[primaryKey].history || [];
+}
+
+function _normalizeScopedResultsState() {
+  const entries = Object.entries(state.results || {});
+  if (!entries.length) return false;
+  const next = {};
+  let changed = false;
+
+  for (const [key, value] of entries) {
+    if (key.includes(':')) next[key] = value;
+  }
+
+  for (const [key, value] of entries) {
+    if (key.includes(':')) continue;
+    const matches = _matchingGroupKeysForGameId(key);
+    if (matches.length === 1) {
+      const scopedKey = `${matches[0]}:${key}`;
+      if (next[scopedKey] == null) next[scopedKey] = value;
+      changed = true;
+    } else {
+      next[key] = value;
+      if (matches.length > 1) _warnIntegrity('Ambiguous raw result key', key);
+    }
+  }
+
+  if (changed || Object.keys(next).length !== entries.length) state.results = next;
+  return changed;
+}
+
+function _normalizeScopedLiveScoresState() {
+  const entries = Object.entries(state.liveScores || {});
+  if (!entries.length) return false;
+  const next = {};
+  let changed = false;
+
+  for (const [key, score] of entries) {
+    if (!key.includes(':')) continue;
+    const parsed = _parseGameRef(key);
+    next[key] = { ...score, ageGroup: score?.ageGroup || parsed.groupKey || '' };
+    if (!score?.ageGroup && parsed.groupKey) changed = true;
+  }
+
+  for (const [key, score] of entries) {
+    if (key.includes(':')) continue;
+    const matches = _matchingGroupKeysForGameId(key);
+    const resolvedGroup = score?.ageGroup && matches.includes(score.ageGroup)
+      ? score.ageGroup
+      : (matches.length === 1 ? matches[0] : '');
+    if (resolvedGroup) {
+      const scopedKey = `${resolvedGroup}:${key}`;
+      if (!next[scopedKey]) next[scopedKey] = { ...score, ageGroup: resolvedGroup };
+      changed = true;
+    } else {
+      next[key] = score;
+      if (matches.length > 1) _warnIntegrity('Ambiguous raw live score key', key);
+    }
+  }
+
+  if (changed || Object.keys(next).length !== entries.length) state.liveScores = next;
+  return changed;
+}
+
+function _auditMultiTeamIntegrity(opts = {}) {
+  const { persist = true } = opts;
+  state.integrityWarnings = [];
+  const resultsChanged = _normalizeScopedResultsState();
+  const liveChanged = _normalizeScopedLiveScoresState();
+  _restorePrimaryTournamentContext();
+  state.roster = loadRoster(getSelectedTeam());
+  if (persist) {
+    if (resultsChanged) _saveResults();
+    if (liveChanged) saveLiveScores();
+  }
+  return { resultsChanged, liveChanged, warnings: [...state.integrityWarnings] };
+}
+
 function _inferFinalResultFromScore(score) {
   if (!score) return null;
   if (score.gameState === 'so_w') return 'SW';
@@ -674,6 +774,8 @@ const state = {
   currentTab:       'schedule',
   viewerMode:       true,       // true = viewing live scores without scorer login (default for parents)
   parentTier:       null,       // null = not yet checked, 'free' | 'parent' once resolved
+  undoToast:        null,
+  integrityWarnings: [],
 
   // Calendar sync
   accessToken:      null,
@@ -823,13 +925,80 @@ function sortedRoster(roster) {
   return [...(roster || [])].sort((a, b) => capSortKey(a.cap) - capSortKey(b.cap));
 }
 
-function showToast(msg, type = 'default') {
+function hideToast() {
   const t = $('toast');
-  t.textContent = msg;
+  if (!t) return;
+  clearTimeout(t._timer);
+  t.classList.add('hidden');
+  delete t.dataset.toastToken;
+}
+
+function showToast(msg, type = 'default', opts = {}) {
+  const t = $('toast');
+  if (!t) return;
+  const {
+    timeoutMs = 4000,
+    actionLabel = '',
+    onAction = null,
+    onExpire = null,
+  } = opts || {};
+  const token = String(Date.now() + Math.random());
+  t.dataset.toastToken = token;
   t.className = `toast toast-${type}`;
+  t.innerHTML = '';
+  const msgEl = document.createElement('span');
+  msgEl.className = 'toast-message';
+  msgEl.textContent = msg;
+  t.appendChild(msgEl);
+  if (actionLabel && typeof onAction === 'function') {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'toast-action';
+    btn.textContent = actionLabel;
+    btn.onclick = ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (t.dataset.toastToken !== token) return;
+      clearTimeout(t._timer);
+      t.classList.add('hidden');
+      delete t.dataset.toastToken;
+      onAction();
+    };
+    t.appendChild(btn);
+  }
   t.classList.remove('hidden');
   clearTimeout(t._timer);
-  t._timer = setTimeout(() => t.classList.add('hidden'), 4000);
+  if (timeoutMs > 0) {
+    t._timer = setTimeout(() => {
+      if (t.dataset.toastToken !== token) return;
+      t.classList.add('hidden');
+      delete t.dataset.toastToken;
+      if (typeof onExpire === 'function') onExpire();
+    }, timeoutMs);
+  }
+}
+
+function showUndoToast(msg, onUndo, opts = {}) {
+  showToast(msg, opts.type || 'default', {
+    timeoutMs: opts.timeoutMs ?? 5000,
+    actionLabel: opts.actionLabel || 'Undo',
+    onAction: () => {
+      try { onUndo?.(); } catch (err) { console.warn('undo failed:', err?.message || err); }
+    },
+  });
+}
+
+function scheduleUndoableAction(msg, apply, opts = {}) {
+  showToast(msg, opts.type || 'default', {
+    timeoutMs: opts.timeoutMs ?? 5000,
+    actionLabel: opts.actionLabel || 'Undo',
+    onAction: () => {
+      try { opts.onCanceled?.(); } catch (err) { console.warn('undo cancel failed:', err?.message || err); }
+    },
+    onExpire: () => {
+      try { apply?.(); } catch (err) { console.warn('scheduled action failed:', err?.message || err); }
+    },
+  });
 }
 
 // ─── ACCESSIBILITY: MODAL FOCUS MANAGEMENT (WCAG 2.4.3, 4.1.3) ───────────────
@@ -1063,9 +1232,10 @@ function getHistory() {
 function archiveTournament(snapshot, results, bracketResults, liveScores) {
   const history = getHistory();
   const games = snapshot.games || [];
+  const snapshotGroupKey = snapshot._groupKey || snapshot.ageGroup || getSelectedTeams()[0] || '';
   let wins = 0, losses = 0, totalPoints = 0;
   for (const g of games) {
-    const r = results[g.id];
+    const r = results[_scopedGameKey(g, snapshotGroupKey)] ?? results[g.id];
     if (isWin(r))        wins++;
     else if (isLoss(r))  losses++;
     if (r != null) totalPoints += POINTS[r] ?? 0;
@@ -1083,7 +1253,7 @@ function archiveTournament(snapshot, results, bracketResults, liveScores) {
   // Extract player stats from liveScores events (Phase 5D)
   const playerStats = {};
   for (const g of games) {
-    const ls = (liveScores || {})[g.id];
+    const ls = (liveScores || {})[_scopedGameKey(g, snapshotGroupKey)] || (liveScores || {})[g.id];
     if (!ls || !Array.isArray(ls.events)) continue;
     const playersInGame = new Set();
     for (const ev of ls.events) {
@@ -1945,9 +2115,18 @@ function addRosterPlayer() {
 }
 
 function removeRosterPlayer(idx) {
+  const previous = state.roster.map(p => ({ ...p }));
+  const removed = state.roster[idx];
+  if (!removed) return;
   state.roster.splice(idx, 1);
   saveRosterToStorage();
   renderRosterTab();
+  const playerName = [removed.first, removed.last].filter(Boolean).join(' ') || `#${removed.cap || '?'}`;
+  showUndoToast(`Removed ${playerName} from roster`, () => {
+    state.roster = previous;
+    saveRosterToStorage();
+    renderRosterTab();
+  });
 }
 
 function updateRosterPlayer(idx, field, val) {
@@ -3073,6 +3252,8 @@ function closeRosterPicker() { closeEventPicker(); }
 // ─── RESULT MANAGEMENT ────────────────────────────────────────────────────────
 
 function setResult(gameId, result) {
+  const scopedKey = _scopedGameKey(gameId);
+  const previous = state.results[scopedKey] ?? state.results[_gameIdOnly(gameId)] ?? null;
   _setResultForGame(gameId, result);
   renderScheduleTab();
   renderScoresTab();
@@ -3080,18 +3261,37 @@ function setResult(gameId, result) {
   renderPossibleTab();
   // Trigger a calendar re-sync if active
   if (state.syncActive && state.accessToken) syncToCalendar();
+  showUndoToast(`Result set to ${resultLabel(result)}`, () => {
+    if (previous == null) delete state.results[scopedKey];
+    else state.results[scopedKey] = previous;
+    _saveResults();
+    renderScheduleTab();
+    renderScoresTab();
+    renderHistoryTab();
+    renderPossibleTab();
+    if (state.syncActive && state.accessToken) syncToCalendar();
+  }, { timeoutMs: 3500 });
 }
 
 function setBracketResult(stepKey, result) {
+  const previous = state.bracketResults[stepKey] ?? null;
   state.bracketResults[stepKey] = state.bracketResults[stepKey] === result ? null : result;
   localStorage.setItem(STORE.BRACKET_RESULTS, JSON.stringify(state.bracketResults));
   renderPossibleTab();
   renderNextGameCard(); // bracket projection may have advanced
+  showUndoToast(`Bracket result set to ${result}`, () => {
+    if (previous == null) delete state.bracketResults[stepKey];
+    else state.bracketResults[stepKey] = previous;
+    localStorage.setItem(STORE.BRACKET_RESULTS, JSON.stringify(state.bracketResults));
+    renderPossibleTab();
+    renderNextGameCard();
+  }, { timeoutMs: 3500 });
 }
 
 /** Clear all manual Win/Loss marks from the device */
 function clearManualResults() {
   if (confirm('Clear all your manual Win/Loss marks? This will move games back to the Schedule and Scores tabs.')) {
+    const previous = { ...state.results };
     state.results = {};
     localStorage.removeItem(STORE.RESULTS);
     
@@ -3102,7 +3302,17 @@ function clearManualResults() {
     renderPossibleTab();
     renderSettingsTab(); // update button state if needed
     
-    if (typeof showToast === 'function') showToast('Manual results cleared.');
+    if (typeof showToast === 'function') {
+      showUndoToast('Manual results cleared.', () => {
+        state.results = previous;
+        _saveResults();
+        renderScheduleTab();
+        renderScoresTab();
+        renderHistoryTab();
+        renderPossibleTab();
+        renderSettingsTab();
+      });
+    }
   }
 }
 
@@ -3894,25 +4104,40 @@ function _settingsRemoveClub(clubId, clubName) {
   const joined = getJoinedClubs();
   const isOnly = joined.length <= 1;
   const isCurrent = clubId === getAppClubId();
+  const snapshot = {
+    joined: [...joined],
+    clubId: localStorage.getItem('ebwp-club-id'),
+    clubName: localStorage.getItem('ebwp-club-name'),
+    clubType: localStorage.getItem('ebwp-club-type'),
+    teamKeys: localStorage.getItem('ebwp-team-keys'),
+    teamKey: localStorage.getItem('ebwp-team-key'),
+    tournamentId: localStorage.getItem('ebwp-tournament-id'),
+    snapshot: localStorage.getItem('ebwp-snapshot'),
+  };
 
-  removeJoinedClub(clubId);
+  scheduleUndoableAction(`Remove ${clubName}?`, () => {
+    removeJoinedClub(clubId);
 
-  if (isOnly || isCurrent) {
-    // Clear club selection — reload will show club picker if no clubs remain
-    localStorage.removeItem('ebwp-club-id');
-    localStorage.removeItem('ebwp-club-name');
-    localStorage.removeItem('ebwp-club-type');
-    localStorage.removeItem('ebwp-team-keys');
-    localStorage.removeItem('ebwp-team-key');
-    localStorage.removeItem('ebwp-tournament-id');
-    localStorage.removeItem('ebwp-snapshot');
-    window.location.href = window.location.pathname;
-    return;
-  }
+    if (isOnly || isCurrent) {
+      localStorage.removeItem('ebwp-club-id');
+      localStorage.removeItem('ebwp-club-name');
+      localStorage.removeItem('ebwp-club-type');
+      localStorage.removeItem('ebwp-team-keys');
+      localStorage.removeItem('ebwp-team-key');
+      localStorage.removeItem('ebwp-tournament-id');
+      localStorage.removeItem('ebwp-snapshot');
+      window.location.href = window.location.pathname;
+      return;
+    }
 
-  // Not the current club — just refresh the list
-  if (typeof showToast === 'function') showToast(`Removed ${clubName}`);
-  _renderSettingsClubList();
+    showToast(`Removed ${clubName}`, 'ok');
+    _renderSettingsClubList();
+  }, {
+    onCanceled: () => {
+      localStorage.setItem('ebwp-joined-clubs', JSON.stringify(snapshot.joined));
+      _renderSettingsClubList();
+    },
+  });
 }
 
 /** Show inline add-club input in Settings */
@@ -4063,28 +4288,66 @@ function _renderSettingsTeamPicker() {
 
 /** Clear current club selection and reload to show the club picker (splash screen) */
 function _returnToSplash() {
-  localStorage.removeItem('ebwp-club-id');
-  localStorage.removeItem('ebwp-club-name');
-  localStorage.removeItem('ebwp-club-type');
-  localStorage.removeItem('ebwp-team-keys');
-  localStorage.removeItem('ebwp-team-key');
-  localStorage.removeItem('ebwp-tournament-id');
-  localStorage.removeItem('ebwp-snapshot');
-  window.location.href = window.location.pathname;
+  const snapshot = {
+    clubId: localStorage.getItem('ebwp-club-id'),
+    clubName: localStorage.getItem('ebwp-club-name'),
+    clubType: localStorage.getItem('ebwp-club-type'),
+    teamKeys: localStorage.getItem('ebwp-team-keys'),
+    teamKey: localStorage.getItem('ebwp-team-key'),
+    tournamentId: localStorage.getItem('ebwp-tournament-id'),
+    snapshot: localStorage.getItem('ebwp-snapshot'),
+  };
+  scheduleUndoableAction('Return to the splash screen?', () => {
+    localStorage.removeItem('ebwp-club-id');
+    localStorage.removeItem('ebwp-club-name');
+    localStorage.removeItem('ebwp-club-type');
+    localStorage.removeItem('ebwp-team-keys');
+    localStorage.removeItem('ebwp-team-key');
+    localStorage.removeItem('ebwp-tournament-id');
+    localStorage.removeItem('ebwp-snapshot');
+    window.location.href = window.location.pathname;
+  }, {
+    onCanceled: () => {
+      snapshot.clubId == null ? localStorage.removeItem('ebwp-club-id') : localStorage.setItem('ebwp-club-id', snapshot.clubId);
+      snapshot.clubName == null ? localStorage.removeItem('ebwp-club-name') : localStorage.setItem('ebwp-club-name', snapshot.clubName);
+      snapshot.clubType == null ? localStorage.removeItem('ebwp-club-type') : localStorage.setItem('ebwp-club-type', snapshot.clubType);
+      snapshot.teamKeys == null ? localStorage.removeItem('ebwp-team-keys') : localStorage.setItem('ebwp-team-keys', snapshot.teamKeys);
+      snapshot.teamKey == null ? localStorage.removeItem('ebwp-team-key') : localStorage.setItem('ebwp-team-key', snapshot.teamKey);
+      snapshot.tournamentId == null ? localStorage.removeItem('ebwp-tournament-id') : localStorage.setItem('ebwp-tournament-id', snapshot.tournamentId);
+      snapshot.snapshot == null ? localStorage.removeItem('ebwp-snapshot') : localStorage.setItem('ebwp-snapshot', snapshot.snapshot);
+    },
+  });
 }
 
 /** Clear all selected age groups and re-render */
 function _resetTeamSelection() {
   const clubId = getAppClubId();
-  if (clubId) {
-    localStorage.removeItem(`ebwp-team-keys-${clubId}`);
-    localStorage.removeItem(`ebwp-fav-groups-${clubId}`);
-  }
-  localStorage.removeItem('ebwp-team-keys');
-  localStorage.removeItem('ebwp-team-key');
-  localStorage.removeItem('ebwp-selected-team');
-  _renderSettingsTeamPicker();
-  renderHeader();
+  const scopedTeamKeysKey = clubId ? `ebwp-team-keys-${clubId}` : null;
+  const scopedFavKey = clubId ? `ebwp-fav-groups-${clubId}` : null;
+  const snapshot = {
+    scopedTeamKeys: scopedTeamKeysKey ? localStorage.getItem(scopedTeamKeysKey) : null,
+    scopedFavs: scopedFavKey ? localStorage.getItem(scopedFavKey) : null,
+    teamKeys: localStorage.getItem('ebwp-team-keys'),
+    teamKey: localStorage.getItem('ebwp-team-key'),
+    selectedTeam: localStorage.getItem('ebwp-selected-team'),
+  };
+  scheduleUndoableAction('Reset selected age groups?', () => {
+    if (scopedTeamKeysKey) localStorage.removeItem(scopedTeamKeysKey);
+    if (scopedFavKey) localStorage.removeItem(scopedFavKey);
+    localStorage.removeItem('ebwp-team-keys');
+    localStorage.removeItem('ebwp-team-key');
+    localStorage.removeItem('ebwp-selected-team');
+    _renderSettingsTeamPicker();
+    renderHeader();
+  }, {
+    onCanceled: () => {
+      if (scopedTeamKeysKey) snapshot.scopedTeamKeys == null ? localStorage.removeItem(scopedTeamKeysKey) : localStorage.setItem(scopedTeamKeysKey, snapshot.scopedTeamKeys);
+      if (scopedFavKey) snapshot.scopedFavs == null ? localStorage.removeItem(scopedFavKey) : localStorage.setItem(scopedFavKey, snapshot.scopedFavs);
+      snapshot.teamKeys == null ? localStorage.removeItem('ebwp-team-keys') : localStorage.setItem('ebwp-team-keys', snapshot.teamKeys);
+      snapshot.teamKey == null ? localStorage.removeItem('ebwp-team-key') : localStorage.setItem('ebwp-team-key', snapshot.teamKey);
+      snapshot.selectedTeam == null ? localStorage.removeItem('ebwp-selected-team') : localStorage.setItem('ebwp-selected-team', snapshot.selectedTeam);
+    },
+  });
 }
 
 // ─── RENDER: SCORES TAB ───────────────────────────────────────────────────────
@@ -7664,11 +7927,7 @@ async function loadAllSelectedTeams() {
   const teams = getSelectedTeams();
   if (teams.length > 0) await loadTeamData(teams[0]); // primary first
   if (teams.length > 1) await Promise.all(teams.slice(1).map(k => loadTeamData(k)));
-  // Restore primary tournament context
-  if (TEAM_CACHE[teams[0]]) {
-    window.TOURNAMENT   = TEAM_CACHE[teams[0]].tournament;
-    window.HISTORY_SEED = TEAM_CACHE[teams[0]].history || [];
-  }
+  _auditMultiTeamIntegrity();
   await syncSheetConfigToServiceWorker();
 }
 
@@ -7677,11 +7936,7 @@ async function deselectHSGroup(keysStr) {
   const keysToRemove = keysStr.split(',');
   let teams = getSelectedTeams().filter(k => !keysToRemove.includes(k));
   setSelectedTeams(teams);
-  // Restore primary from remaining teams
-  if (teams.length && TEAM_CACHE[teams[0]]) {
-    window.TOURNAMENT   = TEAM_CACHE[teams[0]].tournament;
-    window.HISTORY_SEED = TEAM_CACHE[teams[0]].history || [];
-  }
+  _auditMultiTeamIntegrity();
   checkTournamentChange();
   seedHistory();
   renderTeamPicker();
@@ -7699,11 +7954,7 @@ async function onAgeGroupToggle(teamKey) {
   // Load any uncached teams
   const missing = teams.filter(k => !TEAM_CACHE[k]);
   if (missing.length) await Promise.all(missing.map(k => loadTeamData(k)));
-  // Restore primary
-  if (TEAM_CACHE[teams[0]]) {
-    window.TOURNAMENT   = TEAM_CACHE[teams[0]].tournament;
-    window.HISTORY_SEED = TEAM_CACHE[teams[0]].history || [];
-  }
+  _auditMultiTeamIntegrity();
   checkTournamentChange();
   seedHistory();
   renderTeamPicker();
@@ -8385,6 +8636,7 @@ async function pollLiveScores() {
     }
 
     if (changed) {
+      _auditMultiTeamIntegrity();
       saveLiveScores();
       // Start the 250ms clock ticker if any received game has a running timer.
       // Without this, viewer clocks never tick — ensureClockTicker() is only called
@@ -9532,6 +9784,8 @@ function addMyPlayer(name, teamKey) {
   renderRosterTab();
 }
 function removeMyPlayer(name, teamKey) {
+  const prevPlayers = getMyPlayers();
+  const prevLegacy = localStorage.getItem(STORE.MY_PLAYER);
   // If teamKey is provided, only remove that specific team entry.
   // Otherwise remove ALL entries with this name (legacy / fallback).
   saveMyPlayers(getMyPlayers().filter(p => {
@@ -9545,6 +9799,12 @@ function removeMyPlayer(name, teamKey) {
     localStorage.removeItem(STORE.MY_PLAYER);
   }
   renderRosterTab();
+  showUndoToast(`Removed ${name} from My Player`, () => {
+    saveMyPlayers(prevPlayers);
+    if (prevLegacy == null) localStorage.removeItem(STORE.MY_PLAYER);
+    else localStorage.setItem(STORE.MY_PLAYER, prevLegacy);
+    renderRosterTab();
+  });
 }
 
 /** Legacy single-player getter — returns first tracked player's name. */
@@ -9577,10 +9837,18 @@ function setMyPlayer(name) {
 /** Clears the followed player for the current team. */
 function clearMyPlayer() {
   const teamKey = getSelectedTeam();
+  const prevPlayers = getMyPlayers();
+  const prevLegacy = localStorage.getItem(STORE.MY_PLAYER);
   const arr = getMyPlayers().filter(p => p.teamKey !== teamKey);
   saveMyPlayers(arr);
   localStorage.removeItem(STORE.MY_PLAYER);
   renderRosterTab();
+  showUndoToast('Cleared followed players for this age group', () => {
+    saveMyPlayers(prevPlayers);
+    if (prevLegacy == null) localStorage.removeItem(STORE.MY_PLAYER);
+    else localStorage.setItem(STORE.MY_PLAYER, prevLegacy);
+    renderRosterTab();
+  });
 }
 
 /**
