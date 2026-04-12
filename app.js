@@ -5843,7 +5843,7 @@ function _renderPossibleMulti(slots) {
   $('possible-desc').textContent = '';
   $('possible-list').innerHTML = slots.map(({ groupKey, letter, suffix }) =>
     `<div class="team-section">
-      <div class="scores-slot-header"><span class="scores-slot-label">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>
+      <div class="scores-slot-header slot-header-in-card"><span class="scores-slot-label">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>
       <div id="possible-desc-${suffix}" style="font-size:.85rem;color:var(--gray-600);padding:0 2px 8px"></div>
       <div id="possible-list-${suffix}"></div>
       <div id="possible-empty-${suffix}" class="empty-msg hidden"></div>

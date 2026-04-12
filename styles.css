@@ -1016,13 +1016,20 @@ h2 {
   color: var(--royal);
 }
 
+.roster-view-card .scores-slot-label,
+.mp-multi-card .scores-slot-label {
+  color: var(--royal);
+}
+
 .slot-header-in-card.scores-slot-header {
   border-top-color: var(--gray-200);
 }
 
 @media (max-width: 1022px) {
   .scores-slot-header.slot-header-in-card .scores-slot-label,
-  [data-theme="dark"] .scores-slot-header.slot-header-in-card .scores-slot-label {
+  [data-theme="dark"] .scores-slot-header.slot-header-in-card .scores-slot-label,
+  .roster-view-card .scores-slot-label,
+  .mp-multi-card .scores-slot-label {
     color: var(--royal);
   }
 }
