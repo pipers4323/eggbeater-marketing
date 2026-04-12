@@ -576,6 +576,29 @@ function _saveResults() {
   localStorage.setItem(STORE.RESULTS, JSON.stringify(state.results));
 }
 
+function _hydrateOfficialResultsFromTournament() {
+  let changed = false;
+  const seen = new Set();
+  const applyGames = (games, explicitGroupKey = '') => {
+    if (!Array.isArray(games)) return;
+    games.forEach(g => {
+      if (!g?.id || !g?.result) return;
+      const scopedKey = _scopedGameKey(g, explicitGroupKey || g._groupKey || '');
+      if (seen.has(scopedKey)) return;
+      seen.add(scopedKey);
+      if (state.results[scopedKey] == null) {
+        state.results[scopedKey] = g.result;
+        changed = true;
+      }
+    });
+  };
+
+  applyGames(window.TOURNAMENT?.games || [], getSelectedTeams()[0] || '');
+  Object.entries(TEAM_CACHE || {}).forEach(([groupKey, cache]) => applyGames(cache?.tournament?.games || [], groupKey));
+
+  if (changed) _saveResults();
+}
+
 function _inferFinalResultFromScore(score) {
   if (!score) return null;
   if (score.gameState === 'so_w') return 'SW';
@@ -1036,6 +1059,8 @@ function checkTournamentChange() {
     state.bracketResults = savedBrRes;
     state.liveScores     = savedLiveScores;
   }
+
+  _hydrateOfficialResultsFromTournament();
 
   localStorage.setItem(STORE.TOURNAMENT_ID, TOURNAMENT.id);
   localStorage.setItem(STORE.SNAPSHOT, JSON.stringify(TOURNAMENT));
@@ -2688,9 +2713,20 @@ function fmtTOLabel(mins) {
 }
 
 function callTeamTimeout(gameId, lengthMins) {
-  const s  = getLiveScore(gameId);
+  const s = getLiveScore(gameId);
   if (!s.teamTimeoutsUsed) s.teamTimeoutsUsed = [];
-  if (s.teamTimeoutsUsed.includes(lengthMins)) { showToast('That timeout already used'); return; }
+
+  if (s.teamTimeoutsUsed.includes(lengthMins)) {
+    s.teamTimeoutsUsed = s.teamTimeoutsUsed.filter(m => m !== lengthMins);
+    const idx = s.events.findLastIndex(e => e.type === 'timeout' && (e.period === s.period || (s.period === 0 && !e.period)));
+    if (idx !== -1) s.events.splice(idx, 1);
+    _setLiveScore(gameId, s);
+    saveLiveScores();
+    afterScore(gameId);
+    showToast('Timeout removed');
+    return;
+  }
+
   pauseGameTimer(gameId);
   s.teamTimeoutsUsed = [...s.teamTimeoutsUsed, lengthMins];
   _setLiveScore(gameId, s);
@@ -2699,9 +2735,20 @@ function callTeamTimeout(gameId, lengthMins) {
 }
 
 function callOppTimeout(gameId, lengthMins) {
-  const s  = getLiveScore(gameId);
+  const s = getLiveScore(gameId);
   if (!s.oppTimeoutsUsed) s.oppTimeoutsUsed = [];
-  if (s.oppTimeoutsUsed.includes(lengthMins)) { showToast('That timeout already used'); return; }
+
+  if (s.oppTimeoutsUsed.includes(lengthMins)) {
+    s.oppTimeoutsUsed = s.oppTimeoutsUsed.filter(m => m !== lengthMins);
+    const idx = s.events.findLastIndex(e => e.type === 'opp_timeout' && (e.period === s.period || (s.period === 0 && !e.period)));
+    if (idx !== -1) s.events.splice(idx, 1);
+    _setLiveScore(gameId, s);
+    saveLiveScores();
+    afterScore(gameId);
+    showToast('Opp Timeout removed');
+    return;
+  }
+
   pauseGameTimer(gameId);
   s.oppTimeoutsUsed = [...s.oppTimeoutsUsed, lengthMins];
   _setLiveScore(gameId, s);
@@ -5809,19 +5856,20 @@ function renderHistoryTab() {
     })();
 
     standingsEl.innerHTML = `
-      <div style="background:linear-gradient(135deg,rgba(0,40,104,.06),rgba(99,102,241,.08));border-radius:12px;padding:14px 16px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+      <div class="card tab-card" style="padding:18px 20px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
           <div style="flex:1">
-            <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--royal);margin-bottom:2px">Season Record${teamLabel ? ' · ' + escHtml(teamLabel) : ''}</div>
-            <div style="font-size:1.35rem;font-weight:800;color:var(--text)">${totalW}W - ${totalL}L</div>
-            <div style="font-size:0.78rem;color:var(--gray-500)">${totalGames} games · ${seasonEntries.length} tournament${seasonEntries.length > 1 ? 's' : ''}${totalGF || totalGA ? ` · ${totalGF} GF / ${totalGA} GA` : ''}</div>
+            <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gray-500);margin-bottom:4px">Season Record${teamLabel ? ' · ' + escHtml(teamLabel) : ''}</div>
+            <div style="font-size:1.6rem;font-weight:800;color:var(--text);line-height:1.2">${totalW}W - ${totalL}L</div>
+            <div style="font-size:0.85rem;color:var(--gray-500);margin-top:2px">${totalGames} games · ${seasonEntries.length} tournament${seasonEntries.length > 1 ? 's' : ''}${totalGF || totalGA ? ` · ${totalGF} GF / ${totalGA} GA` : ''}</div>
           </div>
-          <div style="width:50px;height:50px;border-radius:50%;background:${pctBg};display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <span style="font-size:1rem;font-weight:800;color:${pctColor}">${pct}%</span>
+          <div style="width:58px;height:58px;border-radius:50%;background:${pctBg};display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;border:2px solid ${pctColor}44">
+            <span style="font-size:1.1rem;font-weight:900;color:${pctColor}">${pct}%</span>
+            <span style="font-size:0.55rem;font-weight:700;text-transform:uppercase;color:${pctColor};margin-top:-2px">Wins</span>
           </div>
         </div>
-        <div style="height:6px;background:rgba(0,0,0,.08);border-radius:3px;overflow:hidden">
-          <div style="height:100%;width:${pct}%;background:${pctColor};border-radius:3px;transition:width .3s"></div>
+        <div style="height:8px;background:rgba(var(--royal-rgb),.08);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${pctColor};border-radius:4px;transition:width .3s"></div>
         </div>
       </div>
     `;
@@ -5848,17 +5896,29 @@ function renderHistoryTab() {
         `<tr><td style="font-weight:600">${i + 1}. ${escHtml(name)}</td><td>${s.goals}</td><td>${s.assists}</td><td>${s.steals}</td><td>${s.gamesPlayed}</td></tr>`
       ).join('');
       standingsEl.innerHTML += `
-        <details class="season-stats-details" style="margin-bottom:12px">
-          <summary style="font-weight:800;font-size:0.88rem;color:var(--royal);cursor:pointer;padding:8px 0">
-            📊 Season Stats (${seasonEntries.length} tournament${seasonEntries.length > 1 ? 's' : ''})
-          </summary>
-          <div style="overflow-x:auto;margin-top:6px">
-            <table class="season-stats-table">
-              <thead><tr><th>Player</th><th>Goals</th><th>Assists</th><th>Steals</th><th>Games</th></tr></thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </div>
-        </details>`;
+        <div class="card tab-card" style="padding:10px 18px;margin-bottom:16px">
+          <details class="season-stats-details">
+            <summary style="font-weight:800;font-size:0.88rem;cursor:pointer;padding:8px 0;display:flex;align-items:center;gap:8px">
+              <span style="font-size:1.1rem">📊</span>
+              <span style="flex:1">Season Stats (${seasonEntries.length} tournament${seasonEntries.length > 1 ? 's' : ''})</span>
+              <span class="hs-chevron" style="font-size:0.7rem;color:var(--gray-500)">▼</span>
+            </summary>
+            <div style="overflow-x:auto;margin-top:6px;padding-bottom:8px">
+              <table class="season-stats-table" style="width:100%;border-collapse:collapse;font-size:0.85rem">
+                <thead>
+                  <tr style="text-align:left;color:var(--gray-500);text-transform:uppercase;font-size:0.65rem;letter-spacing:0.5px">
+                    <th style="padding:8px 4px">Player</th>
+                    <th style="padding:8px 4px">G</th>
+                    <th style="padding:8px 4px">A</th>
+                    <th style="padding:8px 4px">S</th>
+                    <th style="padding:8px 4px">GP</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </details>
+        </div>`;
     }
   }
 
@@ -6228,6 +6288,16 @@ async function reloadTournamentJs() {
 }
 
 function buildSheetConfigFromTournament(tournament) {
+  const colIndex = value => {
+    if (Number.isInteger(value)) return value;
+    if (typeof value === 'number' && Number.isFinite(value)) return Math.trunc(value);
+    if (typeof value !== 'string') return null;
+    const raw = value.trim();
+    if (!raw) return null;
+    if (/^\d+$/.test(raw)) return Math.max(0, Number(raw) - 1);
+    if (!/^[A-Za-z]+$/.test(raw)) return null;
+    return raw.toUpperCase().split('').reduce((acc, ch) => acc * 26 + (ch.charCodeAt(0) - 64), 0) - 1;
+  };
   const sync = tournament?.sheetSync;
   if (!sync?.sheetUrl || !sync?.teamName) return null;
 
@@ -6256,6 +6326,11 @@ function buildSheetConfigFromTournament(tournament) {
     teamName: sync.teamName,
     tournamentDates,
     cacheKey: `${getAppClubId() || 'club'}:${tournament?.id || 'tournament'}:${sync.teamName}`,
+    whiteTeamCol: colIndex(sync.whiteTeamCol),
+    whiteScoreCol: colIndex(sync.whiteScoreCol),
+    darkTeamCol: colIndex(sync.darkTeamCol),
+    darkScoreCol: colIndex(sync.darkScoreCol),
+    gameNumCol: colIndex(sync.gameNumCol),
   };
 }
 

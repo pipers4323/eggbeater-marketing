@@ -2935,6 +2935,13 @@
       updateAdminHeader();
       showStatus('');
 
+      // Auto-start Bracket Sheet sync from the deployed tournament package.
+      _restoreBsyncFromTournament();
+      if (S.bsync?.pollMins > 0) {
+        bsStartPoll();
+        bsAutoPoll().catch(e => console.warn('[bsync] initial auto-poll error:', e.message));
+      }
+
       // Note: invite token handling has been moved to doGoogleLogin() so it runs
       // BEFORE admin access checks, allowing new admins to sign in via invite link.
 
@@ -6666,11 +6673,26 @@
     // bsWizardHtml: returns the full Bracket Sheet Sync <details> card as an HTML string.
     // Called inline from renderAddGamesTab() via ${bsWizardHtml()} — no placeholder needed.
     function bsWizardHtml() {
-      if (!S.bsync) S.bsync = { step: 1, sheetUrl: localStorage.getItem('ebadmin-bsync-url') || '', poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '' };
+      if (!S.bsync) {
+        const url = localStorage.getItem('ebadmin-bsync-url') || '';
+        const sheetId = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] || '';
+        S.bsync = { 
+          step: 1, 
+          sheetUrl: url, 
+          sheetId: sheetId,
+          poolRange: localStorage.getItem('ebadmin-bsync-range') || '', 
+          teamName: localStorage.getItem('ebadmin-bsync-team') || '', 
+          rebracket: false, 
+          rebracketRange: '', 
+          pollMins: parseInt(localStorage.getItem('ebadmin-bsync-mins') || '10', 10), 
+          pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '' 
+        };
+      }
       var bs = S.bsync;
       var step = bs.step || 1;
       var dots = [1,2,3,4,5,6].map(function(n){ return '<div id="bs-dot-'+n+'" style="flex:1;height:5px;border-radius:3px;background:'+(step>=n?'var(--royal)':'var(--g200)')+'"></div>'; }).join('');
-      var opts = [5,10,30,0].map(function(n){ return '<option value="'+n+'"'+((bs.pollMins===undefined?10:bs.pollMins)===n?' selected':'')+'>'+( n ? n+' minutes' : 'Manual only (no auto-sync)' )+'</option>'; }).join('');
+      var curMins = (bs.pollMins === undefined) ? 10 : bs.pollMins;
+      var opts = [5,10,30,0].map(function(n){ return '<option value="'+n+'"'+(curMins===n?' selected':'')+'>'+( n ? n+' minutes' : 'Manual only (no auto-sync)' )+'</option>'; }).join('');
       var poolsHtml = bsRenderPoolPreview(bs.pools, bs.teamName);
       var summaryHtml = bsRenderDeploySummary(bs);
       var rbYesBg = bs.rebracket ? 'var(--royal)' : 'var(--g100)';
@@ -6734,9 +6756,23 @@
         + '<div id="bs-s4" style="display:'+(step===4?'block':'none')+'">'
         + '<div id="bs-s4-status" style="font-size:.8rem;margin-bottom:8px;min-height:1em"></div>'
         + '<div id="bs-games-preview" style="max-height:210px;overflow-y:auto;font-size:.8rem;border:1px solid var(--g100);border-radius:6px;padding:4px 8px"></div>'
+        // Date Overrides Section
+        + '<div style="margin-top:10px;padding:8px;background:var(--g50);border-radius:6px;border:1px solid var(--g200)">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center">'
+        + '<div style="font-size:.78rem;font-weight:700;color:var(--g600)">Are the dates on the sheet incorrect?</div>'
+        + '<div style="display:flex;gap:4px">'
+        + '<button id="bs-dor-no" class="save-btn" style="padding:4px 10px;font-size:.75rem;background:var(--royal);color:white" onclick="bsToggleDateOverrides(false)">No</button>'
+        + '<button id="bs-dor-yes" class="save-btn" style="padding:4px 10px;font-size:.75rem;background:var(--g100);color:var(--g600)" onclick="bsToggleDateOverrides(true)">Yes</button>'
+        + '</div>'
+        + '</div>'
+        + '<div id="bs-s4-overrides" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--g300)">'
+        + '<div style="font-size:.7rem;color:var(--g500);margin-bottom:6px;font-style:italic">Override sheet dates with correct dates:</div>'
+        + '<div id="bs-s4-override-list"></div>'
+        + '</div>'
+        + '</div>'
         + '<div style="display:flex;gap:8px;margin-top:10px">'
         + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g300)" onclick="bsStep(3)">&larr; Back</button>'
-        + '<button class="save-btn" style="flex:2" id="bs-s4-next" onclick="bsStep(5)"'+s4dis+'>Continue &rarr;</button>'
+        + '<button class="save-btn" style="flex:2" id="bs-s4-next" onclick="bsStep5Next()"'+s4dis+'>Continue &rarr;</button>'
         + '</div></div>'
         // Step 5
         + '<div id="bs-s5" style="display:'+(step===5?'block':'none')+'">'
@@ -6950,6 +6986,44 @@
       setTimeout(bsScanGames, 400);
     }
 
+
+    function bsToggleDateOverrides(val) {
+      if (!S.bsync) return;
+      S.bsync.useOverrides = val;
+      const noBtn  = document.getElementById('bs-dor-no');
+      const yesBtn = document.getElementById('bs-dor-yes');
+      const list   = document.getElementById('bs-s4-overrides');
+      if (noBtn) { noBtn.style.background = !val ? 'var(--royal)' : 'var(--g100)'; noBtn.style.color = !val ? 'white' : 'var(--g600)'; }
+      if (yesBtn) { yesBtn.style.background = val ? 'var(--royal)' : 'var(--g100)'; yesBtn.style.color = val ? 'white' : 'var(--g600)'; }
+      if (list) list.style.display = val ? 'block' : 'none';
+    }
+
+    function bsApplyDateOverrides() {
+      if (!S.bsync || !S.bsync.useOverrides) {
+        if (S.bsync) delete S.bsync.dateOverrides;
+        return;
+      }
+      const inputs = document.querySelectorAll('.bs-date-override');
+      const overrides = {};
+      inputs.forEach(inp => {
+        if (inp.value) overrides[inp.dataset.orig] = inp.value;
+      });
+      S.bsync.dateOverrides = overrides;
+      // Apply to current game list
+      (S.bsync.games || []).forEach(g => {
+        const key = g.dateISO || g.date;
+        if (overrides[key]) {
+          g.dateISO = overrides[key];
+          g.date = isoToDate(overrides[key]);
+        }
+      });
+    }
+
+    function bsStep5Next() {
+      bsApplyDateOverrides();
+      bsStep(5);
+    }
+
     async function bsScanGames() {
       const status4 = document.getElementById('bs-s4-status');
       const preview = document.getElementById('bs-games-preview');
@@ -7076,7 +7150,22 @@
               <span style="font-size:.72rem;color:var(--g400)">${esc(g.date||g.dateISO||'')}${g.time?' · '+esc(g.time):''}</span>
               <span style="font-size:.7rem;background:${g.cap==='Dark'?'#1f2937':'var(--g100)'};color:${g.cap==='Dark'?'white':'var(--g600)'};padding:1px 5px;border-radius:3px;min-width:36px;text-align:center">${g.cap==='Dark'?'⚫ Dark':'⚪ White'}</span>
             </div>`
+
           ).join('') + `<div style="padding-top:6px;font-size:.75rem;color:var(--g400)">Cap colour = ${S.bsync.teamName}'s cap. Tap Continue to set re-bracket options.</div>`;
+          // Prepare date overrides UI
+          const uniqueDates = [...new Set(games.map(g => g.dateISO || g.date))].filter(Boolean).sort();
+          const oList = document.getElementById('bs-s4-override-list');
+          if (oList) {
+            oList.innerHTML = uniqueDates.map(d => `
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span style="font-size:.75rem;color:var(--g700);flex:1">${d} &rarr;</span>
+                <input type="date" class="bs-date-override" data-orig="${d}" value="${(S.bsync.dateOverrides||{})[d] || ''}" style="flex:2;padding:4px;border:1px solid var(--g200);border-radius:4px;font-size:.8rem">
+              </div>
+            `).join('');
+          }
+          if (S.bsync.dateOverrides && Object.keys(S.bsync.dateOverrides).length) {
+            bsToggleDateOverrides(true);
+          }
         }
       } catch (e) {
         if (status4) { status4.style.color = '#dc2626'; status4.textContent = '❌ ' + e.message; }
@@ -7338,6 +7427,9 @@
           lastSync: new Date().toISOString(),
         };
         localStorage.setItem('ebadmin-bsync-url', S.bsync.sheetUrl || '');
+        localStorage.setItem('ebadmin-bsync-team', S.bsync.teamName || '');
+        localStorage.setItem('ebadmin-bsync-mins', S.bsync.pollMins || '0');
+        localStorage.setItem('ebadmin-bsync-range', S.bsync.poolRange || '');
 
         const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
         if (!saveRes.ok) throw new Error('Games synced but save failed — tap 💾 Deploy in the header to retry');
@@ -7376,12 +7468,58 @@
       if (urlInput) urlInput.value = saved;
     }
 
+    function _sheetIdFromUrl(url) {
+      return url?.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] || '';
+    }
+
+    function _restoreBsyncFromTournament() {
+      const sync = S.tournament?.sheetSync;
+      if (!sync?.sheetUrl || sync?.njoMode) return;
+      S.bsync = {
+        ...(S.bsync || {}),
+        step: S.bsync?.step || 7,
+        sheetUrl: sync.sheetUrl,
+        sheetId: sync.sheetId || _sheetIdFromUrl(sync.sheetUrl),
+        poolRange: sync.poolRange || '',
+        teamName: sync.teamName || '',
+        myPool: sync.myPool || '',
+        mySeed: sync.mySeed || 0,
+        rebracket: !!sync.rebracket,
+        rebracketRange: sync.rebracketRange || '',
+        pollMins: Number.isFinite(Number(sync.pollMins)) ? Number(sync.pollMins) : 10,
+        colorCoded: !!sync.colorCoded,
+        legendCells: sync.legendCells || '',
+        myAgeGroup: sync.myAgeGroup || '',
+        lastSync: sync.lastSync || '',
+        games: Array.isArray(S.tournament?.games) ? [...S.tournament.games] : [],
+        bracketPaths: Array.isArray(S.tournament?.bracket?.paths) ? [...S.tournament.bracket.paths] : null,
+      };
+    }
+
     let _bsPollTimer = null;
     function bsStartPoll() {
       if (_bsPollTimer) clearInterval(_bsPollTimer);
-      const mins = S.bsync?.pollMins;
-      if (!mins || mins <= 0) return;
+      _restoreBsyncFromTournament();
+      const mins = Number(S.bsync?.pollMins || 0);
+      if (!mins || mins <= 0 || !S.bsync?.sheetId || !S.bsync?.teamName) return;
       _bsPollTimer = setInterval(bsAutoPoll, mins * 60 * 1000);
+    }
+
+    function _parseScoreIntoResult(s) {
+      if (!s) return null;
+      const lower = s.toLowerCase();
+      if (lower.startsWith('w')) return 'W';
+      if (lower.startsWith('l')) return 'L';
+      if (lower.startsWith('t')) return 'T';
+      if (lower.includes('win')) return 'W';
+      if (lower.includes('lose') || lower.includes('loss')) return 'L';
+      // Try to parse "10-2"
+      const m = s.match(/(\d+)\s*[-–]\s*(\d+)/);
+      if (m) {
+        const s1 = parseInt(m[1], 10), s2 = parseInt(m[2], 10);
+        if (!isNaN(s1) && !isNaN(s2)) return s1 > s2 ? 'W' : s1 < s2 ? 'L' : 'T';
+      }
+      return null;
     }
 
     async function bsAutoPoll() {
@@ -7394,8 +7532,9 @@
         const allRows = parseCSV(text);
         const teamNameLower = S.bsync.teamName.toLowerCase();
 
-        // Auto-detect column structure (same logic as bsScanGames)
-        let dateCol=0, locationCol=1, timeCol=2, whiteCol=3, darkCol=5, gameNumCol=-1, poolCol=-1;
+        // Auto-detect column structure
+        let dateCol=0, locationCol=1, timeCol=2, whiteCol=3, darkCol=5, gameNumCol=-1, poolCol=-1, scoreCol=-1, resCol=-1;
+        let whiteScoreCol=-1, darkScoreCol=-1;
         let dataStartRow = 0;
         for (let ri = 0; ri < Math.min(allRows.length, 40); ri++) {
           const lower = allRows[ri].map(c => (c||'').toLowerCase().trim());
@@ -7411,6 +7550,13 @@
               if (c==='pool'||c==='venue'||c==='field') poolCol = ci;
               if (c==='date') dateCol = ci;
               if (c.includes('location')) locationCol = ci;
+              if (c==='score'||c.includes('score')) scoreCol = ci;
+              if (c==='result'||c.includes('result')) resCol = ci;
+              // Detect "S" columns adjacent to white/dark
+              if (c==='s') {
+                if (ci === whiteCol + 1) whiteScoreCol = ci;
+                else if (ci === darkCol + 1) darkScoreCol = ci;
+              }
             }
             dataStartRow = ri + 1;
             break;
@@ -7429,57 +7575,102 @@
           const rawGnum = gameNumCol >= 0 ? (row[gameNumCol]||'').trim() : '';
           const dateRaw = dateCol >= 0 ? (row[dateCol]||'').trim() : '';
           const dateISO = parseDateToISO(dateRaw);
-          const location = poolCol >= 0 ? (row[poolCol]||'').trim() : (row[locationCol]||'').trim();
-          games.push({
+          const rawLoc  = poolCol >= 0 ? (row[poolCol]||'').trim() : (row[locationCol]||'').trim();
+          const locParsed = (typeof bsParseLocation === 'function') ? bsParseLocation(rawLoc) : { venue: rawLoc };
+          
+          const game = {
             id: 'g' + (Date.now() + games.length).toString(36),
             gameNum: rawGnum || String(games.length + 1),
-            opponent: (isWhite ? blue : white) || 'TBD',
+            opponent: (isWhite ? blue : white).replace(/^[A-Z]\d+\s*[-–]\s*/i, '').trim() || 'TBD',
             time: (row[timeCol] || '').trim(),
             dateISO,
             date: dateISO ? isoToDate(dateISO) : dateRaw,
-            location,
-            pool: S.bsync.myPool || '',
+            location: locParsed.venue,
+            pool: locParsed.poolNum ? 'Pool ' + locParsed.poolNum : (S.bsync.myPool || ''),
             cap: isBlue ? 'Dark' : 'White',
-          });
+          };
+
+          // Apply score/result sync
+          let scoreVal = '';
+          if (whiteScoreCol >= 0 && darkScoreCol >= 0) {
+            const ws = (row[whiteScoreCol]||'').trim();
+            const ds = (row[darkScoreCol]||'').trim();
+            if (ws || ds) {
+              const my = isWhite ? ws : ds;
+              const op = isWhite ? ds : ws;
+              if (my !== '' && op !== '') {
+                const s1 = parseInt(my, 10), s2 = parseInt(op, 10);
+                if (!isNaN(s1) && !isNaN(s2)) scoreVal = (s1 > s2 ? 'W ' : s1 < s2 ? 'L ' : 'T ') + my + '-' + op;
+                else scoreVal = my + '-' + op;
+              }
+            }
+          } else {
+            scoreVal = (scoreCol >= 0 ? row[scoreCol] : (resCol >= 0 ? row[resCol] : '') || '').trim();
+          }
+
+          if (scoreVal) {
+            game.result = _parseScoreIntoResult(scoreVal);
+          }
+
+          // Apply date overrides
+          if (S.bsync.dateOverrides) {
+            const key = game.dateISO || game.date;
+            if (S.bsync.dateOverrides[key]) {
+              game.dateISO = S.bsync.dateOverrides[key];
+              game.date = isoToDate(game.dateISO);
+            }
+          }
+
+          games.push(game);
         }
+
         if (!games.length) return;
-        // Only update if something changed
-        const sig = g => g.opponent + '|' + g.time + '|' + g.dateISO + '|' + g.location;
+
+        const sig = g => [
+          g.gameNum || '',
+          g.opponent || '',
+          g.time || '',
+          g.dateISO || '',
+          g.location || '',
+          g.pool || '',
+          g.cap || '',
+          g.result || '',
+        ].join('|');
         const newSig  = games.map(sig).join(',');
         const prevSig = (S.tournament.games || []).map(sig).join(',');
         if (newSig === prevSig) return;
+
         const existingByNum = {};
         for (const g of (S.tournament.games || [])) existingByNum[g.gameNum] = g;
         S.tournament.games = games.map(g => ({ ...g, id: existingByNum[g.gameNum]?.id || g.id }));
-        S.bsync.games = games;
-        S.tournament.sheetSync = { ...S.tournament.sheetSync, lastSync: new Date().toISOString() };
+        S.bsync.games = S.tournament.games;
+        S.tournament.sheetSync = {
+          ...(S.tournament.sheetSync || {}),
+          sheetUrl: S.bsync.sheetUrl,
+          sheetId: S.bsync.sheetId,
+          poolRange: S.bsync.poolRange || '',
+          teamName: S.bsync.teamName || '',
+          myPool: S.bsync.myPool || '',
+          mySeed: S.bsync.mySeed || 0,
+          rebracket: !!S.bsync.rebracket,
+          rebracketRange: S.bsync.rebracketRange || '',
+          pollMins: Number(S.bsync.pollMins || 0),
+          colorCoded: !!S.bsync.colorCoded,
+          legendCells: S.bsync.legendCells || '',
+          myAgeGroup: S.bsync.myAgeGroup || '',
+          lastSync: new Date().toISOString(),
+        };
+
         const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
-        if (saveRes.ok) console.warn('[bsync] Auto-synced', games.length, 'games from sheet');
+        if (saveRes.ok) {
+          console.warn('[bsync] Auto-synced', games.length, 'game update(s) from sheet');
+          if (typeof _pushToFirebaseMirror === 'function') {
+            await _pushToFirebaseMirror(S.team, S.tournament, S.history || []);
+          }
+        }
       } catch (e) {
         console.warn('[bsync] Auto-poll error:', e.message);
       }
-    }
-
-    // Parse a date string (various formats) into YYYY-MM-DD ISO format.
-    // Supports: YYYY-MM-DD · M/D/YYYY · MM/DD/YY · "April 25, 2026" · "Sat Apr 25 2026"
-    function parseDateToISO(dateStr) {
-      if (!dateStr) return '';
-      const s = dateStr.trim();
-      // Already ISO
-      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-      // M/D/YYYY or M/D/YY
-      const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-      if (mdy) {
-        let [, m, d, y] = mdy;
-        if (y.length === 2) y = '20' + y;
-        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-      }
-      // Try native Date parse (handles "April 25, 2026", "Sat Apr 25 2026", etc.)
-      try {
-        const parsed = new Date(s);
-        if (!isNaN(parsed)) return parsed.toISOString().split('T')[0];
-      } catch (_) { }
-      return '';
     }
 
     async function syncGamesFromSheet() {
