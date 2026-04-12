@@ -8741,7 +8741,7 @@ function renderHelpTab() {
       body: `<p>The <strong>Scores</strong> tab is where all live scoring and box scores live. Watch for a <strong>pulsing red dot</strong> on the Scores nav button — it lights up whenever a game is being actively scored.</p>
       <ul>
         <li><strong>👁 View Live Scores</strong> — tap this button (above the scorer login) to follow a live game in real time without needing the scoring password. You'll see the live score, event log, and box score updating every 5 seconds.</li>
-        <li>Tap <strong>🔒 Scorer Login</strong> in the top-right corner of the viewer to switch to full scoring mode if you have the password.</li>
+        <li>Tap <strong>🔒 Login to Score</strong> in the top-right corner of the viewer to switch to full scoring mode if you have the password.</li>
         <li>When a scorer is active, you'll see a <strong>🔴 LIVE</strong> badge and all updates appear within 5 seconds.</li>
         <li>The <strong>event log</strong> shows every goal 🏐, assist 🤝, exclusion ❌, and other events with clock times.</li>
         <li>The <strong>box score</strong> shows each player's totals: Goals, Attempts, 5m Goals, 5m Attempts, SO Goals, SO Attempts, Assists, Exclusions, and Earned Exclusions.</li>
@@ -8751,7 +8751,7 @@ function renderHelpTab() {
     {
       icon: '📊',
       title: 'Live Scoring — Scorer Controls',
-      body: `<p>If you have the scoring password, tap <strong>🔒 Scorer Login</strong> (top-right of the viewer screen) and enter the tournament password to unlock full scoring controls.</p>
+      body: `<p>If you have the scoring password, tap <strong>🔒 Login to Score</strong> (top-right of the viewer screen) and enter the tournament password to unlock full scoring controls.</p>
       <ul>
         <li><strong>Only the current game</strong> shows its full scoring buttons — upcoming games are collapsed to keep the screen clean. Tap any game header to expand it when it's time to score.</li>
         <li><strong>Auto Clock</strong> — the clock counts down automatically from the quarter length set by the admin. Tap <strong>▶ Start</strong> to begin Q1 and the clock. Every scoring event is instantly stamped with the current clock time the moment you tap the button — no prompts, no manual entry.</li>
@@ -8759,6 +8759,9 @@ function renderHelpTab() {
         <li><strong>Goal / Opp Goal</strong> — records a goal and prompts you to pick the scorer. Check <strong>6-on-5</strong> in the picker to tag it as a power-play goal.</li>
         <li><strong>Attempt / Opp Attempt</strong> — records a shot that didn't score (used to calculate shooting %).</li>
         <li><strong>Assist</strong> — tap and pick the player who assisted.</li>
+        <li><strong>Steal</strong> — tap and pick the player who won possession. Check <strong>Forced Ball Under</strong> in the picker if the steal came from a forced ball under.</li>
+        <li><strong>Field Block</strong> — tap and pick the field player who blocked a shot on goal.</li>
+        <li><strong>Opp Steal</strong> — records an opponent steal so the event log stays balanced.</li>
         <li><strong>Excl / Opp Excl</strong> — records an exclusion foul for either team.</li>
         <li><strong>Earned Excl</strong> — tap and pick the player who drew the exclusion (forced the defender into the foul). Tracked separately from regular exclusions so you can see who is creating power-play opportunities.</li>
         <li><strong>5m / Opp 5m</strong> — records a 5-meter penalty shot as a goal.</li>
