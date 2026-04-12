@@ -1011,13 +1011,20 @@ h2 {
   .scores-slot-header { border-top-color: rgba(255,255,255,.15); }
 }
 
-.slot-header-in-card .scores-slot-label,
-[data-theme="dark"] .slot-header-in-card .scores-slot-label {
+.scores-slot-header.slot-header-in-card .scores-slot-label,
+[data-theme="dark"] .scores-slot-header.slot-header-in-card .scores-slot-label {
   color: var(--royal);
 }
 
 .slot-header-in-card.scores-slot-header {
   border-top-color: var(--gray-200);
+}
+
+@media (max-width: 1022px) {
+  .scores-slot-header.slot-header-in-card .scores-slot-label,
+  [data-theme="dark"] .scores-slot-header.slot-header-in-card .scores-slot-label {
+    color: var(--royal);
+  }
 }
 
 .games-section {

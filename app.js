@@ -2189,7 +2189,7 @@ function _renderRosterMulti(el, slots) {
         <span class="roster-view-name">${escHtml([p.first, p.last].filter(Boolean).join(' ') || '—')}</span>
       </div>`).join('');
     html += `<div class="card tab-card roster-view-card">
-      <div class="scores-slot-header"><span class="scores-slot-label">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>
+      <div class="scores-slot-header slot-header-in-card"><span class="scores-slot-label">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>
       <div class="history-header-row">
         <h2>Roster</h2>
       </div>
