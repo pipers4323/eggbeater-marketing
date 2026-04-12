@@ -6349,7 +6349,7 @@ details[open] .help-chevron { transform: rotate(180deg); }
 [data-theme="dark"] .card.tab-card.my-player-card,
 [data-theme="dark"] .card.tab-card.player-lookup-card {
   background: #ffffff !important;
-  color: var(--gray-900) !important;
+  color: #1a202c !important;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
@@ -6360,13 +6360,13 @@ details[open] .help-chevron { transform: rotate(180deg); }
 [data-theme="dark"] .card.tab-card.season-record-card *,
 [data-theme="dark"] .card.tab-card.my-player-card *,
 [data-theme="dark"] .card.tab-card.player-lookup-card * {
-  color: var(--gray-900) !important;
+  color: #1a202c !important;
 }
 
 [data-theme="dark"] #view-possible .scores-slot-header.slot-header-in-card .scores-slot-label,
 [data-theme="dark"] .roster-view-card .scores-slot-label,
 [data-theme="dark"] .mp-multi-card .scores-slot-label {
-  color: var(--royal) !important;
+  color: #002868 !important;
   opacity: 1 !important;
 }
 
@@ -6402,7 +6402,7 @@ details[open] .help-chevron { transform: rotate(180deg); }
 [data-theme="dark"] .card.tab-card.player-lookup-card p,
 [data-theme="dark"] .card.tab-card.player-lookup-card select,
 [data-theme="dark"] .card.tab-card.player-lookup-card option {
-  color: var(--gray-900) !important;
+  color: #1a202c !important;
 }
 
 [data-theme="dark"] .next-game-card.cap-white-bg .next-label,
@@ -6410,7 +6410,7 @@ details[open] .help-chevron { transform: rotate(180deg); }
 [data-theme="dark"] .card.tab-card.my-player-card .mp-change-btn,
 [data-theme="dark"] .card.tab-card.my-player-card .mp-pct-frac,
 [data-theme="dark"] .card.tab-card.player-lookup-card p {
-  color: var(--gray-500) !important;
+  color: #6b7280 !important;
 }
 
 [data-theme="dark"] .next-game-card.cap-white-bg .next-meta,
@@ -6421,36 +6421,36 @@ details[open] .help-chevron { transform: rotate(180deg); }
 [data-theme="dark"] .card.tab-card.my-player-card .mp-section-label,
 [data-theme="dark"] .card.tab-card.my-player-card .mp-game-meta,
 [data-theme="dark"] .card.tab-card.my-player-card .mp-game-statline {
-  color: var(--gray-600) !important;
+  color: #4a5568 !important;
 }
 
 [data-theme="dark"] .next-game-card.cap-white-bg .next-game-num,
 [data-theme="dark"] .sched-card.cap-white-bg .sched-game-num,
 [data-theme="dark"] .game-card.cap-white-bg .game-num-tag {
-  background: var(--royal-subtle) !important;
-  color: var(--royal) !important;
+  background: #edf1f8 !important;
+  color: #002868 !important;
 }
 
 [data-theme="dark"] .sched-card.cap-white-bg .sched-cap-badge,
 [data-theme="dark"] .game-card.cap-white-bg .points-badge {
-  background: var(--gray-100) !important;
-  border-color: var(--gray-200) !important;
-  color: var(--gray-700) !important;
+  background: #f0f2f7 !important;
+  border-color: #e2e6ef !important;
+  color: #374151 !important;
 }
 
 [data-theme="dark"] .next-game-card.cap-white-bg .follow-live-btn,
 [data-theme="dark"] .sched-card.cap-white-bg .directions-btn,
 [data-theme="dark"] .card.tab-card.player-lookup-card .mp-multi-add-btn,
 [data-theme="dark"] .card.tab-card.my-player-card .mp-dl-wide-btn {
-  background: var(--gray-50) !important;
-  border-color: var(--gray-200) !important;
-  color: var(--gray-800) !important;
+  background: #f8f9fb !important;
+  border-color: #e2e6ef !important;
+  color: #1f2937 !important;
 }
 
 [data-theme="dark"] .card.tab-card.player-lookup-card .mp-multi-select {
   background: #ffffff !important;
-  color: var(--gray-900) !important;
-  border-color: var(--gray-200) !important;
+  color: #1a202c !important;
+  border-color: #e2e6ef !important;
 }
 
 [data-theme="dark"] .game-card.cap-white-bg .result-pill,
@@ -6483,7 +6483,7 @@ details[open] .help-chevron { transform: rotate(180deg); }
 .native-android .next-game-card.cap-white-bg,
 .native-android .sched-card.cap-white-bg {
   background: #ffffff !important;
-  color: var(--gray-900) !important;
+  color: #1a202c !important;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05) !important;
 }
@@ -6494,7 +6494,7 @@ details[open] .help-chevron { transform: rotate(180deg); }
 .native-ios .mp-multi-card .scores-slot-label,
 .native-android .roster-view-card .scores-slot-label,
 .native-android .mp-multi-card .scores-slot-label {
-  color: var(--royal) !important;
+  color: #002868 !important;
   opacity: 1 !important;
 }
 
@@ -6516,7 +6516,7 @@ details[open] .help-chevron { transform: rotate(180deg); }
 .native-android .game-card.cap-white-bg *,
 .native-android .next-game-card.cap-white-bg *,
 .native-android .sched-card.cap-white-bg * {
-  color: var(--gray-900) !important;
+  color: #1a202c !important;
 }
 
 .native-ios .next-game-card.cap-white-bg .next-label,
@@ -6545,7 +6545,7 @@ details[open] .help-chevron { transform: rotate(180deg); }
 .native-android .card.tab-card.my-player-card .mp-game-meta,
 .native-android .card.tab-card.my-player-card .mp-game-statline,
 .native-android .card.tab-card.player-lookup-card p {
-  color: var(--gray-600) !important;
+  color: #4a5568 !important;
 }
 
 .native-ios .next-game-card.cap-white-bg .next-vs,
@@ -6566,7 +6566,7 @@ details[open] .help-chevron { transform: rotate(180deg); }
 .native-android .card.tab-card.season-record-card .record-main,
 .native-android .card.tab-card.my-player-card .mp-name,
 .native-android .card.tab-card.player-lookup-card h2 {
-  color: var(--gray-900) !important;
+  color: #1a202c !important;
 }
 
 .native-ios .next-game-card.cap-white-bg .next-game-num,
@@ -6575,8 +6575,8 @@ details[open] .help-chevron { transform: rotate(180deg); }
 .native-android .next-game-card.cap-white-bg .next-game-num,
 .native-android .sched-card.cap-white-bg .sched-game-num,
 .native-android .game-card.cap-white-bg .game-num-tag {
-  background: var(--royal-subtle) !important;
-  color: var(--royal) !important;
+  background: #edf1f8 !important;
+  color: #002868 !important;
 }
 
 .native-ios .next-game-card.cap-white-bg .follow-live-btn,
@@ -6587,9 +6587,9 @@ details[open] .help-chevron { transform: rotate(180deg); }
 .native-android .sched-card.cap-white-bg .directions-btn,
 .native-android .card.tab-card.player-lookup-card .mp-multi-add-btn,
 .native-android .card.tab-card.my-player-card .mp-dl-wide-btn {
-  background: var(--gray-50) !important;
-  border-color: var(--gray-200) !important;
-  color: var(--gray-800) !important;
+  background: #f8f9fb !important;
+  border-color: #e2e6ef !important;
+  color: #1f2937 !important;
 }
 
 .native-ios .game-card.cap-white-bg .result-pill,
