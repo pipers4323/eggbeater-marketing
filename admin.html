@@ -6575,12 +6575,111 @@
     }
 
     function normalizeArchiveRosterForTeam(teamKey, roster) {
-      if (!roster) return isMultiTeamAdmin() ? { A: [], B: [] } : [];
-      if (isMultiTeamAdmin()) {
-        if (Array.isArray(roster)) return { A: roster, B: [] };
-        return roster;
+      if (!roster) return [];
+      if (Array.isArray(roster)) return roster;
+      const groups = Object.values(roster).filter(Array.isArray);
+      if (!groups.length) return [];
+      return roster.A || groups.find(group => group.length) || groups[0];
+    }
+
+    function flattenArchiveRosterForDisplay(roster) {
+      if (!roster) return [];
+      if (Array.isArray(roster)) return roster;
+      return Object.values(roster).flatMap(v => Array.isArray(v) ? v : []);
+    }
+
+    function archivePlayerDisplayName(player) {
+      if (!player) return '';
+      if (typeof player === 'string') return player;
+      if (player.name) return player.name;
+      if (player.playerName) return player.playerName;
+      if (player.fullName) return player.fullName;
+      const first = player.firstName || player.first || player.fname || '';
+      const last = player.lastName || player.last || player.lname || '';
+      return `${first} ${last}`.trim();
+    }
+
+    function archivePlayerDisplayNumber(player) {
+      if (!player || typeof player !== 'object') return '';
+      return player.number || player.capNumber || player.cap || player.num || '';
+    }
+
+    function archiveMatchesTournament(archive, tournament) {
+      if (!archive || !tournament) return false;
+      const archived = archive.tournament || archive || {};
+      if (archived.id && tournament.id) return archived.id === tournament.id;
+      return (archived.name || archive.name || '') === (tournament.name || '')
+        && (archived.dates || archive.dates || '') === (tournament.dates || '')
+        && (archived.location || archive.location || '') === (tournament.location || '');
+    }
+
+    function archiveEntryFromTournament(teamKey, teamLabel, tournament, roster) {
+      if (!tournament || !Array.isArray(tournament.games) || !tournament.games.length) return null;
+      return {
+        id: tournament.id || `${teamKey}-${tournament.name || 'current'}`,
+        teamKey,
+        teamLabel,
+        name: tournament.name || 'Current Tournament',
+        dates: tournament.dates || '',
+        location: tournament.location || '',
+        archivedAt: Date.now(),
+        tournament,
+        roster: roster ?? [],
+        record: deriveArchiveRecord(tournament.games, {}),
+        gamesCount: tournament.games.length,
+        isCurrent: true,
+      };
+    }
+
+    function archiveScoreParts(game) {
+      const directTeam = Number(game?.teamScore);
+      const directOpp = Number(game?.oppScore);
+      if (Number.isFinite(directTeam) && Number.isFinite(directOpp)) return { team: directTeam, opp: directOpp };
+
+      const nested = game?.score;
+      if (nested && typeof nested === 'object') {
+        const nestedTeam = Number(nested.team);
+        const nestedOpp = Number(nested.opp);
+        if (Number.isFinite(nestedTeam) && Number.isFinite(nestedOpp)) return { team: nestedTeam, opp: nestedOpp };
       }
-      return Array.isArray(roster) ? roster : (roster.A || []);
+
+      if (typeof nested === 'string') {
+        const m = nested.match(/(\d+)\s*[-–]\s*(\d+)/);
+        if (m) return { team: Number(m[1]), opp: Number(m[2]) };
+      }
+
+      return { team: null, opp: null };
+    }
+
+    function archiveResultForGame(game) {
+      const raw = String(game?.result || '').trim().toUpperCase();
+      if (raw === 'W' || raw === 'L' || raw === 'T') return raw;
+      const score = archiveScoreParts(game);
+      if (Number.isFinite(score.team) && Number.isFinite(score.opp)) {
+        if (score.team > score.opp) return 'W';
+        if (score.team < score.opp) return 'L';
+        return 'T';
+      }
+      return '';
+    }
+
+    function deriveArchiveRecord(games, fallback = {}) {
+      let wins = 0, losses = 0, ties = 0;
+      let hasDerived = false;
+      for (const game of (games || [])) {
+        const result = archiveResultForGame(game);
+        if (!result) continue;
+        hasDerived = true;
+        if (result === 'W') wins++;
+        else if (result === 'L') losses++;
+        else ties++;
+      }
+      if (hasDerived) return { wins, losses, ties };
+      return {
+        wins: fallback.wins || 0,
+        losses: fallback.losses || 0,
+        ties: fallback.ties || 0,
+      };
     }
 
     // disable=true  → single-team mode (checkbox checked  = "Disable multi-team")
@@ -10768,11 +10867,70 @@
       const el = document.getElementById('tab-content');
       try {
         const allArchives = {};
-        for (const t of getAdminTeams().filter(t => t.key === S.team)) {
-          const res = await api('GET', `/admin/archive?team=${encodeURIComponent(t.key)}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.archives?.length) allArchives[t.key] = { label: t.label, archives: data.archives };
+        const teams = getAdminTeams();
+        const orderedTeams = [
+          ...teams.filter(t => t.key === S.team),
+          ...teams.filter(t => t.key !== S.team),
+        ];
+        for (const t of orderedTeams) {
+          const [archiveRes, currentRes, currentRosterRes] = await Promise.all([
+            api('GET', `/admin/archive?team=${encodeURIComponent(t.key)}`),
+            api('GET', `/admin/data?team=${encodeURIComponent(t.key)}`),
+            api('GET', `/admin/roster?team=${encodeURIComponent(t.key)}`),
+          ]);
+
+          let archives = [];
+          if (archiveRes.ok) {
+            const data = await archiveRes.json();
+            if (data.archives?.length) {
+              archives = await Promise.all(data.archives.map(async (archive) => {
+                try {
+                  const detailRes = await api('GET', `/admin/archive-detail?tournId=${encodeURIComponent(archive.id)}&team=${encodeURIComponent(t.key)}`);
+                  if (!detailRes.ok) return archive;
+                  const detail = await detailRes.json();
+                  const tournament = detail.tournament || detail.snapshot?.tournament || archive.tournament || {};
+                  const games = Array.isArray(tournament.games) ? tournament.games : [];
+                  return {
+                    ...archive,
+                    archivedAt: detail.archivedAt || archive.archivedAt,
+                    tournament,
+                    roster: detail.roster ?? detail.snapshot?.roster ?? archive.roster ?? [],
+                    record: deriveArchiveRecord(games, detail.record || archive.record || {}),
+                    gamesCount: games.length || archive.games || 0,
+                  };
+                } catch {
+                  return archive;
+                }
+              }));
+            }
+          }
+
+          const currentData = currentRes.ok ? await currentRes.json() : {};
+          const currentRosterData = currentRosterRes.ok ? await currentRosterRes.json() : {};
+          const currentEntry = archiveEntryFromTournament(t.key, t.label, currentData.tournament || {}, currentRosterData.roster ?? currentData.roster ?? []);
+
+          if (currentEntry) {
+            const existingIndex = archives.findIndex(archive => archiveMatchesTournament(archive, currentEntry.tournament));
+            if (existingIndex >= 0) {
+              archives[existingIndex] = {
+                ...archives[existingIndex],
+                ...currentEntry,
+                tournament: {
+                  ...(archives[existingIndex].tournament || {}),
+                  ...currentEntry.tournament,
+                  games: currentEntry.tournament.games,
+                },
+                roster: currentEntry.roster,
+                record: deriveArchiveRecord(currentEntry.tournament.games, currentEntry.record || {}),
+                gamesCount: currentEntry.gamesCount,
+              };
+            } else {
+              archives.unshift(currentEntry);
+            }
+          }
+
+          if (archives.length) {
+            allArchives[t.key] = { label: t.label, archives };
           }
         }
 
@@ -10798,11 +10956,11 @@
           for (const [teamKey, { label, archives }] of Object.entries(allArchives)) {
             let w = 0, l = 0, t = 0, g = 0;
             for (const a of archives) {
-              const r = a.record || {};
+              const r = deriveArchiveRecord(a.tournament?.games || [], a.record || {});
               w += r.wins || 0;
               l += r.losses || 0;
               t += r.ties || 0;
-              g += a.games || 0;
+              g += a.gamesCount || (Array.isArray(a.tournament?.games) ? a.tournament.games.length : a.games || 0);
             }
             const played = w + l + t;
             const pct = played ? Math.round((w / played) * 100) : 0;
@@ -10869,13 +11027,14 @@
           html += `<div id="${gid}" style="margin-top:6px">`;
 
           for (const a of archives) {
-            const rec = a.record || {};
+            const rec = deriveArchiveRecord(a.tournament?.games || [], a.record || {});
             const recordStr = (rec.wins || rec.losses || rec.ties)
               ? `${rec.wins || 0}W-${rec.losses || 0}L${rec.ties ? '-' + rec.ties + 'T' : ''}`
               : '';
-            const dateStr = a.dates || '';
-            const locStr = a.location || '';
-            const details = [dateStr, locStr, recordStr, a.games + ' games'].filter(Boolean).join(' · ');
+            const dateStr = a.dates || a.tournament?.dates || '';
+            const locStr = a.location || a.tournament?.location || '';
+            const gamesCount = a.gamesCount || (Array.isArray(a.tournament?.games) ? a.tournament.games.length : a.games || 0);
+            const details = [dateStr, locStr, gamesCount ? gamesCount + ' games' : ''].filter(Boolean).join(' · ');
 
             html += `
           <div style="background:var(--g50);border:1px solid var(--g200);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:6px;cursor:pointer;transition:background .15s;position:relative"
@@ -10928,10 +11087,27 @@
         const res = await api('GET', `/admin/archive-detail?tournId=${encodeURIComponent(tournId)}&team=${encodeURIComponent(teamKey)}`);
         S.team = origTeam;
         if (!res.ok) throw new Error('Not found');
-        const data = await res.json();
-        const t = data.tournament || {};
-        const roster = data.roster || [];
-        const rec = data.record || {};
+        const [data, currentData, currentRosterData] = await Promise.all([
+          res.json(),
+          (async () => {
+            const currentRes = await api('GET', `/admin/data?team=${encodeURIComponent(teamKey)}`);
+            return currentRes.ok ? currentRes.json() : {};
+          })(),
+          (async () => {
+            const rosterRes = await api('GET', `/admin/roster?team=${encodeURIComponent(teamKey)}`);
+            return rosterRes.ok ? rosterRes.json() : {};
+          })(),
+        ]);
+        const archivedTournament = data.tournament || data.snapshot?.tournament || {};
+        const currentTournament = currentData.tournament || {};
+        const t = (archiveMatchesTournament({ id: tournId, name: archivedTournament.name, tournament: archivedTournament }, currentTournament)
+          && Array.isArray(currentTournament.games) && currentTournament.games.length)
+          ? { ...archivedTournament, ...currentTournament, games: currentTournament.games }
+          : archivedTournament;
+        const archivedRoster = flattenArchiveRosterForDisplay(data.roster ?? data.snapshot?.roster ?? []);
+        const currentRoster = flattenArchiveRosterForDisplay(currentRosterData.roster ?? []);
+        const roster = archivedRoster.some(p => archivePlayerDisplayName(p)) ? archivedRoster : currentRoster;
+        const rec = deriveArchiveRecord(Array.isArray(t.games) ? t.games : [], data.record || {});
         const recordStr = `${rec.wins || 0}W-${rec.losses || 0}L${rec.ties ? '-' + rec.ties + 'T' : ''}`;
         const teamLabel = ADMIN_TEAMS.find(at => at.key === teamKey)?.label || teamKey;
 
@@ -10953,10 +11129,11 @@
         if (t.games?.length) {
           html += '<div style="font-size:0.85rem;font-weight:700;margin:12px 0 6px">Games</div>';
           for (const g of t.games) {
-            const s = g.score || {};
-            const scoreStr = (typeof s.team === 'number') ? `${s.team}–${s.opp}` : 'No score';
-            const result = (typeof s.team === 'number' && typeof s.opp === 'number')
-              ? (s.team > s.opp ? '✅' : s.team < s.opp ? '❌' : '➖') : '';
+            const s = archiveScoreParts(g);
+            const hasScore = Number.isFinite(s.team) && Number.isFinite(s.opp);
+            const scoreStr = hasScore ? `${s.team}–${s.opp}` : 'No score';
+            const resultKey = archiveResultForGame(g);
+            const result = resultKey === 'W' ? '✅' : resultKey === 'L' ? '❌' : resultKey === 'T' ? '➖' : '';
             html += `<div style="display:flex;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--g100);font-size:0.82rem">
           <span style="width:20px;text-align:center">${result}</span>
           <span style="flex:1">${esc(g.opponent || 'TBD')}</span>
@@ -10971,8 +11148,8 @@
           html += `<div style="font-size:0.85rem;font-weight:700;margin:16px 0 6px">Roster (${roster.length} players)</div>`;
           html += '<div style="display:flex;flex-wrap:wrap;gap:4px">';
           for (const p of roster) {
-            const name = typeof p === 'string' ? p : (p.name || p.firstName + ' ' + (p.lastName || ''));
-            const num = typeof p === 'object' ? p.number || p.capNumber || '' : '';
+            const name = archivePlayerDisplayName(p);
+            const num = archivePlayerDisplayNumber(p);
             html += `<span style="background:var(--g100);padding:3px 8px;border-radius:4px;font-size:0.78rem">${num ? '#' + esc(String(num)) + ' ' : ''}${esc(name)}</span>`;
           }
           html += '</div>';
@@ -10996,7 +11173,7 @@
         S.team = origTeam;
         if (!res.ok) throw new Error('Archive not found');
         const data = await res.json();
-        const roster = normalizeArchiveRosterForTeam(teamKey, data.roster || []);
+        const roster = normalizeArchiveRosterForTeam(teamKey, data.roster || data.snapshot?.roster || []);
         if (!roster.length) { showStatus('Archive has no roster', 'err'); return; }
 
         // Save roster to current team
@@ -12534,4 +12711,3 @@
 </body>
 
 </html>
-

@@ -6246,3 +6246,105 @@ details[open] .help-chevron { transform: rotate(180deg); }
   border-color: var(--gray-700);
   color: var(--gray-300);
 }
+
+/* Dark mode: keep white-cap and history utility cards readable on native/mobile */
+[data-theme="dark"] .next-game-card.cap-white-bg,
+[data-theme="dark"] .sched-card.cap-white-bg,
+[data-theme="dark"] .game-card.cap-white-bg,
+[data-theme="dark"] .card.tab-card.team-search-card,
+[data-theme="dark"] .card.tab-card.season-record-card,
+[data-theme="dark"] .card.tab-card.my-player-card,
+[data-theme="dark"] .card.tab-card.player-lookup-card {
+  background: #ffffff !important;
+  color: var(--gray-900) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="dark"] .next-game-card.cap-white-bg .next-label,
+[data-theme="dark"] .next-game-card.cap-white-bg .next-vs,
+[data-theme="dark"] .next-game-card.cap-white-bg .next-meta,
+[data-theme="dark"] .next-game-card.cap-white-bg .location-venue,
+[data-theme="dark"] .sched-card.cap-white-bg .sched-vs,
+[data-theme="dark"] .sched-card.cap-white-bg .sched-meta,
+[data-theme="dark"] .sched-card.cap-white-bg .location-venue,
+[data-theme="dark"] .game-card.cap-white-bg .game-vs,
+[data-theme="dark"] .game-card.cap-white-bg .game-card-age-label,
+[data-theme="dark"] .game-card.cap-white-bg .game-info-row,
+[data-theme="dark"] .game-card.cap-white-bg .game-info-row *,
+[data-theme="dark"] .card.tab-card.team-search-card,
+[data-theme="dark"] .card.tab-card.team-search-card *,
+[data-theme="dark"] .card.tab-card.season-record-card,
+[data-theme="dark"] .card.tab-card.season-record-card *,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-name,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-change-btn,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-section-label,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-lbl,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-lbl-sm,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-pct-lbl,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-pct-frac,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-game-opponent,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-game-meta,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-game-statline,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-empty-title,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-empty-sub,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-multi-header,
+[data-theme="dark"] .card.tab-card.player-lookup-card h2,
+[data-theme="dark"] .card.tab-card.player-lookup-card p,
+[data-theme="dark"] .card.tab-card.player-lookup-card select,
+[data-theme="dark"] .card.tab-card.player-lookup-card option {
+  color: var(--gray-900) !important;
+}
+
+[data-theme="dark"] .next-game-card.cap-white-bg .next-label,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-empty-sub,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-change-btn,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-pct-frac,
+[data-theme="dark"] .card.tab-card.player-lookup-card p {
+  color: var(--gray-500) !important;
+}
+
+[data-theme="dark"] .next-game-card.cap-white-bg .next-meta,
+[data-theme="dark"] .next-game-card.cap-white-bg .location-venue,
+[data-theme="dark"] .sched-card.cap-white-bg .sched-meta,
+[data-theme="dark"] .sched-card.cap-white-bg .location-venue,
+[data-theme="dark"] .game-card.cap-white-bg .game-info-row,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-section-label,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-game-meta,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-game-statline {
+  color: var(--gray-600) !important;
+}
+
+[data-theme="dark"] .next-game-card.cap-white-bg .next-game-num,
+[data-theme="dark"] .sched-card.cap-white-bg .sched-game-num,
+[data-theme="dark"] .game-card.cap-white-bg .game-num-tag {
+  background: var(--royal-subtle) !important;
+  color: var(--royal) !important;
+}
+
+[data-theme="dark"] .sched-card.cap-white-bg .sched-cap-badge,
+[data-theme="dark"] .game-card.cap-white-bg .points-badge {
+  background: var(--gray-100) !important;
+  border-color: var(--gray-200) !important;
+  color: var(--gray-700) !important;
+}
+
+[data-theme="dark"] .next-game-card.cap-white-bg .follow-live-btn,
+[data-theme="dark"] .sched-card.cap-white-bg .directions-btn,
+[data-theme="dark"] .card.tab-card.player-lookup-card .mp-multi-add-btn,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-dl-wide-btn {
+  background: var(--gray-50) !important;
+  border-color: var(--gray-200) !important;
+  color: var(--gray-800) !important;
+}
+
+[data-theme="dark"] .card.tab-card.player-lookup-card .mp-multi-select {
+  background: #ffffff !important;
+  color: var(--gray-900) !important;
+  border-color: var(--gray-200) !important;
+}
+
+[data-theme="dark"] .game-card.cap-white-bg .result-pill,
+[data-theme="dark"] .game-card.cap-white-bg .live-badge,
+[data-theme="dark"] .next-game-card.cap-white-bg .live-badge-next {
+  color: #ffffff !important;
+}

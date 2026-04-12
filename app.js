@@ -2338,7 +2338,9 @@ function renderHistoryTeamSearch() {
   // Also include opponents from current tournament live scores
   for (const g of getTournamentGames()) {
     const ls = getLiveScore(g);
-    if (g.opponent && g.opponent !== 'TBD' && (ls.team > 0 || ls.opp > 0)) oppSet.add(g.opponent.trim());
+    const hasLiveScore = !!((ls.team > 0) || (ls.opp > 0) || (Array.isArray(ls.events) && ls.events.length));
+    const hasSyncedScore = g.teamScore !== '' && g.teamScore != null && g.oppScore !== '' && g.oppScore != null;
+    if (g.opponent && g.opponent !== 'TBD' && (hasLiveScore || hasSyncedScore || _getResultForGame(g))) oppSet.add(g.opponent.trim());
   }
 
   if (!oppSet.size) { el.innerHTML = ''; return; }
@@ -2416,14 +2418,18 @@ function buildTeamSearchResult(opponent) {
   for (const g of getTournamentGames()) {
     if (normalizeOpponentName(g.opponent || '').toLowerCase() !== oppLC) continue;
     const ls = getLiveScore(g);
-      if (ls.team == null && ls.opp == null && !_getResultForGame(g)) continue;
+    const hasLiveScore = !!((ls.team > 0) || (ls.opp > 0) || (Array.isArray(ls.events) && ls.events.length));
+    const teamScore = hasLiveScore ? (ls.team ?? '') : (g.teamScore ?? '');
+    const oppScore = hasLiveScore ? (ls.opp ?? '') : (g.oppScore ?? '');
+    const result = _getResultForGame(g) || '';
+    if (teamScore === '' && oppScore === '' && !result) continue;
     matchedGames.push({
       tournamentName: TOURNAMENT.name || 'Eggbeater',
       date:           g.dateISO || g.date || '',
-        result:         _getResultForGame(g) || '',
-      teamScore:      ls.team ?? '',
-      oppScore:       ls.opp  ?? '',
-      score:          '',
+      result,
+      teamScore,
+      oppScore,
+      score:          g.score || ((teamScore !== '' && oppScore !== '') ? `${teamScore}-${oppScore}` : ''),
     });
   }
 
