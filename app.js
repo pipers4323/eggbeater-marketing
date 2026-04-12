@@ -387,6 +387,24 @@ function getTournamentRoster() {
   return letters.flatMap(l => r[l] || []);
 }
 
+function getScopedRoster(gameOrRef = null, explicitGroupKey = '') {
+  const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
+  const cacheRoster = groupKey ? TEAM_CACHE[groupKey]?.tournament?.roster : null;
+  const localRoster = (!groupKey || groupKey === getSelectedTeam()) ? TOURNAMENT.roster : null;
+  const rosterSrc = cacheRoster || localRoster;
+  if (!rosterSrc) return [];
+  if (Array.isArray(rosterSrc)) return rosterSrc.map(p => ({ ...p }));
+
+  const game = gameOrRef ? _findGameByRef(gameOrRef, groupKey) : null;
+  const explicitLetter = game?.team || null;
+  const letters = explicitLetter
+    ? [explicitLetter]
+    : (groupKey ? getTeamLettersForGroup(groupKey) : getActiveTeams());
+
+  if (!letters?.length) return [];
+  return letters.flatMap(l => (rosterSrc[l] || []).map(p => ({ ...p })));
+}
+
 // Returns games for the currently selected team(s). When A+B both selected, returns union.
 // Games with no `team` field are treated as belonging to the FIRST team (A).
 function getTournamentGames() {
@@ -401,6 +419,21 @@ function getTournamentGames() {
     if (!g.team) return letters.includes(firstTeam);   // unassigned → first team only
     return letters.includes(g.team);
   }).map(g => ({ ...g, _groupKey: g._groupKey || groupKey }));
+}
+
+function getScopedTournamentGames(teamKey = '') {
+  if (!teamKey) return getTournamentGames();
+  const cache = TEAM_CACHE[teamKey];
+  const tournament = cache?.tournament;
+  if (!tournament || tournament.upcomingMode) return [];
+  const games = tournament.games || [];
+  const letters = getTeamLettersForGroup(teamKey);
+  if (!letters?.length) return games.map(g => ({ ...g, _groupKey: g._groupKey || teamKey }));
+  const firstTeam = Array.isArray(tournament.teams) && tournament.teams.length ? tournament.teams[0] : 'A';
+  return games.filter(g => {
+    if (!g.team) return letters.includes(firstTeam);
+    return letters.includes(g.team);
+  }).map(g => ({ ...g, _groupKey: g._groupKey || teamKey }));
 }
 
 // Returns bracket paths for the currently selected team(s). Merges when A+B both selected.
@@ -427,7 +460,7 @@ function switchTeam(letter, groupKey) {
   const first = getTeamLettersForGroup(groupKey)[0];
   if (first) localStorage.setItem('ebwp-selected-team', first); // legacy compat
   _historyTeamFilter = '';   // clear stale opponent search when team changes
-  state.roster = loadRoster();
+  state.roster = loadRoster(getSelectedTeam());
   renderTeamPicker();
   renderHeader();
   renderScheduleTab();
@@ -1812,9 +1845,10 @@ function shareBoxScore(gameId) {
 
 // ─── ROSTER MANAGEMENT ────────────────────────────────────────────────────────
 
-function loadRoster() {
+function loadRoster(groupOrRef = null) {
   try {
-    const key = isMultiTeam() ? STORE.ROSTER + '-' + getActiveTeam() : STORE.ROSTER;
+    const rosterGroupKey = _contextGroupKey(groupOrRef) || getSelectedTeam();
+    const key = isMultiTeam() && rosterGroupKey ? STORE.ROSTER + '-' + rosterGroupKey : STORE.ROSTER;
     const saved = localStorage.getItem(key);
     if (saved) {
       const parsed = JSON.parse(saved);
@@ -1823,7 +1857,7 @@ function loadRoster() {
     }
   } catch { /* fall through */ }
   // Always show the roster deployed from the admin panel
-  return getTournamentRoster().map(p => ({ ...p }));
+  return getScopedRoster(groupOrRef);
 }
 
 function saveRosterToStorage() {
@@ -1831,7 +1865,9 @@ function saveRosterToStorage() {
   localStorage.setItem(key, JSON.stringify(state.roster));
 }
 
-function getRosterPlayers() {
+function getRosterPlayers(gameOrRef = null, explicitGroupKey = '') {
+  const roster = getScopedRoster(gameOrRef, explicitGroupKey);
+  if (roster.length) return roster;
   return state.roster || [];
 }
 
@@ -2107,14 +2143,14 @@ function renderRosterTab() {
     return;
   }
   if (slots.length > 1) { _renderRosterMulti(el, slots); return; }
-  const roster = state.roster || [];
+  const roster = getRosterPlayers(getSelectedTeam());
 
   // If roster is empty, trigger a background reload (handles slow CF worker cold-start on Android).
   // _doTeamLoad will call renderRosterTab() again once data arrives.
   if (roster.length === 0 && !window._rosterReloading) {
     window._rosterReloading = true;
     loadAllSelectedTeams().then(() => {
-      state.roster = loadRoster();
+      state.roster = loadRoster(getSelectedTeam());
       window._rosterReloading = false;
       renderRosterTab();
     }).catch(() => { window._rosterReloading = false; });
@@ -2207,8 +2243,9 @@ let _playerLookupName = '';
 
 /** Builds the "Player Stats" lookup card inserted above the roster management card. */
 function renderPlayerLookupCard() {
-  const roster    = state.roster || [];
-  const allStats  = getAllPlayersWithStats();
+  const teamKey   = getSelectedTeam();
+  const roster    = getRosterPlayers(teamKey);
+  const allStats  = getAllPlayersWithStats(teamKey);
   const sorted    = sortedRoster(roster);
   const rosterNames = new Set(sorted.map(p => `${p.first} ${p.last}`.toLowerCase().trim()));
 
@@ -2257,8 +2294,9 @@ function selectPlayerLookup(encodedName) {
 
 /** Builds the stats panel HTML for a given player name. */
 function buildPlayerLookupResult(name) {
-  const stats  = getMyPlayerSummaryStats(name);
-  const roster = state.roster || [];
+  const teamKey = getSelectedTeam();
+  const stats  = getMyPlayerSummaryStats(name, teamKey);
+  const roster = getRosterPlayers(teamKey);
   const entry  = roster.find(p => `${p.first} ${p.last}`.toLowerCase() === name.toLowerCase());
   const isGK   = entry ? isGoalie(entry.cap) : ((stats?.Sv || 0) > 0);
 
@@ -2880,7 +2918,7 @@ function openEventPicker(gameId, eventType) {
     // Direct events — record immediately with the captured clock
     if (realType === 'timeout') { _doRecordDirect(gameId, 'timeout'); return; }
 
-    const roster = getRosterPlayers();
+    const roster = getRosterPlayers(gameId);
     if (!roster.length && realType === 'goal') {
       recordEventForPlayer(gameId, 'goal', '', '', isSixOnFive);
       return;
@@ -6540,7 +6578,7 @@ function init() {
   const hasRunning = Object.values(state.liveScores).some(s => s && s.timerRunning);
   if (hasRunning) ensureClockTicker();
 
-  state.roster      = loadRoster();
+  state.roster      = loadRoster(getSelectedTeam());
   purgeTestHistory();
   seedHistory();
   renderHeader();
@@ -6641,7 +6679,7 @@ function init() {
     await loadAllSelectedTeams();
     checkTournamentChange();
     seedHistory();
-    state.roster = loadRoster(); // refresh in-memory roster from fresh TOURNAMENT.roster
+    state.roster = loadRoster(getSelectedTeam()); // refresh in-memory roster from fresh TOURNAMENT.roster
     renderHeader();
     renderScheduleTab();
     renderPossibleTab();
@@ -6794,7 +6832,7 @@ function init() {
     if (document.visibilityState === 'visible') {
       pollLiveScores();
       loadAllSelectedTeams().then(() => {
-        state.roster = loadRoster();
+        state.roster = loadRoster(getSelectedTeam());
         renderScheduleTab();
         renderRosterTab();
         pollLiveScores();
@@ -6807,7 +6845,7 @@ function init() {
       if (isActive) {
         pollLiveScores();
         loadAllSelectedTeams().then(() => {
-          state.roster = loadRoster();
+          state.roster = loadRoster(getSelectedTeam());
           renderScheduleTab();
           renderRosterTab();
           pollLiveScores();
@@ -8357,7 +8395,7 @@ async function startLivePoller() {
  * wearing different cap numbers across tournaments is merged into one row.
  * Each entry: { name, G, A, Excl, sixOnFive, gameCount }
  */
-function getAllPlayersWithStats() {
+function getAllPlayersWithStats(teamKey = '') {
   // key = lowercased full name (or 'unknown:cap' fallback for nameless events)
   const map = {};
 
@@ -8396,7 +8434,7 @@ function getAllPlayersWithStats() {
   }
 
   // Current tournament live scores
-  for (const g of getTournamentGames()) {
+  for (const g of getScopedTournamentGames(teamKey)) {
     const ls = getLiveScore(g);
     processEvts(ls.events || [], 'current:' + g.id);
   }
@@ -8425,7 +8463,7 @@ function getAllPlayersWithStats() {
  * Cap numbers are intentionally ignored for matching — they rotate per tournament.
  * Returns an array of row objects sorted oldest → newest.
  */
-function collectPlayerGameRows(name) {
+function collectPlayerGameRows(name, teamKey = '') {
   const rows    = [];
   const nameStr = String(name || '').trim().toLowerCase();
   const firstName = nameStr.split(' ')[0] || '';
@@ -8462,7 +8500,7 @@ function collectPlayerGameRows(name) {
   }
 
   // Current tournament
-  for (const g of getTournamentGames()) {
+  for (const g of getScopedTournamentGames(teamKey)) {
     const ls   = getLiveScore(g);
     const evts = ls.events || [];
     const stats = extractFromEvts(evts);
@@ -9465,7 +9503,7 @@ function renderMyPlayersCard() {
     const cache    = TEAM_CACHE[teamKey];
     const roster   = cache
       ? (Array.isArray(cache.tournament.roster) ? cache.tournament.roster : (cache.tournament.roster?.A || []))
-      : (state.roster || []);
+      : getRosterPlayers(teamKey);
     const tracked  = players.filter(p => p.teamKey === teamKey);
     const sorted   = sortedRoster(roster).filter(p => p.first || p.last);
     const opts     = sorted.map(p => {
@@ -9538,9 +9576,9 @@ function open68SportsUrl() {
  * Looks up summary stats for a player by name from getAllPlayersWithStats().
  * Uses the same full-name / first-name matching rules as the CSV download.
  */
-function getMyPlayerSummaryStats(name) {
+function getMyPlayerSummaryStats(name, teamKey = getSelectedTeam()) {
   if (!name) return null;
-  const all       = getAllPlayersWithStats();
+  const all       = getAllPlayersWithStats(teamKey);
   const nameLC    = name.toLowerCase();
   const firstName = nameLC.split(' ')[0] || '';
   return all.find(p => {
@@ -9572,7 +9610,7 @@ function _renderPlayerStatsCard(playerName, teamKey = getSelectedTeam()) {
     ? (Array.isArray(cache.tournament.roster) ? cache.tournament.roster : Object.values(cache.tournament.roster || {}).flat())
     : null;
   const roster   = tournamentRoster || state.roster || [];
-  const stats    = getMyPlayerSummaryStats(playerName);
+  const stats    = getMyPlayerSummaryStats(playerName, teamKey);
   const G        = stats ? stats.G          : 0;
   const SM       = stats ? (stats.SM  || 0) : 0;
   const G5       = stats ? (stats.G5  || 0) : 0;
@@ -9604,7 +9642,7 @@ function _renderPlayerStatsCard(playerName, teamKey = getSelectedTeam()) {
   const playerIsGoalie = rosterEntry ? isGoalie(rosterEntry.cap) : (Sv > 0);
 
   const gameRows = (() => {
-    const rows = collectPlayerGameRows(playerName);
+    const rows = collectPlayerGameRows(playerName, teamKey);
     if (!rows.length) return '';
     const recent = [...rows].reverse().slice(0, 5);
     const cells  = recent.map(r => {
@@ -9716,7 +9754,7 @@ function _renderPlayerStatsCard(playerName, teamKey = getSelectedTeam()) {
  */
 function renderMyPlayerCard() {
   const teamKey = getSelectedTeam();
-  const roster  = state.roster || [];
+  const roster  = getRosterPlayers(teamKey);
   const players = getMyPlayers().filter(p => p.teamKey === teamKey);
 
   // Build options excluding already-followed players
