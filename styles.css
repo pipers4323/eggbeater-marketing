@@ -996,8 +996,8 @@ h2 {
   content: '';
   flex: 1;
   height: 1.5px;
-  background: var(--teal, #0891b2);
-  opacity: 0.45;
+  background: var(--red);
+  opacity: 0.5;
 }
 .scores-slot-label {
   font-size: 0.78rem;

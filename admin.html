@@ -11077,27 +11077,58 @@
       }
     }
 
+    async function _getArchiveDetailOrCurrent(teamKey, tournId) {
+      const origTeam = S.team;
+      S.team = teamKey;
+      const [detailRes, currentRes, currentRosterRes] = await Promise.all([
+        api('GET', `/admin/archive-detail?tournId=${encodeURIComponent(tournId)}&team=${encodeURIComponent(teamKey)}`),
+        api('GET', `/admin/data?team=${encodeURIComponent(teamKey)}`),
+        api('GET', `/admin/roster?team=${encodeURIComponent(teamKey)}`),
+      ]);
+      S.team = origTeam;
+
+      const currentData = currentRes.ok ? await currentRes.json() : {};
+      const currentRosterData = currentRosterRes.ok ? await currentRosterRes.json() : {};
+      if (detailRes.ok) {
+        return {
+          data: await detailRes.json(),
+          currentData,
+          currentRosterData,
+        };
+      }
+
+      const currentTournament = currentData.tournament || {};
+      const currentRoster = currentRosterData.roster ?? currentData.roster ?? [];
+      const matchesCurrent = Array.isArray(currentTournament.games)
+        && currentTournament.games.length
+        && (
+          String(currentTournament.id || '') === String(tournId)
+          || String(currentTournament.name || '') === String(tournId)
+          || archiveMatchesTournament({ id: tournId, tournament: { id: tournId, name: currentTournament.name } }, currentTournament)
+        );
+
+      if (!matchesCurrent) throw new Error('Not found');
+
+      return {
+        data: {
+          ok: true,
+          archivedAt: Date.now(),
+          tournament: currentTournament,
+          roster: currentRoster,
+          snapshot: { tournament: currentTournament, roster: currentRoster },
+          record: deriveArchiveRecord(currentTournament.games || [], {}),
+        },
+        currentData,
+        currentRosterData,
+      };
+    }
+
     async function viewArchiveDetail(teamKey, tournId) {
       const el = document.getElementById('tab-content');
       el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--g400)">Loading tournament…</div>';
 
       try {
-        const origTeam = S.team;
-        S.team = teamKey;
-        const res = await api('GET', `/admin/archive-detail?tournId=${encodeURIComponent(tournId)}&team=${encodeURIComponent(teamKey)}`);
-        S.team = origTeam;
-        if (!res.ok) throw new Error('Not found');
-        const [data, currentData, currentRosterData] = await Promise.all([
-          res.json(),
-          (async () => {
-            const currentRes = await api('GET', `/admin/data?team=${encodeURIComponent(teamKey)}`);
-            return currentRes.ok ? currentRes.json() : {};
-          })(),
-          (async () => {
-            const rosterRes = await api('GET', `/admin/roster?team=${encodeURIComponent(teamKey)}`);
-            return rosterRes.ok ? rosterRes.json() : {};
-          })(),
-        ]);
+        const { data, currentData, currentRosterData } = await _getArchiveDetailOrCurrent(teamKey, tournId);
         const archivedTournament = data.tournament || data.snapshot?.tournament || {};
         const currentTournament = currentData.tournament || {};
         const t = (archiveMatchesTournament({ id: tournId, name: archivedTournament.name, tournament: archivedTournament }, currentTournament)
@@ -11122,7 +11153,7 @@
             ${t.dates ? `<div style="font-size:0.82rem"><strong>Dates:</strong> ${esc(t.dates)}</div>` : ''}
             ${t.location ? `<div style="font-size:0.82rem"><strong>Venue:</strong> ${esc(t.location)}</div>` : ''}
             <div style="font-size:0.82rem"><strong>Record:</strong> <span style="font-weight:700;color:${(rec.wins || 0) >= (rec.losses || 0) ? 'var(--green)' : 'var(--red)'}">${recordStr}</span></div>
-            <div style="font-size:0.82rem"><strong>Archived:</strong> ${new Date(data.archivedAt).toLocaleDateString()}</div>
+            <div style="font-size:0.82rem"><strong>Archived:</strong> ${new Date(data.archivedAt || Date.now()).toLocaleDateString()}</div>
           </div>`;
 
         // Games list
@@ -11167,12 +11198,7 @@
     async function loadArchiveRoster(teamKey, tournId) {
       if (!confirm('Load the roster from this archived tournament into the current ' + teamKey + ' tournament? This will replace the current roster.')) return;
       try {
-        const origTeam = S.team;
-        S.team = teamKey;
-        const res = await api('GET', `/admin/archive-detail?tournId=${encodeURIComponent(tournId)}&team=${encodeURIComponent(teamKey)}`);
-        S.team = origTeam;
-        if (!res.ok) throw new Error('Archive not found');
-        const data = await res.json();
+        const { data } = await _getArchiveDetailOrCurrent(teamKey, tournId);
         const roster = normalizeArchiveRosterForTeam(teamKey, data.roster || data.snapshot?.roster || []);
         if (!roster.length) { showStatus('Archive has no roster', 'err'); return; }
 

@@ -4888,7 +4888,7 @@ function _renderScheduleMulti(slots) {
 
   $('schedule-list').innerHTML = slots.map(({ groupKey, letter, suffix }) =>
     `<div class="team-section">
-      <div class="team-section-header">${escHtml(_groupSectionLabelFor(groupKey, letter))}</div>
+      <div class="scores-slot-header"><span class="scores-slot-label">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>
       <div id="next-game-section-${suffix}"></div>
       <div id="schedule-list-${suffix}"></div>
     </div>`
