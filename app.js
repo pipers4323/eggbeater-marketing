@@ -636,6 +636,7 @@ const state = {
   tscorePw:         '',
   tscoreScores:     {},
   tscorePollTimer:  null,
+  scorerDetailsOpen:{},
   roster:           [],     // [{ cap, first, last }] — editable via Roster tab
   currentTab:       'schedule',
   viewerMode:       true,       // true = viewing live scores without scorer login (default for parents)
@@ -5212,7 +5213,9 @@ function onQuarterToggle(el, period) {
   state.logQuartersOpened[pKey] = el.open;
 }
 
-function _onScorerToggle(el) {
+function _onScorerToggle(el, gameId) {
+  if (!state.scorerDetailsOpen) state.scorerDetailsOpen = {};
+  state.scorerDetailsOpen[gameId] = !!el.open;
   const hdr = document.querySelector('.app-header');
   if (el.open) {
     el.closest('.game-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -5346,10 +5349,12 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
 
   // ── Scorer section (full controls) ────────────────────────────────────────
   const isActiveGame = s.gameState && s.gameState !== 'pre';
+  const scorerManuallyOpen = !!state.scorerDetailsOpen?.[gid];
+  const scorerShouldOpen = isActiveGame || scorerManuallyOpen;
   const scorerSection = `
-    <details class="scorer-details" ${isActiveGame ? 'open' : ''} ontoggle="_onScorerToggle(this)">
+    <details class="scorer-details" ${scorerShouldOpen ? 'open' : ''} ontoggle="_onScorerToggle(this,'${gid}')">
       <summary class="scorer-summary">
-        ${isActiveGame ? '▼ Scoring Controls' : '▶ Open Scorer'}
+        ${scorerShouldOpen ? '▼ Scoring Controls' : '▶ Open Scorer'}
       </summary>
     <div class="scoring-section">
       <div class="gs-bar">${gsBar}</div>
