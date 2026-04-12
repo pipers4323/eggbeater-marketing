@@ -2506,14 +2506,21 @@ function buildTeamSearchResult(opponent) {
 
 // ── Auto-Clock Engine ────────────────────────────────────────────────────────
 
-function getClockSettings() {
-  const cs = TOURNAMENT.clockSettings || {};
+function getClockSettings(gameOrRef = null) {
+  const groupKey = gameOrRef ? _contextGroupKey(gameOrRef) : '';
+  const gameScore = gameOrRef ? state.liveScores[_scopedGameKey(gameOrRef)] : null;
+  const cs = (groupKey && TEAM_CACHE[groupKey]?.tournament?.clockSettings)
+    || TOURNAMENT.clockSettings
+    || {};
+  const timeoutLengths = Array.isArray(gameScore?.timeoutLengths) && gameScore.timeoutLengths.length
+    ? gameScore.timeoutLengths
+    : (Array.isArray(cs.timeoutLengths) && cs.timeoutLengths.length ? cs.timeoutLengths : [1, 0.5]);
   return {
-    quarterMins:     cs.quarterMins     ?? 7,
-    breakMins:       cs.breakMins       ?? 2,
-    halftimeMins:    cs.halftimeMins    ?? 5,
-    timeoutsPerTeam: cs.timeoutsPerTeam ?? 2,
-    timeoutLengths:  (cs.timeoutLengths && cs.timeoutLengths.length) ? cs.timeoutLengths : [1, 0.5],
+    quarterMins:     gameScore?.quarterMins     ?? cs.quarterMins     ?? 7,
+    breakMins:       gameScore?.breakMins       ?? cs.breakMins       ?? 2,
+    halftimeMins:    gameScore?.halfMins        ?? cs.halftimeMins    ?? 5,
+    timeoutsPerTeam: gameScore?.timeoutsPerTeam ?? cs.timeoutsPerTeam ?? 2,
+    timeoutLengths,
   };
 }
 
@@ -2614,7 +2621,7 @@ function _phaseLabel(phase) {
 
 function _handleClockExpired(gameId) {
   const s = getLiveScore(gameId);
-  const cs = getClockSettings();
+  const cs = getClockSettings(gameId);
   const cur  = s.timerPhase || 'q1';
   const next = _nextPhase(cur);
 
@@ -2659,7 +2666,12 @@ function _handleClockExpired(gameId) {
 
 function startScoring(gameId) {
   const s  = getLiveScore(gameId);
-  const cs = getClockSettings();
+  const cs = getClockSettings(gameId);
+  s.quarterMins = cs.quarterMins;
+  s.breakMins = cs.breakMins;
+  s.halfMins = cs.halftimeMins;
+  s.timeoutsPerTeam = cs.timeoutsPerTeam;
+  s.timeoutLengths = [...(cs.timeoutLengths || [])];
 
   // Determine which quarter we're starting
   const phase = s.timerPhase || 'q1';
@@ -2754,7 +2766,12 @@ function resumeGameTimer(gameId) {
 
 function resetGameClock(gameId, phaseOverride = null) {
   const s  = getLiveScore(gameId);
-  const cs = getClockSettings();
+  const cs = getClockSettings(gameId);
+  s.quarterMins = cs.quarterMins;
+  s.breakMins = cs.breakMins;
+  s.halfMins = cs.halftimeMins;
+  s.timeoutsPerTeam = cs.timeoutsPerTeam;
+  s.timeoutLengths = [...(cs.timeoutLengths || [])];
   const phase = phaseOverride || s.timerPhase || 'q1';
   if (phaseOverride) s.timerPhase = phaseOverride;
   s.timerRunning     = false;
@@ -5345,7 +5362,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
   }).join('');
 
   // Auto-clock display (replaces manual clock entry row)
-  const cs = getClockSettings();
+  const cs = getClockSettings(gid);
   const timerSecsLeft = (() => {
     if (s.timerRunning && s.timerStartedAt) {
       const elapsed = (Date.now() - s.timerStartedAt) / 1000;
