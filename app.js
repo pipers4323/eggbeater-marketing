@@ -5620,9 +5620,12 @@ function buildHistoryCard(t, options = {}) {
       : []);
     const nonState = allEvts.filter(e => e.type !== 'game_state');
     const recomputed = allEvts.length ? recomputeScores(allEvts) : null;
+    const syncedScore = (g.teamScore !== '' && g.teamScore != null && g.oppScore !== '' && g.oppScore != null)
+      ? `${g.teamScore}-${g.oppScore}`
+      : '';
     const scoreLabel = (recomputed && (recomputed.team != null || recomputed.opp != null))
       ? `${recomputed.team ?? 0}-${recomputed.opp ?? 0}`
-      : (g.score || g.time || '');
+      : (syncedScore || g.score || g.time || '');
 
     // Goal scorer chips
     const teamGoals   = nonState.filter(ev => ev.type === 'goal');

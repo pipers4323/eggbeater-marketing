@@ -2147,8 +2147,8 @@ h2 {
 
 /* ── Projected Next Game variant ─────────────────────────────────────────── */
 .next-game-card.next-projected {
-  background: linear-gradient(135deg, #1a4898 0%, #002868 100%);
-  box-shadow: 0 4px 18px rgba(0,40,104,.3);
+  background: linear-gradient(135deg, rgba(var(--royal-rgb), 0.96) 0%, rgba(var(--royal-rgb), 0.82) 100%);
+  box-shadow: 0 4px 18px rgba(var(--royal-rgb), .32);
 }
 
 .next-game-card.next-complete {

@@ -6674,19 +6674,22 @@
     // Called inline from renderAddGamesTab() via ${bsWizardHtml()} — no placeholder needed.
     function bsWizardHtml() {
       if (!S.bsync) {
-        const url = localStorage.getItem('ebadmin-bsync-url') || '';
-        const sheetId = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] || '';
-        S.bsync = { 
-          step: 1, 
-          sheetUrl: url, 
-          sheetId: sheetId,
-          poolRange: localStorage.getItem('ebadmin-bsync-range') || '', 
-          teamName: localStorage.getItem('ebadmin-bsync-team') || '', 
-          rebracket: false, 
-          rebracketRange: '', 
-          pollMins: parseInt(localStorage.getItem('ebadmin-bsync-mins') || '10', 10), 
-          pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '' 
-        };
+        _restoreBsyncFromTournament();
+        if (!S.bsync) {
+          const url = localStorage.getItem('ebadmin-bsync-url') || '';
+          const sheetId = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] || '';
+          S.bsync = {
+            step: 1,
+            sheetUrl: url,
+            sheetId: sheetId,
+            poolRange: localStorage.getItem('ebadmin-bsync-range') || '',
+            teamName: localStorage.getItem('ebadmin-bsync-team') || '',
+            rebracket: false,
+            rebracketRange: '',
+            pollMins: parseInt(localStorage.getItem('ebadmin-bsync-mins') || '10', 10),
+            pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: ''
+          };
+        }
       }
       var bs = S.bsync;
       var step = bs.step || 1;
@@ -7613,6 +7616,8 @@
 
           // Apply score/result sync
           let scoreVal = '';
+          let teamScore = '';
+          let oppScore = '';
           if (whiteScoreCol >= 0 && darkScoreCol >= 0) {
             const ws = (row[whiteScoreCol]||'').trim();
             const ds = (row[darkScoreCol]||'').trim();
@@ -7621,8 +7626,13 @@
               const op = isWhite ? ds : ws;
               if (my !== '' && op !== '') {
                 const s1 = parseInt(my, 10), s2 = parseInt(op, 10);
-                if (!isNaN(s1) && !isNaN(s2)) scoreVal = (s1 > s2 ? 'W ' : s1 < s2 ? 'L ' : 'T ') + my + '-' + op;
-                else scoreVal = my + '-' + op;
+                if (!isNaN(s1) && !isNaN(s2)) {
+                  teamScore = s1;
+                  oppScore = s2;
+                  scoreVal = (s1 > s2 ? 'W ' : s1 < s2 ? 'L ' : 'T ') + my + '-' + op;
+                } else {
+                  scoreVal = my + '-' + op;
+                }
               }
             }
           } else {
@@ -7631,6 +7641,11 @@
 
           if (scoreVal) {
             game.result = _parseScoreIntoResult(scoreVal);
+            game.score = scoreVal.replace(/^[WLT]\s+/i, '');
+          }
+          if (teamScore !== '' && oppScore !== '') {
+            game.teamScore = teamScore;
+            game.oppScore = oppScore;
           }
 
           // Apply date overrides
@@ -7655,6 +7670,9 @@
           g.location || '',
           g.pool || '',
           g.cap || '',
+          g.teamScore !== '' && g.teamScore != null ? g.teamScore : '',
+          g.oppScore !== '' && g.oppScore != null ? g.oppScore : '',
+          g.score || '',
           g.result || '',
         ].join('|');
         const newSig  = games.map(sig).join(',');
