@@ -6286,6 +6286,23 @@ details[open] .help-chevron { transform: rotate(180deg); }
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
+[data-theme="dark"] .next-game-card.cap-white-bg *,
+[data-theme="dark"] .sched-card.cap-white-bg *,
+[data-theme="dark"] .game-card.cap-white-bg *,
+[data-theme="dark"] .card.tab-card.team-search-card *,
+[data-theme="dark"] .card.tab-card.season-record-card *,
+[data-theme="dark"] .card.tab-card.my-player-card *,
+[data-theme="dark"] .card.tab-card.player-lookup-card * {
+  color: var(--gray-900) !important;
+}
+
+[data-theme="dark"] #view-possible .scores-slot-header.slot-header-in-card .scores-slot-label,
+[data-theme="dark"] .roster-view-card .scores-slot-label,
+[data-theme="dark"] .mp-multi-card .scores-slot-label {
+  color: var(--royal) !important;
+  opacity: 1 !important;
+}
+
 [data-theme="dark"] .next-game-card.cap-white-bg .next-label,
 [data-theme="dark"] .next-game-card.cap-white-bg .next-vs,
 [data-theme="dark"] .next-game-card.cap-white-bg .next-meta,
