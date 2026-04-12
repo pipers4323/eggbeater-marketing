@@ -5921,7 +5921,7 @@ function renderHistoryTab() {
     })();
 
     standingsEl.innerHTML = `
-      <div class="card tab-card" style="padding:18px 20px;margin-bottom:16px">
+      <div class="card tab-card season-record-card" style="padding:18px 20px;margin-bottom:16px">
         <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
           <div style="flex:1">
             <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gray-500);margin-bottom:4px">Season Record${teamLabel ? ' · ' + escHtml(teamLabel) : ''}</div>
