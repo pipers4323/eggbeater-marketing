@@ -1700,6 +1700,8 @@ function shareBoxScore(gameId) {
     so_miss:       ()  => 'SO MISS',
     opp_so_miss:   ()  => 'SO MISS',
     assist:        ()  => 'ASSIST',
+    steal:         ev  => ev.forcedBallUnder ? 'STEAL (FBU)' : 'STEAL',
+    opp_steal:     ()  => 'OPP STEAL',
     exclusion:     ()  => 'EXCL',
     opp_exclusion: ()  => 'EXCL',
     brutality:     ()  => 'BRUTALITY',
@@ -1707,6 +1709,7 @@ function shareBoxScore(gameId) {
     opp_timeout:   ()  => 'OPP TIMEOUT',
     save:          ()  => 'SAVE',
     block:         ()  => 'SAVE',
+    field_block:   ()  => 'FIELD BLOCK',
   };
 
   let text = `${TOURNAMENT.name || 'Eggbeater'}\n`;
@@ -1950,6 +1953,8 @@ function buildBoxScoreText(gameId) {
     so_miss:       ()  => 'SO MISS',
     opp_so_miss:   ()  => 'SO MISS',
     assist:        ()  => 'ASSIST',
+    steal:         ev  => ev.forcedBallUnder ? 'STEAL (FBU)' : 'STEAL',
+    opp_steal:     ()  => 'OPP STEAL',
     exclusion:     ()  => 'EXCL',
     opp_exclusion: ()  => 'EXCL',
     brutality:     ()  => 'BRUTALITY',
@@ -1957,6 +1962,7 @@ function buildBoxScoreText(gameId) {
     opp_timeout:   ()  => 'OPP TIMEOUT',
     save:          ()  => 'SAVE',
     block:         ()  => 'SAVE',
+    field_block:   ()  => 'FIELD BLOCK',
   };
 
   // ── Status line: smart summary based on game state ──
@@ -9551,18 +9557,21 @@ function _renderPlayerStatsCard(playerName, teamKey = getSelectedTeam()) {
         <div class="mp-stat-box"><span class="mp-stat-num">${gameCount}</span><span class="mp-stat-lbl">Games</span></div>
       </div>
 ` : `
+      <div class="mp-stat-group-label">Core Stats</div>
       <div class="mp-stat-row-4">
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${G}</span><span class="mp-stat-lbl-sm">Goals</span></div>
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${A}</span><span class="mp-stat-lbl-sm">Assists</span></div>
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${Stl}</span><span class="mp-stat-lbl-sm">Steals</span></div>
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${Excl}</span><span class="mp-stat-lbl-sm">Exclusions</span></div>
       </div>
+      <div class="mp-stat-group-label">Specialty Stats</div>
       <div class="mp-stat-row-4">
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${FBU}</span><span class="mp-stat-lbl-sm">Forced Under</span></div>
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${FB}</span><span class="mp-stat-lbl-sm">Field Blocks</span></div>
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${sixOnFive}</span><span class="mp-stat-lbl-sm">6on5 Goals</span></div>
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${gameCount}</span><span class="mp-stat-lbl-sm">Games</span></div>
       </div>
+      <div class="mp-stat-group-label">Shot Breakdown</div>
       <div class="mp-stat-row-4">
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${G5}</span><span class="mp-stat-lbl-sm">5m Goals</span></div>
         <div class="mp-stat-box mp-stat-box-sm"><span class="mp-stat-num-sm">${M5}</span><span class="mp-stat-lbl-sm">5m Attempts</span></div>

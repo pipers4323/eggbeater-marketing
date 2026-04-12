@@ -7554,6 +7554,18 @@
       return null;
     }
 
+    function bsNormalizeOpponentName(raw) {
+      let name = String(raw || '').trim();
+      if (!name) return '';
+      name = name.replace(/^[A-Z]\d+\s*[-â€“]\s*/i, '');
+      name = name.replace(/^[A-Z]?\d+\s*\([^)]*\)\s*[-â€“]\s*/i, '');
+      name = name.replace(/^\d+(?:st|nd|rd|th)\s+[A-Z]\s*[-â€“]\s*/i, '');
+      name = name.replace(/^[A-Z]\d+\s*/i, '');
+      name = name.replace(/^\d+(?:st|nd|rd|th)\s+[A-Z]\s*/i, '');
+      name = name.replace(/^\s*[-â€“]\s*/, '');
+      return name.trim() || String(raw || '').trim();
+    }
+
     async function bsAutoPoll() {
       _restoreBsyncFromTournament();
       if (!S.bsync?.sheetId || !S.bsync?.teamName) return;
@@ -7614,7 +7626,7 @@
           const game = {
             id: 'g' + (Date.now() + games.length).toString(36),
             gameNum: rawGnum || String(games.length + 1),
-            opponent: (isWhite ? blue : white).replace(/^[A-Z]\d+\s*[-–]\s*/i, '').trim() || 'TBD',
+            opponent: bsNormalizeOpponentName(isWhite ? blue : white) || 'TBD',
             time: (row[timeCol] || '').trim(),
             dateISO,
             date: dateISO ? isoToDate(dateISO) : dateRaw,
@@ -7692,6 +7704,8 @@
         for (const g of (S.tournament.games || [])) existingByNum[g.gameNum] = g;
         S.tournament.games = games.map(g => ({ ...g, id: existingByNum[g.gameNum]?.id || g.id }));
         S.bsync.games = S.tournament.games;
+        delete S.tournament.upcomingMode;
+        delete S.tournament.comingSoon;
         S.tournament.sheetSync = {
           ...(S.tournament.sheetSync || {}),
           sheetUrl: S.bsync.sheetUrl,
@@ -7711,7 +7725,12 @@
 
         const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
         if (saveRes.ok) {
-          console.warn('[bsync] Auto-synced', games.length, 'game update(s) from sheet');
+          const deployRes = await api('POST', '/admin/deploy');
+          if (!deployRes.ok) {
+            const deployText = await deployRes.text().catch(() => '');
+            throw new Error('Auto-deploy failed' + (deployText ? ': ' + deployText : ''));
+          }
+          console.warn('[bsync] Auto-synced', games.length, 'game update(s) from sheet and deployed live');
           if (typeof _pushToFirebaseMirror === 'function') {
             await _pushToFirebaseMirror(S.team, S.tournament, S.history || []);
           }
@@ -12515,3 +12534,4 @@
 </body>
 
 </html>
+
