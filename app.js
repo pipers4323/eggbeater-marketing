@@ -658,6 +658,100 @@ function _restorePrimaryTournamentContext() {
   window.HISTORY_SEED = TEAM_CACHE[primaryKey].history || [];
 }
 
+function _normalizeScopedMyGamesState() {
+  const rawGames = [...getMyGames()];
+  if (!rawGames.length) return false;
+  const next = new Set();
+  let changed = false;
+
+  for (const key of rawGames) {
+    const rawKey = String(key);
+    if (rawKey.includes(':')) {
+      next.add(rawKey);
+      continue;
+    }
+    const matches = _matchingGroupKeysForGameId(rawKey);
+    if (matches.length === 1) {
+      next.add(`${matches[0]}:${rawKey}`);
+      changed = true;
+    } else {
+      next.add(rawKey);
+      if (matches.length > 1) _warnIntegrity('Ambiguous raw my-games key', rawKey);
+    }
+  }
+
+  const nextArr = [...next];
+  if (changed || nextArr.length !== rawGames.length) {
+    localStorage.setItem('ebwp-my-games', JSON.stringify(nextArr));
+    return true;
+  }
+  return false;
+}
+
+function _normalizeTeamCacheState() {
+  let changed = false;
+  for (const [groupKey, cache] of Object.entries(TEAM_CACHE || {})) {
+    if (!cache?.tournament) continue;
+    if (Array.isArray(cache.tournament.games)) {
+      cache.tournament.games = cache.tournament.games.map(g => {
+        if (g?._groupKey === groupKey) return g;
+        changed = true;
+        return { ...g, _groupKey: groupKey };
+      });
+    }
+    if (Array.isArray(cache.history)) {
+      cache.history = cache.history.map(entry => {
+        let entryChanged = false;
+        const normalized = { ...entry };
+        if (!normalized.ageGroup) {
+          normalized.ageGroup = groupKey;
+          entryChanged = true;
+        }
+        if (Array.isArray(normalized.games)) {
+          normalized.games = normalized.games.map(g => {
+            if (g?._groupKey === groupKey) return g;
+            entryChanged = true;
+            return { ...g, _groupKey: groupKey };
+          });
+        }
+        if (entryChanged) changed = true;
+        return normalized;
+      });
+    }
+  }
+  return changed;
+}
+
+function _normalizeStoredHistoryState() {
+  const history = getHistory();
+  if (!Array.isArray(history) || !history.length) return false;
+  let changed = false;
+  const next = history.map(entry => {
+    const guessedGroupKey =
+      entry?.ageGroup
+      || Object.entries(TEAM_CACHE || {}).find(([, cache]) => cache?.tournament?.id === entry?.id)?.[0]
+      || '';
+    if (!guessedGroupKey) return entry;
+    let entryChanged = false;
+    const normalized = { ...entry };
+    if (!normalized.ageGroup) {
+      normalized.ageGroup = guessedGroupKey;
+      entryChanged = true;
+    }
+    if (Array.isArray(normalized.games)) {
+      normalized.games = normalized.games.map(g => {
+        if (g?._groupKey === guessedGroupKey) return g;
+        entryChanged = true;
+        return { ...g, _groupKey: guessedGroupKey };
+      });
+    }
+    if (entryChanged) changed = true;
+    return normalized;
+  });
+  if (changed) localStorage.setItem(STORE.HISTORY, JSON.stringify(next));
+  return changed;
+}
+
 function _normalizeScopedResultsState() {
   const entries = Object.entries(state.results || {});
   if (!entries.length) return false;
@@ -723,13 +817,23 @@ function _auditMultiTeamIntegrity(opts = {}) {
   state.integrityWarnings = [];
   const resultsChanged = _normalizeScopedResultsState();
   const liveChanged = _normalizeScopedLiveScoresState();
+  const myGamesChanged = _normalizeScopedMyGamesState();
+  const cacheChanged = _normalizeTeamCacheState();
+  const historyChanged = _normalizeStoredHistoryState();
   _restorePrimaryTournamentContext();
   state.roster = loadRoster(getSelectedTeam());
   if (persist) {
     if (resultsChanged) _saveResults();
     if (liveChanged) saveLiveScores();
   }
-  return { resultsChanged, liveChanged, warnings: [...state.integrityWarnings] };
+  return {
+    resultsChanged,
+    liveChanged,
+    myGamesChanged,
+    cacheChanged,
+    historyChanged,
+    warnings: [...state.integrityWarnings],
+  };
 }
 
 function _inferFinalResultFromScore(score) {
@@ -999,6 +1103,14 @@ function scheduleUndoableAction(msg, apply, opts = {}) {
       try { apply?.(); } catch (err) { console.warn('scheduled action failed:', err?.message || err); }
     },
   });
+}
+
+function _cloneJsonSafe(value) {
+  try { return JSON.parse(JSON.stringify(value)); }
+  catch {
+    if (typeof structuredClone === 'function') return structuredClone(value);
+    return value;
+  }
 }
 
 // ─── ACCESSIBILITY: MODAL FOCUS MANAGEMENT (WCAG 2.4.3, 4.1.3) ───────────────
@@ -1282,9 +1394,10 @@ function archiveTournament(snapshot, results, bracketResults, liveScores) {
     archivedAt: new Date().toISOString(),
     games: games.map(g => ({
       ...g,
-      result:    results[g.id] || null,
-      points:    getPoints(results[g.id] || null),
-      liveScore: (liveScores || {})[g.id] || null,
+      _groupKey: snapshotGroupKey || g._groupKey || '',
+      result:    results[_scopedGameKey(g, snapshotGroupKey)] ?? results[g.id] ?? null,
+      points:    getPoints(results[_scopedGameKey(g, snapshotGroupKey)] ?? results[g.id] ?? null),
+      liveScore: (liveScores || {})[_scopedGameKey(g, snapshotGroupKey)] || (liveScores || {})[g.id] || null,
     })),
     bracketPaths,
     playerStats,
@@ -1605,6 +1718,7 @@ function toggleGameState(gameId, gstate) {
 
 // Resets the game back to Pre-Game state from any state (clears game_state events).
 function resetToPreGame(gameId) {
+  const previous = _cloneJsonSafe(getLiveScore(gameId));
   const s = getLiveScore(gameId);
   s.events       = (s.events || []).filter(e => e.type !== 'game_state');
   s.gameState    = 'pre';
@@ -1612,6 +1726,14 @@ function resetToPreGame(gameId) {
   s.timerRunning = false; // stop clock ticker so LA/chip stops updating
   _setLiveScore(gameId, s);
   afterScore(gameId);
+  showUndoToast('Game reset to pre-game', () => {
+    if (!previous) return;
+    _setLiveScore(gameId, previous);
+    saveLiveScores();
+    renderGamesList();
+    renderNextGameCard();
+    if (state.currentTab === 'scores') renderScoresTab();
+  }, { timeoutMs: 4000 });
 }
 
 // Keep old name as alias
@@ -3045,6 +3167,7 @@ function resumeGameTimer(gameId) {
 }
 
 function resetGameClock(gameId, phaseOverride = null, autoStart = false) {
+  const previous = _cloneJsonSafe(getLiveScore(gameId));
   const s  = getLiveScore(gameId);
   const cs = getClockSettings(gameId);
   s.quarterMins = cs.quarterMins;
@@ -3072,6 +3195,17 @@ function resetGameClock(gameId, phaseOverride = null, autoStart = false) {
   renderGamesList();
   renderNextGameCard();
   if (state.currentTab === 'scores') renderScoresTab();
+  showUndoToast('Clock reset', () => {
+    if (!previous) return;
+    _setLiveScore(gameId, previous);
+    saveLiveScores();
+    if (previous.timerRunning) ensureClockTicker();
+    const clockEl = document.getElementById('game-clock-' + gameId);
+    if (clockEl) clockEl.textContent = fmtClock(previous.timerSecondsLeft || 0);
+    renderGamesList();
+    renderNextGameCard();
+    if (state.currentTab === 'scores') renderScoresTab();
+  }, { timeoutMs: 3000 });
 }
 
 // Format timeout length for button labels: 1 → "1 Min", 0.5 → "30s", 1.5 → "1.5 Min"
@@ -7983,6 +8117,7 @@ async function onAgeGroupToggle(teamKey) {
 async function onTeamChange(teamKey) {
   setSelectedTeams([teamKey]);
   await loadTeamData(teamKey);
+  _auditMultiTeamIntegrity();
   checkTournamentChange();
   seedHistory();
   renderHeader();
