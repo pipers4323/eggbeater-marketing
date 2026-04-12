@@ -681,11 +681,17 @@ const state = {
   selectedCalId:    null,
   selectedCalName:  null,
   syncActive:       false,
-  syncIntervalId:   null,
-  lastSyncTime:     null,
-  tokenClient:      null,
-  pendingAction:    null,   // callback to run after token is granted
-};
+    syncIntervalId:   null,
+    lastSyncTime:     null,
+    tokenClient:      null,
+    pendingAction:    null,   // callback to run after token is granted
+    nativeSystemState:{
+      platform: '',
+      isLowPowerMode: false,
+      thermalState: 'unknown',
+      isThermallyConstrained: false,
+    },
+  };
 
 // ─── DOM HELPER ───────────────────────────────────────────────────────────────
 
@@ -695,7 +701,61 @@ let _inMultiRender   = false;   // prevents recursive multi→single→multi dis
 let _activeAgeGroup  = null;    // which age group is currently being rendered (for per-group A/B)
 let _activeTeamLetters = null;  // when set, overrides getActiveTeams() during per-letter rendering
 // _historyOverride bypasses localStorage during multi-team history rendering
-let _historyOverride = null;
+  let _historyOverride = null;
+
+  function getNativeSystemPlugin() {
+    const platform = window.Capacitor?.getPlatform?.();
+    if (platform === 'ios') return window.Capacitor?.Plugins?.LiveActivity || null;
+    if (platform === 'android') return window.Capacitor?.Plugins?.LiveUpdate || null;
+    return null;
+  }
+
+  function _applyNativeSystemState(info = {}) {
+    state.nativeSystemState = {
+      platform: info.platform || window.Capacitor?.getPlatform?.() || '',
+      isLowPowerMode: !!info.isLowPowerMode,
+      thermalState: info.thermalState || 'unknown',
+      isThermallyConstrained: !!info.isThermallyConstrained,
+    };
+  }
+
+  async function refreshNativeSystemState() {
+    const plugin = getNativeSystemPlugin();
+    if (!plugin?.getSystemState) return null;
+    try {
+      const info = await plugin.getSystemState();
+      _applyNativeSystemState(info || {});
+      return state.nativeSystemState;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async function openNativeAppSettings() {
+    const plugin = getNativeSystemPlugin();
+    if (!plugin?.openAppSettings) {
+      showToast('Device settings are only available in the native app');
+      return;
+    }
+    try {
+      await plugin.openAppSettings();
+    } catch (_) {
+      showToast('Could not open app settings');
+    }
+  }
+
+  async function openNativeNotificationSettings() {
+    const plugin = getNativeSystemPlugin();
+    if (!plugin?.openNotificationSettings) {
+      showToast('Notification settings are only available in the native app');
+      return;
+    }
+    try {
+      await plugin.openNotificationSettings();
+    } catch (_) {
+      showToast('Could not open notification settings');
+    }
+  }
 
 const $ = id => document.getElementById(_renderSuffix ? id + _renderSuffix : id)
                || document.getElementById(id);
@@ -3626,7 +3686,24 @@ function renderSettingsTab() {
       <div class="settings-section-title">📅 Calendar &amp; Notifications</div>
       <div id="sync-section"></div>
       <div id="push-btn-container"></div>
-    </div>
+      ${_isNativePlatform() ? `
+      <div class="settings-item" onclick="openNativeNotificationSettings()" style="border-top:1px solid var(--gray-100)">
+        <span class="settings-item-icon">🔔</span>
+        <div class="settings-item-text">
+          <div class="settings-item-label">Open Notification Settings</div>
+          <div class="settings-item-value">Recover alerts if permissions were blocked</div>
+        </div>
+        <span style="color:var(--gray-300);font-size:1.1rem">›</span>
+      </div>
+      <div class="settings-item" onclick="openNativeAppSettings()" style="border-top:1px solid var(--gray-100)">
+        <span class="settings-item-icon">⚙️</span>
+        <div class="settings-item-text">
+          <div class="settings-item-label">Open App Settings</div>
+          <div class="settings-item-value">Review permissions and system restrictions</div>
+        </div>
+        <span style="color:var(--gray-300);font-size:1.1rem">›</span>
+      </div>` : ''}
+      </div>
 
     <div class="settings-section">
       <div class="settings-section-title">⭐ Subscription</div>
@@ -4499,13 +4576,19 @@ async function pollDirScores() {
  *  Doubles all poll intervals when Data Saver is on or battery is below 20% unplugged. */
 async function _getPollInterval(baseMs) {
   try {
+    let multiplier = 1;
     // Data Saver (Chrome Android / desktop)
-    if (window.matchMedia?.('(prefers-reduced-data: reduce)').matches) return baseMs * 2;
+    if (window.matchMedia?.('(prefers-reduced-data: reduce)').matches) multiplier = Math.max(multiplier, 2);
     // Battery Status API (Chromium)
     if ('getBattery' in navigator) {
       const battery = await navigator.getBattery();
-      if (!battery.charging && battery.level < 0.20) return baseMs * 2;
+      if (!battery.charging && battery.level < 0.20) multiplier = Math.max(multiplier, 2);
     }
+    if (state.nativeSystemState?.isLowPowerMode) multiplier = Math.max(multiplier, 2);
+    const thermal = state.nativeSystemState?.thermalState;
+    if (state.nativeSystemState?.isThermallyConstrained) multiplier = Math.max(multiplier, 3);
+    else if (thermal === 'fair' || thermal === 'moderate') multiplier = Math.max(multiplier, 2);
+    return baseMs * multiplier;
   } catch { /* API unavailable on this platform — use base rate */ }
   return baseMs;
 }
@@ -6763,14 +6846,21 @@ function init() {
   });
 
   // ── Power-aware polling: restart timers when battery or data-saver state changes ──
+  refreshNativeSystemState().finally(() => _restartPollOnPowerChange());
+  getNativeSystemPlugin()?.addListener?.('systemStateChanged', info => {
+    _applyNativeSystemState(info || {});
+    _restartPollOnPowerChange();
+  });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
+      refreshNativeSystemState().catch(() => {});
       pollLiveScores().catch(() => {});
       startLivePoller();
     }
   });
   try {
     window.Capacitor?.Plugins?.App?.addListener?.('resume', () => {
+      refreshNativeSystemState().catch(() => {});
       pollLiveScores().catch(() => {});
       startLivePoller();
     });
@@ -7660,6 +7750,11 @@ async function subscribeToPush() {
 
   try {
     const permission = await Notification.requestPermission();
+    if (permission !== 'granted' && _isNativePlatform()) {
+      showToast('Notifications blocked â€” opening device settings');
+      openNativeNotificationSettings();
+      return;
+    }
     if (permission !== 'granted') {
       showToast('Notifications blocked — enable in browser settings');
       return;
