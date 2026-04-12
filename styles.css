@@ -6057,6 +6057,73 @@ details[open] .help-chevron { transform: rotate(180deg); }
 }
 /* My Players + Player Lookup dark text — handled in the white-card section below */
 
+.native-android .scores-slot-header.slot-header-in-card .scores-slot-label,
+.native-android .roster-view-card .scores-slot-label,
+.native-android .mp-multi-card .scores-slot-label {
+  color: var(--royal) !important;
+  opacity: 1 !important;
+}
+
+.native-android .game-card.cap-white-bg,
+.native-android .next-game-card.cap-white-bg,
+.native-android .sched-card.cap-white-bg,
+.native-android .card.tab-card.team-search-card,
+.native-android .card.tab-card.season-record-card,
+.native-android .card.tab-card.my-player-card,
+.native-android .card.tab-card.player-lookup-card {
+  background: #ffffff !important;
+  color: var(--gray-900) !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+}
+
+.native-android .game-card.cap-white-bg *,
+.native-android .next-game-card.cap-white-bg *,
+.native-android .sched-card.cap-white-bg *,
+.native-android .card.tab-card.team-search-card *,
+.native-android .card.tab-card.season-record-card *,
+.native-android .card.tab-card.my-player-card *,
+.native-android .card.tab-card.player-lookup-card * {
+  color: var(--gray-900) !important;
+}
+
+.native-android .next-game-card.cap-white-bg .next-label,
+.native-android .next-game-card.cap-white-bg .next-meta,
+.native-android .next-game-card.cap-white-bg .location-venue,
+.native-android .sched-card.cap-white-bg .sched-meta,
+.native-android .sched-card.cap-white-bg .location-venue,
+.native-android .game-card.cap-white-bg .game-info-row,
+.native-android .card.tab-card.my-player-card .mp-empty-sub,
+.native-android .card.tab-card.my-player-card .mp-change-btn,
+.native-android .card.tab-card.my-player-card .mp-pct-frac,
+.native-android .card.tab-card.my-player-card .mp-section-label,
+.native-android .card.tab-card.my-player-card .mp-game-meta,
+.native-android .card.tab-card.my-player-card .mp-game-statline,
+.native-android .card.tab-card.player-lookup-card p {
+  color: var(--gray-600) !important;
+}
+
+.native-android .next-game-card.cap-white-bg .follow-live-btn,
+.native-android .sched-card.cap-white-bg .directions-btn,
+.native-android .card.tab-card.player-lookup-card .mp-multi-add-btn,
+.native-android .card.tab-card.my-player-card .mp-dl-wide-btn {
+  background: var(--gray-50) !important;
+  border-color: var(--gray-200) !important;
+  color: var(--gray-800) !important;
+}
+
+.native-android .card.tab-card.player-lookup-card .mp-multi-select {
+  background: #ffffff !important;
+  color: var(--gray-900) !important;
+  border-color: var(--gray-200) !important;
+}
+
+.native-android .next-game-card.cap-white-bg .next-game-num,
+.native-android .sched-card.cap-white-bg .sched-game-num,
+.native-android .game-card.cap-white-bg .game-num-tag {
+  background: var(--royal-subtle) !important;
+  color: var(--royal) !important;
+}
+
 /* ── Android: My Players + Player Lookup as individual white cards ─────── */
 /* Use 4-class selector to beat 3-class transparent rule                    */
 .native-android .card.tab-card.my-player-card,
@@ -6389,5 +6456,147 @@ details[open] .help-chevron { transform: rotate(180deg); }
 [data-theme="dark"] .game-card.cap-white-bg .result-pill,
 [data-theme="dark"] .game-card.cap-white-bg .live-badge,
 [data-theme="dark"] .next-game-card.cap-white-bg .live-badge-next {
+  color: #ffffff !important;
+}
+
+/* Final native readability rescue:
+   keep all utility/white-cap cards readable in both light and dark modes,
+   regardless of older native wrapper overrides. */
+.native-ios #view-possible > .card.tab-card,
+.native-android #view-possible > .card.tab-card,
+.native-ios .card.tab-card.roster-main-card,
+.native-ios .card.tab-card.roster-view-card,
+.native-ios .card.tab-card.team-search-card,
+.native-ios .card.tab-card.season-record-card,
+.native-ios .card.tab-card.my-player-card,
+.native-ios .card.tab-card.player-lookup-card,
+.native-android .card.tab-card.roster-main-card,
+.native-android .card.tab-card.roster-view-card,
+.native-android .card.tab-card.team-search-card,
+.native-android .card.tab-card.season-record-card,
+.native-android .card.tab-card.my-player-card,
+.native-android .card.tab-card.player-lookup-card,
+.native-ios .game-card.cap-white-bg,
+.native-ios .next-game-card.cap-white-bg,
+.native-ios .sched-card.cap-white-bg,
+.native-android .game-card.cap-white-bg,
+.native-android .next-game-card.cap-white-bg,
+.native-android .sched-card.cap-white-bg {
+  background: #ffffff !important;
+  color: var(--gray-900) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.native-ios #view-possible .scores-slot-header.slot-header-in-card .scores-slot-label,
+.native-android #view-possible .scores-slot-header.slot-header-in-card .scores-slot-label,
+.native-ios .roster-view-card .scores-slot-label,
+.native-ios .mp-multi-card .scores-slot-label,
+.native-android .roster-view-card .scores-slot-label,
+.native-android .mp-multi-card .scores-slot-label {
+  color: var(--royal) !important;
+  opacity: 1 !important;
+}
+
+.native-ios .card.tab-card.roster-main-card *,
+.native-ios .card.tab-card.roster-view-card *,
+.native-ios .card.tab-card.team-search-card *,
+.native-ios .card.tab-card.season-record-card *,
+.native-ios .card.tab-card.my-player-card *,
+.native-ios .card.tab-card.player-lookup-card *,
+.native-ios .game-card.cap-white-bg *,
+.native-ios .next-game-card.cap-white-bg *,
+.native-ios .sched-card.cap-white-bg *,
+.native-android .card.tab-card.roster-main-card *,
+.native-android .card.tab-card.roster-view-card *,
+.native-android .card.tab-card.team-search-card *,
+.native-android .card.tab-card.season-record-card *,
+.native-android .card.tab-card.my-player-card *,
+.native-android .card.tab-card.player-lookup-card *,
+.native-android .game-card.cap-white-bg *,
+.native-android .next-game-card.cap-white-bg *,
+.native-android .sched-card.cap-white-bg * {
+  color: var(--gray-900) !important;
+}
+
+.native-ios .next-game-card.cap-white-bg .next-label,
+.native-ios .next-game-card.cap-white-bg .next-meta,
+.native-ios .next-game-card.cap-white-bg .location-venue,
+.native-ios .sched-card.cap-white-bg .sched-meta,
+.native-ios .sched-card.cap-white-bg .location-venue,
+.native-ios .game-card.cap-white-bg .game-info-row,
+.native-ios .card.tab-card.my-player-card .mp-empty-sub,
+.native-ios .card.tab-card.my-player-card .mp-change-btn,
+.native-ios .card.tab-card.my-player-card .mp-pct-frac,
+.native-ios .card.tab-card.my-player-card .mp-section-label,
+.native-ios .card.tab-card.my-player-card .mp-game-meta,
+.native-ios .card.tab-card.my-player-card .mp-game-statline,
+.native-ios .card.tab-card.player-lookup-card p,
+.native-android .next-game-card.cap-white-bg .next-label,
+.native-android .next-game-card.cap-white-bg .next-meta,
+.native-android .next-game-card.cap-white-bg .location-venue,
+.native-android .sched-card.cap-white-bg .sched-meta,
+.native-android .sched-card.cap-white-bg .location-venue,
+.native-android .game-card.cap-white-bg .game-info-row,
+.native-android .card.tab-card.my-player-card .mp-empty-sub,
+.native-android .card.tab-card.my-player-card .mp-change-btn,
+.native-android .card.tab-card.my-player-card .mp-pct-frac,
+.native-android .card.tab-card.my-player-card .mp-section-label,
+.native-android .card.tab-card.my-player-card .mp-game-meta,
+.native-android .card.tab-card.my-player-card .mp-game-statline,
+.native-android .card.tab-card.player-lookup-card p {
+  color: var(--gray-600) !important;
+}
+
+.native-ios .next-game-card.cap-white-bg .next-vs,
+.native-ios .sched-card.cap-white-bg .sched-vs,
+.native-ios .game-card.cap-white-bg .game-vs,
+.native-ios .game-card.cap-white-bg .game-card-age-label,
+.native-ios .card.tab-card.team-search-card .history-header-row h2,
+.native-ios .card.tab-card.season-record-card .history-header-row h2,
+.native-ios .card.tab-card.season-record-card .record-main,
+.native-ios .card.tab-card.my-player-card .mp-name,
+.native-ios .card.tab-card.player-lookup-card h2,
+.native-android .next-game-card.cap-white-bg .next-vs,
+.native-android .sched-card.cap-white-bg .sched-vs,
+.native-android .game-card.cap-white-bg .game-vs,
+.native-android .game-card.cap-white-bg .game-card-age-label,
+.native-android .card.tab-card.team-search-card .history-header-row h2,
+.native-android .card.tab-card.season-record-card .history-header-row h2,
+.native-android .card.tab-card.season-record-card .record-main,
+.native-android .card.tab-card.my-player-card .mp-name,
+.native-android .card.tab-card.player-lookup-card h2 {
+  color: var(--gray-900) !important;
+}
+
+.native-ios .next-game-card.cap-white-bg .next-game-num,
+.native-ios .sched-card.cap-white-bg .sched-game-num,
+.native-ios .game-card.cap-white-bg .game-num-tag,
+.native-android .next-game-card.cap-white-bg .next-game-num,
+.native-android .sched-card.cap-white-bg .sched-game-num,
+.native-android .game-card.cap-white-bg .game-num-tag {
+  background: var(--royal-subtle) !important;
+  color: var(--royal) !important;
+}
+
+.native-ios .next-game-card.cap-white-bg .follow-live-btn,
+.native-ios .sched-card.cap-white-bg .directions-btn,
+.native-ios .card.tab-card.player-lookup-card .mp-multi-add-btn,
+.native-ios .card.tab-card.my-player-card .mp-dl-wide-btn,
+.native-android .next-game-card.cap-white-bg .follow-live-btn,
+.native-android .sched-card.cap-white-bg .directions-btn,
+.native-android .card.tab-card.player-lookup-card .mp-multi-add-btn,
+.native-android .card.tab-card.my-player-card .mp-dl-wide-btn {
+  background: var(--gray-50) !important;
+  border-color: var(--gray-200) !important;
+  color: var(--gray-800) !important;
+}
+
+.native-ios .game-card.cap-white-bg .result-pill,
+.native-ios .game-card.cap-white-bg .live-badge,
+.native-ios .next-game-card.cap-white-bg .live-badge-next,
+.native-android .game-card.cap-white-bg .result-pill,
+.native-android .game-card.cap-white-bg .live-badge,
+.native-android .next-game-card.cap-white-bg .live-badge-next {
   color: #ffffff !important;
 }
