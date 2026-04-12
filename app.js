@@ -4974,7 +4974,7 @@ function _renderScheduleMulti(slots) {
 
   $('schedule-list').innerHTML = slots.map(({ groupKey, letter, suffix }) =>
     `<div class="team-section">
-      <div class="scores-slot-header slot-header-in-card"><span class="scores-slot-label">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>
+      <div class="scores-slot-header"><span class="scores-slot-label">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>
       <div id="next-game-section-${suffix}"></div>
       <div id="schedule-list-${suffix}"></div>
     </div>`
@@ -5899,7 +5899,7 @@ function _renderPossibleMulti(slots) {
   $('possible-list').innerHTML = slots.map(({ groupKey, letter, suffix }) =>
     `<div class="team-section">
       <div class="scores-slot-header slot-header-in-card"><span class="scores-slot-label">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>
-      <div id="possible-desc-${suffix}" style="font-size:.85rem;color:var(--gray-600);padding:0 2px 8px"></div>
+      <div id="possible-desc-${suffix}" class="possible-desc"></div>
       <div id="possible-list-${suffix}"></div>
       <div id="possible-empty-${suffix}" class="empty-msg hidden"></div>
     </div>`

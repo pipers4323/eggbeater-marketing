@@ -794,6 +794,12 @@ h2 {
   line-height: 1.55;
 }
 
+.possible-desc {
+  font-size: 0.85rem;
+  color: var(--gray-600);
+  padding: 0 2px 8px;
+}
+
 /* ── Date Group Headers ───────────────────────────────────────────────────── */
 .date-group-header {
   display: flex;
@@ -6703,6 +6709,7 @@ html.native-ios .game-card.cap-white-bg .game-card-age-label,
 html.native-ios #view-possible > .card.tab-card h2,
 html.native-ios #view-possible > .card.tab-card p,
 html.native-ios #view-possible > .card.tab-card .step-desc,
+html.native-ios #view-possible > .card.tab-card .possible-desc,
 html.native-ios .card.tab-card.team-search-card .history-header-row h2,
 html.native-ios .card.tab-card.season-record-card .history-header-row h2,
 html.native-ios .card.tab-card.season-record-card .record-main,
@@ -6881,10 +6888,12 @@ html.native-android .roster-view-card .scores-slot-header.slot-header-in-card .s
 html.native-ios #view-possible > .card.tab-card h2,
 html.native-ios #view-possible > .card.tab-card p,
 html.native-ios #view-possible > .card.tab-card .step-desc,
+html.native-ios #view-possible > .card.tab-card .possible-desc,
 html.native-ios #view-possible > .card.tab-card .history-subtitle,
 html.native-android #view-possible > .card.tab-card h2,
 html.native-android #view-possible > .card.tab-card p,
 html.native-android #view-possible > .card.tab-card .step-desc,
+html.native-android #view-possible > .card.tab-card .possible-desc,
 html.native-android #view-possible > .card.tab-card .history-subtitle {
   color: #1f2937 !important;
 }
