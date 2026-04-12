@@ -7068,3 +7068,71 @@ html.native-ios .settings-item-label[style*="var(--royal)"],
 html.native-android .settings-item-label[style*="var(--royal)"] {
   color: #e6edf3 !important;
 }
+
+/* Native scorer panel rescue:
+   white-card readability rules must not bleed into the dark inner scoring panel. */
+html.native-ios .game-card.cap-white-bg .scoring-section .auto-clock-wrap,
+html.native-ios .game-card.cap-white-bg .scoring-section .live-scoreboard,
+html.native-ios .game-card.cap-white-bg .scoring-section .box-score,
+html.native-android .game-card.cap-white-bg .scoring-section .auto-clock-wrap,
+html.native-android .game-card.cap-white-bg .scoring-section .live-scoreboard,
+html.native-android .game-card.cap-white-bg .scoring-section .box-score {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.native-ios .game-card.cap-white-bg .scoring-section .auto-clock-phase,
+html.native-ios .game-card.cap-white-bg .scoring-section .auto-clock-time,
+html.native-ios .game-card.cap-white-bg .scoring-section .auto-clock-break-label,
+html.native-ios .game-card.cap-white-bg .scoring-section .auto-clock-to-chip,
+html.native-ios .game-card.cap-white-bg .scoring-section .auto-clock-to-sep,
+html.native-ios .game-card.cap-white-bg .scoring-section .ls-label,
+html.native-ios .game-card.cap-white-bg .scoring-section .ls-score,
+html.native-ios .game-card.cap-white-bg .scoring-section .ls-sep,
+html.native-ios .game-card.cap-white-bg .scoring-section .bs-player,
+html.native-ios .game-card.cap-white-bg .scoring-section .bs-col-hdr,
+html.native-ios .game-card.cap-white-bg .scoring-section .bs-stat,
+html.native-ios .game-card.cap-white-bg .scoring-section .bs-section-label,
+html.native-ios .game-card.cap-white-bg .scoring-section .bs-footer-line,
+html.native-android .game-card.cap-white-bg .scoring-section .auto-clock-phase,
+html.native-android .game-card.cap-white-bg .scoring-section .auto-clock-time,
+html.native-android .game-card.cap-white-bg .scoring-section .auto-clock-break-label,
+html.native-android .game-card.cap-white-bg .scoring-section .auto-clock-to-chip,
+html.native-android .game-card.cap-white-bg .scoring-section .auto-clock-to-sep,
+html.native-android .game-card.cap-white-bg .scoring-section .ls-label,
+html.native-android .game-card.cap-white-bg .scoring-section .ls-score,
+html.native-android .game-card.cap-white-bg .scoring-section .ls-sep,
+html.native-android .game-card.cap-white-bg .scoring-section .bs-player,
+html.native-android .game-card.cap-white-bg .scoring-section .bs-col-hdr,
+html.native-android .game-card.cap-white-bg .scoring-section .bs-stat,
+html.native-android .game-card.cap-white-bg .scoring-section .bs-section-label,
+html.native-android .game-card.cap-white-bg .scoring-section .bs-footer-line {
+  color: #f8fafc !important;
+}
+
+html.native-ios .game-card.cap-white-bg .scoring-section .score-btn-team,
+html.native-android .game-card.cap-white-bg .scoring-section .score-btn-team {
+  background: #0b63ce !important;
+  color: #ffffff !important;
+  border-color: #0b63ce !important;
+}
+
+html.native-ios .game-card.cap-white-bg .scoring-section .score-btn-opp,
+html.native-android .game-card.cap-white-bg .scoring-section .score-btn-opp {
+  background: #e5e7eb !important;
+  color: #111827 !important;
+  border-color: #d1d5db !important;
+}
+
+html.native-ios .game-card.cap-white-bg .scoring-section .gs-btn,
+html.native-ios .game-card.cap-white-bg .scoring-section .stat-btn,
+html.native-ios .game-card.cap-white-bg .scoring-section .ls-undo-btn,
+html.native-ios .game-card.cap-white-bg .scoring-section .ls-share-btn,
+html.native-android .game-card.cap-white-bg .scoring-section .gs-btn,
+html.native-android .game-card.cap-white-bg .scoring-section .stat-btn,
+html.native-android .game-card.cap-white-bg .scoring-section .ls-undo-btn,
+html.native-android .game-card.cap-white-bg .scoring-section .ls-share-btn {
+  opacity: 1 !important;
+  filter: none !important;
+}

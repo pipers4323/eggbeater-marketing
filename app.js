@@ -1576,7 +1576,7 @@ function setGameState(gameId, gstate) {
   // Feedback: Auto-reset clock when moving to a quarter state
   const isQuarter = ['q1','q2','q3','q4','ot','shootout'].includes(gstate);
   if (isQuarter) {
-    resetGameClock(gameId, mappedPhase || null);
+    resetGameClock(gameId, mappedPhase || null, true);
   } else if (gstate === 'half') {
     resetGameClock(gameId, 'halftime');
   }
@@ -1630,6 +1630,7 @@ function setGameTiming(gameId, field, val) {
   const s = getLiveScore(gameId);
   const n = parseFloat(val);
   if (!isNaN(n) && n >= 0) s[field] = n;
+  s.timingLocked = true;
   _setLiveScore(gameId, s);
   saveLiveScores();
 }
@@ -2789,16 +2790,17 @@ function getClockSettings(gameOrRef = null) {
   const cs = (groupKey && TEAM_CACHE[groupKey]?.tournament?.clockSettings)
     || TOURNAMENT.clockSettings
     || {};
-  const timeoutLengths = Array.isArray(gameScore?.timeoutLengths) && gameScore.timeoutLengths.length
-    ? gameScore.timeoutLengths
-    : (Array.isArray(cs.timeoutLengths) && cs.timeoutLengths.length ? cs.timeoutLengths : [1, 0.5]);
+  const useLiveTiming = !!gameScore?.timingLocked;
+  const timeoutLengths = useLiveTiming && Array.isArray(gameScore?.timeoutLengths) && gameScore.timeoutLengths.length
+      ? gameScore.timeoutLengths
+      : (Array.isArray(cs.timeoutLengths) && cs.timeoutLengths.length ? cs.timeoutLengths : [1, 0.5]);
   return {
-    quarterMins:     gameScore?.quarterMins     ?? cs.quarterMins     ?? 7,
-    breakMins:       gameScore?.breakMins       ?? cs.breakMins       ?? 2,
-    halftimeMins:    gameScore?.halfMins        ?? cs.halftimeMins    ?? 5,
-    timeoutsPerTeam: gameScore?.timeoutsPerTeam ?? cs.timeoutsPerTeam ?? 2,
-    timeoutLengths,
-  };
+      quarterMins:     useLiveTiming ? (gameScore?.quarterMins     ?? cs.quarterMins     ?? 7) : (cs.quarterMins     ?? 7),
+      breakMins:       useLiveTiming ? (gameScore?.breakMins       ?? cs.breakMins       ?? 2) : (cs.breakMins       ?? 2),
+      halftimeMins:    useLiveTiming ? (gameScore?.halfMins        ?? cs.halftimeMins    ?? 5) : (cs.halftimeMins    ?? 5),
+      timeoutsPerTeam: useLiveTiming ? (gameScore?.timeoutsPerTeam ?? cs.timeoutsPerTeam ?? 2) : (cs.timeoutsPerTeam ?? 2),
+      timeoutLengths,
+    };
 }
 
 function fmtClock(seconds) {
@@ -2949,6 +2951,7 @@ function startScoring(gameId) {
   s.halfMins = cs.halftimeMins;
   s.timeoutsPerTeam = cs.timeoutsPerTeam;
   s.timeoutLengths = [...(cs.timeoutLengths || [])];
+  s.timingLocked = true;
 
   // Determine which quarter we're starting
   const phase = s.timerPhase || 'q1';
@@ -3041,7 +3044,7 @@ function resumeGameTimer(gameId) {
   if (state.currentTab === 'scores') renderScoresTab();
 }
 
-function resetGameClock(gameId, phaseOverride = null) {
+function resetGameClock(gameId, phaseOverride = null, autoStart = false) {
   const s  = getLiveScore(gameId);
   const cs = getClockSettings(gameId);
   s.quarterMins = cs.quarterMins;
@@ -3049,14 +3052,20 @@ function resetGameClock(gameId, phaseOverride = null) {
   s.halfMins = cs.halftimeMins;
   s.timeoutsPerTeam = cs.timeoutsPerTeam;
   s.timeoutLengths = [...(cs.timeoutLengths || [])];
+  s.timingLocked = true;
   const phase = phaseOverride || s.timerPhase || 'q1';
   if (phaseOverride) s.timerPhase = phaseOverride;
   s.timerRunning     = false;
   s.timerStartedAt   = null;
   s.timerSecondsLeft = _phaseSeconds(phase, cs);
   s._clockExpiring   = false;
+  if (autoStart && !['halftime','break12','break34'].includes(phase)) {
+    s.timerRunning = true;
+    s.timerStartedAt = Date.now();
+  }
   _setLiveScore(gameId, s);
   saveLiveScores();
+  if (s.timerRunning) ensureClockTicker();
   // Update display immediately
   const el = document.getElementById('game-clock-' + gameId);
   if (el) el.textContent = fmtClock(s.timerSecondsLeft);
@@ -4383,7 +4392,7 @@ function renderScoresTab() {
       if (c) {
         window.TOURNAMENT = c.tournament;
         if (c.tournament.scoringPassword) anySlotHasPassword = true;
-        if (isScorerUnlocked()) anySlotUnlocked = true;
+        if (isScorerUnlockedForTournament(c.tournament)) anySlotUnlocked = true;
       }
     }
     window.TOURNAMENT = _savedTmpT;
@@ -5796,7 +5805,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
   const hasEvents    = events.filter(e=>e.type!=='game_state').length > 0;
 
   // Scorer mode: show full controls only if no password is set, or password is unlocked
-  const canScore = !TOURNAMENT.scoringPassword || isScorerUnlocked();
+  const canScore = !TOURNAMENT.scoringPassword || isScorerUnlockedForTournament(TOURNAMENT);
 
   // ── Scorer section (full controls) ────────────────────────────────────────
   const isActiveGame = s.gameState && s.gameState !== 'pre';
@@ -5925,7 +5934,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
 
       ${(viewerOnly || !canScore) ? viewerSection : scorerSection}
 
-      ${!viewerOnly ? `
+      ${canScore ? `
       <div class="result-row result-row-5">
         ${btn('result-w-btn',  'W',  'WIN',   4)}
         ${btn('result-sw-btn', 'SW', 'SO·W',  3)}
@@ -8264,9 +8273,40 @@ async function handlePushUnsubscribe() {
 
 // ─── SCORER MODE (password-gated scoring controls) ────────────────────────────
 
+function _getUnlockedScoringTournamentIds() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('ebwp-scorer-tournaments') || '[]');
+    return Array.isArray(raw) ? raw.filter(Boolean) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function _setUnlockedScoringTournamentIds(ids) {
+  const clean = [...new Set((ids || []).filter(Boolean))];
+  if (clean.length) localStorage.setItem('ebwp-scorer-tournaments', JSON.stringify(clean));
+  else localStorage.removeItem('ebwp-scorer-tournaments');
+}
+
+function isScorerUnlockedForTournament(tournament) {
+  const tournamentId = tournament?.id || '';
+  if (!tournamentId) return false;
+  const unlockedIds = _getUnlockedScoringTournamentIds();
+  if (unlockedIds.includes(tournamentId)) return true;
+  const legacyUnlocked = localStorage.getItem('ebwp-scorer-unlocked') === '1';
+  const legacyTournamentId = localStorage.getItem('ebwp-scorer-tournament') || '';
+  if (!legacyUnlocked) return false;
+  if (legacyTournamentId === tournamentId) return true;
+  const legacyTournament = Object.values(TEAM_CACHE || {}).map(c => c?.tournament).find(t => t?.id === legacyTournamentId);
+  return !!(
+    legacyTournament?.scoringPassword &&
+    tournament?.scoringPassword &&
+    legacyTournament.scoringPassword === tournament.scoringPassword
+  );
+}
+
 function isScorerUnlocked() {
-  return localStorage.getItem('ebwp-scorer-unlocked') === '1'
-    && localStorage.getItem('ebwp-scorer-tournament') === (TOURNAMENT.id || '');
+  return isScorerUnlockedForTournament(TOURNAMENT);
 }
 
 function openScoringPasswordModal() {
@@ -8289,8 +8329,17 @@ function submitScoringPassword() {
   const correct = (TOURNAMENT.scoringPassword || '').trim();
 
   if (!correct || entered === correct) {
+    const unlocked = new Set(_getUnlockedScoringTournamentIds());
+    const primaryId = TOURNAMENT.id || '';
+    if (primaryId) unlocked.add(primaryId);
+    for (const groupKey of getSelectedTeams()) {
+      const cacheTournament = TEAM_CACHE[groupKey]?.tournament;
+      if (!cacheTournament?.id) continue;
+      if ((cacheTournament.scoringPassword || '').trim() === correct) unlocked.add(cacheTournament.id);
+    }
+    _setUnlockedScoringTournamentIds([...unlocked]);
     localStorage.setItem('ebwp-scorer-unlocked',    '1');
-    localStorage.setItem('ebwp-scorer-tournament',  TOURNAMENT.id || '');
+    localStorage.setItem('ebwp-scorer-tournament',  primaryId);
     state.viewerMode = false;
     closeScoringPasswordModal();
     showToast('🔓 Scorer mode unlocked!', 'ok');
@@ -8306,6 +8355,7 @@ function submitScoringPassword() {
 function lockScoring() {
   localStorage.removeItem('ebwp-scorer-unlocked');
   localStorage.removeItem('ebwp-scorer-tournament');
+  localStorage.removeItem('ebwp-scorer-tournaments');
   // Broadcast 'pre' to worker for every game this device was scoring so that
   // ALL other devices' live dots and LIVE badges clear immediately.
   const myGames = getMyGames();
