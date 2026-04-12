@@ -650,7 +650,7 @@ function fbStopAllListeners() {
  * @returns {boolean}        true on success
  */
 async function fbSaveTournamentMirror(teamKey, payload) {
-  if (!fbReady()) return false;
+  if (!fbReady() || !_fbUser) return false;
   try {
     await _fbDb.collection('tournaments').doc(teamKey).set({
       tournament: payload.tournament,
@@ -659,7 +659,13 @@ async function fbSaveTournamentMirror(teamKey, payload) {
     });
     return true;
   } catch (e) {
-    console.warn('[firebase] fbSaveTournamentMirror error:', e.message);
+    const code = e?.code || '';
+    const msg  = e?.message || String(e);
+    if (code === 'permission-denied' || /insufficient permissions/i.test(msg)) {
+      console.info('[firebase] fbSaveTournamentMirror skipped — Firestore mirror not permitted for this session');
+      return false;
+    }
+    console.warn('[firebase] fbSaveTournamentMirror error:', msg);
     return false;
   }
 }
