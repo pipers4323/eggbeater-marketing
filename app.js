@@ -673,6 +673,18 @@ function escHtml(str) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function normalizeOpponentName(name) {
+  let s = String(name || '').trim();
+  if (!s) return '';
+  s = s.replace(/^[A-Z]\d+\s*[-–]\s*/i, '');
+  s = s.replace(/^[A-Z]?\d+\s*\([^)]*\)\s*[-–]\s*/i, '');
+  s = s.replace(/^\d+(?:st|nd|rd|th)\s+[A-Z]\s*[-–]\s*/i, '');
+  s = s.replace(/^[A-Z]\d+\s+/i, '');
+  s = s.replace(/^\d+(?:st|nd|rd|th)\s+[A-Z]\s+/i, '');
+  s = s.replace(/^\s*[-–]\s*/, '');
+  return s.trim() || String(name || '').trim();
+}
+
 /**
  * Build a tappable directions link for a location string with Apple Maps, Google Maps, and Waze.
  * If location looks like coordinates ("37.7749,-122.4194"), use directly.
@@ -2380,14 +2392,15 @@ function clearTeamSearch() {
 
 /** Builds the results panel for a selected opponent. */
 function buildTeamSearchResult(opponent) {
-  const oppLC = opponent.toLowerCase();
+  const normalizedOpponent = normalizeOpponentName(opponent);
+  const oppLC = normalizedOpponent.toLowerCase();
 
   // Collect all games vs this opponent from history + current tournament
   const matchedGames = [];
 
   for (const t of getHistoryForActiveTeam()) {
     for (const g of (t.games || [])) {
-      if ((g.opponent || '').toLowerCase() !== oppLC) continue;
+      if (normalizeOpponentName(g.opponent || '').toLowerCase() !== oppLC) continue;
       const ls = g.liveScore || {};
       matchedGames.push({
         tournamentName: t.name || 'Past Tournament',
@@ -2401,7 +2414,7 @@ function buildTeamSearchResult(opponent) {
   }
   // Current tournament
   for (const g of getTournamentGames()) {
-    if ((g.opponent || '').toLowerCase() !== oppLC) continue;
+    if (normalizeOpponentName(g.opponent || '').toLowerCase() !== oppLC) continue;
     const ls = getLiveScore(g);
       if (ls.team == null && ls.opp == null && !_getResultForGame(g)) continue;
     matchedGames.push({
@@ -4969,7 +4982,7 @@ function renderNextGameCard() {
             <button class="follow-live-btn" onclick="toggleLiveActivity('${_gameRef(g)}')">📡 Follow Live</button>
           </div>
           <div class="next-label">${nextLive ? 'In Progress' : 'Next Game'}</div>
-          <div class="next-vs">vs ${escHtml(g.opponent || 'TBD')}</div>
+          <div class="next-vs">vs ${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}</div>
           ${liveSummary}
           <div class="next-meta">
             <span>🕐 ${escHtml(g.time)} &nbsp;·&nbsp; ${escHtml(g.date || g.dateISO)}</span>
@@ -5195,7 +5208,7 @@ function buildScheduleCard(g) {
   return `
     <div class="sched-card ${capBgClass}">
       <div class="sched-card-top">
-        <div class="sched-vs">${TOURNAMENT.clubName ? escHtml(TOURNAMENT.clubName) + ' vs ' : 'vs '}${escHtml(g.opponent || 'TBD')}${liveBadge} ${followBtn}</div>
+        <div class="sched-vs">${TOURNAMENT.clubName ? escHtml(TOURNAMENT.clubName) + ' vs ' : 'vs '}${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}${liveBadge} ${followBtn}</div>
         ${g.gameNum ? `<div class="sched-game-num">${escHtml(g.gameNum)}</div>` : ''}
       </div>
       <div class="sched-meta">
@@ -5341,7 +5354,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
 
   // Event log + box score
   const eventLogHtml = buildEventLog(events, s.period);
-  const boxScoreHtml = buildBoxScoreHtml(events, g.opponent || 'Opp');
+  const boxScoreHtml = buildBoxScoreHtml(events, normalizeOpponentName(g.opponent || 'Opp'));
   const hasEvents    = events.filter(e=>e.type!=='game_state').length > 0;
 
   // Scorer mode: show full controls only if no password is set, or password is unlocked
@@ -5366,7 +5379,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
         </div>
         <span class="ls-sep">—</span>
         <div class="ls-team ls-team-opp">
-          <span class="ls-label">${escHtml(g.opponent || 'Opp')}</span>
+          <span class="ls-label">${escHtml(normalizeOpponentName(g.opponent || 'Opp'))}</span>
           <span class="ls-score ls-score-opp">${Number.isInteger(s.opp) ? s.opp : s.opp.toFixed(1)}</span>
         </div>
       </div>
@@ -5444,7 +5457,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
           </div>
           <span class="ls-sep">—</span>
           <div class="ls-team ls-team-opp">
-            <span class="ls-label">${escHtml(g.opponent || 'Opp')}</span>
+            <span class="ls-label">${escHtml(normalizeOpponentName(g.opponent || 'Opp'))}</span>
             <span class="ls-score ls-score-opp">${s.opp}</span>
           </div>
         </div>` : ''}
@@ -5460,7 +5473,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
     <div class="game-card ${cardClass} ${capBgClass}">
       ${ageGroupLabel ? `<div class="game-card-age-label">${escHtml(ageGroupLabel)}</div>` : ''}
       <div class="game-card-top">
-        <div class="game-vs">${TOURNAMENT.clubName ? escHtml(TOURNAMENT.clubName) + ' vs ' : 'vs '}${escHtml(g.opponent || 'TBD')}${pillHtml}${liveBadgeHtml}</div>
+        <div class="game-vs">${TOURNAMENT.clubName ? escHtml(TOURNAMENT.clubName) + ' vs ' : 'vs '}${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}${pillHtml}${liveBadgeHtml}</div>
         ${g.gameNum ? `<div class="game-num-tag">${escHtml(g.gameNum)}</div>` : ''}
       </div>
       ${liveScoreBarHtml}
@@ -5733,7 +5746,7 @@ function buildHistoryCard(t, options = {}) {
     return `
       <div class="history-game-row">
         ${g.gameNum ? `<span class="hg-num">${escHtml(g.gameNum)}</span>` : ''}
-        <span class="hg-vs">vs ${escHtml(g.opponent || 'TBD')}</span>
+        <span class="hg-vs">vs ${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}</span>
         <span class="hg-meta">${escHtml(scoreLabel)}</span>
         ${g.points != null ? `<span class="hg-pts">+${g.points}</span>` : ''}
         <span class="hg-result ${rc}">${rl}</span>
@@ -8390,7 +8403,7 @@ function collectPlayerGameRows(name) {
       rows.push({
         tournamentName: TOURNAMENT.name || 'Eggbeater',
         date:           g.dateISO || g.date || '',
-        opponent:       g.opponent || 'TBD',
+        opponent:       normalizeOpponentName(g.opponent || 'TBD'),
         result:         _getResultForGame(g) || '',
         teamScore:      ls.team ?? '',
         oppScore:       ls.opp  ?? '',
@@ -8411,7 +8424,7 @@ function collectPlayerGameRows(name) {
       rows.push({
         tournamentName: t.name || 'Past Tournament',
         date:           g.dateISO || g.date || '',
-        opponent:       g.opponent || 'TBD',
+        opponent:       normalizeOpponentName(g.opponent || 'TBD'),
         result:         g.result || '',
         teamScore:      ls.team ?? '',
         oppScore:       ls.opp  ?? '',
@@ -9226,7 +9239,7 @@ async function _syncWidgetsAll() {
       .sort((a, b) => a.ts - b.ts);
     const nextG = upcoming[0]?.game;
     const nextGame = nextG ? {
-      opponent: nextG.opponent || 'TBD',
+      opponent: normalizeOpponentName(nextG.opponent || 'TBD'),
       date:     nextG.date    || '',
       time:     nextG.time    || '',
       location: nextG.location || '',
