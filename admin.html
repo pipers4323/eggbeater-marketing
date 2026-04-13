@@ -250,6 +250,8 @@
     }
 
     .admin-logo-wrap {
+      display: flex;
+      align-items: center;
       padding-top: env(safe-area-inset-top, 0px);
       padding-bottom: 7px;
       padding-left: env(safe-area-inset-left, 14px);
@@ -257,6 +259,8 @@
       max-width: none;
       margin: 0;
       width: 100%;
+      min-height: 68px;
+      overflow: hidden;
     }
 
     .admin-logo-img {
@@ -274,14 +278,18 @@
       padding-left: max(18px, env(safe-area-inset-left, 0px));
       padding-right: max(18px, env(safe-area-inset-right, 0px));
       background: transparent;
+      min-height: 72px;
+      overflow: hidden;
     }
 
     .admin-custom-logo-img {
-      height: 140px;
       width: auto;
-      max-width: 400px;
+      max-width: min(100%, 320px);
+      max-height: 72px;
       display: block;
       background: transparent;
+      object-fit: contain;
+      object-position: left center;
     }
 
     .eggbeater-poweredby-bar {
@@ -1880,6 +1888,11 @@
           Sign in with Google
         </button>
         <div class="login-divider"><span>or</span></div>
+        <input type="email" id="email-link-input" placeholder="Work email for magic link"
+          onkeydown="if(event.key==='Enter') sendMagicLinkLogin()">
+        <button class="login-btn" style="background:var(--green)" onclick="sendMagicLinkLogin()" id="magic-link-btn">Email me a sign-in link</button>
+        <div style="font-size:0.76rem;color:var(--g400);line-height:1.45;text-align:center">Use Google if you want. Use a magic link if you do not.</div>
+        <div class="login-divider"><span>legacy fallback</span></div>
         <!-- Fallback: password login (legacy / during migration) -->
         <input type="password" id="pw-input" placeholder="SuperAdmin Password"
           onkeydown="if(event.key==='Enter') doLogin()">
@@ -2274,10 +2287,122 @@
     // ─── GOOGLE LOGIN (Firebase Auth) ──────────────────────────────────────────────
 
     const GOOGLE_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px;flex-shrink:0"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>';
+    const MAGIC_LINK_STORAGE_KEY = 'ebwp-admin-email-link-email';
 
     function _resetGoogleBtn() {
       const btn = document.getElementById('google-login-btn');
       if (btn) { btn.disabled = false; btn.innerHTML = GOOGLE_SVG + ' Sign in with Google'; }
+    }
+
+    function _setMagicBtnState(loading, label) {
+      const btn = document.getElementById('magic-link-btn');
+      if (!btn) return;
+      btn.disabled = !!loading;
+      btn.textContent = label || (loading ? 'Sending…' : 'Email me a sign-in link');
+    }
+
+    function _normalizeAdminEmail(email) {
+      return String(email || '').trim().toLowerCase();
+    }
+
+    function isFirebaseAdminMode() {
+      return !!S.idToken && S.authMode !== 'password';
+    }
+
+    function _getInviteTokenFromUrl() {
+      return new URLSearchParams(window.location.search).get('invite') || '';
+    }
+
+    function _buildAdminReturnUrl() {
+      const url = new URL(window.location.origin + window.location.pathname);
+      const inviteToken = _getInviteTokenFromUrl();
+      if (inviteToken) url.searchParams.set('invite', inviteToken);
+      return url.toString();
+    }
+
+    function _cleanMagicLinkUrl() {
+      const url = new URL(window.location.href);
+      ['apiKey', 'oobCode', 'mode', 'lang', 'continueUrl'].forEach(key => url.searchParams.delete(key));
+      history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+    }
+
+    async function _redeemInviteIfPresent(user) {
+      const inviteToken = _getInviteTokenFromUrl();
+      if (!inviteToken) return null;
+      showStatus('Accepting invite…', 'info');
+      try {
+        const invRes = await fetch(WORKER + '/admin/invite/accept?token=' + encodeURIComponent(inviteToken), {
+          headers: { 'Authorization': 'Bearer ' + S.idToken },
+        });
+        const invData = await invRes.json().catch(() => ({}));
+        if (invRes.ok && invData.clubId) {
+          if (typeof fbAddClubAdmin === 'function') {
+            await fbAddClubAdmin(invData.clubId, {
+              uid: user?.uid || '',
+              email: user?.email || localStorage.getItem('ebwp-auth-email') || '',
+              name: user?.displayName || '',
+              role: invData.role || 'admin',
+            });
+          }
+          showStatus('✅ ' + (invData.message || 'Invite accepted!'), 'ok');
+          _cleanMagicLinkUrl();
+          return invData.clubId;
+        }
+        console.warn('[invite] Could not redeem:', invData.message || invRes.status);
+      } catch (e) {
+        console.warn('[invite] Redemption error:', e.message);
+      }
+      _cleanMagicLinkUrl();
+      return null;
+    }
+
+    async function _finishFirebaseAdminLogin(user, mode) {
+      if (!user) throw new Error('Sign-in cancelled or failed');
+      const token = await fbGetIdToken();
+      if (!token) throw new Error('Could not get ID token');
+      S.idToken = token;
+      S.authMode = mode;
+
+      const inviteClubId = await _redeemInviteIfPresent(user);
+      const savedClubId = inviteClubId || localStorage.getItem('ebadmin-clubId') || 'my-club';
+      if (inviteClubId) localStorage.setItem('ebadmin-clubId', inviteClubId);
+      if (typeof fbSetClubId === 'function') fbSetClubId(savedClubId);
+
+      if (typeof fbCheckAdminAccess === 'function') {
+        const access = await fbCheckAdminAccess(savedClubId);
+        if (!access.isAdmin) {
+          if (!access.clubName) {
+            await fbEnsureClub('My Club', user.uid);
+          } else {
+            S.idToken = null;
+            S.authMode = '';
+            const email = user.email || localStorage.getItem('ebwp-auth-email') || 'this account';
+            throw new Error(`You (${email}) are not an admin for "${access.clubName || savedClubId}". Ask an existing admin to invite that email or add your UID: ${user.uid}`);
+          }
+        }
+      }
+
+      rcLoginForClub(savedClubId);
+      showStatus('Loading data…', 'info');
+      const res = await api('GET', '/admin/data');
+      if (res.status === 401 || res.status === 403) {
+        S.idToken = null;
+        S.authMode = '';
+        throw new Error('Server rejected credentials. Ask an existing club admin to invite this email or verify your admin access.');
+      }
+      if (!res.ok) throw new Error('Worker returned ' + res.status);
+      const data = await res.json();
+      S.tournament = data.tournament || defaultTournament();
+      S.history = data.history || [];
+      S.roster = data.roster || null;
+      S.role = data.adminRole || 'admin';
+      S.director = JSON.parse(localStorage.getItem('ebadmin-director-' + S.team) || 'null');
+      if (S.tournament.singleTeam !== true) {
+        if (!Array.isArray(S.tournament.teams) || S.tournament.teams.length < 2) S.tournament.teams = ['A', 'B'];
+        S.tournament.teamLabels = S.tournament.teamLabels || { A: 'Team A', B: 'Team B' };
+      }
+      if (data.gmBotId && !botGet(BOT_KEYS.GM_BOT_ID)) botSet(BOT_KEYS.GM_BOT_ID, data.gmBotId);
+      await _doAdminLoad();
     }
 
     async function doGoogleLogin() {
@@ -2294,6 +2419,8 @@
           user = typeof fbGetUser === 'function' ? fbGetUser() : null;
         }
         if (!user) throw new Error('Sign-in cancelled or failed');
+        await _finishFirebaseAdminLogin(user, 'google');
+        return;
 
         // Get ID token
         const token = await fbGetIdToken();
@@ -2388,6 +2515,52 @@
     }
 
     // ─── PASSWORD LOGIN (legacy fallback) ──────────────────────────────────────────
+
+    async function sendMagicLinkLogin() {
+      setLoginErr('');
+      const input = document.getElementById('email-link-input');
+      const email = _normalizeAdminEmail(input?.value || '');
+      if (!email) {
+        setLoginErr('Enter your email first');
+        return;
+      }
+      _setMagicBtnState(true, 'Sending…');
+      try {
+        if (typeof fbSendEmailSignInLink !== 'function') throw new Error('Email link auth is not available');
+        await fbSendEmailSignInLink(email, _buildAdminReturnUrl());
+        if (input) input.value = email;
+        showStatus(`Magic link sent to ${email}`, 'ok');
+      } catch (e) {
+        setLoginErr(e.message || 'Could not send sign-in link');
+      } finally {
+        _setMagicBtnState(false);
+      }
+    }
+
+    async function completeMagicLinkLogin() {
+      if (typeof fbIsEmailLink !== 'function' || !fbIsEmailLink(window.location.href)) return false;
+      setLoginErr('');
+      _setMagicBtnState(true, 'Finishing sign-in…');
+      try {
+        let email = _normalizeAdminEmail(localStorage.getItem(MAGIC_LINK_STORAGE_KEY));
+        if (!email) {
+          const inputEmail = _normalizeAdminEmail(document.getElementById('email-link-input')?.value || '');
+          email = inputEmail || _normalizeAdminEmail(window.prompt('Confirm the email address you used for the sign-in link:') || '');
+        }
+        if (!email) throw new Error('Email is required to finish the sign-in link');
+        const user = await fbCompleteEmailLinkSignIn(email, window.location.href);
+        const input = document.getElementById('email-link-input');
+        if (input) input.value = email;
+        await _finishFirebaseAdminLogin(user, 'magic-link');
+        return true;
+      } catch (e) {
+        setLoginErr(e.message || 'Could not finish email sign-in');
+        return false;
+      } finally {
+        _cleanMagicLinkUrl();
+        _setMagicBtnState(false);
+      }
+    }
 
     async function doLogin() {
       const pw = document.getElementById('pw-input').value.trim();
@@ -2661,7 +2834,7 @@
 
     function updateAdminHeader() {
       const clubId = localStorage.getItem('ebadmin-clubId') || 'my-club';
-      const clubName = clubId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const clubName = S.clubName || S.tournament?.clubName || clubId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
       // Update title to show club name
       const titleEl = document.querySelector('#admin-app .admin-header-title');
@@ -5486,12 +5659,12 @@
         <p style="font-size:0.82rem;color:var(--g400);margin-bottom:10px;line-height:1.5">
           Manage who can access this club's admin panel.
         </p>
-        ${S.authMode === 'google' ? `
+        ${isFirebaseAdminMode() ? `
           <div style="font-size:0.78rem;color:var(--g600);margin-bottom:8px;padding:8px 10px;background:var(--g50);border-radius:8px">
             <strong>Your UID:</strong> <code style="font-size:0.75rem;background:var(--g100);padding:2px 6px;border-radius:4px;user-select:all">${esc(typeof fbGetUser === 'function' && fbGetUser() ? fbGetUser().uid : 'N/A')}</code>
-            <br><strong>Email:</strong> ${esc(typeof fbGetUser === 'function' && fbGetUser() ? fbGetUser().email : 'N/A')}
+            <br><strong>Email:</strong> ${esc(typeof fbGetUser === 'function' && fbGetUser() ? (fbGetUser().email || localStorage.getItem('ebwp-auth-email') || 'N/A') : 'N/A')}
           </div>
-        ` : '<div style="font-size:0.78rem;color:var(--amber);margin-bottom:8px">Sign in with Google to manage club admins.</div>'}
+        ` : '<div style="font-size:0.78rem;color:var(--amber);margin-bottom:8px">Sign in with Google or an email magic link to manage club admins.</div>'}
         <div id="club-admins-list" style="margin-top:8px"></div>
         <div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--g100)">
           <div style="font-size:0.82rem;font-weight:700;color:var(--royal);margin-bottom:6px">📨 Invite New Admin</div>
@@ -5948,8 +6121,8 @@
     }
 
     async function initClubAdminList() {
-      if (S.authMode !== 'google') {
-        showStatus('Sign in with Google first to bootstrap the admin list', 'err');
+      if (!isFirebaseAdminMode()) {
+        showStatus('Sign in with Google or a magic link first to bootstrap the admin list', 'err');
         return;
       }
       try {
@@ -10567,6 +10740,9 @@
           localStorage.setItem('ebadmin-clubType', data.clubType);
         }
         if (data.clubName) {
+          S.clubName = data.clubName;
+        }
+        if (data.clubName) {
           S.tournament.clubName = data.clubName;
         }
         if (data.joinPassword !== undefined) {
@@ -10777,6 +10953,7 @@
         }
         recolorEggbeaterSvg(inlineLogo);
         if (customImg) {
+          customImg.alt = `${S.clubName || S.tournament?.clubName || 'Club'} logo`;
           removeLogoBackground(clubLogo).then(processed => { customImg.src = processed; });
         }
       } else {
@@ -12706,8 +12883,8 @@
 
     // ─── AUTO-FOCUS ───────────────────────────────────────────────────────────────
 
-    // Auto-focus password on load
-    document.getElementById('pw-input').focus();
+    // Auto-focus email on load
+    document.getElementById('email-link-input').focus();
   </script>
 
 
@@ -12720,20 +12897,27 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="firebase.js?v=233"></script>
+<script src="firebase.js?v=234"></script>
   <script>
     // Initialize Firebase in admin context
     if (typeof fbInit === 'function') fbInit();
 
     // Auto-login: try Firebase auth persistence first, then saved password
     (async function autoLogin() {
+      if (await completeMagicLinkLogin()) return;
+
       // Wait a moment for Firebase to restore auth session
       await new Promise(r => setTimeout(r, 800));
 
       // Check if Firebase has a persisted user session
       if (typeof fbGetUser === 'function' && fbGetUser()) {
         console.info('[admin] Firebase session restored — auto-logging in via Google');
-        doGoogleLogin(); // will skip the popup since user is already signed in
+        _finishFirebaseAdminLogin(fbGetUser(), localStorage.getItem(MAGIC_LINK_STORAGE_KEY) ? 'magic-link' : 'google')
+          .catch(e => {
+            setLoginErr(e.message || 'Sign-in failed');
+            _resetGoogleBtn();
+            _setMagicBtnState(false);
+          });
         return;
       }
 

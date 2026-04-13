@@ -73,6 +73,7 @@ let _fbAuth = null;
 let _fbDb   = null;
 let _fbUser = null;
 const _tournamentListeners = {};   // teamKey → unsubscribe function
+const _EMAIL_LINK_STORAGE_KEY = 'ebwp-admin-email-link-email';
 
 // ── Whether Firebase is ready to use ─────────────────────────────────────────
 function fbReady() { return !!_fbAuth && !!_fbDb; }
@@ -270,6 +271,44 @@ async function fbSignIn() {
   }
 }
 
+function _fbNormalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function fbIsEmailLink(url) {
+  if (!_fbAuth || _isCapacitorNative()) return false;
+  try {
+    return !!_fbAuth.isSignInWithEmailLink(String(url || window.location.href));
+  } catch (e) {
+    console.warn('[firebase] isEmailLink error:', e.message);
+    return false;
+  }
+}
+
+async function fbSendEmailSignInLink(email, continueUrl) {
+  if (!_fbAuth) throw new Error('Firebase not loaded');
+  if (_isCapacitorNative()) throw new Error('Email sign-in links are web-only right now');
+  const cleanEmail = _fbNormalizeEmail(email);
+  if (!cleanEmail) throw new Error('Email is required');
+  await _fbAuth.sendSignInLinkToEmail(cleanEmail, {
+    url: continueUrl || window.location.href,
+    handleCodeInApp: true,
+  });
+  localStorage.setItem(_EMAIL_LINK_STORAGE_KEY, cleanEmail);
+  localStorage.setItem('ebwp-auth-email', cleanEmail);
+  return true;
+}
+
+async function fbCompleteEmailLinkSignIn(email, url) {
+  if (!_fbAuth) throw new Error('Firebase not loaded');
+  const cleanEmail = _fbNormalizeEmail(email);
+  if (!cleanEmail) throw new Error('Email is required to complete sign-in');
+  const result = await _fbAuth.signInWithEmailLink(cleanEmail, String(url || window.location.href));
+  localStorage.removeItem(_EMAIL_LINK_STORAGE_KEY);
+  localStorage.setItem('ebwp-auth-email', cleanEmail);
+  return result?.user || null;
+}
+
 /** Capture the Google OAuth calendar token from a sign-in result */
 function _fbCaptureCalToken(result) {
   const calToken = result && result.credential ? result.credential.accessToken : null;
@@ -285,6 +324,7 @@ async function fbSignOut() {
   try {
     await _fbAuth.signOut();
     localStorage.removeItem('ebwp-auth-email');
+    localStorage.removeItem(_EMAIL_LINK_STORAGE_KEY);
     if (typeof showToast === 'function') showToast('Signed out');
   } catch (e) {
     console.warn('[firebase] sign-out error:', e.message);
@@ -314,9 +354,18 @@ async function fbCheckAdminAccess(clubId) {
     const data = doc.data();
     const adminUIDs = data.adminUIDs || [];
     const superAdminUIDs = data.superAdminUIDs || [];
+    const userEmail = _fbNormalizeEmail(_fbUser.email || localStorage.getItem('ebwp-auth-email'));
+    const matchesAdmin = entry => {
+      if (entry === _fbUser.uid) return true;
+      if (entry && typeof entry === 'object') {
+        if (entry.uid === _fbUser.uid) return true;
+        if (userEmail && _fbNormalizeEmail(entry.email) === userEmail) return true;
+      }
+      return false;
+    };
     return {
-      isAdmin:      adminUIDs.includes(_fbUser.uid) || superAdminUIDs.includes(_fbUser.uid),
-      isSuperAdmin: superAdminUIDs.includes(_fbUser.uid),
+      isAdmin:      adminUIDs.some(matchesAdmin) || superAdminUIDs.some(matchesAdmin),
+      isSuperAdmin: superAdminUIDs.some(matchesAdmin),
       clubName:     data.name || '',
     };
   } catch (e) {
@@ -328,16 +377,46 @@ async function fbCheckAdminAccess(clubId) {
 /**
  * Add an admin UID to a club's adminUIDs list in Firestore.
  */
-async function fbAddClubAdmin(clubId, uid) {
+async function fbAddClubAdmin(clubId, uidOrEntry) {
   if (!fbReady()) return false;
   try {
     const ref = _fbDb.collection('clubs').doc(clubId);
     const doc = await ref.get();
     if (!doc.exists) return false;
-    const uids = doc.data().adminUIDs || [];
-    if (uids.includes(uid)) return true; // already an admin
-    uids.push(uid);
-    await ref.update({ adminUIDs: uids });
+    const current = Array.isArray(doc.data().adminUIDs) ? [...doc.data().adminUIDs] : [];
+    const entry = (uidOrEntry && typeof uidOrEntry === 'object')
+      ? {
+          uid: uidOrEntry.uid || '',
+          email: uidOrEntry.email || '',
+          name: uidOrEntry.name || '',
+          role: uidOrEntry.role || 'admin',
+        }
+      : String(uidOrEntry || '').trim();
+    const entryUid = typeof entry === 'string' ? entry : entry.uid;
+    const entryEmail = _fbNormalizeEmail(typeof entry === 'string' ? '' : entry.email);
+    let updated = false;
+    const next = current.map(existing => {
+      if (existing === entryUid) {
+        updated = true;
+        return typeof entry === 'string' ? existing : { ...entry };
+      }
+      if (existing && typeof existing === 'object') {
+        if ((entryUid && existing.uid === entryUid) || (entryEmail && _fbNormalizeEmail(existing.email) === entryEmail)) {
+          updated = true;
+          return {
+            ...existing,
+            ...(typeof entry === 'string' ? {} : entry),
+            uid: entryUid || existing.uid || '',
+            email: typeof entry === 'string' ? (existing.email || '') : (entry.email || existing.email || ''),
+            name: typeof entry === 'string' ? (existing.name || '') : (entry.name || existing.name || ''),
+            role: typeof entry === 'string' ? (existing.role || 'admin') : (entry.role || existing.role || 'admin'),
+          };
+        }
+      }
+      return existing;
+    });
+    if (!updated) next.push(entry);
+    await ref.update({ adminUIDs: next });
     return true;
   } catch (e) {
     console.warn('[firebase] fbAddClubAdmin error:', e.message);
