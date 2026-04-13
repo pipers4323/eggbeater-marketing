@@ -2689,8 +2689,21 @@
           } catch (e) { }
 
           const typeLabel = club.clubType === 'highschool' ? '🎓 HS' : '🤽‍♀️ Club';
+          const trayStyle = club.logoTrayStyle || 'light';
+          const trayBg = trayStyle === 'dark'
+            ? 'linear-gradient(180deg,#0b0f14 0%,#111827 100%)'
+            : trayStyle === 'brand'
+              ? (club.primaryColor || '#0b0f14')
+              : trayStyle === 'transparent'
+                ? 'transparent'
+                : 'linear-gradient(180deg,#ffffff 0%,#f8fafc 100%)';
+          const trayBorder = trayStyle === 'transparent'
+            ? '1px dashed var(--g200)'
+            : trayStyle === 'dark' || trayStyle === 'brand'
+              ? '1px solid rgba(15,23,42,.16)'
+              : '1px solid var(--g200)';
           const logoHtml = club.logo
-            ? `<div style="width:56px;height:44px;background:repeating-conic-gradient(#d9dee8 0% 25%, #ffffff 0% 50%) 0 0 / 12px 12px;border-radius:10px;border:1px solid var(--g200);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;padding:4px 6px">`
+            ? `<div style="width:56px;height:44px;background:${trayBg};border-radius:10px;border:${trayBorder};display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;padding:4px 6px">`
             + `<img src="${club.logo}" style="width:100%;height:100%;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display=''">`
             + `<div style="font-size:1.4rem;display:none">${club.clubType === 'highschool' ? '🎓' : '🤽‍♀️'}</div>`
             + `</div>`
@@ -5699,6 +5712,16 @@
             <option value="gradient" ${S._branding?.headerStyle === 'gradient' ? 'selected' : ''}>Bold gradient</option>
             <option value="solid" ${S._branding?.headerStyle === 'solid' ? 'selected' : ''}>Solid color</option>
           </select>
+        </div>
+        <div class="info-field">
+          <div class="info-label">Admin Logo Tray</div>
+          <select class="info-input" id="brand-logo-tray-style" style="margin:0">
+            <option value="light" ${(S._branding?.logoTrayStyle || 'light') === 'light' ? 'selected' : ''}>Light</option>
+            <option value="dark" ${S._branding?.logoTrayStyle === 'dark' ? 'selected' : ''}>Dark</option>
+            <option value="brand" ${S._branding?.logoTrayStyle === 'brand' ? 'selected' : ''}>Brand Color</option>
+            <option value="transparent" ${S._branding?.logoTrayStyle === 'transparent' ? 'selected' : ''}>Transparent</option>
+          </select>
+          <div class="info-hint">Controls how this club logo sits inside the super admin club picker.</div>
         </div>
         <div style="margin-top:10px">
           <div class="info-label" style="margin-bottom:6px">Live Preview</div>
@@ -10833,6 +10856,7 @@
           primaryColor: data.primaryColor || '#002868',
           secondaryColor: data.secondaryColor || '#0d9488',
           headerStyle: data.headerStyle || 'default',
+          logoTrayStyle: data.logoTrayStyle || 'light',
         };
         // Store club logo for use when re-applying branding after saves
         S._clubLogo = data.logoUrl || data.clubLogo || null;
@@ -10910,14 +10934,16 @@
       const primary = document.getElementById('brand-primary')?.value || '#002868';
       const secondary = document.getElementById('brand-secondary')?.value || '#0d9488';
       const headerStyle = document.getElementById('brand-header-style')?.value || 'default';
+      const logoTrayStyle = document.getElementById('brand-logo-tray-style')?.value || 'light';
       try {
         const res = await api('PUT', '/admin/club-settings', {
           primaryColor: primary,
           secondaryColor: secondary,
           headerStyle: headerStyle,
+          logoTrayStyle: logoTrayStyle,
         });
         if (!res.ok) throw new Error('Save failed');
-        S._branding = { primaryColor: primary, secondaryColor: secondary, headerStyle };
+        S._branding = { primaryColor: primary, secondaryColor: secondary, headerStyle, logoTrayStyle };
         // Apply branding to admin panel header so admin sees the club's colors
         applyAdminBranding(primary, secondary, S._clubLogo || null);
         if (statusEl) statusEl.innerHTML = '<span style="color:var(--green)">✅ Branding saved — parents will see the new colors on their next visit</span>';
@@ -10930,9 +10956,11 @@
       const p = document.getElementById('brand-primary');
       const s = document.getElementById('brand-secondary');
       const hs = document.getElementById('brand-header-style');
+      const ls = document.getElementById('brand-logo-tray-style');
       if (p) p.value = '#002868';
       if (s) s.value = '#0d9488';
       if (hs) hs.value = 'default';
+      if (ls) ls.value = 'light';
       updateBrandingPreview();
     }
 
