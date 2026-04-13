@@ -97,6 +97,14 @@
         </div>
       </div>
       <div class="header-right">
+        <label for="header-lang-picker" style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:4px 8px;color:#fff">
+          <span aria-hidden="true" style="font-size:0.8rem;line-height:1">🌐</span>
+          <select id="header-lang-picker" onchange="setAppLang(this.value)" aria-label="Language" style="background:transparent;border:none;color:inherit;font:inherit;font-size:0.74rem;font-weight:700;outline:none;cursor:pointer">
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="fr">FR</option>
+          </select>
+        </label>
         <div id="sync-badge" class="sync-badge hidden"></div>
         <!-- Auth UI moved to Settings tab — hidden elements kept for firebase.js compat -->
         <span id="fb-user-info" class="fb-user-info hidden" style="display:none"></span>

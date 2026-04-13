@@ -1947,6 +1947,14 @@
       <div class="admin-header-bar">
         <span class="admin-header-title">Super Admin Dashboard</span>
         <span class="admin-header-sub">Select a club to manage</span>
+        <label for="dashboard-lang-picker" style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:4px 8px;color:#fff">
+          <span aria-hidden="true" style="font-size:0.8rem;line-height:1">🌐</span>
+          <select id="dashboard-lang-picker" onchange="setAdminLang(this.value)" aria-label="Language" style="background:transparent;border:none;color:inherit;font:inherit;font-size:0.74rem;font-weight:700;outline:none;cursor:pointer">
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="fr">FR</option>
+          </select>
+        </label>
         <button class="save-btn"
           style="background:var(--red);color:white;border-color:var(--red);padding:4px 14px;font-size:0.78rem"
           onclick="doLogout()">ðŸšª Logout</button>
@@ -2007,6 +2015,14 @@
       <div class="admin-header-bar">
         <span class="admin-header-title">Admin</span>
         <span id="header-sub" class="admin-header-sub">Loadingâ€¦</span>
+        <label for="admin-header-lang-picker" style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:4px 8px;color:#fff">
+          <span aria-hidden="true" style="font-size:0.8rem;line-height:1">🌐</span>
+          <select id="admin-header-lang-picker" onchange="setAdminLang(this.value)" aria-label="Language" style="background:transparent;border:none;color:inherit;font:inherit;font-size:0.74rem;font-weight:700;outline:none;cursor:pointer">
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="fr">FR</option>
+          </select>
+        </label>
         <button id="switch-club-btn" onclick="switchClub()"
           style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px"
           title="Switch Club (SuperAdmin)">ðŸ”€ Switch Club</button>
@@ -2461,6 +2477,11 @@
 
     function applyAdminTranslations() {
       document.documentElement.lang = getAdminLang();
+      const adminLang = getAdminLang();
+      const dashboardPicker = document.getElementById('dashboard-lang-picker');
+      if (dashboardPicker) dashboardPicker.value = adminLang;
+      const headerPicker = document.getElementById('admin-header-lang-picker');
+      if (headerPicker) headerPicker.value = adminLang;
       const loginTitle = document.querySelector('.login-title');
       if (loginTitle) loginTitle.textContent = adminT('login_title');
       const googleBtn = document.getElementById('google-login-btn');

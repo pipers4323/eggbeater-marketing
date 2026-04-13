@@ -294,6 +294,8 @@ function setAppLang(lang) {
 function applyAppTranslations() {
   const lang = getAppLang();
   document.documentElement.lang = lang;
+  const headerPicker = document.getElementById('header-lang-picker');
+  if (headerPicker) headerPicker.value = lang;
   const setText = (id, value) => {
     const el = document.getElementById(id);
     if (el) el.textContent = value;
