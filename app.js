@@ -5587,7 +5587,10 @@ function renderNextGameCard() {
     const games = getTournamentGames();
     const tournamentPast = _isTournamentPastWindow();
     const allPoolDone = games.length > 0 && games.every(g => _getResultForGame(g));
-    if (allPoolDone || tournamentPast) {
+    // Never show "Tournament Complete" when the slot is intentionally in upcoming/coming-soon mode.
+    // upcomingMode means the admin cleared the slot and set it to upcoming — stale date data
+    // from a previously loaded tournament must not trigger the completion card.
+    if ((allPoolDone || tournamentPast) && !TOURNAMENT.upcomingMode && !TOURNAMENT.comingSoon) {
       section.innerHTML = `
         <div class="next-game-wrap">
           <div class="next-game-card next-complete">
@@ -5802,7 +5805,7 @@ function renderGamesList() {
   );
 
   if (!upcomingGames.length) {
-    listEl.innerHTML = _isTournamentPastWindow()
+    listEl.innerHTML = (_isTournamentPastWindow() && !TOURNAMENT.upcomingMode && !TOURNAMENT.comingSoon)
       ? _renderTournamentCompleteCard()
       : '<p class="empty-msg" style="padding:24px 18px;">All games complete — check the History tab for results.</p>';
     return;
@@ -8086,7 +8089,13 @@ async function loadTeamData(teamKey) {
     const club = getAppClubId();
     if (club) teamUrl += `&club=${encodeURIComponent(club)}`;
     const res = await fetch(teamUrl, { cache: 'no-store' });
-    if (!res.ok) return; // no data for this team yet — keep current TOURNAMENT
+    if (!res.ok) {
+      // Server has no data for this slot (404 = intentionally cleared / never set up).
+      // Clear any stale cache entry so the multi-slot renderer doesn't show old tournament
+      // data (e.g. a past tournament from a previous bleed) for an empty slot.
+      if (res.status === 404) delete TEAM_CACHE[teamKey];
+      return;
+    }
     const data = await res.json();
     const { tournament, history, clubType, clubName, branding } = data;
     if (tournament) {
