@@ -1,15 +1,15 @@
-﻿/**
- * Eggbeater Water Polo â€” Tournament App
+/**
+ * Eggbeater Water Polo — Tournament App
  * =========================================
  * Features:
  *  - Tournament schedule loaded from tournament.js
  *  - WIN / LOSS tracking per game
- *  - Projected next game (pool play â†’ bracket projection)
+ *  - Projected next game (pool play → bracket projection)
  *  - Google Calendar sync (optional, OAuth-based)
  *  - Tournament history (auto-archived to localStorage)
  */
 
-// â”€â”€â”€ DARK MODE (3-mode: light / dark / system) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── DARK MODE (3-mode: light / dark / system) ───────────────────────────────
 
 function getThemePref() {
   return localStorage.getItem('ebwp-theme-preference') || 'system';
@@ -17,7 +17,7 @@ function getThemePref() {
 
 function applyThemePref(pref) {
   localStorage.setItem('ebwp-theme-preference', pref);
-  // Legacy compat â€” old key
+  // Legacy compat — old key
   localStorage.removeItem('ebwp-theme');
   let effective;
   if (pref === 'system') {
@@ -31,7 +31,7 @@ function applyThemePref(pref) {
   if (meta) meta.content = effective === 'dark' ? '#0d1117' : (window._clubPrimaryColor || '#002868');
 }
 
-// Legacy toggle (from header button) â€” cycles light â†’ dark â†’ system
+// Legacy toggle (from header button) — cycles light → dark → system
 function toggleTheme() {
   const prefs = ['light', 'dark', 'system'];
   const cur = getThemePref();
@@ -42,7 +42,7 @@ function toggleTheme() {
 function updateThemeIcon() {
   const btn = document.getElementById('theme-toggle');
   const pref = getThemePref();
-  if (btn) btn.textContent = pref === 'dark' ? 'â˜€ï¸' : pref === 'system' ? 'âš™ï¸' : 'ðŸŒ™';
+  if (btn) btn.textContent = pref === 'dark' ? '☀️' : pref === 'system' ? '⚙️' : '🌙';
 }
 
 // Listen for OS theme changes when in 'system' mode
@@ -52,290 +52,8 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
 
 // Init icon on load
 setTimeout(updateThemeIcon, 0);
-setTimeout(applyAppTranslations, 0);
 
-// â”€â”€â”€ LOCALIZATION (Phase 1: shared web/native chrome + settings) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-const APP_LANG_KEY = 'ebwp-language';
-const APP_I18N = {
-  en: {
-    club_picker_title: 'Welcome to Eggbeater',
-    club_picker_subtitle: 'Select your club to get started',
-    club_picker_footer: "Don't see your club? Ask your club admin for the link.",
-    parent_guide_link: 'New to Eggbeater? Read the Parent Guide â†’',
-    returning_user: 'Returning user?',
-    restore_settings: 'Restore your clubs & settings instantly',
-    offline_banner: "ðŸ“¡ You're offline â€” showing cached data",
-    possible_games: 'Possible Games',
-    possible_desc: 'Bracket paths based on pool play results.',
-    no_bracket_data: 'No bracket data for this tournament.',
-    tournament_history: 'Tournament History',
-    history_desc: 'Past tournament results, most recent first.',
-    no_history: 'No history yet. Results from completed tournaments will appear here automatically.',
-    choose_calendar: 'Choose a Calendar',
-    choose_calendar_desc: 'Select which Google Calendar to add games to.',
-    cancel: 'Cancel',
-    nav_schedule: 'Schedule',
-    nav_scores: 'Scores',
-    nav_history: 'History',
-    nav_more: 'More',
-    nav_bracket: 'Bracket',
-    nav_roster: 'Roster',
-    nav_settings: 'Settings',
-    nav_help: 'Help',
-    nav_tournament_scores: 'Tournament Scores',
-    live_scoring_banner: 'ðŸ“¡ Live scoring in progress â€” scores update every 5 seconds',
-    settings_title: 'Settings',
-    settings_sub: 'Manage your clubs, notifications, and preferences.',
-    settings_team_selection: 'Team Selection',
-    settings_live_updates: 'Live Updates',
-    settings_live_activities: 'Live Activities',
-    settings_live_updates_desc: 'Auto-start for favorited teams',
-    settings_my_clubs: 'My Clubs',
-    settings_loading_clubs: 'Loading clubsâ€¦',
-    settings_add_club: 'Add Club',
-    settings_add_club_desc: 'Join another club via code',
-    settings_return_splash: 'Return to Splash Screen',
-    settings_return_splash_desc: 'Go back to club selection',
-    settings_appearance: 'ðŸŽ¨ Appearance',
-    settings_language: 'ðŸŒ Language',
-    settings_language_desc: 'Choose how Eggbeater is displayed on this device.',
-    settings_calendar_notifications: 'ðŸ“… Calendar & Notifications',
-    settings_open_notification_settings: 'Open Notification Settings',
-    settings_open_notification_desc: 'Recover alerts if permissions were blocked',
-    settings_open_app_settings: 'Open App Settings',
-    settings_open_app_desc: 'Review permissions and system restrictions',
-    settings_subscription: 'â­ Subscription',
-    settings_parent_active: 'Parent Monthly â€” Active',
-    settings_parent_active_desc: 'Stats history Â· Bracket Â· Live Follow Â· $4.99/mo',
-    settings_upgrade_parent: 'Upgrade to Parent Monthly',
-    settings_upgrade_parent_desc: 'Stats Â· Bracket Â· Live Follow Â· $4.99/mo',
-    settings_help_support: 'â“ Help & Support',
-    settings_how_to_use: 'How to Use Eggbeater',
-    settings_how_to_use_desc: 'Scoring, bracket, notifications & more',
-    settings_account: 'Account',
-    settings_signed_in: 'Signed In',
-    settings_sign_out: 'Sign Out',
-    settings_sign_in_google: 'Sign In with Google',
-    settings_sign_in_google_desc: 'Sync preferences across devices',
-    settings_data_management: 'âš™ï¸ Data Management',
-    settings_reset_manual_results: 'Reset manual Win/Loss results',
-    settings_reset_manual_results_desc: 'Undo accidental win marks',
-    settings_current_club: 'Current club',
-    settings_no_club: 'No club',
-    settings_join_club_prompt: 'Use "Add Club" below to join a club',
-    lang_en: 'English',
-    lang_es: 'EspaÃ±ol',
-    lang_fr: 'FranÃ§ais'
-  },
-  es: {
-    club_picker_title: 'Bienvenido a Eggbeater',
-    club_picker_subtitle: 'Selecciona tu club para comenzar',
-    club_picker_footer: 'Â¿No ves tu club? PÃ­dele el enlace al administrador de tu club.',
-    parent_guide_link: 'Â¿Nuevo en Eggbeater? Lee la guÃ­a para padres â†’',
-    returning_user: 'Â¿Ya usaste la app?',
-    restore_settings: 'Restaura tus clubes y ajustes al instante',
-    offline_banner: 'ðŸ“¡ EstÃ¡s sin conexiÃ³n â€” mostrando datos guardados',
-    possible_games: 'Posibles partidos',
-    possible_desc: 'Rutas del cuadro segÃºn los resultados de la fase de grupos.',
-    no_bracket_data: 'No hay datos del cuadro para este torneo.',
-    tournament_history: 'Historial del torneo',
-    history_desc: 'Resultados de torneos anteriores, del mÃ¡s reciente al mÃ¡s antiguo.',
-    no_history: 'TodavÃ­a no hay historial. Los resultados de torneos completados aparecerÃ¡n aquÃ­ automÃ¡ticamente.',
-    choose_calendar: 'Elegir calendario',
-    choose_calendar_desc: 'Selecciona a quÃ© calendario de Google agregar los partidos.',
-    cancel: 'Cancelar',
-    nav_schedule: 'Calendario',
-    nav_scores: 'Marcador',
-    nav_history: 'Historial',
-    nav_more: 'MÃ¡s',
-    nav_bracket: 'Cuadro',
-    nav_roster: 'Plantel',
-    nav_settings: 'Ajustes',
-    nav_help: 'Ayuda',
-    nav_tournament_scores: 'Marcadores del torneo',
-    live_scoring_banner: 'ðŸ“¡ MarcaciÃ³n en vivo activa â€” los marcadores se actualizan cada 5 segundos',
-    settings_title: 'Ajustes',
-    settings_sub: 'Administra tus clubes, notificaciones y preferencias.',
-    settings_team_selection: 'SelecciÃ³n de equipo',
-    settings_live_updates: 'Actualizaciones en vivo',
-    settings_live_activities: 'Actividades en vivo',
-    settings_live_updates_desc: 'Inicio automÃ¡tico para equipos favoritos',
-    settings_my_clubs: 'Mis clubes',
-    settings_loading_clubs: 'Cargando clubesâ€¦',
-    settings_add_club: 'Agregar club',
-    settings_add_club_desc: 'Ãšnete a otro club con un cÃ³digo',
-    settings_return_splash: 'Volver a la pantalla inicial',
-    settings_return_splash_desc: 'Regresa a la selecciÃ³n de club',
-    settings_appearance: 'ðŸŽ¨ Apariencia',
-    settings_language: 'ðŸŒ Idioma',
-    settings_language_desc: 'Elige cÃ³mo se muestra Eggbeater en este dispositivo.',
-    settings_calendar_notifications: 'ðŸ“… Calendario y notificaciones',
-    settings_open_notification_settings: 'Abrir ajustes de notificaciones',
-    settings_open_notification_desc: 'Recupera alertas si los permisos fueron bloqueados',
-    settings_open_app_settings: 'Abrir ajustes de la app',
-    settings_open_app_desc: 'Revisa permisos y restricciones del sistema',
-    settings_subscription: 'â­ SuscripciÃ³n',
-    settings_parent_active: 'Padre mensual â€” Activo',
-    settings_parent_active_desc: 'Historial de estadÃ­sticas Â· Cuadro Â· Seguimiento en vivo Â· $4.99/mes',
-    settings_upgrade_parent: 'Actualizar a Padre mensual',
-    settings_upgrade_parent_desc: 'EstadÃ­sticas Â· Cuadro Â· Seguimiento en vivo Â· $4.99/mes',
-    settings_help_support: 'â“ Ayuda y soporte',
-    settings_how_to_use: 'CÃ³mo usar Eggbeater',
-    settings_how_to_use_desc: 'MarcaciÃ³n, cuadro, notificaciones y mÃ¡s',
-    settings_account: 'Cuenta',
-    settings_signed_in: 'SesiÃ³n iniciada',
-    settings_sign_out: 'Cerrar sesiÃ³n',
-    settings_sign_in_google: 'Iniciar sesiÃ³n con Google',
-    settings_sign_in_google_desc: 'Sincroniza preferencias entre dispositivos',
-    settings_data_management: 'âš™ï¸ GestiÃ³n de datos',
-    settings_reset_manual_results: 'Restablecer resultados manuales de victoria/derrota',
-    settings_reset_manual_results_desc: 'Deshacer marcas accidentales de victoria',
-    settings_current_club: 'Club actual',
-    settings_no_club: 'Sin club',
-    settings_join_club_prompt: 'Usa "Agregar club" abajo para unirte a un club',
-    lang_en: 'English',
-    lang_es: 'EspaÃ±ol',
-    lang_fr: 'FranÃ§ais'
-  },
-  fr: {
-    club_picker_title: 'Bienvenue sur Eggbeater',
-    club_picker_subtitle: 'SÃ©lectionnez votre club pour commencer',
-    club_picker_footer: 'Vous ne voyez pas votre club ? Demandez le lien Ã  lâ€™admin de votre club.',
-    parent_guide_link: 'Nouveau sur Eggbeater ? Lisez le guide parent â†’',
-    returning_user: 'DÃ©jÃ  utilisateur ?',
-    restore_settings: 'Restaurez instantanÃ©ment vos clubs et vos rÃ©glages',
-    offline_banner: 'ðŸ“¡ Vous Ãªtes hors ligne â€” affichage des donnÃ©es enregistrÃ©es',
-    possible_games: 'Matchs possibles',
-    possible_desc: 'Parcours de tableau selon les rÃ©sultats de poule.',
-    no_bracket_data: 'Aucune donnÃ©e de tableau pour ce tournoi.',
-    tournament_history: 'Historique du tournoi',
-    history_desc: 'RÃ©sultats des tournois passÃ©s, du plus rÃ©cent au plus ancien.',
-    no_history: 'Aucun historique pour le moment. Les rÃ©sultats des tournois terminÃ©s apparaÃ®tront ici automatiquement.',
-    choose_calendar: 'Choisir un calendrier',
-    choose_calendar_desc: 'SÃ©lectionnez le calendrier Google auquel ajouter les matchs.',
-    cancel: 'Annuler',
-    nav_schedule: 'Calendrier',
-    nav_scores: 'Scores',
-    nav_history: 'Historique',
-    nav_more: 'Plus',
-    nav_bracket: 'Tableau',
-    nav_roster: 'Effectif',
-    nav_settings: 'RÃ©glages',
-    nav_help: 'Aide',
-    nav_tournament_scores: 'Scores du tournoi',
-    live_scoring_banner: 'ðŸ“¡ Score en direct actif â€” les scores sont mis Ã  jour toutes les 5 secondes',
-    settings_title: 'RÃ©glages',
-    settings_sub: 'GÃ©rez vos clubs, notifications et prÃ©fÃ©rences.',
-    settings_team_selection: 'SÃ©lection de lâ€™Ã©quipe',
-    settings_live_updates: 'Mises Ã  jour en direct',
-    settings_live_activities: 'ActivitÃ©s en direct',
-    settings_live_updates_desc: 'DÃ©marrage automatique pour les Ã©quipes favorites',
-    settings_my_clubs: 'Mes clubs',
-    settings_loading_clubs: 'Chargement des clubsâ€¦',
-    settings_add_club: 'Ajouter un club',
-    settings_add_club_desc: 'Rejoindre un autre club avec un code',
-    settings_return_splash: 'Retour Ã  lâ€™Ã©cran dâ€™accueil',
-    settings_return_splash_desc: 'Revenir Ã  la sÃ©lection du club',
-    settings_appearance: 'ðŸŽ¨ Apparence',
-    settings_language: 'ðŸŒ Langue',
-    settings_language_desc: 'Choisissez comment Eggbeater sâ€™affiche sur cet appareil.',
-    settings_calendar_notifications: 'ðŸ“… Calendrier et notifications',
-    settings_open_notification_settings: 'Ouvrir les rÃ©glages des notifications',
-    settings_open_notification_desc: 'RÃ©cupÃ©rer les alertes si les permissions ont Ã©tÃ© bloquÃ©es',
-    settings_open_app_settings: 'Ouvrir les rÃ©glages de lâ€™app',
-    settings_open_app_desc: 'VÃ©rifier les permissions et restrictions systÃ¨me',
-    settings_subscription: 'â­ Abonnement',
-    settings_parent_active: 'Parent mensuel â€” Actif',
-    settings_parent_active_desc: 'Historique des stats Â· Tableau Â· Suivi en direct Â· 4,99 $/mois',
-    settings_upgrade_parent: 'Passer Ã  Parent mensuel',
-    settings_upgrade_parent_desc: 'Stats Â· Tableau Â· Suivi en direct Â· 4,99 $/mois',
-    settings_help_support: 'â“ Aide et support',
-    settings_how_to_use: 'Comment utiliser Eggbeater',
-    settings_how_to_use_desc: 'Score, tableau, notifications et plus',
-    settings_account: 'Compte',
-    settings_signed_in: 'ConnectÃ©',
-    settings_sign_out: 'Se dÃ©connecter',
-    settings_sign_in_google: 'Se connecter avec Google',
-    settings_sign_in_google_desc: 'Synchronisez vos prÃ©fÃ©rences entre appareils',
-    settings_data_management: 'âš™ï¸ Gestion des donnÃ©es',
-    settings_reset_manual_results: 'RÃ©initialiser les rÃ©sultats manuels victoire/dÃ©faite',
-    settings_reset_manual_results_desc: 'Annuler les victoires marquÃ©es par erreur',
-    settings_current_club: 'Club actuel',
-    settings_no_club: 'Aucun club',
-    settings_join_club_prompt: 'Utilisez Â« Ajouter un club Â» ci-dessous pour rejoindre un club',
-    lang_en: 'English',
-    lang_es: 'EspaÃ±ol',
-    lang_fr: 'FranÃ§ais'
-  }
-};
-
-function getAppLang() {
-  const stored = localStorage.getItem(APP_LANG_KEY);
-  if (stored && APP_I18N[stored]) return stored;
-  const nav = (navigator.language || 'en').toLowerCase();
-  if (nav.startsWith('es')) return 'es';
-  if (nav.startsWith('fr')) return 'fr';
-  return 'en';
-}
-
-function appT(key, fallback = '') {
-  const lang = getAppLang();
-  return APP_I18N[lang]?.[key] || APP_I18N.en[key] || fallback || key;
-}
-
-function setAppLang(lang) {
-  const next = APP_I18N[lang] ? lang : 'en';
-  localStorage.setItem(APP_LANG_KEY, next);
-  applyAppTranslations();
-  if (state?.currentTab === 'settings') renderSettingsTab();
-}
-
-function applyAppTranslations() {
-  const lang = getAppLang();
-  document.documentElement.lang = lang;
-  const headerPicker = document.getElementById('header-lang-picker');
-  if (headerPicker) headerPicker.value = lang;
-  const setText = (id, value) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
-  };
-  setText('club-picker-title', appT('club_picker_title'));
-  setText('club-picker-subtitle', appT('club_picker_subtitle'));
-  setText('club-picker-footer', appT('club_picker_footer'));
-  setText('parent-guide-link', appT('parent_guide_link'));
-  setText('returning-user-label', appT('returning_user'));
-  setText('splash-signin-hint', appT('restore_settings'));
-  setText('offline-banner', appT('offline_banner'));
-  setText('possible-title', appT('possible_games'));
-  setText('possible-desc', appT('possible_desc'));
-  setText('possible-empty', appT('no_bracket_data'));
-  setText('history-title', appT('tournament_history'));
-  setText('history-desc', appT('history_desc'));
-  setText('history-empty', appT('no_history'));
-  setText('calendar-title', appT('choose_calendar'));
-  setText('calendar-desc', appT('choose_calendar_desc'));
-  setText('calendar-cancel', appT('cancel'));
-  setText('nav-label-schedule', appT('nav_schedule'));
-  setText('nav-label-scores', appT('nav_scores'));
-  setText('nav-label-more', appT('nav_more'));
-  setText('nav-label-roster-desktop', appT('nav_roster'));
-  setText('nav-label-settings-desktop', appT('nav_settings'));
-  setText('nav-label-help-desktop', appT('nav_help'));
-  setText('nav-label-tscore-drawer', appT('nav_tournament_scores'));
-  setText('nav-label-roster-drawer', appT('nav_roster'));
-  setText('nav-label-settings-drawer', appT('nav_settings'));
-  setText('nav-label-help-drawer', appT('nav_help'));
-  setText('live-scoring-banner', appT('live_scoring_banner'));
-  const historyNav = document.querySelector('#tab-history > span');
-  if (historyNav) historyNav.childNodes[0].textContent = appT('nav_history');
-  const desktopBracket = document.querySelector('.desktop-nav-item[data-tab="possible"] > span');
-  if (desktopBracket) desktopBracket.childNodes[0].textContent = appT('nav_bracket');
-  const drawerBracket = document.querySelector('.more-drawer-item[data-parent-tab="possible"] > span');
-  if (drawerBracket) drawerBracket.childNodes[0].textContent = appT('nav_bracket');
-}
-
-// â”€â”€â”€ CLUB BRANDING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CLUB BRANDING ────────────────────────────────────────────────────────────
 
 /**
  * Recolor the default Eggbeater SVG logo using the club's primary color.
@@ -364,7 +82,7 @@ function applyClubBranding(primaryColor, secondaryColor, headerStyle) {
   if (!primaryColor) return;
   const root = document.documentElement;
 
-  // Parse hex â†’ {r, g, b}
+  // Parse hex → {r, g, b}
   function hexToRgb(hex) {
     hex = hex.replace('#', '');
     if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
@@ -528,7 +246,7 @@ function applyClubLogo(logoDataUrl, clubName) {
     state.clubInfo.name = clubName || state.clubInfo.name;
     _syncWidgetsAll();
   } else {
-    // No custom logo â€” show eggbeater logo, reset any stale SVG blob from a
+    // No custom logo — show eggbeater logo, reset any stale SVG blob from a
     // previous club that had branding (avoids keeping the old club's color)
     if (customWrap)  customWrap.classList.add('hidden');
     if (poweredByBar) poweredByBar.classList.add('hidden');
@@ -548,10 +266,10 @@ function applyClubLogo(logoDataUrl, clubName) {
   }
 }
 
-// â”€â”€â”€ CONFIG â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
 
 const CONFIG = {
-  // Get this from Google Cloud Console â†’ APIs & Services â†’ Credentials
+  // Get this from Google Cloud Console → APIs & Services → Credentials
   // Add your Vercel URL to Authorized JavaScript Origins
   CLIENT_ID: '334438983134-th4thsf0upc8pabe245d2l41fon2oun9.apps.googleusercontent.com',
 
@@ -561,14 +279,14 @@ const CONFIG = {
   EVENT_DURATION_MIN: 45,                       // default game length in minutes
 };
 
-// â”€â”€â”€ STORAGE KEYS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── STORAGE KEYS ─────────────────────────────────────────────────────────────
 
 // Returns a gender-appropriate water polo emoji based on the team key
 function swimmerEmoji(teamKey) {
   if (!teamKey) teamKey = getSelectedTeam() || '';
   const k = teamKey.toLowerCase();
-  if (k.includes('boy') || k.includes('men') || k.includes('bv') || k.includes('bjv')) return 'ðŸ¤½â€â™‚ï¸';
-  return 'ðŸ¤½â€â™€ï¸'; // girls, co-ed, or default
+  if (k.includes('boy') || k.includes('men') || k.includes('bv') || k.includes('bjv')) return '🤽‍♂️';
+  return '🤽‍♀️'; // girls, co-ed, or default
 }
 
 const STORE = {
@@ -590,7 +308,7 @@ const STORE = {
 // Cache of loaded tournament data keyed by age-group key (e.g. '14u-girls')
 const TEAM_CACHE = {};
 
-// â”€â”€â”€ MULTI-TEAM HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MULTI-TEAM HELPERS ────────────────────────────────────────────────────────
 
 function isMultiTeam() {
   // Multi-team is the default. Only disabled when explicitly set.
@@ -623,7 +341,7 @@ function getActiveTeamLabel() {
   return getTeamLabel(getActiveTeam()) || 'Eggbeater';
 }
 
-// â”€â”€ Per-age-group A/B/C preference storage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Per-age-group A/B/C preference storage ────────────────────────────────────
 // Stored as { '12u-girls': ['A','B'], '16u-boys': ['B'] } in ebwp-team-letters.
 // A child playing on both A and B within the same age group can have both selected.
 // Falls back to the legacy global ebwp-selected-team value for existing users.
@@ -694,11 +412,11 @@ function getTournamentGames() {
   const games = TOURNAMENT.games || [];
   const groupKey = _activeAgeGroup || getSelectedTeam() || getSelectedTeams()[0] || '';
   const letters = getActiveTeams();
-  if (!letters) return games.map(g => ({ ...g, _groupKey: g._groupKey || groupKey }));                           // single-team â€” return all
+  if (!letters) return games.map(g => ({ ...g, _groupKey: g._groupKey || groupKey }));                           // single-team — return all
   const firstTeam = Array.isArray(TOURNAMENT.teams) && TOURNAMENT.teams.length
     ? TOURNAMENT.teams[0] : 'A';
   return games.filter(g => {
-    if (!g.team) return letters.includes(firstTeam);   // unassigned â†’ first team only
+    if (!g.team) return letters.includes(firstTeam);   // unassigned → first team only
     return letters.includes(g.team);
   }).map(g => ({ ...g, _groupKey: g._groupKey || groupKey }));
 }
@@ -724,7 +442,7 @@ function getTournamentBracketPaths() {
   const bp = TOURNAMENT.bracket?.paths;
   if (!bp) return null;
   const letters = getActiveTeams();
-  if (!letters) return Array.isArray(bp) ? bp : null;  // single-team â€” return as-is
+  if (!letters) return Array.isArray(bp) ? bp : null;  // single-team — return as-is
   if (Array.isArray(bp)) {
     return letters.includes('A') ? bp : null;
   }
@@ -754,9 +472,9 @@ function switchTeam(letter, groupKey) {
 }
 
 // Returns history entries relevant to the currently selected team.
-// Red (A) team â†’ entries for 'Team', 'Team A', 'Team A1', 'Team A2', 'A', 'A1', 'A2' (any non-B variant).
-// Blue (B) team â†’ entries for 'Team B', 'B' only.
-// Single-team mode (no multi-team) â†’ all entries unchanged.
+// Red (A) team → entries for 'Team', 'Team A', 'Team A1', 'Team A2', 'A', 'A1', 'A2' (any non-B variant).
+// Blue (B) team → entries for 'Team B', 'B' only.
+// Single-team mode (no multi-team) → all entries unchanged.
 function getHistoryForActiveTeam() {
   const history = getHistory();
   const all = history;
@@ -802,7 +520,7 @@ function _getVirtualHistoryEntry() {
   return {
     id: 'active-virtual',
     name: TOURNAMENT.name || 'Current Tournament',
-    subtitle: (TOURNAMENT.date || 'Active') + ' Â· IN PROGRESS',
+    subtitle: (TOURNAMENT.date || 'Active') + ' · IN PROGRESS',
     games: gameEntries,
     wins,
     losses,
@@ -812,7 +530,7 @@ function _getVirtualHistoryEntry() {
   };
 }
 
-// â”€â”€â”€ BRACKET POINTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── BRACKET POINTS ───────────────────────────────────────────────────────────
 // Points awarded per game result (per league rules)
 
 const POINTS = { W: 4, SW: 3, SL: 2, L: 1, F: 0 };
@@ -825,7 +543,7 @@ function isWin(result)  { return result === 'W'  || result === 'SW'; }
 function isLoss(result) { return result === 'L'  || result === 'SL' || result === 'F'; }
 
 function resultLabel(result) {
-  return { W: 'WIN', SW: 'SO WIN', SL: 'SO LOSS', L: 'LOSS', F: 'FORFEIT' }[result] || result || 'â€”';
+  return { W: 'WIN', SW: 'SO WIN', SL: 'SO LOSS', L: 'LOSS', F: 'FORFEIT' }[result] || result || '—';
 }
 
 function _parseGameRef(gameRef) {
@@ -1140,13 +858,13 @@ function _applyAutoFinalResult(gameOrRef, score, explicitGroupKey = '') {
   return true;
 }
 
-// â”€â”€â”€ STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── STATE ────────────────────────────────────────────────────────────────────
 
 const state = {
-  results:          {},     // gameId â†’ 'W' | 'SW' | 'SL' | 'L' | 'F'
-  bracketResults:   {},     // 'pathId-gameNum' â†’ 'W' | 'L'
-  liveScores:       {},     // gameId â†’ { team, opp, clock, period, gameState, events[], quarterMins, halfMins, timeoutMins }
-  dirScores:        {},     // gameId â†’ { score1, score2, status, updatedAt }  â€” director game scores
+  results:          {},     // gameId → 'W' | 'SW' | 'SL' | 'L' | 'F'
+  bracketResults:   {},     // 'pathId-gameNum' → 'W' | 'L'
+  liveScores:       {},     // gameId → { team, opp, clock, period, gameState, events[], quarterMins, halfMins, timeoutMins }
+  dirScores:        {},     // gameId → { score1, score2, status, updatedAt }  — director game scores
   dirScorerUnlocked: false, // true = director scoring mode unlocked
   dirPollTimer:     null,   // interval ID for polling dir scores
   // Tournament Score tab
@@ -1156,7 +874,7 @@ const state = {
   tscoreScores:     {},
   tscorePollTimer:  null,
   scorerDetailsOpen:{},
-  roster:           [],     // [{ cap, first, last }] â€” editable via Roster tab
+  roster:           [],     // [{ cap, first, last }] — editable via Roster tab
   currentTab:       'schedule',
   viewerMode:       true,       // true = viewing live scores without scorer login (default for parents)
   parentTier:       null,       // null = not yet checked, 'free' | 'parent' once resolved
@@ -1181,11 +899,11 @@ const state = {
     },
   };
 
-// â”€â”€â”€ DOM HELPER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── DOM HELPER ───────────────────────────────────────────────────────────────
 
 // _renderSuffix is set during multi-team rendering so $('foo') finds 'foo-14u-girls' etc.
 let _renderSuffix    = '';
-let _inMultiRender   = false;   // prevents recursive multiâ†’singleâ†’multi dispatch
+let _inMultiRender   = false;   // prevents recursive multi→single→multi dispatch
 let _activeAgeGroup  = null;    // which age group is currently being rendered (for per-group A/B)
 let _activeTeamLetters = null;  // when set, overrides getActiveTeams() during per-letter rendering
 // _historyOverride bypasses localStorage during multi-team history rendering
@@ -1257,14 +975,14 @@ function escHtml(str) {
 function normalizeOpponentName(name) {
   let s = String(name || '').trim();
   if (!s) return '';
-  s = s.replace(/^\(\s*\d+(?:st|nd|rd|th)\s+[A-Z]\s*\)\s*[-â€“]\s*/i, '');
-  s = s.replace(/^\(\s*[A-Z]\d+\s*\)\s*[-â€“]\s*/i, '');
-  s = s.replace(/^[A-Z]\d+\s*[-â€“]\s*/i, '');
-  s = s.replace(/^[A-Z]?\d+\s*\([^)]*\)\s*[-â€“]\s*/i, '');
-  s = s.replace(/^\d+(?:st|nd|rd|th)\s+[A-Z]\s*[-â€“]\s*/i, '');
+  s = s.replace(/^\(\s*\d+(?:st|nd|rd|th)\s+[A-Z]\s*\)\s*[-–]\s*/i, '');
+  s = s.replace(/^\(\s*[A-Z]\d+\s*\)\s*[-–]\s*/i, '');
+  s = s.replace(/^[A-Z]\d+\s*[-–]\s*/i, '');
+  s = s.replace(/^[A-Z]?\d+\s*\([^)]*\)\s*[-–]\s*/i, '');
+  s = s.replace(/^\d+(?:st|nd|rd|th)\s+[A-Z]\s*[-–]\s*/i, '');
   s = s.replace(/^[A-Z]\d+\s+/i, '');
   s = s.replace(/^\d+(?:st|nd|rd|th)\s+[A-Z]\s+/i, '');
-  s = s.replace(/^\s*[-â€“]\s*/, '');
+  s = s.replace(/^\s*[-–]\s*/, '');
   return s.trim() || String(name || '').trim();
 }
 
@@ -1292,7 +1010,7 @@ function buildLocationLink(location) {
 
 /**
  * Sort key for roster cap numbers.
- * Field players (2â€“25+) sort numerically first.
+ * Field players (2–25+) sort numerically first.
  * Goalkeepers (GK / 1 / 1A) and blank caps sort to the bottom.
  */
 function capSortKey(cap) {
@@ -1308,7 +1026,7 @@ function isGoalie(cap) {
   return c === 'GK' || c === '1' || c === '1A';
 }
 
-/** Returns a copy of a roster array sorted: field players 2â€“25 first, goalies last. */
+/** Returns a copy of a roster array sorted: field players 2–25 first, goalies last. */
 function sortedRoster(roster) {
   return [...(roster || [])].sort((a, b) => capSortKey(a.cap) - capSortKey(b.cap));
 }
@@ -1397,7 +1115,7 @@ function _cloneJsonSafe(value) {
   }
 }
 
-// â”€â”€â”€ ACCESSIBILITY: MODAL FOCUS MANAGEMENT (WCAG 2.4.3, 4.1.3) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── ACCESSIBILITY: MODAL FOCUS MANAGEMENT (WCAG 2.4.3, 4.1.3) ───────────────
 // Provides focus trapping, trigger-restore, and score announcements so that
 // VoiceOver and Voice Control users get a complete, non-confusing experience.
 
@@ -1427,7 +1145,7 @@ function _trapFocus(container) {
   return () => container.removeEventListener('keydown', onKey);
 }
 
-/** Per-modal a11y state: id â†’ { trigger, cleanup } */
+/** Per-modal a11y state: id → { trigger, cleanup } */
 const _modalA11y = {};
 
 /** Call when opening any modal. Saves the triggering element and arms the focus trap. */
@@ -1455,15 +1173,15 @@ function _announceScore(gameId) {
   const game = _findGameByRef(gameId);
   const home = TOURNAMENT.clubName || 'Us';
   const away = game?.opponent || 'Opponent';
-  const qtr  = s.period ? ` â€” Quarter ${s.period}` : '';
+  const qtr  = s.period ? ` — Quarter ${s.period}` : '';
   const clk  = s.clock  ? ` ${s.clock}` : '';
   announcer.textContent = `${home} ${s.team ?? 0}, ${away} ${s.opp ?? 0}${qtr}${clk}.`;
 }
 
-// â”€â”€â”€ TIME HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── TIME HELPERS ─────────────────────────────────────────────────────────────
 
 // Format a raw date key (ISO "2026-04-04" or already-human "Apr 4, 2026") for display
-// as a date-group-header label. ISO dates become "Sat Â· April 4"; others pass through.
+// as a date-group-header label. ISO dates become "Sat · April 4"; others pass through.
 function formatDateGroupLabel(dateStr) {
   if (!dateStr || dateStr === 'Unknown' || dateStr === 'TBD') return dateStr || 'TBD';
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
@@ -1471,7 +1189,7 @@ function formatDateGroupLabel(dateStr) {
       const d = new Date(dateStr + 'T00:00:00'); // local midnight
       const day = d.toLocaleDateString('en-US', { weekday: 'short' });
       const md  = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-      return `${day} Â· ${md}`;
+      return `${day} · ${md}`;
     } catch (e) { /* fall through */ }
   }
   return dateStr;
@@ -1491,9 +1209,9 @@ function _lastSyncLabel() {
 
 /**
  * Returns a small HTML warning string when a score poll has failed more recently
- * than it last succeeded â€” signals to the user that live data may be stale.
- * @param {number|undefined} lastError  â€” state.dirPollLastError or tscorePollLastError
- * @param {number|undefined} lastSuccess â€” state.dirPollLastSuccess or tscorePollLastSuccess
+ * than it last succeeded — signals to the user that live data may be stale.
+ * @param {number|undefined} lastError  — state.dirPollLastError or tscorePollLastError
+ * @param {number|undefined} lastSuccess — state.dirPollLastSuccess or tscorePollLastSuccess
  */
 function _pollStaleNote(lastError, lastSuccess) {
   if (!lastError) return '';
@@ -1501,7 +1219,7 @@ function _pollStaleNote(lastError, lastSuccess) {
   const mins = Math.round((Date.now() - lastError) / 60000);
   const ago = mins < 1 ? 'just now' : `${mins} min ago`;
   return `<div style="background:#fef3c7;color:#92400e;font-size:0.75rem;font-weight:600;padding:6px 14px;border-radius:8px;margin-bottom:8px">
-    âš ï¸ Live feed interrupted (${ago}) â€” scores may be delayed
+    ⚠️ Live feed interrupted (${ago}) — scores may be delayed
   </div>`;
 }
 
@@ -1511,7 +1229,7 @@ function _setLiveBanner(visible) {
   if (el) el.classList.toggle('hidden', !visible);
 }
 
-/** Returns today's date as a local YYYY-MM-DD string (NOT UTC â€” avoids UTC-midnight-shift bug). */
+/** Returns today's date as a local YYYY-MM-DD string (NOT UTC — avoids UTC-midnight-shift bug). */
 function _localDateStr(d = new Date()) {
   const pad = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -1544,11 +1262,11 @@ function _renderTournamentCompleteCard() {
   return `
     <div class="coming-soon-wrap">
       <div class="coming-soon-card tournament-complete-card">
-        <div class="coming-soon-icon">ðŸ</div>
+        <div class="coming-soon-icon">🏁</div>
         <div class="coming-soon-text">
           <div class="coming-soon-label">Tournament Complete</div>
           <div class="coming-soon-sub">${escHtml(TOURNAMENT.name || 'This tournament')} has ended.</div>
-          <div class="coming-soon-sub" style="margin-top:8px">Check the History tab for final results${record ? ` Â· ${escHtml(record)}` : ''}.</div>
+          <div class="coming-soon-sub" style="margin-top:8px">Check the History tab for final results${record ? ` · ${escHtml(record)}` : ''}.</div>
         </div>
       </div>
     </div>`;
@@ -1563,7 +1281,7 @@ function parseGameTime(dateISO, timeStr) {
     const m = parseInt(mStr || '0', 10);
     if (ampm === 'PM' && h !== 12) h += 12;
     if (ampm === 'AM' && h === 12) h = 0;
-    const d = new Date(dateISO + 'T00:00:00'); // local midnight, not UTC â€” new Date('2026-04-05') parses as UTC midnight which is April 4 at 5PM Pacific
+    const d = new Date(dateISO + 'T00:00:00'); // local midnight, not UTC — new Date('2026-04-05') parses as UTC midnight which is April 4 at 5PM Pacific
     d.setHours(h, m, 0, 0);
     return d;
   } catch { return null; }
@@ -1575,8 +1293,8 @@ function toISOLocal(date) {
          `T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
 }
 
-// â”€â”€â”€ PROJECTED NEXT GAME â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Returns the next upcoming game â€” either a pool play game (by time)
+// ─── PROJECTED NEXT GAME ──────────────────────────────────────────────────────
+// Returns the next upcoming game — either a pool play game (by time)
 // or the next bracket step from the projected path once pool play is complete.
 
 function findNextGameOrProjected() {
@@ -1619,7 +1337,7 @@ function findNextGameOrProjected() {
   return null;
 }
 
-// â”€â”€â”€ BRACKET PROJECTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── BRACKET PROJECTION ───────────────────────────────────────────────────────
 
 function inferProjectedPath() {
   const paths = getTournamentBracketPaths();
@@ -1650,10 +1368,10 @@ function getPoolRecord() {
     else if (isLoss(r)) l++;
     if (r != null) pts += POINTS[r] ?? 0;
   }
-  return (w + l) > 0 ? `${w}-${l} Â· ${pts} pts` : '0-0';
+  return (w + l) > 0 ? `${w}-${l} · ${pts} pts` : '0-0';
 }
 
-// â”€â”€â”€ HISTORY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── HISTORY ──────────────────────────────────────────────────────────────────
 
 function getHistory() {
   if (_historyOverride !== null) return _historyOverride;
@@ -1732,7 +1450,7 @@ function archiveTournament(snapshot, results, bracketResults, liveScores) {
   localStorage.setItem(STORE.HISTORY, JSON.stringify(history));
 }
 
-// â”€â”€â”€ TOURNAMENT CHANGE DETECTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── TOURNAMENT CHANGE DETECTION ──────────────────────────────────────────────
 
 function checkTournamentChange() {
   const savedId = localStorage.getItem(STORE.TOURNAMENT_ID);
@@ -1752,7 +1470,7 @@ function checkTournamentChange() {
     const hasResults = Object.keys(savedRes).length > 0 || Object.keys(savedBrRes).length > 0;
     if (hasResults) {
       archiveTournament(savedSnap, savedRes, savedBrRes, savedLiveScores);
-      showToast(`${savedSnap.name || 'Last tournament'} archived to History âœ“`, 'ok');
+      showToast(`${savedSnap.name || 'Last tournament'} archived to History ✓`, 'ok');
     }
     localStorage.removeItem(STORE.RESULTS);
     localStorage.removeItem(STORE.BRACKET_RESULTS);
@@ -1781,15 +1499,15 @@ function checkTournamentChange() {
   if (state.selectedCalId) state.syncActive = true;
 }
 
-// â”€â”€â”€ LIVE SCORING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── LIVE SCORING ─────────────────────────────────────────────────────────────
 
-// â”€â”€â”€ LIVE SCORES PERSISTENCE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── LIVE SCORES PERSISTENCE ──────────────────────────────────────────────────
 
 function saveLiveScores() {
   localStorage.setItem(STORE.LIVE_SCORES, JSON.stringify(state.liveScores));
 }
 
-// â”€â”€â”€ MY-GAMES TRACKING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MY-GAMES TRACKING ────────────────────────────────────────────────────────
 // The CF worker /live-scores response never includes deviceId, so we can't
 // tell our own broadcasts from a stranger's via the response alone.
 // Instead we keep a local Set of game IDs this device has scored.
@@ -1806,7 +1524,7 @@ function addMyGame(gameId) {
   localStorage.setItem('ebwp-my-games', JSON.stringify([...g]));
 }
 
-// Returns true if a game should show as LIVE right now â€”
+// Returns true if a game should show as LIVE right now —
 // either this device has scorer unlocked and the game is active,
 // or another device broadcast it recently.
 function isGameLive(gameId) {
@@ -1839,14 +1557,14 @@ function _resolveGameAgeGroup(gameId) {
   return TEAM_OPTIONS.find(t => t.key === key)?.label || '';
 }
 
-/** Build an enriched score object for EggbeaterLiveUpdate.sync() â€” adds team name,
+/** Build an enriched score object for EggbeaterLiveUpdate.sync() — adds team name,
  *  opponent name, age group, and last event so the Android notification is descriptive. */
 function _buildLUScore(gameId) {
   const score    = getLiveScore(gameId);
   const game     = _findGameByRef(gameId);
   // Age group: resolve from TEAM_CACHE so the correct group is used even with multiple selected
   const _agLabel = _resolveGameAgeGroup(gameId);
-  // Team name: "Big Splash A" format â€” club name + team letter
+  // Team name: "Big Splash A" format — club name + team letter
   const _club    = localStorage.getItem('ebwp-club-name') || getAppClubId() || '';
   const _tName   = game ? (`${_club}${game.team ? ' ' + game.team : ''}`).trim() : '';
   return {
@@ -1869,7 +1587,7 @@ function afterScore(gameId) {
   if (state.currentTab === 'scores') renderScoresTab();
   updateLiveDot();
   _announceScore(gameRef); // VoiceOver: read updated score aloud
-  // Broadcast score to CF Worker â€” reset to pre clears all viewer devices
+  // Broadcast score to CF Worker — reset to pre clears all viewer devices
   const _afterGs = state.liveScores[scopedKey];
   let historyChanged = false;
   if (_afterGs) historyChanged = _applyAutoFinalResult(gameId, _afterGs);
@@ -1889,7 +1607,7 @@ function afterScore(gameId) {
   if (typeof EggbeaterLiveUpdate !== 'undefined') {
     EggbeaterLiveUpdate.sync(gameRef, _buildLUScore(gameRef));
   }
-  // iOS Live Activity auto-update (fire-and-forget) â€” scorer's own lock screen updates on every goal
+  // iOS Live Activity auto-update (fire-and-forget) — scorer's own lock screen updates on every goal
   if (window.Capacitor?.isNativePlatform?.() && window.Capacitor?.getPlatform?.() === 'ios') {
     const _las = state.liveScores[scopedKey];
     if (_las && _las.gameState !== 'pre' && _las.gameState !== 'final') {
@@ -1965,7 +1683,7 @@ function getLiveScore(gameId) {
     };
   }
   const s = state.liveScores[key];
-  // Migrate old goals[] format â†’ events[]
+  // Migrate old goals[] format → events[]
   if (!s.events && s.goals) {
     s.events = s.goals.map(g => ({
       type: g.side === 'team' ? 'goal' : 'opp_goal',
@@ -2011,9 +1729,9 @@ function _setLiveScore(gameId, score) {
   };
 }
 
-// â”€â”€â”€ BOX SCORE EVENT RECORDING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── BOX SCORE EVENT RECORDING ────────────────────────────────────────────────
 
-// Mapping from game-state key â†’ period number
+// Mapping from game-state key → period number
 const PERIOD_FOR_STATE = { start: 0, q1: 1, q2: 2, half: 2, q3: 3, q4: 4, ot: 5, final: 4, shootout: 6 };
 const TIMER_PHASE_FOR_STATE = { q1: 'q1', q2: 'q2', half: 'halftime', q3: 'q3', q4: 'q4' };
 const PERIOD_LABELS    = { 0: 'Pre-Game', 1: 'Q1', 2: 'Q2', 3: 'Q3', 4: 'Q4', 5: 'OT', 6: 'Shootout' };
@@ -2040,7 +1758,7 @@ function setGameState(gameId, gstate) {
   afterScore(gameId);
 }
 
-// Toggle a game-state button â€” tap once to activate, tap again to revert to Pre-Game.
+// Toggle a game-state button — tap once to activate, tap again to revert to Pre-Game.
 // Used for Start, Shootout, and End so accidental taps can always be reversed cleanly.
 function toggleGameState(gameId, gstate) {
   const s = getLiveScore(gameId);
@@ -2082,7 +1800,7 @@ function resetToPreGame(gameId) {
 // Keep old name as alias
 function toggleGameStart(gameId) { toggleGameState(gameId, 'start'); }
 
-// Update the running clock display (no re-render â€” called on every keystroke)
+// Update the running clock display (no re-render — called on every keystroke)
 function setGameClock(gameId, val) {
   const s = getLiveScore(gameId);
   s.clock = val;
@@ -2129,18 +1847,18 @@ function recordEventForPlayer(gameId, eventType, cap, name, extra = false) {
   if (actualType === 'opp_so_goal') s.opp  = Math.round((s.opp  + 0.1) * 10) / 10;
   s.events.push(ev);
   _setLiveScore(gameId, s);
-  if (isTeamGoal) _hapticGoal(); // celebrate! ðŸŽ‰
+  if (isTeamGoal) _hapticGoal(); // celebrate! 🎉
   afterScore(gameId);
 }
 
 // Record a direct (no-player) event: opp_goal, timeout, opp_timeout, opp_exclusion
-// Always uses auto-clock â€” no manual prompt needed.
+// Always uses auto-clock — no manual prompt needed.
 function recordEventDirect(gameId, eventType) {
   _pendingClock = getCurrentClockStr(gameId);
   _doRecordDirect(gameId, eventType);
 }
 
-// Internal â€” records immediately using _pendingClock (no prompt).
+// Internal — records immediately using _pendingClock (no prompt).
 function _doRecordDirect(gameId, eventType) {
   const s          = getLiveScore(gameId);
   const inShootout = s.gameState === 'shootout';
@@ -2175,7 +1893,7 @@ function recomputeScores(events) {
 }
 
 /** Fire a heavy haptic (iOS Taptic Engine) or a double-pulse vibration (Android/web)
- *  when our team scores a goal â€” gives parents watching live a physical jolt of joy. */
+ *  when our team scores a goal — gives parents watching live a physical jolt of joy. */
 function _hapticGoal() {
   try {
     const Haptics = window.Capacitor?.Plugins?.Haptics;
@@ -2184,7 +1902,7 @@ function _hapticGoal() {
   try { navigator.vibrate?.([80, 40, 80]); } catch {} // double-pulse fallback
 }
 
-// Remove the last event (smart undo â€” recomputes scores)
+// Remove the last event (smart undo — recomputes scores)
 function undoLastEvent(gameId) {
   const s = getLiveScore(gameId);
   // Backward compat: old goals[] format
@@ -2218,7 +1936,7 @@ function scoreGoal(gameId, side, cap, name) {
 }
 function undoLastGoal(gameId) { undoLastEvent(gameId); }
 
-// â”€â”€â”€ BOX SCORE RENDERING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── BOX SCORE RENDERING ──────────────────────────────────────────────────────
 
 // Build the event log HTML, grouped by period
 function buildEventLog(events, currentPeriod = 0) {
@@ -2233,8 +1951,8 @@ function buildEventLog(events, currentPeriod = 0) {
     groups[p].push(ev);
   }
 
-  const WP_BALL = '<span class="wp-ball">ðŸ</span>';
-  const TYPE_ICONS = { goal:WP_BALL, opp_goal:WP_BALL, goal_5m:WP_BALL, opp_goal_5m:WP_BALL, shot_miss:'âŒ', opp_shot_miss:'âŒ', miss_5m:'âŒ', opp_miss_5m:'âŒ', so_goal:WP_BALL, opp_so_goal:WP_BALL, so_miss:'âŒ', opp_so_miss:'âŒ', assist:'ðŸ¤', steal:'ðŸ§¤', sprint_won:'âš¡', opp_sprint_won:'âš¡', exclusion:'âŒ', opp_exclusion:'âŒ', brutality:'ðŸŸ¥', timeout:'â±', opp_timeout:'â±', save:'ðŸ§¤', block:'ðŸ§¤' };
+  const WP_BALL = '<span class="wp-ball">🏐</span>';
+  const TYPE_ICONS = { goal:WP_BALL, opp_goal:WP_BALL, goal_5m:WP_BALL, opp_goal_5m:WP_BALL, shot_miss:'❌', opp_shot_miss:'❌', miss_5m:'❌', opp_miss_5m:'❌', so_goal:WP_BALL, opp_so_goal:WP_BALL, so_miss:'❌', opp_so_miss:'❌', assist:'🤝', steal:'🧤', sprint_won:'⚡', opp_sprint_won:'⚡', exclusion:'❌', opp_exclusion:'❌', brutality:'🟥', timeout:'⏱', opp_timeout:'⏱', save:'🧤', block:'🧤' };
   const TYPE_LABEL = {
     goal:          ev => ev.sixOnFive ? 'GOAL (6v5)' : 'GOAL',
     opp_goal:      ()  => 'GOAL',
@@ -2244,8 +1962,8 @@ function buildEventLog(events, currentPeriod = 0) {
     opp_shot_miss: ()  => 'SHOT ATTEMPT',
     miss_5m:       ()  => 'ATTEMPT (5m)',
     opp_miss_5m:   ()  => 'ATTEMPT (5m)',
-    so_goal:       ()  => 'SO GOAL ðŸŽ¯',
-    opp_so_goal:   ()  => 'SO GOAL ðŸŽ¯',
+    so_goal:       ()  => 'SO GOAL 🎯',
+    opp_so_goal:   ()  => 'SO GOAL 🎯',
     so_miss:       ()  => 'SO MISS',
     opp_so_miss:   ()  => 'SO MISS',
     assist:        ()  => 'ASSIST',
@@ -2277,13 +1995,13 @@ function buildEventLog(events, currentPeriod = 0) {
       <summary class="event-period-header">${escHtml(label)}</summary>`;
     for (const ev of evs) {
       const isTeam    = ev.side === 'team';
-      const icon      = TYPE_ICONS[ev.type] || 'Â·';
+      const icon      = TYPE_ICONS[ev.type] || '·';
       const typeLabel = (TYPE_LABEL[ev.type] || (() => ev.type))(ev);
       const player    = ev.cap  ? `#${escHtml(ev.cap)} ${escHtml((ev.name||'').split(' ')[0])}`
                       : ev.name ? escHtml(ev.name)
                       : isTeam  ? 'Team' : 'Opp';
       html += `<div class="event-row event-${isTeam?'team':'opp'}">
-        <span class="event-clock">${escHtml(ev.clock||'â€”')}</span>
+        <span class="event-clock">${escHtml(ev.clock||'—')}</span>
         <span class="event-icon">${icon}</span>
         <span class="event-player">${player}</span>
         <span class="event-type">${escHtml(typeLabel)}</span>
@@ -2397,10 +2115,10 @@ function buildBoxScoreHtml(events, oppName) {
       <span class="bs-player bs-col-hdr">Player</span>
       <span class="bs-stat bs-col-hdr">G</span>
       ${hasShotMiss ? `<span class="bs-stat bs-col-hdr" title="Shot Attempts">SA</span>` : ''}
-      ${has5m ? `<span class="bs-stat bs-col-hdr" title="5m Penalty Goals">5mâœ“</span>` : ''}
+      ${has5m ? `<span class="bs-stat bs-col-hdr" title="5m Penalty Goals">5m✓</span>` : ''}
       ${has5m ? `<span class="bs-stat bs-col-hdr" title="5m Penalty Attempts">5m?</span>` : ''}
-      ${hasSoGoals ? `<span class="bs-stat bs-col-hdr" title="Shootout Goals">SOâœ“</span>` : ''}
-      ${hasSoGoals ? `<span class="bs-stat bs-col-hdr" title="Shootout Misses">SOâœ—</span>` : ''}
+      ${hasSoGoals ? `<span class="bs-stat bs-col-hdr" title="Shootout Goals">SO✓</span>` : ''}
+      ${hasSoGoals ? `<span class="bs-stat bs-col-hdr" title="Shootout Misses">SO✗</span>` : ''}
       <span class="bs-stat bs-col-hdr">A</span>
       <span class="bs-stat bs-col-hdr">S</span>
       ${hasSprintWins ? `<span class="bs-stat bs-col-hdr" title="Sprints Won">SW</span>` : ''}
@@ -2468,8 +2186,8 @@ function shareBoxScore(gameId) {
 
   let text = `${TOURNAMENT.name || 'Eggbeater'}\n`;
   text += `${getActiveTeamLabel()} vs ${opp}\n`;
-  text += `Final Score: Team ${s.team} â€“ ${s.opp} ${opp}\n`;
-  if (s.quarterMins) text += `Quarters: ${s.quarterMins} min  Â·  Half: ${s.halfMins} min  Â·  T/O: ${s.timeoutMins} min\n`;
+  text += `Final Score: Team ${s.team} – ${s.opp} ${opp}\n`;
+  if (s.quarterMins) text += `Quarters: ${s.quarterMins} min  ·  Half: ${s.halfMins} min  ·  T/O: ${s.timeoutMins} min\n`;
   text += '\n';
 
   // Events by period
@@ -2481,13 +2199,13 @@ function shareBoxScore(gameId) {
     groups[p].push(ev);
   }
   for (const [period, pevs] of Object.entries(groups).sort((a,b) => Number(a[0])-Number(b[0]))) {
-    text += `â”€â”€ ${PERIOD_LABELS[parseInt(period)] || 'P'+period} â”€â”€\n`;
+    text += `── ${PERIOD_LABELS[parseInt(period)] || 'P'+period} ──\n`;
     for (const ev of pevs) {
       const clock  = ev.clock ? `[${ev.clock}] ` : '';
       const player = ev.cap   ? `#${ev.cap} ${(ev.name||'').split(' ')[0]}` : (ev.name || '');
       const side   = ev.side === 'team' ? 'Team' : opp;
       const tl     = (TYPE_TEXT[ev.type] || (() => ev.type))(ev);
-      text += `  ${clock}${side}${player?' '+player:''} â€” ${tl}\n`;
+      text += `  ${clock}${side}${player?' '+player:''} — ${tl}\n`;
     }
     text += '\n';
   }
@@ -2512,7 +2230,7 @@ function shareBoxScore(gameId) {
   const fieldPs = ps.filter(p => !isGoalie(p.cap));
   const gkPs    = ps.filter(p =>  isGoalie(p.cap));
   if (fieldPs.length) {
-    text += `â”€â”€ Box Score â”€â”€\n`;
+    text += `── Box Score ──\n`;
     text += `${'Player'.padEnd(15)} G  A  S  SW Ex EE\n`;
     for (const p of fieldPs) {
       const n = (p.cap ? `#${p.cap} ${(p.name||'').split(' ')[0]}` : p.name||'?').padEnd(15);
@@ -2521,7 +2239,7 @@ function shareBoxScore(gameId) {
     if (ttls) text += `Team Timeouts: ${ttls}\n`;
   }
   if (gkPs.length) {
-    text += `â”€â”€ Goalkeeper â”€â”€\n`;
+    text += `── Goalkeeper ──\n`;
     text += `${'Player'.padEnd(15)} Sv Ex\n`;
     for (const p of gkPs) {
       const n = (p.cap ? `#${p.cap} ${(p.name||'').split(' ')[0]}` : p.name||'GK').padEnd(15);
@@ -2531,15 +2249,15 @@ function shareBoxScore(gameId) {
   text += `\nGenerated by ${getActiveTeamLabel()} WP App`;
 
   if (navigator.share) {
-    navigator.share({ title: `Team vs ${opp} â€” Box Score`, text }).catch(() => {});
+    navigator.share({ title: `Team vs ${opp} — Box Score`, text }).catch(() => {});
   } else {
     navigator.clipboard?.writeText(text)
       .then(()  => showToast('Box score copied!', 'ok'))
-      .catch(()  => showToast('Copy failed â€” try a different browser'));
+      .catch(()  => showToast('Copy failed — try a different browser'));
   }
 }
 
-// â”€â”€â”€ ROSTER MANAGEMENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── ROSTER MANAGEMENT ────────────────────────────────────────────────────────
 
 function loadRoster(groupOrRef = null) {
   try {
@@ -2607,7 +2325,7 @@ function saveRosterFromUI() {
   showToast('Roster saved!', 'ok');
 }
 
-// â”€â”€â”€ GROUPME BOT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GROUPME BOT ───────────────────────────────────────────────────────────────
 
 function loadGroupMeSettings() {
   return localStorage.getItem(STORE.GROUPME_BOT_ID) || '';
@@ -2649,7 +2367,7 @@ async function sendBoxScoreNotify(gameId, channel) {
   const text = buildBoxScoreText(gameId);
   const scorePassword = TOURNAMENT.scoringPassword || '';
   const label = channel === 'tg' ? 'Telegram' : 'GroupMe';
-  showToast(`Sending to ${label}â€¦`);
+  showToast(`Sending to ${label}…`);
   try {
     const res  = await fetch(`${PUSH_SERVER_URL}/notify`, {
       method:  'POST',
@@ -2658,12 +2376,12 @@ async function sendBoxScoreNotify(gameId, channel) {
     });
     const data = await res.json();
     if (data.ok) {
-      showToast(`âœ… Sent to ${label}!`, 'ok');
+      showToast(`✅ Sent to ${label}!`, 'ok');
     } else {
-      showToast(`âŒ ${label}: ${data.description || 'Not configured or failed'}`, 'err');
+      showToast(`❌ ${label}: ${data.description || 'Not configured or failed'}`, 'err');
     }
   } catch (e) {
-    showToast('âŒ Network error: ' + e.message, 'err');
+    showToast('❌ Network error: ' + e.message, 'err');
   }
 }
 
@@ -2675,17 +2393,17 @@ async function sendShootoutAlert(gameId, channel) {
   const teamScore = Number.isInteger(s.team) ? s.team : s.team.toFixed(1);
   const oppScore  = Number.isInteger(s.opp)  ? s.opp  : s.opp.toFixed(1);
   const text = [
-    `ðŸŽ¯ SHOOTOUT!`,
+    `🎯 SHOOTOUT!`,
     `${TOURNAMENT.name || 'Eggbeater'}`,
     `Team vs ${opp}`,
     ``,
-    `Tied ${teamScore}â€“${oppScore} at end of regulation.`,
+    `Tied ${teamScore}–${oppScore} at end of regulation.`,
     `Heading to penalty shootout! 5 shots per team.`,
     ``,
-    `Each goal = 0.1 pts Â· Most total wins the round.`,
+    `Each goal = 0.1 pts · Most total wins the round.`,
   ].join('\n');
   const label = channel === 'tg' ? 'Telegram' : 'GroupMe';
-  showToast(`Sending shootout alert to ${label}â€¦`);
+  showToast(`Sending shootout alert to ${label}…`);
   try {
     const res = await fetch(`${PUSH_SERVER_URL}/notify`, {
       method:  'POST',
@@ -2693,10 +2411,10 @@ async function sendShootoutAlert(gameId, channel) {
       body:    JSON.stringify({ text, channel, scorePassword: TOURNAMENT.scoringPassword || '', team: getSelectedTeam() }),
     });
     const data = await res.json();
-    if (data.ok) showToast(`âœ… Shootout alert sent to ${label}!`, 'ok');
-    else showToast(`âŒ ${label}: ${data.description || 'Not configured or failed'}`, 'err');
+    if (data.ok) showToast(`✅ Shootout alert sent to ${label}!`, 'ok');
+    else showToast(`❌ ${label}: ${data.description || 'Not configured or failed'}`, 'err');
   } catch (e) {
-    showToast('âŒ Network error: ' + e.message, 'err');
+    showToast('❌ Network error: ' + e.message, 'err');
   }
 }
 
@@ -2735,10 +2453,10 @@ function buildBoxScoreText(gameId) {
     field_block:   ()  => 'FIELD BLOCK',
   };
 
-  // â”€â”€ Status line: smart summary based on game state â”€â”€
+  // ── Status line: smart summary based on game state ──
   const gs = s.gameState || 'pre';
   let statusLine;
-  const scoreStr = `${getActiveTeamLabel()} ${s.team} â€“ ${opp} ${s.opp}`;
+  const scoreStr = `${getActiveTeamLabel()} ${s.team} – ${opp} ${s.opp}`;
   if (gs === 'pre' || gs === 'start') {
     statusLine = 'Game has Started';
   } else if (gs === 'half') {
@@ -2747,7 +2465,7 @@ function buildBoxScoreText(gameId) {
     const label = gs === 'so_w' ? 'SO Win' : gs === 'so_l' ? 'SO Loss' : gs === 'ff' ? 'Forfeit' : 'Final';
     statusLine = `${label}: ${scoreStr}`;
   } else {
-    // In-progress quarter/OT â€” show current period + score
+    // In-progress quarter/OT — show current period + score
     const periodLabel = PERIOD_LABELS[s.period] || `P${s.period}`;
     statusLine = `${periodLabel}: ${scoreStr}`;
   }
@@ -2765,13 +2483,13 @@ function buildBoxScoreText(gameId) {
     groups[p].push(ev);
   }
   for (const [period, pevs] of Object.entries(groups).sort((a,b) => Number(a[0])-Number(b[0]))) {
-    text += `â”€â”€ ${PERIOD_LABELS[parseInt(period)] || 'P'+period} â”€â”€\n`;
+    text += `── ${PERIOD_LABELS[parseInt(period)] || 'P'+period} ──\n`;
     for (const ev of pevs) {
       const clock  = ev.clock ? `[${ev.clock}] ` : '';
       const player = ev.cap   ? `#${ev.cap} ${(ev.name||'').split(' ')[0]}` : (ev.name || '');
       const side   = ev.side === 'team' ? 'Team' : opp;
       const tl     = (TYPE_TEXT[ev.type] || (() => ev.type))(ev);
-      text += `  ${clock}${side}${player?' '+player:''} â€” ${tl}\n`;
+      text += `  ${clock}${side}${player?' '+player:''} — ${tl}\n`;
     }
     text += '\n';
   }
@@ -2796,7 +2514,7 @@ function buildBoxScoreText(gameId) {
   const fieldPs = ps.filter(p => !isGoalie(p.cap));
   const gkPs    = ps.filter(p =>  isGoalie(p.cap));
   if (fieldPs.length) {
-    text += `â”€â”€ Box Score â”€â”€\n`;
+    text += `── Box Score ──\n`;
     text += `Player          G  A  S  SW Ex EE\n`;
     for (const p of fieldPs) {
       const n = (p.cap ? `#${p.cap} ${(p.name||'').split(' ')[0]}` : p.name||'?').padEnd(15);
@@ -2806,14 +2524,14 @@ function buildBoxScoreText(gameId) {
     if (oppTtls) text += `Opp Timeouts: ${oppTtls}\n`;
   }
   if (gkPs.length) {
-    text += `â”€â”€ Goalkeeper â”€â”€\n`;
+    text += `── Goalkeeper ──\n`;
     text += `Player          Sv Ex\n`;
     for (const p of gkPs) {
       const n = (p.cap ? `#${p.cap} ${(p.name||'').split(' ')[0]}` : p.name||'GK').padEnd(15);
       text += `${n} ${p.Sv}  ${p.Excl}\n`;
     }
   }
-  text += `\nâ€” ${getActiveTeamLabel()} WP App\nhttps://eggbeater.app`;
+  text += `\n— ${getActiveTeamLabel()} WP App\nhttps://eggbeater.app`;
   return text;
 }
 
@@ -2822,20 +2540,20 @@ async function testGroupMeBot() {
   const botId = (input?.value || '').trim();
   if (!botId) { showToast('Paste your Bot ID first'); return; }
   saveGroupMeSettings(botId);
-  showToast('Sending test messageâ€¦');
+  showToast('Sending test message…');
   try {
     const res = await fetch('https://api.groupme.com/v3/bots/post', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ bot_id: botId, text: 'Eggbeater WP App connected! ðŸ¤½â€â™€ï¸' }),
+      body:    JSON.stringify({ bot_id: botId, text: 'Eggbeater WP App connected! 🤽‍♀️' }),
     });
     if (res.ok || res.status === 202) {
-      showToast('Test message sent! Check your GroupMe ðŸ“±', 'ok');
+      showToast('Test message sent! Check your GroupMe 📱', 'ok');
     } else {
-      showToast(`Failed (HTTP ${res.status}) â€” double-check Bot ID`);
+      showToast(`Failed (HTTP ${res.status}) — double-check Bot ID`);
     }
   } catch {
-    showToast('Network error â€” check connection');
+    showToast('Network error — check connection');
   }
 }
 
@@ -2887,13 +2605,13 @@ function renderRosterTab() {
              oninput="updateRosterPlayer(${i},'last',this.value)" aria-label="Last">
       ${isHS ? `<select class="roster-name-input" style="flex:0 0 70px;font-size:0.75rem;padding:6px 2px"
                        onchange="updateRosterPlayer(${i},'grade',this.value)" aria-label="Grade">
-        <option value="">â€”</option>
+        <option value="">—</option>
         <option value="Freshman"${p.grade==='Freshman'?' selected':''}>Fr</option>
         <option value="Sophomore"${p.grade==='Sophomore'?' selected':''}>So</option>
         <option value="Junior"${p.grade==='Junior'?' selected':''}>Jr</option>
         <option value="Senior"${p.grade==='Senior'?' selected':''}>Sr</option>
       </select>` : ''}
-      <button class="roster-remove-btn" onclick="removeRosterPlayer(${i})" aria-label="Remove">Ã—</button>
+      <button class="roster-remove-btn" onclick="removeRosterPlayer(${i})" aria-label="Remove">×</button>
     </div>`).join('');
 
   el.innerHTML = `${renderMyPlayerCard()}
@@ -2904,14 +2622,14 @@ function renderRosterTab() {
       <span class="history-subtitle">${escHtml(_groupSectionLabelFor(getSelectedTeam(), null))}</span>
     </div>
     <p class="step-desc">Manage players for live scoring. Cap numbers appear on goal/assist chips.</p>
-    <button class="pstats-export-btn" onclick="openPlayerStatsModal()">ðŸ“Š Download All Player Stats</button>
-    <button class="pstats-export-btn" style="background:#eff6ff;color:#1e40af;border-color:#93c5fd" onclick="openSeasonStatsModal()">ðŸ“Š Season Stats</button>
+    <button class="pstats-export-btn" onclick="openPlayerStatsModal()">📊 Download All Player Stats</button>
+    <button class="pstats-export-btn" style="background:#eff6ff;color:#1e40af;border-color:#93c5fd" onclick="openSeasonStatsModal()">📊 Season Stats</button>
     ${colHdr}
     <div id="roster-edit-list">
       ${rows || '<p class="empty-msg" style="padding:10px 0">No players yet.</p>'}
     </div>
     <button class="btn btn-ghost" onclick="addRosterPlayer()" style="margin-top:10px">+ Add Player</button>
-    <button class="btn-save-roster" onclick="saveRosterFromUI()">ðŸ’¾ Save Roster</button>
+    <button class="btn-save-roster" onclick="saveRosterFromUI()">💾 Save Roster</button>
   </div>`;
 }
 
@@ -2926,8 +2644,8 @@ function _renderRosterMulti(el, slots) {
     const sorted = sortedRoster(roster);
     const rows = sorted.map(p => `
       <div class="roster-view-row">
-        <span class="roster-cap-badge${isGoalie(p.cap) ? ' roster-cap-gk' : ''}">${p.cap ? '#' + escHtml(p.cap) : 'â€”'}</span>
-        <span class="roster-view-name">${escHtml([p.first, p.last].filter(Boolean).join(' ') || 'â€”')}</span>
+        <span class="roster-cap-badge${isGoalie(p.cap) ? ' roster-cap-gk' : ''}">${p.cap ? '#' + escHtml(p.cap) : '—'}</span>
+        <span class="roster-view-name">${escHtml([p.first, p.last].filter(Boolean).join(' ') || '—')}</span>
       </div>`).join('');
     html += `<div class="card tab-card roster-view-card">
       <div class="scores-slot-header slot-header-in-card"><span class="scores-slot-label">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>
@@ -2942,7 +2660,7 @@ function _renderRosterMulti(el, slots) {
   el.innerHTML = html;
 }
 
-// â”€â”€â”€ PLAYER LOOKUP (Roster tab) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PLAYER LOOKUP (Roster tab) ──────────────────────────────────────────────
 
 let _playerLookupName = '';
 
@@ -2983,7 +2701,7 @@ function renderPlayerLookupCard() {
     </div>
     <p class="step-desc">Look up stats for any rostered player.</p>
     <select class="player-lookup-select" onchange="selectPlayerLookup(this.value)">
-      <option value="">â€” Choose a player â€”</option>
+      <option value="">— Choose a player —</option>
       ${optsHtml}
     </select>
     <div id="player-lookup-result">${resultHtml}</div>
@@ -3054,7 +2772,7 @@ function buildPlayerLookupResult(name) {
   const recent = [...rows].reverse().slice(0, 5);
   const gameRowsHtml = recent.map(r => {
     const res   = r.result ? `<span class="mp-game-result mp-res-${r.result.toLowerCase()}">${resultLabel(r.result)}</span>` : '';
-    const score = (r.teamScore !== '' && r.oppScore !== '') ? `<span class="mp-game-score">${r.teamScore}â€“${r.oppScore}</span>` : '';
+    const score = (r.teamScore !== '' && r.oppScore !== '') ? `<span class="mp-game-score">${r.teamScore}–${r.oppScore}</span>` : '';
     const st    = isGK
       ? `Sv&nbsp;${r.Sv||0}&nbsp; Ex&nbsp;${r.Excl}`
       : `G&nbsp;${r.G}&nbsp; A&nbsp;${r.A}&nbsp; Ex&nbsp;${r.Excl}&nbsp; EE&nbsp;${r.EE||0}`;
@@ -3072,15 +2790,15 @@ function buildPlayerLookupResult(name) {
       <div class="plookup-name-row">${capBadge}<span class="plookup-name">${escHtml(name)}</span>${gkBadge}</div>
     </div>
     ${statBoxes}
-    ${!gameCount ? '<p class="plookup-no-stats">No stats recorded yet â€” use live scoring to start tracking.</p>' : ''}
+    ${!gameCount ? '<p class="plookup-no-stats">No stats recorded yet — use live scoring to start tracking.</p>' : ''}
     ${gameRowsHtml ? `<div class="plookup-games-section">
       <div class="mp-section-label">Recent games</div>
       ${gameRowsHtml}${moreNote}
     </div>` : ''}
-    ${gameCount ? `<button class="plookup-dl-btn" onclick="downloadPlayerStats('${nameEnc}')">ðŸ“Š Download stats CSV</button>` : ''}`;
+    ${gameCount ? `<button class="plookup-dl-btn" onclick="downloadPlayerStats('${nameEnc}')">📊 Download stats CSV</button>` : ''}`;
 }
 
-// â”€â”€â”€ HISTORY TEAM SEARCH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── HISTORY TEAM SEARCH ─────────────────────────────────────────────────────
 
 let _historyTeamFilter = '';
 
@@ -3116,10 +2834,10 @@ function renderHistoryTeamSearch() {
   el.innerHTML = `<div class="card tab-card team-search-card">
     <div class="history-header-row">
       <h2>Search by Team</h2>
-      ${_historyTeamFilter ? `<button class="team-search-clear-btn" onclick="clearTeamSearch()">Clear âœ•</button>` : ''}
+      ${_historyTeamFilter ? `<button class="team-search-clear-btn" onclick="clearTeamSearch()">Clear ✕</button>` : ''}
     </div>
     <select class="team-search-select" onchange="applyTeamSearch(this.value)">
-      <option value="">â€” Select an opponent â€”</option>
+      <option value="">— Select an opponent —</option>
       ${opts.join('')}
     </select>
     <div id="team-search-result">${resultHtml}</div>
@@ -3139,7 +2857,7 @@ function applyTeamSearch(encodedOpp) {
     if (_historyTeamFilter && !existing) {
       const btn = document.createElement('button');
       btn.className = 'team-search-clear-btn';
-      btn.textContent = 'Clear âœ•';
+      btn.textContent = 'Clear ✕';
       btn.onclick = clearTeamSearch;
       hRow.appendChild(btn);
     } else if (!_historyTeamFilter && existing) {
@@ -3214,7 +2932,7 @@ function buildTeamSearchResult(opponent) {
     else if (g.result && g.result !== 'F') T++;
   }
   const totalWithResult = W + L + T;
-  const recStr = totalWithResult ? `${W}W â€“ ${L}L${T ? ` â€“ ${T}T` : ''}` : `${matchedGames.length} game${matchedGames.length !== 1 ? 's' : ''}`;
+  const recStr = totalWithResult ? `${W}W – ${L}L${T ? ` – ${T}T` : ''}` : `${matchedGames.length} game${matchedGames.length !== 1 ? 's' : ''}`;
 
   const gameRows = matchedGames.map(g => {
     const rc = isWin(g.result) ? 'win' : (g.result === 'L' || g.result === 'SL') ? 'loss' : 'none';
@@ -3225,7 +2943,7 @@ function buildTeamSearchResult(opponent) {
     }
     let scoreStr = '';
     if (g.teamScore !== '' && g.oppScore !== '') {
-      scoreStr = `<span class="tsearch-score">${g.teamScore}â€“${g.oppScore}</span>`;
+      scoreStr = `<span class="tsearch-score">${g.teamScore}–${g.oppScore}</span>`;
     } else if (g.score) {
       scoreStr = `<span class="tsearch-score">${escHtml(g.score)}</span>`;
     }
@@ -3247,7 +2965,7 @@ function buildTeamSearchResult(opponent) {
     <div class="tsearch-games-list">${gameRows}</div>`;
 }
 
-// â”€â”€ Auto-Clock Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Auto-Clock Engine ────────────────────────────────────────────────────────
 
 function _getScopedClockSettings(gameOrRef = null) {
   const groupKey = gameOrRef ? _contextGroupKey(gameOrRef) : '';
@@ -3322,7 +3040,7 @@ function _tickAllClocks() {
     if (schedEl) schedEl.textContent = fmtTime;
     // Keep state.clock in sync so broadcasts and Live Activity updates have the current time
     s.clock = fmtTime;
-    // Push clock to iOS Live Activity once per second â€” no _activeLA check since
+    // Push clock to iOS Live Activity once per second — no _activeLA check since
     // the LA can outlive an _activeLA reset (e.g. after a SW cache reload).
     if (window.Capacitor?.isNativePlatform?.() && window.Capacitor?.getPlatform?.() === 'ios') {
       const now = Date.now();
@@ -3336,7 +3054,7 @@ function _tickAllClocks() {
           clock:     fmtTime,
           quarter:   String(s.period || 1),
           lastEvent: _buildLastEventStr(gameId),
-          // Native iOS countdown timer â€” Date.now()/1000 + remaining seconds = end timestamp
+          // Native iOS countdown timer — Date.now()/1000 + remaining seconds = end timestamp
           timerEnd:  s.timerRunning && remaining > 0 ? (Date.now() / 1000 + remaining) : 0,
         }).catch(() => {});
       }
@@ -3388,7 +3106,7 @@ function _handleClockExpired(gameId) {
     _setLiveScore(gameId, s);
     saveLiveScores();
     setGameState(gameId, 'final');
-    showToast('ðŸ Game over!');
+    showToast('🏁 Game over!');
     return;
   }
 
@@ -3406,15 +3124,15 @@ function _handleClockExpired(gameId) {
     const gs = _phaseGameState(next);
     if (gs) setGameState(gameId, gs);
     else { renderGamesList(); renderNextGameCard(); if (state.currentTab === 'scores') renderScoresTab(); }
-    showToast(next === 'halftime' ? 'â¸ Halftime!' : 'â¸ Quarter break');
+    showToast(next === 'halftime' ? '⏸ Halftime!' : '⏸ Quarter break');
   } else {
-    // New quarter â€” advance state, wait for scorer to tap â–¶
+    // New quarter — advance state, wait for scorer to tap ▶
     _setLiveScore(gameId, s);
     saveLiveScores();
     const gs = _phaseGameState(next);
     if (gs) setGameState(gameId, gs);
     else { renderGamesList(); renderNextGameCard(); if (state.currentTab === 'scores') renderScoresTab(); }
-    showToast(`â± ${_phaseLabel(next)} â€” tap â–¶ to start`);
+    showToast(`⏱ ${_phaseLabel(next)} — tap ▶ to start`);
   }
 }
 
@@ -3464,7 +3182,7 @@ function startScoring(gameId) {
  * native Text(.timer) countdown starts/stops at exactly the right moment.
  */
 function _pushLAClockState(gameId) {
-  // No _activeLA guard â€” the LA may still be showing even if _activeLA was reset
+  // No _activeLA guard — the LA may still be showing even if _activeLA was reset
   // (e.g. after a SW reload). Always attempt updateActivity; fails silently if no LA active.
   if (!window.Capacitor?.isNativePlatform?.() || window.Capacitor?.getPlatform?.() !== 'ios') return;
   const s = getLiveScore(gameId);
@@ -3483,7 +3201,7 @@ function _pushLAClockState(gameId) {
     clock:     s.clock || fmtClock(s.timerSecondsLeft || 0),
     quarter:   String(s.period || 1),
     lastEvent: _buildLastEventStr(gameId),
-    // timerEnd non-zero â†’ SwiftUI runs native countdown; 0 â†’ shows frozen clockStr
+    // timerEnd non-zero → SwiftUI runs native countdown; 0 → shows frozen clockStr
     timerEnd:  s.timerRunning && remaining > 0 ? (Date.now() / 1000 + remaining) : 0,
   }).catch(() => {});
 }
@@ -3498,7 +3216,7 @@ function pauseGameTimer(gameId) {
   s.clock            = fmtClock(s.timerSecondsLeft); // freeze display time
   _setLiveScore(gameId, s);
   saveLiveScores();
-  _pushLAClockState(gameId); // tell LA to stop ticking (timerEnd â†’ 0)
+  _pushLAClockState(gameId); // tell LA to stop ticking (timerEnd → 0)
   renderGamesList();
   renderNextGameCard();
   if (state.currentTab === 'scores') renderScoresTab();
@@ -3561,7 +3279,7 @@ function resetGameClock(gameId, phaseOverride = null, autoStart = false) {
   }, { timeoutMs: 3000 });
 }
 
-// Format timeout length for button labels: 1 â†’ "1 Min", 0.5 â†’ "30s", 1.5 â†’ "1.5 Min"
+// Format timeout length for button labels: 1 → "1 Min", 0.5 → "30s", 1.5 → "1.5 Min"
 function fmtTOLabel(mins) {
   if (mins < 1) return `${Math.round(mins * 60)}s`;
   return `${mins} Min`;
@@ -3611,9 +3329,9 @@ function callOppTimeout(gameId, lengthMins) {
   _doRecordDirect(gameId, 'opp_timeout');
 }
 
-// â”€â”€â”€ CLOCK PROMPT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CLOCK PROMPT ─────────────────────────────────────────────────────────────
 
-let _pendingClock    = '';   // clock value bridged from prompt â†’ recording
+let _pendingClock    = '';   // clock value bridged from prompt → recording
 let _clockCallback   = null; // called with the entered time (or '' to skip)
 
 /** Show the clock-prompt bottom sheet. callback(clockStr) fires when confirmed. */
@@ -3624,7 +3342,7 @@ function promptClock(callback) {
   $('clock-prompt')?.classList.remove('hidden');
   document.body.classList.add('modal-open');
   _openModal('clock-prompt');
-  // Auto-focus input after paint (overrides _trapFocus default â€” both target the input)
+  // Auto-focus input after paint (overrides _trapFocus default — both target the input)
   setTimeout(() => $('clock-prompt-input')?.focus(), 80);
 }
 
@@ -3639,7 +3357,7 @@ function confirmClockPrompt(val) {
 
 function skipClockPrompt() { confirmClockPrompt(''); }
 
-// â”€â”€â”€ EVENT PICKER MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── EVENT PICKER MODAL ───────────────────────────────────────────────────────
 
 let _pickerGameId   = null;
 let _pickerType     = 'goal';
@@ -3650,7 +3368,7 @@ function openEventPicker(gameId, eventType) {
     const isSixOnFive = eventType === 'goal_6v5';
     const realType    = isSixOnFive ? 'goal' : eventType;
 
-    // Direct events â€” record immediately with the captured clock
+    // Direct events — record immediately with the captured clock
     if (realType === 'timeout') { _doRecordDirect(gameId, 'timeout'); return; }
 
     const roster = getRosterPlayers(gameId);
@@ -3670,7 +3388,7 @@ function openEventPicker(gameId, eventType) {
       sprint_won:   'Who won the sprint?',
       field_block:  'Who got the field block?',
       exclusion:    'Who was excluded?',
-      brutality:    'Brutality foul â€” who?',
+      brutality:    'Brutality foul — who?',
       earned_excl:  'Who earned the exclusion?',
       save:         'Who made the save?',
     };
@@ -3727,7 +3445,7 @@ function openEventPicker(gameId, eventType) {
     document.body.classList.add('modal-open');
     _openModal('roster-modal');
   };
-  // Always use auto-clock â€” no manual prompt needed.
+  // Always use auto-clock — no manual prompt needed.
   _pendingClock = getCurrentClockStr(gameId);
   _doOpenPicker();
 }
@@ -3745,7 +3463,7 @@ function closeEventPicker() {
 }
 function closeRosterPicker() { closeEventPicker(); }
 
-// â”€â”€â”€ RESULT MANAGEMENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── RESULT MANAGEMENT ────────────────────────────────────────────────────────
 
 function setResult(gameId, result) {
   const scopedKey = _scopedGameKey(gameId);
@@ -3813,7 +3531,7 @@ function clearManualResults() {
 }
 
 
-// â”€â”€â”€ GOOGLE OAUTH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GOOGLE OAUTH ─────────────────────────────────────────────────────────────
 
 function ensureTokenClient() {
   if (state.tokenClient) return;
@@ -3848,13 +3566,13 @@ function _isNativePlatform() {
   return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 }
 
-// â”€â”€â”€ PLAY INTEGRITY (Android only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PLAY INTEGRITY (Android only) ────────────────────────────────────────────
 // Requests a Play Integrity token from the device, then verifies it against our
 // Vercel edge function which calls Google's Play Integrity API.
-// Result is cached for 60 minutes â€” the token is single-use for the nonce but
+// Result is cached for 60 minutes — the token is single-use for the nonce but
 // the device/app reputation verdict doesn't change during a session.
 
-let _integrityVerdict = null;   // cached { verdict, ts } â€” null = not yet checked
+let _integrityVerdict = null;   // cached { verdict, ts } — null = not yet checked
 let _integrityPending = null;   // in-flight Promise to avoid duplicate requests
 
 /** Generate a cryptographically random base64url nonce (24 bytes = 192 bits). */
@@ -3927,7 +3645,7 @@ async function checkPlayIntegrity() {
 
     } catch (e) {
       console.warn('[integrity] Check failed:', e.message);
-      return { ok: true }; // fail-open â€” don't block legitimate users on API errors
+      return { ok: true }; // fail-open — don't block legitimate users on API errors
     } finally {
       _integrityPending = null;
     }
@@ -3938,16 +3656,16 @@ async function checkPlayIntegrity() {
 
 function requestToken(callback) {
   if (_isNativePlatform()) {
-    // â”€â”€ Native iOS: GIS doesn't work in WKWebView â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Native iOS: GIS doesn't work in WKWebView ──────────────────────
     // Use the SocialLogin plugin to get a fresh access token with calendar scope
     _requestTokenNative(callback);
     return;
   }
 
-  // â”€â”€ Web browser: use GIS token client â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Web browser: use GIS token client ──────────────────────────────
   ensureTokenClient();
   if (!state.tokenClient) {
-    showToast('Google Sign-In not ready yet â€” try again in a moment.');
+    showToast('Google Sign-In not ready yet — try again in a moment.');
     return;
   }
   state.pendingAction = callback;
@@ -4011,17 +3729,17 @@ async function _requestTokenNative(callback) {
       state.tokenExpiry = Date.now() + 50 * 60 * 1000; // ~50 min
       callback();
     } else {
-      showToast('Could not get calendar access â€” please try again.');
+      showToast('Could not get calendar access — please try again.');
     }
   } catch (e) {
     console.error('[calendar] native token error:', e);
     if (!e.message?.includes('cancel')) {
-      showToast('Calendar sign-in failed â€” ' + e.message);
+      showToast('Calendar sign-in failed — ' + e.message);
     }
   }
 }
 
-// â”€â”€â”€ CALENDAR API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CALENDAR API ─────────────────────────────────────────────────────────────
 
 async function calFetch(path, options = {}) {
   const resp = await fetch(`https://www.googleapis.com/calendar/v3${path}`, {
@@ -4053,8 +3771,8 @@ function buildEventPayload(game, isPool = true) {
   const end = new Date(start.getTime() + CONFIG.EVENT_DURATION_MIN * 60000);
 
   const title = isPool
-    ? `Team vs ${game.opponent || 'TBD'} â€” ${TOURNAMENT.name}`
-    : `Team ${game.desc} (Projected) â€” ${TOURNAMENT.name}`;
+    ? `Team vs ${game.opponent || 'TBD'} — ${TOURNAMENT.name}`
+    : `Team ${game.desc} (Projected) — ${TOURNAMENT.name}`;
 
   const lines = [
     `Tournament: ${TOURNAMENT.name}`,
@@ -4158,7 +3876,7 @@ async function syncToCalendar() {
     if (created) parts.push(`${created} added`);
     if (updated) parts.push(`${updated} updated`);
     if (!parts.length) parts.push('Calendar up to date');
-    showToast('ðŸ“… ' + parts.join(' Â· '), 'ok');
+    showToast('📅 ' + parts.join(' · '), 'ok');
 
     // Schedule next auto-sync
     clearInterval(state.syncIntervalId);
@@ -4173,7 +3891,7 @@ async function syncToCalendar() {
   }
 }
 
-// â”€â”€â”€ CALENDAR CHOOSER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CALENDAR CHOOSER ─────────────────────────────────────────────────────────
 
 function startCalendarSetup() {
   requestToken(async () => {
@@ -4218,23 +3936,23 @@ function cancelCalendarChoice() {
   switchTab('schedule');
 }
 
-// â”€â”€â”€ SYNC BADGE (header) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── SYNC BADGE (header) ──────────────────────────────────────────────────────
 
 function updateSyncBadge(status) {
   const badge = $('sync-badge');
   if (!state.syncActive) { badge.classList.add('hidden'); return; }
   badge.classList.remove('hidden');
   const map = {
-    ok:      { text: 'âœ“ Synced',   cls: 'badge-ok' },
-    syncing: { text: 'â†» Syncing',  cls: 'badge-syncing' },
-    error:   { text: 'âš  Sync err', cls: 'badge-error' },
+    ok:      { text: '✓ Synced',   cls: 'badge-ok' },
+    syncing: { text: '↻ Syncing',  cls: 'badge-syncing' },
+    error:   { text: '⚠ Sync err', cls: 'badge-error' },
   };
   const { text, cls } = map[status] || map.ok;
   badge.textContent  = text;
   badge.className    = `sync-badge ${cls}`;
 }
 
-// â”€â”€â”€ NAVIGATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
 
 function switchTab(tab) {
   state.currentTab = tab;
@@ -4258,7 +3976,7 @@ function switchTab(tab) {
   });
   updateTScoreTabVisibility();
   if (tab !== 'scores') _setLiveBanner(false); // hide banner when leaving scores tab
-  // Compact header on Scores tab â€” hides the subtitle (dates/venue) to free vertical space
+  // Compact header on Scores tab — hides the subtitle (dates/venue) to free vertical space
   const _hdr = document.querySelector('.app-header');
   if (_hdr) { _hdr.classList.toggle('scores-compact', tab === 'scores'); if (tab !== 'scores') _hdr.classList.remove('scoring-active'); syncHeaderHeight(); }
   // Sync selected tab to native Liquid Glass tab bar (iOS only, no-op elsewhere)
@@ -4269,7 +3987,6 @@ function switchTab(tab) {
   if (tab === 'tournscore')  renderTournScoreTab();
   if (tab === 'help')        renderHelpTab();
   if (tab === 'settings')    renderSettingsTab();
-  applyAppTranslations();
 }
 
 /** Toggle the More drawer bottom sheet */
@@ -4283,7 +4000,7 @@ function toggleMoreDrawer() {
   updateTScoreTabVisibility();
 }
 
-/** Navigate from the More drawer â€” auto-closes drawer */
+/** Navigate from the More drawer — auto-closes drawer */
 function moreNavigate(tab) {
   const el = $('more-drawer');
   if (el) {
@@ -4305,14 +4022,20 @@ function updateTScoreTabVisibility() {
 }
 
 /** Render the Settings tab with team picker, favorites, and club change */
-/** Render the Settings tab with team picker, favorites, and club change */
 function renderSettingsTab() {
   const el = $('view-settings');
   if (!el) return;
 
+  const currentClubId = getAppClubId() || '';
+  const clubName = localStorage.getItem('ebwp-club-name') || currentClubId;
+
+  // Auth state
   const fbAvailable = typeof firebase !== 'undefined' && typeof firebase.auth === 'function';
   const user = fbAvailable ? firebase.auth().currentUser : null;
 
+  // Silently re-check RC entitlement every time the Settings tab opens.
+  // This catches cases where logIn() hadn't completed yet on the first load.
+  // Pass the best available email so RC can match the dashboard grant.
   if (user && (state.parentTier || localStorage.getItem('ebwp-parent-tier') || 'free') !== 'parent') {
     if (typeof _checkParentSubscription === 'function') {
       const rcId = user.email || localStorage.getItem('ebwp-auth-email') || user.uid;
@@ -4320,8 +4043,8 @@ function renderSettingsTab() {
     }
   }
 
+  // Theme preference
   const themePref = getThemePref();
-  const lang = getAppLang();
   function themePill(value, label) {
     const active = themePref === value;
     const style = active
@@ -4332,47 +4055,47 @@ function renderSettingsTab() {
 
   el.innerHTML = `
     <div class="card tab-card" style="padding:12px 16px;margin-bottom:8px">
-      <h2 style="font-size:1.1rem;margin:0 0 2px 0">${appT('settings_title')}</h2>
-      <p class="step-desc" style="margin:0;font-size:0.78rem">${appT('settings_sub')}</p>
+      <h2 style="font-size:1.1rem;margin:0 0 2px 0">Settings</h2>
+      <p class="step-desc" style="margin:0;font-size:0.78rem">Manage your team and preferences.</p>
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">${appT('settings_team_selection')}</div>
+      <div class="settings-section-title">Team Selection</div>
       <div id="settings-team-picker" class="settings-team-picker"></div>
       ${_isNativePlatform() ? `
       <div class="settings-item" onclick="openLASettingsModal()" style="border-top:1px solid var(--gray-100)">
         <span class="settings-item-icon">📡</span>
         <div class="settings-item-text">
-          <div class="settings-item-label">${window.Capacitor?.getPlatform?.() === 'ios' ? appT('settings_live_activities') : appT('settings_live_updates')}</div>
-          <div class="settings-item-value">${appT('settings_live_updates_desc')}</div>
+          <div class="settings-item-label">${window.Capacitor?.getPlatform?.() === 'ios' ? 'Live Activities' : 'Live Updates'}</div>
+          <div class="settings-item-value">Auto-start for favorited teams</div>
         </div>
         <span style="color:var(--gray-300);font-size:1.1rem">›</span>
       </div>` : ''}
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">${appT('settings_my_clubs')}</div>
+      <div class="settings-section-title">My Clubs</div>
       <div id="settings-clubs-list">
-        <div class="settings-item" style="justify-content:center;color:var(--gray-400);font-size:0.85rem">${appT('settings_loading_clubs')}</div>
+        <div class="settings-item" style="justify-content:center;color:var(--gray-400);font-size:0.85rem">Loading clubs…</div>
       </div>
       <div class="settings-item" onclick="_settingsAddClub()" style="border-top:1px solid var(--gray-100)">
         <span class="settings-item-icon" style="color:var(--royal)">＋</span>
-        <div class="settings-item-text">
-          <div class="settings-item-label">${appT('settings_add_club')}</div>
-          <div class="settings-item-value">${appT('settings_add_club_desc')}</div>
+          <div class="settings-item-text">
+            <div class="settings-item-label">Add Club</div>
+          <div class="settings-item-value">Join another club via code</div>
         </div>
       </div>
       <div class="settings-item" onclick="_returnToSplash()" style="border-top:1px solid var(--gray-100)">
         <span class="settings-item-icon">🏠</span>
         <div class="settings-item-text">
-          <div class="settings-item-label">${appT('settings_return_splash')}</div>
-          <div class="settings-item-value">${appT('settings_return_splash_desc')}</div>
+          <div class="settings-item-label">Return to Splash Screen</div>
+          <div class="settings-item-value">Go back to club selection</div>
         </div>
       </div>
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">${appT('settings_appearance')}</div>
+      <div class="settings-section-title">🎨 Appearance</div>
       <div style="padding:12px 16px">
         <div style="font-size:0.82rem;color:var(--gray-500);margin-bottom:10px">Choose your display theme</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -4384,55 +4107,43 @@ function renderSettingsTab() {
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">${appT('settings_language')}</div>
-      <div style="padding:12px 16px">
-        <div style="font-size:0.82rem;color:var(--gray-500);margin-bottom:10px">${appT('settings_language_desc')}</div>
-        <select onchange="setAppLang(this.value)" style="width:100%;padding:10px 12px;border:1px solid var(--gray-200);border-radius:10px;font-size:0.92rem;background:#fff;color:var(--gray-700)">
-          <option value="en" ${lang === 'en' ? 'selected' : ''}>${appT('lang_en')}</option>
-          <option value="es" ${lang === 'es' ? 'selected' : ''}>${appT('lang_es')}</option>
-          <option value="fr" ${lang === 'fr' ? 'selected' : ''}>${appT('lang_fr')}</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="settings-section">
-      <div class="settings-section-title">${appT('settings_calendar_notifications')}</div>
+      <div class="settings-section-title">📅 Calendar &amp; Notifications</div>
       <div id="sync-section"></div>
       <div id="push-btn-container"></div>
       ${_isNativePlatform() ? `
       <div class="settings-item" onclick="openNativeNotificationSettings()" style="border-top:1px solid var(--gray-100)">
         <span class="settings-item-icon">🔔</span>
         <div class="settings-item-text">
-          <div class="settings-item-label">${appT('settings_open_notification_settings')}</div>
-          <div class="settings-item-value">${appT('settings_open_notification_desc')}</div>
+          <div class="settings-item-label">Open Notification Settings</div>
+          <div class="settings-item-value">Recover alerts if permissions were blocked</div>
         </div>
         <span style="color:var(--gray-300);font-size:1.1rem">›</span>
       </div>
       <div class="settings-item" onclick="openNativeAppSettings()" style="border-top:1px solid var(--gray-100)">
         <span class="settings-item-icon">⚙️</span>
         <div class="settings-item-text">
-          <div class="settings-item-label">${appT('settings_open_app_settings')}</div>
-          <div class="settings-item-value">${appT('settings_open_app_desc')}</div>
+          <div class="settings-item-label">Open App Settings</div>
+          <div class="settings-item-value">Review permissions and system restrictions</div>
         </div>
         <span style="color:var(--gray-300);font-size:1.1rem">›</span>
       </div>` : ''}
-    </div>
+      </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">${appT('settings_subscription')}</div>
+      <div class="settings-section-title">⭐ Subscription</div>
       ${(state.parentTier || localStorage.getItem('ebwp-parent-tier') || 'free') === 'parent' ? `
         <div class="settings-item" style="cursor:default">
           <span style="background:#16a34a;color:white;padding:2px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;flex-shrink:0">Parent ✓</span>
           <div class="settings-item-text">
-            <div class="settings-item-label">${appT('settings_parent_active')}</div>
-            <div class="settings-item-value">${appT('settings_parent_active_desc')}</div>
+            <div class="settings-item-label">Parent Monthly — Active</div>
+            <div class="settings-item-value">Stats history · Bracket · Live Follow · $4.99/mo</div>
           </div>
         </div>` : `
         <div class="settings-item" onclick="showParentUpgradeSheet()">
           <span class="settings-item-icon">👑</span>
           <div class="settings-item-text">
-            <div class="settings-item-label" style="color:#16a34a">${appT('settings_upgrade_parent')}</div>
-            <div class="settings-item-value">${appT('settings_upgrade_parent_desc')}</div>
+            <div class="settings-item-label" style="color:#16a34a">Upgrade to Parent Monthly</div>
+            <div class="settings-item-value">Stats · Bracket · Live Follow · $4.99/mo</div>
           </div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </div>`}
@@ -4442,39 +4153,39 @@ function renderSettingsTab() {
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">${appT('settings_help_support')}</div>
+      <div class="settings-section-title">❓ Help &amp; Support</div>
       <div class="settings-item" onclick="switchTab('help')">
         <span class="settings-item-icon">📖</span>
         <div class="settings-item-text">
-          <div class="settings-item-label">${appT('settings_how_to_use')}</div>
-          <div class="settings-item-value">${appT('settings_how_to_use_desc')}</div>
+          <div class="settings-item-label">How to Use Eggbeater</div>
+          <div class="settings-item-value">Scoring, bracket, notifications &amp; more</div>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
     </div>
 
     <div class="settings-section" style="margin-bottom:24px">
-      <div class="settings-section-title">${appT('settings_account')}</div>
+      <div class="settings-section-title">Account</div>
       ${user ? `
         <div class="settings-item" style="cursor:default">
           <span class="settings-item-icon" style="font-size:1.3rem">☁️</span>
           <div class="settings-item-text">
-            <div class="settings-item-label">${escHtml(user.displayName || appT('settings_signed_in'))}</div>
+            <div class="settings-item-label">${escHtml(user.displayName || 'Signed In')}</div>
             <div class="settings-item-value">${escHtml(user.email || localStorage.getItem('ebwp-auth-email') || '')}</div>
           </div>
         </div>
         <div class="settings-item" onclick="fbSignOut()" style="border-top:1px solid var(--gray-100)">
           <span class="settings-item-icon">🚪</span>
           <div class="settings-item-text">
-            <div class="settings-item-label" style="color:#dc2626">${appT('settings_sign_out')}</div>
+            <div class="settings-item-label" style="color:#dc2626">Sign Out</div>
           </div>
         </div>
       ` : `
         <div class="settings-item" onclick="fbSignIn()">
           <span class="settings-item-icon">👤</span>
           <div class="settings-item-text">
-            <div class="settings-item-label">${appT('settings_sign_in_google')}</div>
-            <div class="settings-item-value">${appT('settings_sign_in_google_desc')}</div>
+            <div class="settings-item-label">Sign In with Google</div>
+            <div class="settings-item-value">Sync preferences across devices</div>
           </div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
@@ -4482,23 +4193,28 @@ function renderSettingsTab() {
     </div>
 
     <div class="settings-section" style="margin-bottom:30px">
-      <div class="settings-section-title">${appT('settings_data_management')}</div>
+      <div class="settings-section-title">⚙️ Data Management</div>
       <div class="settings-item" onclick="clearManualResults()">
         <span class="settings-item-icon">🧹</span>
         <div class="settings-item-text">
-          <div class="settings-item-label" style="color:#dc2626">${appT('settings_reset_manual_results')}</div>
-          <div class="settings-item-value">${appT('settings_reset_manual_results_desc')}</div>
+          <div class="settings-item-label" style="color:#dc2626">Reset manual Win/Loss results</div>
+          <div class="settings-item-value">Undo accidental win marks</div>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
     </div>
+
   `;
 
+  // Render team pills into the settings area
   _renderSettingsTeamPicker();
+  // Load club list asynchronously
   _renderSettingsClubList();
+  // Render calendar sync + push notification widgets
   renderSyncCard();
   renderPushButton();
 }
+
 /** Fetch joined clubs from worker and render quick-switch list in Settings */
 async function _renderSettingsClubList() {
   const container = $('settings-clubs-list');
@@ -4523,10 +4239,10 @@ async function _renderSettingsClubList() {
   if (!clubs.length) {
     container.innerHTML = `
       <div class="settings-item" style="cursor:default">
-        <span class="settings-item-icon">ðŸ¤½â€â™€ï¸</span>
+        <span class="settings-item-icon">🤽‍♀️</span>
         <div class="settings-item-text">
-          <div class="settings-item-label">${escHtml(localStorage.getItem('ebwp-club-name') || currentClubId || appT('settings_no_club'))}</div>
-          <div class="settings-item-value">${appT('settings_join_club_prompt')}</div>
+          <div class="settings-item-label">${escHtml(localStorage.getItem('ebwp-club-name') || currentClubId || 'No club')}</div>
+          <div class="settings-item-value">Use "Add Club" below to join a club</div>
         </div>
       </div>
     `;
@@ -4536,21 +4252,21 @@ async function _renderSettingsClubList() {
   let html = '';
   for (const club of clubs) {
     const isCurrent = club.id === currentClubId;
-    const checkMark = isCurrent ? '<span class="current-club-check">âœ“</span>' : '';
+    const checkMark = isCurrent ? '<span class="current-club-check">✓</span>' : '';
     const clubIcon = club.logo
       ? `<img src="${escHtml(club.logo)}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.5px solid var(--gray-200)">`
-      : `<span style="font-size:1.3rem">ðŸ¤½â€â™€ï¸</span>`;
+      : `<span style="font-size:1.3rem">🤽‍♀️</span>`;
     html += `
       <div class="settings-item${isCurrent ? ' current-club-item' : ''}" onclick="${isCurrent ? '' : `_settingsSwitchClub('${escHtml(club.id)}','${escHtml(club.name || club.id)}','${escHtml(club.clubType || '')}')`}" ${isCurrent ? 'style="cursor:default"' : ''}>
         <span class="settings-item-icon" style="display:flex;align-items:center;justify-content:center">${clubIcon}</span>
         <div class="settings-item-text">
           <div class="settings-item-label${isCurrent ? ' current-club-name' : ''}">${escHtml(club.name || club.id)}</div>
-          ${isCurrent ? `<div class="settings-item-value">${appT('settings_current_club')}</div>` : ''}
+          ${isCurrent ? '<div class="settings-item-value">Current club</div>' : ''}
         </div>
         ${checkMark}
         <button onclick="event.stopPropagation();_settingsRemoveClub('${escHtml(club.id)}','${escHtml(club.name || club.id)}')"
                 style="background:none;border:none;color:var(--gray-300);font-size:1.1rem;cursor:pointer;padding:4px 6px;border-radius:6px;flex-shrink:0"
-                title="Remove club" aria-label="Remove ${escHtml(club.name || club.id)}">Ã—</button>
+                title="Remove club" aria-label="Remove ${escHtml(club.name || club.id)}">×</button>
       </div>
     `;
   }
@@ -4564,7 +4280,7 @@ function _settingsSwitchClub(clubId, clubName, clubType) {
   localStorage.removeItem('ebwp-team-keys');   // legacy global key
   localStorage.removeItem('ebwp-team-key');    // legacy compat key
   // Note: ebwp-fav-groups-{clubId} and ebwp-team-keys-{clubId} are NOT cleared
-  // â€” each club's favorites and team selection are stored per-club and persist
+  // — each club's favorites and team selection are stored per-club and persist
   localStorage.removeItem('ebwp-tournament-id');
   localStorage.removeItem('ebwp-snapshot');
   localStorage.removeItem('ebwp-results');
@@ -4582,7 +4298,7 @@ function _settingsSwitchClub(clubId, clubName, clubType) {
     }
   }
   keysToRemove.forEach(k => localStorage.removeItem(k));
-  // Note: ebwp-my-players is NOT cleared â€” favorite player stats persist across clubs
+  // Note: ebwp-my-players is NOT cleared — favorite player stats persist across clubs
 
   // Set the new club
   localStorage.setItem('ebwp-club-id', clubId);
@@ -4708,7 +4424,7 @@ function _renderSettingsTeamPicker() {
     function buildStar(key) {
       const isFav = favGroups.includes(key);
       const cls = isFav ? 'age-star age-star-on' : 'age-star';
-      const icon = isFav ? 'â˜…' : 'â˜†';
+      const icon = isFav ? '★' : '☆';
       return `<span class="${cls}" onclick="event.stopPropagation();toggleFavGroup('${escHtml(key)}');_renderSettingsTeamPicker();renderHeader()" title="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${icon}</span>`;
     }
     let html = '<div class="age-pill-row" style="gap:6px">';
@@ -4725,7 +4441,7 @@ function _renderSettingsTeamPicker() {
         }).join('');
         html += `<div class="${pillCls}">
           <button class="age-pill-label" style="padding:6px 10px;font-weight:700;background:none;border:none;color:inherit;cursor:pointer" onclick="event.stopPropagation();deselectHSGroup('${groupKeys}');_renderSettingsTeamPicker();renderHeader()">${escHtml(g.label)}</button>
-          <span class="age-pill-sep">Â·</span>
+          <span class="age-pill-sep">·</span>
           ${subBtns}
         </div>`;
       }
@@ -4740,7 +4456,7 @@ function _renderSettingsTeamPicker() {
       const active = selectedTeams.includes(opt.key);
       const isFav = favGroups.includes(opt.key);
       const starCls = isFav ? 'age-star age-star-on' : 'age-star';
-      const starIcon = isFav ? 'â˜…' : 'â˜†';
+      const starIcon = isFav ? '★' : '☆';
       const starBtn = `<span class="${starCls}" onclick="event.stopPropagation();toggleFavGroup('${escHtml(opt.key)}');_renderSettingsTeamPicker();renderHeader()">${starIcon}</span>`;
 
       // Check if this age group has a multi-team tournament
@@ -4764,7 +4480,7 @@ function _renderSettingsTeamPicker() {
 
         html += `<div class="age-pill age-pill-active age-pill-compound">
           <button class="age-pill-label" style="padding:6px 10px;font-weight:700;background:none;border:none;color:inherit;cursor:pointer" onclick="event.stopPropagation();onAgeGroupToggle('${escHtml(opt.key)}');_renderSettingsTeamPicker();renderHeader()">${starBtn}${escHtml(opt.label)}</button>
-          <span class="age-pill-sep">Â·</span>
+          <span class="age-pill-sep">·</span>
           ${subBtns}
         </div>`;
       } else {
@@ -4847,13 +4563,13 @@ function _resetTeamSelection() {
   });
 }
 
-// â”€â”€â”€ RENDER: SCORES TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── RENDER: SCORES TAB ───────────────────────────────────────────────────────
 
 function renderScoresTab() {
   const el = $('view-scores');
   if (!el) return;
 
-  // â”€â”€ Director "Submit Live Scores" section (prepended regardless of scorer mode) â”€â”€
+  // ── Director "Submit Live Scores" section (prepended regardless of scorer mode) ──
   const dirPkg = getDirectorPkg();
   const dirGames = dirPkg?.directorGames || [];
   let dirHtml = '';
@@ -4868,7 +4584,7 @@ function renderScoresTab() {
     dirHtml = buildDirScoreSection(dirPkg, dirGames);
   }
 
-  // Multi-slot: show read-only scores per (ageGroup Ã— letter) slot
+  // Multi-slot: show read-only scores per (ageGroup × letter) slot
   const scoreSlots = getExpandedTeamSlots();
   if (scoreSlots.length > 1) {
     // Check unlock state per-slot: global TOURNAMENT may differ from individual slot tournaments,
@@ -4886,9 +4602,9 @@ function renderScoresTab() {
     window.TOURNAMENT = _savedTmpT;
     const scorerLocked = anySlotHasPassword && !anySlotUnlocked;
     const loginBar = anySlotUnlocked
-      ? `<div class="scorer-tab-bar"><span class="scorer-tab-label">ðŸ”“ Scorer Mode Active</span><button class="scorer-tab-lock-btn" onclick="lockScoring()">ðŸ”’ Lock</button></div>`
+      ? `<div class="scorer-tab-bar"><span class="scorer-tab-label">🔓 Scorer Mode Active</span><button class="scorer-tab-lock-btn" onclick="lockScoring()">🔒 Lock</button></div>`
       : (scorerLocked
-        ? `<div class="scorer-gate-bar"><button class="scorer-gate-btn" onclick="openScoringPasswordModal()">ðŸ”’ Login to Score</button></div>`
+        ? `<div class="scorer-gate-bar"><button class="scorer-gate-btn" onclick="openScoringPasswordModal()">🔒 Login to Score</button></div>`
         : '');
     let html = loginBar;
     const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
@@ -4897,7 +4613,7 @@ function renderScoresTab() {
       const allGames = cache ? (cache.tournament.games || []) : [];
       const firstTeam = cache && Array.isArray(cache.tournament.teams) ? cache.tournament.teams[0] : 'A';
       const letters = letter ? [letter] : getTeamLettersForGroup(groupKey);
-      // If no letters configured for this group (single-team setup), show all games â€”
+      // If no letters configured for this group (single-team setup), show all games —
       // same logic as getTournamentGames() which returns all games when letters is null.
       const games = (!letters.length
         ? allGames
@@ -4907,7 +4623,7 @@ function renderScoresTab() {
       // Filter out games with results (they move to history) and games from past days
 const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResultForGame(g));
 
-      // Slot label â€” lean header row (not a full card wrapper)
+      // Slot label — lean header row (not a full card wrapper)
       const slotLabel = _groupSectionLabelFor(groupKey, letter);
       html += `<div class="scores-slot-header"><span class="scores-slot-label">${escHtml(slotLabel)}</span></div>`;
 
@@ -4916,14 +4632,14 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
         continue;
       }
 
-      // Sort by date+time then game number (parseGameTime combines both â€” fixes same-day ordering)
+      // Sort by date+time then game number (parseGameTime combines both — fixes same-day ordering)
       const _gt = g => { const t = parseGameTime(g.dateISO, g.time); return t ? t.getTime() : (g.dateISO ? new Date(g.dateISO + 'T00:00:00').getTime() : Infinity); };
       active.sort((a, b) => {
         const td = _gt(a) - _gt(b);
         return td !== 0 ? td : gameNumVal(a) - gameNumVal(b);
       });
 
-      // Group by date â€” prefer dateISO as key so same-day games with/without g.date stay together
+      // Group by date — prefer dateISO as key so same-day games with/without g.date stay together
       const byDate = {};
       const dateOrder = [];
       for (const g of active) {
@@ -4946,12 +4662,12 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
       _activeAgeGroup = null;
       if (cache) { window.TOURNAMENT = _savedT; window.HISTORY_SEED = _savedH; }
     }
-    html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here â†’</a></div>`;
+    html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
     el.innerHTML = dirHtml + html;
     return;
   }
 
-  // â”€â”€ Tab-level: scorer not unlocked â†’ show live scores (viewer mode) with scorer login in corner â”€
+  // ── Tab-level: scorer not unlocked → show live scores (viewer mode) with scorer login in corner ─
   if (TOURNAMENT.scoringPassword && !isScorerUnlocked()) {
 
     const games = getTournamentGames();
@@ -4988,11 +4704,11 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
     }
 
     _setLiveBanner(anyLive);
-    const _guideLink = `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here â†’</a></div>`;
+    const _guideLink = `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
     el.innerHTML = dirHtml + `
         <div class="viewer-tab-bar">
-          <span class="viewer-tab-label">${anyLive ? 'ðŸ”´ Live Scores' : 'ðŸ“º Scores'}</span>
-          <button class="viewer-tab-login-btn" onclick="openScoringPasswordModal()">ðŸ”’ Login to Score</button>
+          <span class="viewer-tab-label">${anyLive ? '🔴 Live Scores' : '📺 Scores'}</span>
+          <button class="viewer-tab-login-btn" onclick="openScoringPasswordModal()">🔒 Login to Score</button>
         </div>
         ${cardsHtml}${_guideLink}`;
     return;
@@ -5016,13 +4732,13 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
     return;
   }
 
-  // Group games by date â€” filter out completed games (they appear in History tab)
+  // Group games by date — filter out completed games (they appear in History tab)
   const activeGames = games.filter(g => !_getResultForGame(g));
 
   if (!activeGames.length) {
     el.innerHTML = dirHtml + `<div class="card tab-card">
       <div class="history-header-row"><h2>Box Scores</h2></div>
-      <p class="empty-msg" style="padding:16px 0">All games complete â€” check the History tab for results.</p>
+      <p class="empty-msg" style="padding:16px 0">All games complete — check the History tab for results.</p>
     </div>`;
     return;
   }
@@ -5043,7 +4759,7 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
     byDate[d].push(g);
   }
 
-  // Live banner â€” shown when any game is being scored by another device
+  // Live banner — shown when any game is being scored by another device
   const liveGames = games.filter(g => {
     const s = getLiveScore(g);
     return s?._remote && s.gameState && s.gameState !== 'pre'
@@ -5054,8 +4770,8 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
   // Single lock bar at the top when scorer is unlocked
   const lockBar = TOURNAMENT.scoringPassword
     ? `<div class="scorer-tab-bar">
-         <span class="scorer-tab-label">ðŸ”“ Scorer Mode Active</span>
-         <button class="scorer-tab-lock-btn" onclick="lockScoring()">ðŸ”’ Lock</button>
+         <span class="scorer-tab-label">🔓 Scorer Mode Active</span>
+         <button class="scorer-tab-lock-btn" onclick="lockScoring()">🔒 Lock</button>
        </div>`
     : '';
 
@@ -5067,11 +4783,11 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
     html += `</div>`;
   }
 
-  html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here â†’</a></div>`;
+  html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
   el.innerHTML = dirHtml + html;
 }
 
-// â”€â”€â”€ DIRECTOR LIVE SCORES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── DIRECTOR LIVE SCORES ─────────────────────────────────────────────────────
 
 function buildDirScoreSection(dirPkg, dirGames) {
   if (!state.dirScorerUnlocked) {
@@ -5085,14 +4801,14 @@ function buildDirScoreSection(dirPkg, dirGames) {
           <span class="history-subtitle">${escHtml(dirPkg.tournamentName || '')}</span>
         </div>
         ${resultsHtml}
-        <button class="btn" style="margin-top:${anyScores?'12':'0'}px" onclick="openDirScoringModal()">ðŸ”’ Unlock Score Entry</button>
+        <button class="btn" style="margin-top:${anyScores?'12':'0'}px" onclick="openDirScoringModal()">🔒 Unlock Score Entry</button>
       </div>`;
   }
 
   // Unlocked: score entry grid grouped by division
   const groups = {};
   for (const g of dirGames) {
-    const key = (g.ageGroupName ? g.ageGroupName + ' Â· ' : '') + 'Division ' + (g.divisionName || '?');
+    const key = (g.ageGroupName ? g.ageGroupName + ' · ' : '') + 'Division ' + (g.divisionName || '?');
     if (!groups[key]) groups[key] = [];
     groups[key].push(g);
   }
@@ -5113,15 +4829,15 @@ function buildDirScoreSection(dirPkg, dirGames) {
           </div>
           <div style="display:flex;gap:6px;align-items:center">
             <input type="number" min="0" max="99" id="dir-s1-${escHtml(g.id)}"
-                   value="${isFinal ? sc.score1 : ''}" placeholder="â€“"
+                   value="${isFinal ? sc.score1 : ''}" placeholder="–"
                    style="width:46px;text-align:center;padding:5px 4px;border:1.5px solid var(--gray-300);border-radius:6px;font-size:1rem;font-weight:700">
-            <span style="color:var(--gray-400);font-weight:700">â€“</span>
+            <span style="color:var(--gray-400);font-weight:700">–</span>
             <input type="number" min="0" max="99" id="dir-s2-${escHtml(g.id)}"
-                   value="${isFinal ? sc.score2 : ''}" placeholder="â€“"
+                   value="${isFinal ? sc.score2 : ''}" placeholder="–"
                    style="width:46px;text-align:center;padding:5px 4px;border:1.5px solid var(--gray-300);border-radius:6px;font-size:1rem;font-weight:700">
             <button class="btn${isFinal ? ' btn-ghost' : ''}" style="font-size:0.8rem;padding:5px 12px"
                     onclick="submitDirGameScore('${escHtml(g.id)}')">
-              ${isFinal ? 'âœ“ Saved' : 'Save'}
+              ${isFinal ? '✓ Saved' : 'Save'}
             </button>
           </div>
         </div>`;
@@ -5135,7 +4851,7 @@ function buildDirScoreSection(dirPkg, dirGames) {
     <div class="card tab-card" id="dir-score-section">
       <div class="history-header-row">
         <h2>Submit Live Scores</h2>
-        <button class="btn btn-ghost" style="font-size:0.78rem;padding:5px 12px" onclick="lockDirScoring()">ðŸ”’ Lock</button>
+        <button class="btn btn-ghost" style="font-size:0.78rem;padding:5px 12px" onclick="lockDirScoring()">🔒 Lock</button>
       </div>
       ${rows}
       ${standingsHtml ? `<div style="margin-top:14px;padding-top:12px;border-top:2px solid var(--gray-100)">${standingsHtml}</div>` : ''}
@@ -5168,7 +4884,7 @@ function buildDirStandingsHtml(dirGames) {
       return pa !== pb ? pb - pa : (b.gf-b.ga) - (a.gf-a.ga);
     });
     html += `<div style="margin-bottom:10px">
-      <div style="font-size:0.72rem;font-weight:700;color:var(--royal);margin-bottom:4px">${escHtml(agName ? agName + ' Â· ' : '')}Division ${escHtml(divName)}</div>
+      <div style="font-size:0.72rem;font-weight:700;color:var(--royal);margin-bottom:4px">${escHtml(agName ? agName + ' · ' : '')}Division ${escHtml(divName)}</div>
       <table style="width:100%;font-size:0.82rem;border-collapse:collapse">
         <tr style="color:var(--gray-400);font-size:0.7rem;text-align:center">
           <th style="text-align:left;padding:2px 4px;font-weight:600">Team</th>
@@ -5221,12 +4937,12 @@ function buildDirReseedHtml(dirPkg, dirGames) {
       });
       const ordinals = ['1st', '2nd', '3rd', '4th', '5th', '6th'];
       html += `<div style="margin-top:14px;padding-top:12px;border-top:2px solid var(--gray-100)">
-        <div style="font-size:0.8rem;font-weight:700;color:var(--gray-700);margin-bottom:6px">Next Day Seeding â€” ${escHtml(ag.name ? ag.name + ' Â· ' : '')}Division ${escHtml(dv.name)}</div>
+        <div style="font-size:0.8rem;font-weight:700;color:var(--gray-700);margin-bottom:6px">Next Day Seeding — ${escHtml(ag.name ? ag.name + ' · ' : '')}Division ${escHtml(dv.name)}</div>
         ${sorted.map(([name, s], i) => `
           <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:0.85rem">
             <span style="font-weight:700;color:var(--royal);min-width:32px">${ordinals[i] || (i+1)+'th'}</span>
             <span style="font-weight:600">${escHtml(name)}</span>
-            <span style="color:var(--gray-400);font-size:0.78rem">${s.w}Wâ€“${s.l}L${s.t?'â€“'+s.t+'T':''}</span>
+            <span style="color:var(--gray-400);font-size:0.78rem">${s.w}W–${s.l}L${s.t?'–'+s.t+'T':''}</span>
             <span style="margin-left:auto;font-size:0.75rem;color:var(--gray-400);font-style:italic">feeds "${ordinals[i] || (i+1)+'th'} Div ${escHtml(dv.name)}"</span>
           </div>`).join('')}
       </div>`;
@@ -5260,14 +4976,14 @@ function submitDirScoringPassword() {
   const correct = (dirPkg.directorScoringPassword || '').trim();
   if (correct && entered !== correct) {
     const err = document.getElementById('dir-scoring-pw-error');
-    if (err) err.textContent = 'Incorrect password â€” try again';
+    if (err) err.textContent = 'Incorrect password — try again';
     return;
   }
   state.dirScorerUnlocked = true;
   localStorage.setItem(DIR_SCORER_KEY, '1');
   localStorage.setItem(DIR_SCORER_CODE, dirPkg.code || '');
   closeDirScoringModal();
-  showToast('ðŸ”“ Score entry unlocked!', 'ok');
+  showToast('🔓 Score entry unlocked!', 'ok');
   renderScoresTab();
   startDirScorePolling();
 }
@@ -5302,7 +5018,7 @@ async function submitDirGameScore(gameId) {
     const data = await res.json();
     if (!data.ok) throw new Error(data.description || 'Save failed');
     state.dirScores[gameId] = { score1, score2, status: 'final', updatedAt: Date.now() };
-    showToast('âœ“ Score saved');
+    showToast('✓ Score saved');
     renderScoresTab();
     if (state.currentTab === 'possible') renderPossibleTab();
   } catch (e) {
@@ -5349,7 +5065,7 @@ async function _getPollInterval(baseMs) {
     if (state.nativeSystemState?.isThermallyConstrained) multiplier = Math.max(multiplier, 3);
     else if (thermal === 'fair' || thermal === 'moderate') multiplier = Math.max(multiplier, 2);
     return baseMs * multiplier;
-  } catch { /* API unavailable on this platform â€” use base rate */ }
+  } catch { /* API unavailable on this platform — use base rate */ }
   return baseMs;
 }
 
@@ -5375,7 +5091,7 @@ async function startDirScorePolling() {
   state.dirPollTimer = setInterval(pollDirScores, interval);
 }
 
-// â”€â”€â”€ RENDER: TOURNAMENT SCORE TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── RENDER: TOURNAMENT SCORE TAB ────────────────────────────────────────────
 
 const TSCORE_STORE   = 'ebwp-tscore-pkg';       // cached tournament package
 const TSCORE_PW_KEY  = 'ebwp-tscore-pw';        // remembered scorer password
@@ -5390,7 +5106,7 @@ function renderTournScoreTab() {
     const savedCode = localStorage.getItem(TSCORE_CODE_KEY) || '';
     el.innerHTML = `
       <div class="card tab-card">
-        <h2>ðŸ† Tournament Score</h2>
+        <h2>🏆 Tournament Score</h2>
         <p class="step-desc">Enter the scoring password and share code to access the full tournament bracket for live score entry.</p>
         <div style="margin-top:14px">
           <label style="font-size:0.82rem;font-weight:600;color:var(--gray-700);display:block;margin-bottom:4px">Scorer Password</label>
@@ -5406,22 +5122,22 @@ function renderTournScoreTab() {
                  oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
                  onkeydown="if(event.key==='Enter')unlockTournScore()">
           <div id="tscore-err" style="color:var(--red);font-size:0.82rem;margin-bottom:8px"></div>
-          <button class="btn" style="width:100%;padding:12px;font-size:0.95rem;font-weight:700" onclick="unlockTournScore()">ðŸ”“ Unlock Tournament Scoring</button>
+          <button class="btn" style="width:100%;padding:12px;font-size:0.95rem;font-weight:700" onclick="unlockTournScore()">🔓 Unlock Tournament Scoring</button>
         </div>
       </div>`;
     return;
   }
 
-  // Step 2: Bracket loaded â€” render score entry
+  // Step 2: Bracket loaded — render score entry
   const pkg = state.tscorePkg;
   if (!pkg) { el.innerHTML = '<div class="card tab-card"><p class="empty-msg">No tournament data loaded.</p></div>'; return; }
 
   let html = `<div class="card tab-card">
     <div class="history-header-row">
-      <h2>ðŸ† ${escHtml(pkg.tournamentName || 'Tournament')}</h2>
-      <button class="btn btn-ghost" style="font-size:0.78rem;padding:5px 12px" onclick="lockTournScore()">ðŸ”’ Lock</button>
+      <h2>🏆 ${escHtml(pkg.tournamentName || 'Tournament')}</h2>
+      <button class="btn btn-ghost" style="font-size:0.78rem;padding:5px 12px" onclick="lockTournScore()">🔒 Lock</button>
     </div>
-    <p class="step-desc" style="margin-bottom:4px">${escHtml([pkg.dates, pkg.location].filter(Boolean).join(' Â· '))}</p>`;
+    <p class="step-desc" style="margin-bottom:4px">${escHtml([pkg.dates, pkg.location].filter(Boolean).join(' · '))}</p>`;
 
   // Render each age group > division group > division with games
   const ags = pkg.ageGroups || [];
@@ -5431,7 +5147,7 @@ function renderTournScoreTab() {
     // Group games by age group + division
     const groups = {};
     for (const g of dirGames) {
-      const key = (g.ageGroupName ? g.ageGroupName + ' Â· ' : '') + (g.divisionGroupName ? g.divisionGroupName + ' Â· ' : '') + 'Division ' + (g.divisionName || '?');
+      const key = (g.ageGroupName ? g.ageGroupName + ' · ' : '') + (g.divisionGroupName ? g.divisionGroupName + ' · ' : '') + 'Division ' + (g.divisionName || '?');
       if (!groups[key]) groups[key] = [];
       groups[key].push(g);
     }
@@ -5451,15 +5167,15 @@ function renderTournScoreTab() {
             </div>
             <div style="display:flex;gap:6px;align-items:center">
               <input type="number" min="0" max="99" id="ts-s1-${escHtml(g.id)}"
-                     value="${isFinal ? sc.score1 : ''}" placeholder="â€“" inputmode="numeric"
+                     value="${isFinal ? sc.score1 : ''}" placeholder="–" inputmode="numeric"
                      style="width:46px;text-align:center;padding:5px 4px;border:1.5px solid ${isFinal?'var(--green)':'var(--gray-300)'};border-radius:6px;font-size:1rem;font-weight:700">
-              <span style="color:var(--gray-400);font-weight:700">â€“</span>
+              <span style="color:var(--gray-400);font-weight:700">–</span>
               <input type="number" min="0" max="99" id="ts-s2-${escHtml(g.id)}"
-                     value="${isFinal ? sc.score2 : ''}" placeholder="â€“" inputmode="numeric"
+                     value="${isFinal ? sc.score2 : ''}" placeholder="–" inputmode="numeric"
                      style="width:46px;text-align:center;padding:5px 4px;border:1.5px solid ${isFinal?'var(--green)':'var(--gray-300)'};border-radius:6px;font-size:1rem;font-weight:700">
               <button class="btn${isFinal ? ' btn-ghost' : ''}" style="font-size:0.8rem;padding:5px 12px"
                       onclick="submitTournScore('${escHtml(g.id)}')">
-                ${isFinal ? 'âœ“' : 'Save'}
+                ${isFinal ? '✓' : 'Save'}
               </button>
             </div>
           </div>`;
@@ -5487,7 +5203,7 @@ async function unlockTournScore() {
   const errEl = document.getElementById('tscore-err');
   if (!code || code.length < 6) { if (errEl) errEl.textContent = 'Enter the 6-character share code'; return; }
 
-  if (errEl) errEl.textContent = 'Loadingâ€¦';
+  if (errEl) errEl.textContent = 'Loading…';
   try {
     const res = await fetch(WORKER + '/tournament-pkg?code=' + encodeURIComponent(code));
     const data = await res.json();
@@ -5501,7 +5217,7 @@ async function unlockTournScore() {
       return;
     }
 
-    // Success â€” store and unlock
+    // Success — store and unlock
     state.tscoreUnlocked = true;
     state.tscorePkg = { ...pkg, code };
     state.tscorePw = pw;
@@ -5552,7 +5268,7 @@ async function submitTournScore(gameId) {
     const data = await res.json();
     if (!data.ok) throw new Error(data.description || 'Save failed');
     state.tscoreScores[gameId] = { score1, score2, status: 'final', updatedAt: Date.now() };
-    showToast('âœ“ Score saved');
+    showToast('✓ Score saved');
     renderTournScoreTab();
   } catch (e) {
     showToast('Error: ' + e.message);
@@ -5610,7 +5326,7 @@ function buildTournScoreStandings(dirGames) {
       const pa = a.w*3+a.t, pb = b.w*3+b.t;
       return pa !== pb ? pb - pa : (b.gf-b.ga) - (a.gf-a.ga);
     });
-    const label = [agName, dgName, 'Division ' + divName].filter(Boolean).join(' Â· ');
+    const label = [agName, dgName, 'Division ' + divName].filter(Boolean).join(' · ');
     html += `<div style="margin-bottom:10px">
       <div style="font-size:0.72rem;font-weight:700;color:var(--royal);margin-bottom:4px">${escHtml(label)}</div>
       <table style="width:100%;font-size:0.82rem;border-collapse:collapse">
@@ -5652,7 +5368,7 @@ function restoreTournScoreSession() {
   } catch {}
 }
 
-// â”€â”€â”€ RENDER: HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── RENDER: HEADER ───────────────────────────────────────────────────────────
 
 function renderHeader() {
   const isUpcoming = !!(TOURNAMENT.upcomingMode);
@@ -5660,7 +5376,7 @@ function renderHeader() {
   const clubId = getAppClubId();
 
   let headerName = TOURNAMENT.name || 'Tournament';
-  let headerSub = [TOURNAMENT.dates, TOURNAMENT.location].filter(Boolean).join(' Â· ');
+  let headerSub = [TOURNAMENT.dates, TOURNAMENT.location].filter(Boolean).join(' · ');
 
   if (isHS) {
     const savedClubName = localStorage.getItem('ebwp-club-name');
@@ -5670,7 +5386,7 @@ function renderHeader() {
     const teamOpt = TEAM_OPTIONS.find(t => t.key === teamKey);
     const teamLabel = teamOpt ? teamOpt.label : (teamKey || '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     const seasonLabel = `Fall ${new Date().getFullYear()} Season`;
-    headerSub = teamLabel ? teamLabel + ' Â· ' + seasonLabel : seasonLabel;
+    headerSub = teamLabel ? teamLabel + ' · ' + seasonLabel : seasonLabel;
   } else if (TOURNAMENT.stayTuned) {
     const savedClubName = localStorage.getItem('ebwp-club-name');
     headerName = savedClubName
@@ -5686,7 +5402,7 @@ function renderHeader() {
     (isUpcoming ? '<em>Upcoming Tournament:</em> ' : '') + escHtml(headerName);
   $('header-tournament-dates').textContent = headerSub;
 
-  // Render compact team indicator in header (tappable â†’ opens Settings)
+  // Render compact team indicator in header (tappable → opens Settings)
   renderTeamPicker();
   syncHeaderHeight();
 }
@@ -5721,7 +5437,7 @@ function syncHeaderHeight() {
   if (h) document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px');
 }
 
-// â”€â”€â”€ RENDER: SCHEDULE TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── RENDER: SCHEDULE TAB ─────────────────────────────────────────────────────
 
 function renderScheduleTab() {
   _renderSuffix = '';
@@ -5764,8 +5480,8 @@ function renderScheduleTab() {
 }
 
 /**
- * Returns an array of { groupKey, letter, suffix } slots â€” one per (ageGroup Ã— selectedLetter).
- * When 14u Girls has both A+B selected â†’ two slots. When single letter â†’ one slot per group.
+ * Returns an array of { groupKey, letter, suffix } slots — one per (ageGroup × selectedLetter).
+ * When 14u Girls has both A+B selected → two slots. When single letter → one slot per group.
  * `suffix` is used as the unique DOM ID fragment (e.g. "14u-girls-A").
  */
 function getExpandedTeamSlots() {
@@ -5789,14 +5505,14 @@ function getExpandedTeamSlots() {
   return slots;
 }
 
-/** Section label for a specific slot: "14u Girls Â· Pacific Red". */
+/** Section label for a specific slot: "14u Girls · Pacific Red". */
 function _groupSectionLabelFor(groupKey, letter) {
   const base = TEAM_OPTIONS.find(t => t.key === groupKey)?.label || groupKey;
   if (!letter) return base;
   const cache = TEAM_CACHE[groupKey];
   if (!cache || cache.tournament.singleTeam === true) return base;
   const teamLabel = cache.tournament.teamLabels?.[letter];
-  return teamLabel ? `${base} Â· ${teamLabel}` : `${base} Â· Team ${letter}`;
+  return teamLabel ? `${base} · ${teamLabel}` : `${base} · Team ${letter}`;
 }
 
 /** Section label using current render context (_activeTeamLetters). */
@@ -5807,7 +5523,7 @@ function _groupSectionLabel(groupKey) {
   if (!cache || cache.tournament.singleTeam === true) return base;
   const letters    = getTeamLettersForGroup(groupKey);
   const teamLabels = letters.map(l => cache.tournament.teamLabels?.[l]).filter(Boolean);
-  return teamLabels.length ? `${base} Â· ${teamLabels.join(' & ')}` : base;
+  return teamLabels.length ? `${base} · ${teamLabels.join(' & ')}` : base;
 }
 
 function _renderScheduleMulti(slots) {
@@ -5847,7 +5563,7 @@ function _renderScheduleMulti(slots) {
 
 /** Clears SW cache and reloads to pick up latest code + data. */
 async function forceAppRefresh(btn) {
-  if (btn) { btn.disabled = true; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Refreshingâ€¦'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Refreshing…'; }
   try {
     if ('serviceWorker' in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -5857,9 +5573,9 @@ async function forceAppRefresh(btn) {
       const keys = await caches.keys();
       await Promise.all(keys.map(k => caches.delete(k)));
     }
-  } catch (e) { /* ignore â€” reload anyway */ }
+  } catch (e) { /* ignore — reload anyway */ }
   // Use location.replace with timestamp to bypass Android WebView HTTP disk cache
-  // (window.location.reload() does NOT bypass it â€” old cached content is served)
+  // (window.location.reload() does NOT bypass it — old cached content is served)
   const base = location.pathname.replace(/\?.*$/, '');
   location.replace(base + '?_r=' + Date.now());
 }
@@ -5873,7 +5589,7 @@ function renderNextGameCard() {
     const tournamentPast = _isTournamentPastWindow();
     const allPoolDone = games.length > 0 && games.every(g => _getResultForGame(g));
     // Never show "Tournament Complete" when the slot is intentionally in upcoming/coming-soon mode.
-    // upcomingMode means the admin cleared the slot and set it to upcoming â€” stale date data
+    // upcomingMode means the admin cleared the slot and set it to upcoming — stale date data
     // from a previously loaded tournament must not trigger the completion card.
     if ((allPoolDone || tournamentPast) && !TOURNAMENT.upcomingMode && !TOURNAMENT.comingSoon) {
       section.innerHTML = `
@@ -5881,7 +5597,7 @@ function renderNextGameCard() {
           <div class="next-game-card next-complete">
             <div class="next-label">${tournamentPast ? 'Tournament Complete' : 'All Games Complete'}</div>
             <div class="next-vs">${tournamentPast ? 'Check History for final results' : 'No more scheduled games'}</div>
-            <div class="next-meta"><span>Record: ${getPoolRecord()} â€” ${tournamentPast ? 'Waiting for the next tournament update' : 'Check the History tab for results'}</span></div>
+            <div class="next-meta"><span>Record: ${getPoolRecord()} — ${tournamentPast ? 'Waiting for the next tournament update' : 'Check the History tab for results'}</span></div>
           </div>
         </div>`;
     } else {
@@ -5892,10 +5608,10 @@ function renderNextGameCard() {
 
   if (next.type === 'pool') {
     const g = next.game;
-    const capIcon = g.cap === 'Dark' ? 'ðŸ”µ' : 'âšª';
+    const capIcon = g.cap === 'Dark' ? '🔵' : '⚪';
     const nextCapBgClass = g.cap === 'Dark' ? ' cap-dark-bg' : g.cap === 'White' ? ' cap-white-bg' : '';
     const nextLive = isGameLive(_gameRef(g));
-    // Live score summary â€” shown on the IN PROGRESS card
+    // Live score summary — shown on the IN PROGRESS card
     const liveS = nextLive ? getLiveScore(g) : null;
     const GS_DISPLAY = { start:'Starting', q1:'Q1', q2:'Q2', half:'Half Time', q3:'Q3', q4:'Q4', shootout:'Shootout', final:'Final' };
     const gsLabel    = (liveS && GS_DISPLAY[liveS.gameState]) || '';
@@ -5916,15 +5632,15 @@ function renderNextGameCard() {
         <div class="next-game-card${nextCapBgClass}${nextLive ? ' next-game-live' : ''}">
           <div class="next-game-card-top">
             ${g.gameNum ? `<div class="next-game-num">${escHtml(g.gameNum)}</div>` : ''}
-            ${nextLive ? `<span class="live-badge-next">ðŸ”´ LIVE</span>` : ''}
-            <button class="follow-live-btn" onclick="toggleLiveActivity('${_gameRef(g)}')">ðŸ“¡ Follow Live</button>
+            ${nextLive ? `<span class="live-badge-next">🔴 LIVE</span>` : ''}
+            <button class="follow-live-btn" onclick="toggleLiveActivity('${_gameRef(g)}')">📡 Follow Live</button>
           </div>
           <div class="next-label">${nextLive ? 'In Progress' : 'Next Game'}</div>
           <div class="next-vs">vs ${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}</div>
           ${liveSummary}
           <div class="next-meta">
-            <span>ðŸ• ${escHtml(g.time)} &nbsp;Â·&nbsp; ${escHtml(g.date || g.dateISO)}</span>
-            ${g.pool ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;Â·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap)} Caps</span>` : '')}
+            <span>🕐 ${escHtml(g.time)} &nbsp;·&nbsp; ${escHtml(g.date || g.dateISO)}</span>
+            ${g.pool ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap)} Caps</span>` : '')}
             ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
           </div>
         </div>
@@ -5932,13 +5648,13 @@ function renderNextGameCard() {
   } else {
     const g = next.game;
     const timeStr = g.time && g.time !== 'TBD'
-      ? `ðŸ• ${escHtml(g.time)} Â· ${escHtml(g.date || g.dateISO)}`
+      ? `🕐 ${escHtml(g.time)} · ${escHtml(g.date || g.dateISO)}`
       : g.date ? escHtml(g.date) : 'Time TBD';
     section.innerHTML = `
       <div class="next-game-wrap">
         <div class="next-game-card next-projected">
           ${g.gameNum ? `<div class="next-game-num">${escHtml(g.gameNum)}</div>` : ''}
-          <div class="next-label">Projected Next â€” ${escHtml(next.pathLabel || '')}</div>
+          <div class="next-label">Projected Next — ${escHtml(next.pathLabel || '')}</div>
           <div class="next-vs">${escHtml(normalizeOpponentName(g.desc || 'Bracket Game'))}</div>
           <div class="next-meta">
             <span>${timeStr}</span>
@@ -5976,7 +5692,7 @@ function renderSyncCard() {
     section.innerHTML = `
       <div class="sync-status-card">
         <div class="sync-status-inner">
-          <span class="sync-cal-name">ðŸ“… ${escHtml(state.selectedCalName || 'Calendar')}</span>
+          <span class="sync-cal-name">📅 ${escHtml(state.selectedCalName || 'Calendar')}</span>
           <span class="sync-time">Last sync: ${timeStr}</span>
         </div>
         <div class="sync-btn-row">
@@ -6001,10 +5717,10 @@ function disconnectCalendar() {
   localStorage.removeItem(STORE.CALENDAR_ID);
   localStorage.removeItem(STORE.CALENDAR_NAME);
   renderSyncCard();
-  showToast('Calendar disconnected â€” tap Connect to choose a new one');
+  showToast('Calendar disconnected — tap Connect to choose a new one');
 }
 
-// â”€â”€â”€ TOURNAMENT DIRECTOR IMPORT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── TOURNAMENT DIRECTOR IMPORT ───────────────────────────────────────────────
 
 const DIR_STORE        = 'ebwp-director-pkg';         // localStorage key for last-imported package
 const DIR_SCORER_KEY   = 'ebwp-dir-scorer-unlocked';  // localStorage key for director scorer unlock
@@ -6015,7 +5731,7 @@ function getDirectorPkg() {
 }
 
 function renderDirectorImportCard() {
-  // Director import moved to T-Score tab â€” this is now a no-op
+  // Director import moved to T-Score tab — this is now a no-op
 }
 
 async function importDirectorPackage() {
@@ -6030,7 +5746,7 @@ async function importDirectorPackage() {
     if (!data.ok) throw new Error(data.description || 'Import failed');
     const pkg = data.pkg;
     localStorage.setItem(DIR_STORE, JSON.stringify({ ...pkg, importedAt: Date.now(), code }));
-    const summary = [pkg.tournamentName || 'Tournament', pkg.dates, pkg.location].filter(Boolean).join(' Â· ');
+    const summary = [pkg.tournamentName || 'Tournament', pkg.dates, pkg.location].filter(Boolean).join(' · ');
     showToast('Imported: ' + summary);
     input.value = '';
     renderDirectorImportCard();
@@ -6056,7 +5772,7 @@ function renderGamesList() {
       listEl.innerHTML = `
         <div class="coming-soon-wrap">
           <div class="coming-soon-card">
-            <div class="coming-soon-icon">â³</div>
+            <div class="coming-soon-icon">⏳</div>
             <div class="coming-soon-text">
               <div class="coming-soon-label">Stay Tuned!</div>
               <div class="coming-soon-sub">${localStorage.getItem('ebwp-club-type') === 'highschool' ? 'Future season information will appear here.' : 'Future tournament information will appear here.'}</div>
@@ -6068,11 +5784,11 @@ function renderGamesList() {
       listEl.innerHTML = `
         <div class="coming-soon-wrap">
           <div class="coming-soon-card">
-            <div class="coming-soon-icon">ðŸ“…</div>
+            <div class="coming-soon-icon">📅</div>
             <div class="coming-soon-text">
               <div class="coming-soon-label">${escHtml(TOURNAMENT.comingSoon)}</div>
               <div class="coming-soon-sub">Upcoming Tournament: ${escHtml(TOURNAMENT.name)}</div>
-              ${TOURNAMENT.dates ? `<div class="coming-soon-date">ðŸ—“ ${escHtml(TOURNAMENT.dates)}</div>` : ''}
+              ${TOURNAMENT.dates ? `<div class="coming-soon-date">🗓 ${escHtml(TOURNAMENT.dates)}</div>` : ''}
             </div>
           </div>
         </div>`;
@@ -6092,7 +5808,7 @@ function renderGamesList() {
   if (!upcomingGames.length) {
     listEl.innerHTML = (_isTournamentPastWindow() && !TOURNAMENT.upcomingMode && !TOURNAMENT.comingSoon)
       ? _renderTournamentCompleteCard()
-      : '<p class="empty-msg" style="padding:24px 18px;">All games complete â€” check the History tab for results.</p>';
+      : '<p class="empty-msg" style="padding:24px 18px;">All games complete — check the History tab for results.</p>';
     return;
   }
 
@@ -6105,7 +5821,7 @@ function renderGamesList() {
     return gameNumVal(a) - gameNumVal(b);
   });
 
-  // Exclude the next game â€” it already appears in the blue card above
+  // Exclude the next game — it already appears in the blue card above
   const nextObj    = findNextGameOrProjected();
   const nextGameId = nextObj?.type === 'pool' ? nextObj.game?.id : null;
   const nextDateKey = nextObj?.type === 'pool' ? (nextObj.game?.dateISO || nextObj.game?.date) : null;
@@ -6123,7 +5839,7 @@ function renderGamesList() {
 
   let html = '';
   for (const dateLabel of groupOrder) {
-    // Skip the date header if it matches the next game's date â€” already shown above that card
+    // Skip the date header if it matches the next game's date — already shown above that card
     if (dateLabel !== nextDateKey) {
       html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dateLabel))}</div>`;
     }
@@ -6134,15 +5850,15 @@ function renderGamesList() {
   listEl.innerHTML = html;
 }
 
-// Clean schedule card â€” shows game info only, no scoring controls.
+// Clean schedule card — shows game info only, no scoring controls.
 // Completed games (with a result) are filtered out upstream and shown in History.
 function buildScheduleCard(g) {
   const capBgClass = g.cap === 'Dark' ? 'cap-dark-bg' : g.cap === 'White' ? 'cap-white-bg' : '';
-  const capIcon = g.cap === 'Dark' ? 'ðŸ”µ' : 'âšª';
+  const capIcon = g.cap === 'Dark' ? '🔵' : '⚪';
   // LIVE badge is handled by the Next Game blue card; plain schedule cards don't show it
   const isLive = isGameLive(_gameRef(g));
-  const liveBadge = isLive ? ' <span class="live-badge">ðŸ”´ LIVE</span>' : '';
-  const followBtn = `<button class="follow-live-btn-sm" onclick="toggleLiveActivity('${_gameRef(g)}')" title="Follow Live on Lock Screen">ðŸ“¡ Follow</button>`;
+  const liveBadge = isLive ? ' <span class="live-badge">🔴 LIVE</span>' : '';
+  const followBtn = `<button class="follow-live-btn-sm" onclick="toggleLiveActivity('${_gameRef(g)}')" title="Follow Live on Lock Screen">📡 Follow</button>`;
 
   return `
     <div class="sched-card ${capBgClass}">
@@ -6151,8 +5867,8 @@ function buildScheduleCard(g) {
         ${g.gameNum ? `<div class="sched-game-num">${escHtml(g.gameNum)}</div>` : ''}
       </div>
       <div class="sched-meta">
-        <span>ðŸ• ${escHtml(g.time || 'TBD')}${(g.date || g.dateISO) ? ' Â· ' + escHtml(g.date || formatDateGroupLabel(g.dateISO)) : ''}</span>
-        ${g.pool ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;Â·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
+        <span>🕐 ${escHtml(g.time || 'TBD')}${(g.date || g.dateISO) ? ' · ' + escHtml(g.date || formatDateGroupLabel(g.dateISO)) : ''}</span>
+        ${g.pool ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
         ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
       </div>
     </div>`;
@@ -6185,7 +5901,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
   const loss      = isLoss(result);
   const cardClass = win ? 'result-win' : loss ? 'result-loss' : '';
   const capBgClass = g.cap === 'Dark' ? 'cap-dark-bg' : g.cap === 'White' ? 'cap-white-bg' : '';
-  const capIcon   = g.cap === 'Dark' ? 'ðŸ”µ' : 'âšª';
+  const capIcon   = g.cap === 'Dark' ? '🔵' : '⚪';
   const pillHtml  = result
     ? `<span class="result-pill ${win ? 'win' : 'loss'}">${resultLabel(result)}</span>` : '';
 
@@ -6194,44 +5910,44 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
     return `<button class="result-btn ${cls} ${active}" onclick="setResult('${escHtml(_gameRef(g))}','${val}')"><span class="rbtn-label">${label}</span><span class="rbtn-pts">${p} pt${p !== 1 ? 's' : ''}</span></button>`;
   };
 
-  // â”€â”€ Live scoring / box score section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Live scoring / box score section ──────────────────────────────────────
   const s   = getLiveScore(g);
   const gid = escHtml(_gameRef(g));
 
   // Live broadcast indicator (shown when another device is actively scoring)
-  const STALE_MS = 30 * 60 * 1000; // 30 min â€” after this, treat as stale
+  const STALE_MS = 30 * 60 * 1000; // 30 min — after this, treat as stale
   const isRemoteLive = !!(s._remote && s.gameState && s.gameState !== 'pre'
     && (Date.now() - (s._broadcastAt || 0)) < STALE_MS);
   const liveBadgeHtml = isRemoteLive
-    ? `<span class="live-badge">ðŸ”´ LIVE</span>` : '';
+    ? `<span class="live-badge">🔴 LIVE</span>` : '';
   const liveScoreBarHtml = isRemoteLive ? (() => {
     const updatedAt = s._broadcastAt
       ? new Date(s._broadcastAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : '';
     const periodStr = PERIOD_LABELS[s.period] || '';
     return `<div class="live-score-bar">
-      <span class="lsb-scores">Team&nbsp;<strong>${Number.isInteger(s.team) ? s.team : s.team.toFixed(1)}</strong>&nbsp;â€”&nbsp;<strong>${Number.isInteger(s.opp) ? s.opp : s.opp.toFixed(1)}</strong>&nbsp;${escHtml(g.opponent||'Opp')}</span>
+      <span class="lsb-scores">Team&nbsp;<strong>${Number.isInteger(s.team) ? s.team : s.team.toFixed(1)}</strong>&nbsp;—&nbsp;<strong>${Number.isInteger(s.opp) ? s.opp : s.opp.toFixed(1)}</strong>&nbsp;${escHtml(g.opponent||'Opp')}</span>
       ${periodStr ? `<span class="lsb-period">${periodStr}</span>` : ''}
-      ${updatedAt ? `<span class="lsb-updated">â†» ${updatedAt}</span>` : ''}
+      ${updatedAt ? `<span class="lsb-updated">↻ ${updatedAt}</span>` : ''}
     </div>`;
   })() : '';
   const events = s.events || [];
 
   // Game state bar
   const GS_OPTS = [
-    { key:'start',    label:'â–¶ Start'  },
+    { key:'start',    label:'▶ Start'  },
     { key:'q1',       label:'Q1'       },
     { key:'q2',       label:'Q2'       },
-    { key:'half',     label:'Â½ Time'   },
+    { key:'half',     label:'½ Time'   },
     { key:'q3',       label:'Q3'       },
     { key:'q4',       label:'Q4'       },
-    { key:'shootout', label:'ðŸŽ¯ SO'    },
-    { key:'final',    label:'ðŸ End'   },
+    { key:'shootout', label:'🎯 SO'    },
+    { key:'final',    label:'🏁 End'   },
   ];
   const TOGGLE_KEYS = new Set(['start', 'shootout', 'final']);
-  // Pre-Game reset button â€” only show once a game state has been set
+  // Pre-Game reset button — only show once a game state has been set
   const preBtn = (s.gameState && s.gameState !== 'pre')
-    ? `<button class="gs-btn gs-btn-pre" onclick="resetToPreGame('${gid}')" title="Reset to Pre-Game">â†© Pre</button>`
+    ? `<button class="gs-btn gs-btn-pre" onclick="resetToPreGame('${gid}')" title="Reset to Pre-Game">↩ Pre</button>`
     : '';
   const gsBar = preBtn + GS_OPTS.map(o => {
     const active = s.gameState === o.key ? ' gs-active' : '';
@@ -6269,24 +5985,24 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       <div class="auto-clock-phase">${phaseLabel}</div>
       <div class="auto-clock-time" id="game-clock-${gid}">${fmtClock(timerSecsLeft)}</div>
       <div class="auto-clock-controls">
-        ${isBreakPhase ? `<span class="auto-clock-break-label">${s.timerPhase === 'halftime' ? 'Halftime break' : 'Quarter break'} â€” next quarter ready</span>` : `
+        ${isBreakPhase ? `<span class="auto-clock-break-label">${s.timerPhase === 'halftime' ? 'Halftime break' : 'Quarter break'} — next quarter ready</span>` : `
           ${s.timerRunning
-            ? `<button class="auto-clock-btn auto-clock-pause" onclick="pauseGameTimer('${gid}')">â¸ Pause</button>`
-            : `<button class="auto-clock-btn auto-clock-resume" onclick="${s.gameState === 'pre' ? `startScoring('${gid}')` : `resumeGameTimer('${gid}')`}">â–¶ ${s.gameState === 'pre' ? 'Start' : 'Resume'}</button>`
+            ? `<button class="auto-clock-btn auto-clock-pause" onclick="pauseGameTimer('${gid}')">⏸ Pause</button>`
+            : `<button class="auto-clock-btn auto-clock-resume" onclick="${s.gameState === 'pre' ? `startScoring('${gid}')` : `resumeGameTimer('${gid}')`}">▶ ${s.gameState === 'pre' ? 'Start' : 'Resume'}</button>`
           }
-          <button class="auto-clock-btn auto-clock-reset" onclick="resetGameClock('${gid}')">â†º Reset</button>
+          <button class="auto-clock-btn auto-clock-reset" onclick="resetGameClock('${gid}')">↺ Reset</button>
         `}
       </div>
       ${cs.timeoutsPerTeam > 0 ? `
       <div class="auto-clock-to-row">
         ${(cs.timeoutLengths||[]).map(m => {
           const used = teamTOUsed.includes(m);
-          return `<span class="auto-clock-to-chip${used?' auto-clock-to-used':''}">${used?'âœ“':'â—‰'} ${fmtTOLabel(m)}</span>`;
+          return `<span class="auto-clock-to-chip${used?' auto-clock-to-used':''}">${used?'✓':'◉'} ${fmtTOLabel(m)}</span>`;
         }).join('')}
-        <span class="auto-clock-to-sep">Â·</span>
+        <span class="auto-clock-to-sep">·</span>
         ${(cs.timeoutLengths||[]).map(m => {
           const used = oppTOUsed.includes(m);
-          return `<span class="auto-clock-to-chip auto-clock-to-opp${used?' auto-clock-to-used':''}">${used?'âœ“':'â—‰'} Opp ${fmtTOLabel(m)}</span>`;
+          return `<span class="auto-clock-to-chip auto-clock-to-opp${used?' auto-clock-to-used':''}">${used?'✓':'◉'} Opp ${fmtTOLabel(m)}</span>`;
         }).join('')}
       </div>` : ''}
     </div>`;
@@ -6299,14 +6015,14 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
   // Scorer mode: show full controls only if no password is set, or password is unlocked
   const canScore = !TOURNAMENT.scoringPassword || isScorerUnlockedForTournament(TOURNAMENT);
 
-  // â”€â”€ Scorer section (full controls) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Scorer section (full controls) ────────────────────────────────────────
   const isActiveGame = s.gameState && s.gameState !== 'pre';
   const scorerManuallyOpen = !!state.scorerDetailsOpen?.[gid];
   const scorerShouldOpen = isActiveGame || scorerManuallyOpen;
   const scorerSection = `
     <details class="scorer-details" ${scorerShouldOpen ? 'open' : ''} ontoggle="_onScorerToggle(this,'${gid}')">
       <summary class="scorer-summary">
-        ${scorerShouldOpen ? 'â–¼ Scoring Controls' : 'â–¶ Open Scorer'}
+        ${scorerShouldOpen ? '▼ Scoring Controls' : '▶ Open Scorer'}
       </summary>
     <div class="scoring-section">
       <div class="gs-bar">${gsBar}</div>
@@ -6316,29 +6032,29 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
           <span class="ls-label">Team</span>
           <span class="ls-score ls-score-team">${Number.isInteger(s.team) ? s.team : s.team.toFixed(1)}</span>
         </div>
-        <span class="ls-sep">â€”</span>
+        <span class="ls-sep">—</span>
         <div class="ls-team ls-team-opp">
           <span class="ls-label">${escHtml(normalizeOpponentName(g.opponent || 'Opp'))}</span>
           <span class="ls-score ls-score-opp">${Number.isInteger(s.opp) ? s.opp : s.opp.toFixed(1)}</span>
         </div>
       </div>
       <div class="ls-actions-row">
-        <button class="ls-undo-btn" onclick="undoLastEvent('${gid}')">â†© Undo</button>
-        <button class="ls-share-btn" onclick="shareBoxScore('${gid}')">ðŸ“¤ Share</button>
+        <button class="ls-undo-btn" onclick="undoLastEvent('${gid}')">↩ Undo</button>
+        <button class="ls-share-btn" onclick="shareBoxScore('${gid}')">📤 Share</button>
       </div>
       ${s.gameState === 'shootout' ? `
       <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:6px 10px;margin-bottom:6px;text-align:center">
-        <span style="font-weight:700;color:#92400e">ðŸŽ¯ SHOOTOUT MODE</span>
-        <span style="color:#78350f;font-size:0.8rem;display:block;margin-top:2px">Each goal = +0.1 Â· Track who shoots!</span>
+        <span style="font-weight:700;color:#92400e">🎯 SHOOTOUT MODE</span>
+        <span style="color:#78350f;font-size:0.8rem;display:block;margin-top:2px">Each goal = +0.1 · Track who shoots!</span>
       </div>` : ''}
       <div class="score-btns-row">
-        <button class="score-btn score-btn-team" onclick="openEventPicker('${gid}','goal')">${s.gameState === 'shootout' ? 'ðŸŽ¯ Team SO Goal' : '+ Goal'}</button>
-        <button class="score-btn score-btn-opp"  onclick="recordEventDirect('${gid}','opp_goal')">${s.gameState === 'shootout' ? 'ðŸŽ¯ Opp SO Goal' : '+ Opp Goal'}</button>
+        <button class="score-btn score-btn-team" onclick="openEventPicker('${gid}','goal')">${s.gameState === 'shootout' ? '🎯 Team SO Goal' : '+ Goal'}</button>
+        <button class="score-btn score-btn-opp"  onclick="recordEventDirect('${gid}','opp_goal')">${s.gameState === 'shootout' ? '🎯 Opp SO Goal' : '+ Opp Goal'}</button>
       </div>
       ${s.gameState === 'shootout' ? `
       <div class="score-btns-row" style="margin-top:4px">
-        <button class="score-btn" style="background:#fff1f2;color:#be123c;border-color:#fda4af" onclick="openEventPicker('${gid}','so_miss')">âŒ Team SO Miss</button>
-        <button class="score-btn" style="background:#fff1f2;color:#be123c;border-color:#fda4af" onclick="recordEventDirect('${gid}','opp_so_miss')">âŒ Opp SO Miss</button>
+        <button class="score-btn" style="background:#fff1f2;color:#be123c;border-color:#fda4af" onclick="openEventPicker('${gid}','so_miss')">❌ Team SO Miss</button>
+        <button class="score-btn" style="background:#fff1f2;color:#be123c;border-color:#fda4af" onclick="recordEventDirect('${gid}','opp_so_miss')">❌ Opp SO Miss</button>
       </div>` : ''}
       <div class="stat-btns-row">
         <button class="stat-btn stat-assist"       onclick="openEventPicker('${gid}','assist')">Assist</button>
@@ -6356,13 +6072,13 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       </div>
       ${s.gameState !== 'shootout' ? `
       <div class="stat-btns-row">
-        <button class="stat-btn stat-goal-5m"     onclick="openEventPicker('${gid}','goal_5m')">ðŸŽ¯ 5m</button>
-        <button class="stat-btn stat-attempt-5m"  onclick="openEventPicker('${gid}','miss_5m')">âŒ 5m Attempt</button>
-        <button class="stat-btn stat-goal-5m"     onclick="recordEventDirect('${gid}','opp_goal_5m')">ðŸŽ¯ Opp 5m</button>
-        <button class="stat-btn stat-attempt-5m"  onclick="recordEventDirect('${gid}','opp_miss_5m')">âŒ Opp 5m Attempt</button>
+        <button class="stat-btn stat-goal-5m"     onclick="openEventPicker('${gid}','goal_5m')">🎯 5m</button>
+        <button class="stat-btn stat-attempt-5m"  onclick="openEventPicker('${gid}','miss_5m')">❌ 5m Attempt</button>
+        <button class="stat-btn stat-goal-5m"     onclick="recordEventDirect('${gid}','opp_goal_5m')">🎯 Opp 5m</button>
+        <button class="stat-btn stat-attempt-5m"  onclick="recordEventDirect('${gid}','opp_miss_5m')">❌ Opp 5m Attempt</button>
       </div>` : ''}
       <div class="stat-btns-row">
-        <button class="stat-btn stat-save"  onclick="openEventPicker('${gid}','save')">ðŸ§¤ GK Save</button>
+        <button class="stat-btn stat-save"  onclick="openEventPicker('${gid}','save')">🧤 GK Save</button>
       </div>
       ${(cs.timeoutLengths||[]).map(m => {
         const teamUsed = (s.teamTimeoutsUsed||[]).includes(m);
@@ -6371,10 +6087,10 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
         return `<div class="stat-btns-row stat-btns-row-to">
           <button class="stat-btn stat-timeout${teamUsed?' stat-btn-used':''}"
                   onclick="callTeamTimeout('${gid}',${m})"
-                  ${teamUsed?'disabled':''}>${teamUsed?'âœ“':' â±'} ${lbl} T/O</button>
+                  ${teamUsed?'disabled':''}>${teamUsed?'✓':' ⏱'} ${lbl} T/O</button>
           <button class="stat-btn stat-opp-timeout${oppUsed?' stat-btn-used':''}"
                   onclick="callOppTimeout('${gid}',${m})"
-                  ${oppUsed?'disabled':''}>${oppUsed?'âœ“':'â±'} Opp ${lbl}</button>
+                  ${oppUsed?'disabled':''}>${oppUsed?'✓':'⏱'} Opp ${lbl}</button>
         </div>`;
       }).join('')}
       ${eventLogHtml}
@@ -6382,7 +6098,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
     </div>
     </details>`;
 
-  // â”€â”€ Viewer section (read-only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Viewer section (read-only) ─────────────────────────────────────────────
   const periodLabel = s.gameState && s.gameState !== 'pre'
     ? (s.gameState === 'final' ? 'Final' : (PERIOD_LABELS[s.period] || ''))
     : '';
@@ -6395,7 +6111,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
             <span class="ls-label">Team</span>
             <span class="ls-score ls-score-team">${s.team}</span>
           </div>
-          <span class="ls-sep">â€”</span>
+          <span class="ls-sep">—</span>
           <div class="ls-team ls-team-opp">
             <span class="ls-label">${escHtml(normalizeOpponentName(g.opponent || 'Opp'))}</span>
             <span class="ls-score ls-score-opp">${s.opp}</span>
@@ -6404,7 +6120,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       ${eventLogHtml}
       ${hasEvents ? `
         <div class="bs-actions-row">
-          <button class="bs-share-btn" onclick="shareBoxScore('${gid}')">ðŸ“¤ Share</button>
+          <button class="bs-share-btn" onclick="shareBoxScore('${gid}')">📤 Share</button>
         </div>` : ''}
       ${boxScoreHtml}
     </div>`;
@@ -6418,8 +6134,8 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       </div>
       ${liveScoreBarHtml}
       <div class="game-info-row">
-        <span class="icon-label">ðŸ• ${escHtml(g.time || 'TBD')}${(g.date || g.dateISO) ? ' Â· ' + escHtml(g.date || g.dateISO) : ''}</span>
-        ${g.pool ? `<span class="icon-label">${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;Â·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span class="icon-label">${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
+        <span class="icon-label">🕐 ${escHtml(g.time || 'TBD')}${(g.date || g.dateISO) ? ' · ' + escHtml(g.date || g.dateISO) : ''}</span>
+        ${g.pool ? `<span class="icon-label">${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span class="icon-label">${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
         ${showLocation && TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
       </div>
       ${pts !== null ? `<div class="game-info-row"><span class="points-badge">+${pts} bracket pts</span></div>` : ''}
@@ -6429,31 +6145,31 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       ${canScore ? `
       <div class="result-row result-row-5">
         ${btn('result-w-btn',  'W',  'WIN',   4)}
-        ${btn('result-sw-btn', 'SW', 'SOÂ·W',  3)}
-        ${btn('result-sl-btn', 'SL', 'SOÂ·L',  2)}
+        ${btn('result-sw-btn', 'SW', 'SO·W',  3)}
+        ${btn('result-sl-btn', 'SL', 'SO·L',  2)}
         ${btn('result-l-btn',  'L',  'LOSS',  1)}
         ${btn('result-f-btn',  'F',  'FF',    0)}
       </div>
       ${s.gameState === 'shootout' ? `
       <div class="result-notify-row">
-        <button class="notify-btn" style="background:#fef3c7;color:#92400e;border-color:#f59e0b" onclick="sendShootoutAlert('${gid}','tg')">ðŸŽ¯âœˆï¸ Shootout Alert â†’ Telegram</button>
-        <button class="notify-btn" style="background:#fef3c7;color:#92400e;border-color:#f59e0b" onclick="sendShootoutAlert('${gid}','gm')">ðŸŽ¯ðŸ’¬ Shootout Alert â†’ GroupMe</button>
+        <button class="notify-btn" style="background:#fef3c7;color:#92400e;border-color:#f59e0b" onclick="sendShootoutAlert('${gid}','tg')">🎯✈️ Shootout Alert → Telegram</button>
+        <button class="notify-btn" style="background:#fef3c7;color:#92400e;border-color:#f59e0b" onclick="sendShootoutAlert('${gid}','gm')">🎯💬 Shootout Alert → GroupMe</button>
       </div>` : ''}
       <div class="result-notify-row">
-        <button class="notify-btn notify-tg" onclick="sendBoxScoreNotify('${gid}','tg')">âœˆï¸ Send to Telegram</button>
-        <button class="notify-btn notify-gm" onclick="sendBoxScoreNotify('${gid}','gm')">ðŸ’¬ Send to GroupMe</button>
+        <button class="notify-btn notify-tg" onclick="sendBoxScoreNotify('${gid}','tg')">✈️ Send to Telegram</button>
+        <button class="notify-btn notify-gm" onclick="sendBoxScoreNotify('${gid}','gm')">💬 Send to GroupMe</button>
       </div>` : ''}
     </div>`;
 }
 
-// â”€â”€â”€ RENDER: POSSIBLE GAMES TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── RENDER: POSSIBLE GAMES TAB ───────────────────────────────────────────────
 
 // Builds the full location string for a bracket step pin.
 // If the step has a short sub-location (pool name like "Main Pool", "Pool E"),
 // it is prefixed with the venue name from TOURNAMENT.location so the pin reads
-// e.g. "Foothill College Â· Main Pool" instead of just "Main Pool".
+// e.g. "Foothill College · Main Pool" instead of just "Main Pool".
 function bracketLocationDisplay(stepLocation) {
-  // No location on the step â€” fall back to the tournament venue
+  // No location on the step — fall back to the tournament venue
   if (!stepLocation) return (TOURNAMENT.location || '').split(',')[0].trim() || '';
   // If it already looks like a full address (contains a comma) show it as-is
   if (stepLocation.includes(',')) return stepLocation;
@@ -6462,7 +6178,7 @@ function bracketLocationDisplay(stepLocation) {
   if (/\b(hs|high school|college|university|center|aquatic|arena|stadium|park|pool|natatorium)\b/i.test(stepLocation)) {
     return stepLocation;
   }
-  // Short sub-location (e.g. "Pool E", "Main Pool") â†’ prepend tournament venue name
+  // Short sub-location (e.g. "Pool E", "Main Pool") → prepend tournament venue name
   const venue = (TOURNAMENT.location || '').split(',')[0].trim();
   return venue ? `${venue} \u00b7 ${stepLocation}` : stepLocation;
 }
@@ -6473,7 +6189,7 @@ function renderPossibleTab() {
     if (viewEl) viewEl.innerHTML = renderParentNudge('possible');
     return;
   }
-  // â”€â”€ Director standings + reseeding (shown when dir scores exist) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Director standings + reseeding (shown when dir scores exist) ─────────
   const dirPkg = getDirectorPkg();
   const dirGames = dirPkg?.directorGames || [];
   const hasAnyDirScores = dirGames.some(g => state.dirScores[g.id]?.status === 'final');
@@ -6509,15 +6225,15 @@ function renderPossibleTab() {
   const listEl  = $('possible-list');
   const emptyEl = $('possible-empty');
   const descEl  = $('possible-desc');
-  if (!listEl || !emptyEl) return; // tab not in DOM yet â€” will re-render when tab is switched to
+  if (!listEl || !emptyEl) return; // tab not in DOM yet — will re-render when tab is switched to
   listEl.innerHTML = '';
 
-  // Upcoming mode â€” no games loaded yet, or upcomingMode flag is set
+  // Upcoming mode — no games loaded yet, or upcomingMode flag is set
   const hasGames = Array.isArray(TOURNAMENT.games) && TOURNAMENT.games.length > 0 && !TOURNAMENT.upcomingMode;
   if (!hasGames) {
     emptyEl.innerHTML = `
       <div style="text-align:center;padding:20px 0">
-        <div style="font-size:2rem;margin-bottom:10px">ðŸ†</div>
+        <div style="font-size:2rem;margin-bottom:10px">🏆</div>
         <div style="font-weight:700;font-size:1rem;margin-bottom:6px">Bracket Coming Soon</div>
         <div style="color:var(--gray-600);font-size:0.88rem;line-height:1.55">
           The Bracket feature will be made available once the tournament schedule is received.
@@ -6537,8 +6253,8 @@ const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && get
 
   if (projected) {
     descEl.textContent = allPoolDone
-      ? `${getPoolRecord()} pool record â†’ ${projected.label} confirmed.`
-      : `${getPoolRecord()} pool record â†’ projected ${projected.label}.`;
+      ? `${getPoolRecord()} pool record → ${projected.label} confirmed.`
+      : `${getPoolRecord()} pool record → projected ${projected.label}.`;
   } else {
     descEl.textContent = 'Mark pool play results to see your projected bracket path.';
   }
@@ -6568,7 +6284,7 @@ const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && get
       const stepKey    = `${path.id}-${step.gameNum}`;
       const stepResult = state.bracketResults[stepKey] || null;
       const timeStr    = step.time && step.time !== 'TBD'
-        ? `${escHtml(step.date || '')} Â· ${escHtml(step.time)}`
+        ? `${escHtml(step.date || '')} · ${escHtml(step.time)}`
         : step.date ? escHtml(step.date) : 'Time TBD';
       const resultPill = stepResult
         ? `<span class="result-pill ${stepResult==='W'?'win':'loss'}">${stepResult==='W'?'WIN':'LOSS'}</span>` : '';
@@ -6587,7 +6303,7 @@ const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && get
           <div class="bracket-step-desc">${escHtml(step.desc || '')}${resultPill}</div>
           <div class="bracket-step-meta">
             <span>${timeStr}</span>
-            ${stepLocDisplay ? `<span>ðŸ“ ${escHtml(stepLocDisplay)}</span>` : ''}
+            ${stepLocDisplay ? `<span>📍 ${escHtml(stepLocDisplay)}</span>` : ''}
           </div>
           ${resultBtns}
         </div>`;
@@ -6598,7 +6314,7 @@ const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && get
   });
 }
 
-// â”€â”€â”€ RENDER: HISTORY TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── RENDER: HISTORY TAB ──────────────────────────────────────────────────────
 
 function buildHistoryCard(t, options = {}) {
   const { expanded = false } = options;
@@ -6610,7 +6326,7 @@ function buildHistoryCard(t, options = {}) {
     const rc = isWin(r) ? 'win' : isLoss(r) ? 'loss' : 'none';
     const rl = resultLabel(r);
 
-    // Live scoring data (saved at archive time) â€” support both events[] and old goals[]
+    // Live scoring data (saved at archive time) — support both events[] and old goals[]
     const ls      = g.liveScore || {};
     const allEvts = ls.events || (ls.goals
       ? ls.goals.map(g2 => ({ type: g2.side === 'team' ? 'goal' : 'opp_goal', ...g2 }))
@@ -6637,7 +6353,7 @@ function buildHistoryCard(t, options = {}) {
       const label = cap
         ? `#${escHtml(cap)} ${escHtml(name.split(' ')[0])}`
         : escHtml(name.split(' ')[0] || '?');
-      const sixTag = ev.sixOnFive ? ' âš¡' : '';
+      const sixTag = ev.sixOnFive ? ' ⚡' : '';
       return `<span class="hist-scorer-chip">${label}${sixTag}</span>`;
     }).join('');
 
@@ -6677,9 +6393,9 @@ function buildHistoryCard(t, options = {}) {
         ${playerRows.filter(p => p.G || p.A || p.Ex).map(p => `
           <div class="hist-bs-row">
             <span class="hist-bs-player">${p.cap ? `#${escHtml(p.cap)} ` : ''}${escHtml((p.name||'').split(' ')[0] || '?')}</span>
-            <span class="hist-bs-stat">${p.G || 'â€”'}</span>
-            <span class="hist-bs-stat">${p.A || 'â€”'}</span>
-            <span class="hist-bs-stat">${p.Ex || 'â€”'}</span>
+            <span class="hist-bs-stat">${p.G || '—'}</span>
+            <span class="hist-bs-stat">${p.A || '—'}</span>
+            <span class="hist-bs-stat">${p.Ex || '—'}</span>
           </div>`).join('')}
       </div>` : '';
 
@@ -6724,13 +6440,13 @@ function buildHistoryCard(t, options = {}) {
     <div class="history-card-header" onclick="toggleHistoryCard('${t.id}')">
       <div class="history-name-block">
         <div class="history-tournament-name">${escHtml(t.name || 'Tournament')}</div>
-        <div class="history-meta">${[t.dates, t.location, t.pool].filter(Boolean).join(' Â· ')}</div>
+        <div class="history-meta">${[t.dates, t.location, t.pool].filter(Boolean).join(' · ')}</div>
       </div>
       <div class="history-badges">
         <div class="history-record-badge ${recordClass}">${escHtml(record)}</div>
         ${totalPoints != null ? `<div class="history-pts-badge">${totalPoints} pts</div>` : ''}
       </div>
-      <div class="history-expand-icon">â–¼</div>
+      <div class="history-expand-icon">▼</div>
     </div>
     <div class="history-games">
       ${gameRowsHtml}${bracketRowsHtml}
@@ -6779,7 +6495,7 @@ function renderHistoryTab() {
   }
   const slots = getExpandedTeamSlots();
 
-  // No teams selected â€” show empty prompt
+  // No teams selected — show empty prompt
   if (slots.length === 0 && !_inMultiRender) {
     const viewEl = document.getElementById('view-history');
     if (viewEl) viewEl.innerHTML = `<div class="card tab-card">
@@ -6822,13 +6538,13 @@ function renderHistoryTab() {
   const seasonEntries = virtualT ? [virtualT, ...history] : history;
   listEl.innerHTML = '';
 
-  // Clear old top-level standings slot â€” standings are now embedded per tournament
+  // Clear old top-level standings slot — standings are now embedded per tournament
   const standingsEl = $('history-standings');
   if (standingsEl) standingsEl.innerHTML = '';
 
   renderHistoryTeamSearch();
 
-  // â”€â”€ Season Dashboard (record overview) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Season Dashboard (record overview) ─────────────────────────────────────
   if (standingsEl && seasonEntries.length) {
     let totalW = 0, totalL = 0, totalGF = 0, totalGA = 0, totalGames = 0;
     for (const h of seasonEntries) {
@@ -6864,9 +6580,9 @@ function renderHistoryTab() {
       <div class="card tab-card season-record-card" style="padding:18px 20px;margin-bottom:16px">
         <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
           <div style="flex:1">
-            <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gray-500);margin-bottom:4px">Season Record${teamLabel ? ' Â· ' + escHtml(teamLabel) : ''}</div>
+            <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gray-500);margin-bottom:4px">Season Record${teamLabel ? ' · ' + escHtml(teamLabel) : ''}</div>
             <div style="font-size:1.6rem;font-weight:800;color:var(--text);line-height:1.2">${totalW}W - ${totalL}L</div>
-            <div style="font-size:0.85rem;color:var(--gray-500);margin-top:2px">${totalGames} games Â· ${seasonEntries.length} tournament${seasonEntries.length > 1 ? 's' : ''}${totalGF || totalGA ? ` Â· ${totalGF} GF / ${totalGA} GA` : ''}</div>
+            <div style="font-size:0.85rem;color:var(--gray-500);margin-top:2px">${totalGames} games · ${seasonEntries.length} tournament${seasonEntries.length > 1 ? 's' : ''}${totalGF || totalGA ? ` · ${totalGF} GF / ${totalGA} GA` : ''}</div>
           </div>
           <div style="width:58px;height:58px;border-radius:50%;background:${pctBg};display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;border:2px solid ${pctColor}44">
             <span style="font-size:1.1rem;font-weight:900;color:${pctColor}">${pct}%</span>
@@ -6880,7 +6596,7 @@ function renderHistoryTab() {
     `;
   }
 
-  // â”€â”€ Season Stats aggregate (Phase 5D) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Season Stats aggregate (Phase 5D) ─────────────────────────────────────
   if (standingsEl && seasonEntries.length) {
     const seasonStats = {};
     for (const h of seasonEntries) {
@@ -6904,9 +6620,9 @@ function renderHistoryTab() {
         <div class="card tab-card" style="padding:10px 18px;margin-bottom:16px">
           <details class="season-stats-details">
             <summary style="font-weight:800;font-size:0.88rem;cursor:pointer;padding:8px 0;display:flex;align-items:center;gap:8px">
-              <span style="font-size:1.1rem">ðŸ“Š</span>
+              <span style="font-size:1.1rem">📊</span>
               <span style="flex:1">Season Stats (${seasonEntries.length} tournament${seasonEntries.length > 1 ? 's' : ''})</span>
-              <span class="hs-chevron" style="font-size:0.7rem;color:var(--gray-500)">â–¼</span>
+              <span class="hs-chevron" style="font-size:0.7rem;color:var(--gray-500)">▼</span>
             </summary>
             <div style="overflow-x:auto;margin-top:6px;padding-bottom:8px">
               <table class="season-stats-table" style="width:100%;border-collapse:collapse;font-size:0.85rem">
@@ -6927,7 +6643,7 @@ function renderHistoryTab() {
     }
   }
 
-  // â”€â”€ Current tournament: completed games section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Current tournament: completed games section ───────────────────────────
   const completedNow = getTournamentGames().filter(g => _getResultForGame(g));
   if (completedNow.length) {
     emptyEl.classList.add('hidden');
@@ -6942,7 +6658,7 @@ function renderHistoryTab() {
       const curHead = document.createElement('div');
       curHead.className = 'history-section-heading history-section-toggle';
       curHead.setAttribute('aria-expanded', 'true'); // expanded by default for active tourney
-      curHead.innerHTML = `<span class="hs-title">${escHtml(TOURNAMENT.name || 'Current Tournament')}</span><span class="hs-chevron">â–¼</span>`;
+      curHead.innerHTML = `<span class="hs-title">${escHtml(TOURNAMENT.name || 'Current Tournament')}</span><span class="hs-chevron">▼</span>`;
       cardWrap.appendChild(curHead);
 
       // Section content - uses buildHistoryCard for rich score/stat display
@@ -6967,36 +6683,36 @@ function renderHistoryTab() {
   // (newest season first). Set noStandings:true for tournaments with no bracket points.
   const TOURNEY_GROUPS = [
     {
-      heading:   'Kap 7 Futures League Â· 2026',
+      heading:   'Kap 7 Futures League · 2026',
       shortName: 'Kap 7 Futures League',
       filter:    e => /futures|kap.?7/i.test((e.name || '') + (e.id || '')),
     },
     {
-      heading:     '14U SoCal International Tournament Â· 2026',
+      heading:     '14U SoCal International Tournament · 2026',
       shortName:   'SoCal International 2026',
       noStandings: true,
       filter:      e => /socal.?intl|socal.?international/i.test((e.name || '') + (e.id || '')),
     },
     {
-      heading:   'Bay Area Water Polo League Â· Winter 2025â€“2026',
-      shortName: 'BAWL Winter 2025â€“2026',
+      heading:   'Bay Area Water Polo League · Winter 2025–2026',
+      shortName: 'BAWL Winter 2025–2026',
       filter:    e => /bay area|bawl/i.test((e.name || '') + (e.id || ''))
                    && /winter/i.test((e.name || '') + (e.id || '')),
     },
     {
-      heading:   'Bay Area Water Polo League Â· Fall 2025â€“2026',
-      shortName: 'BAWL Fall 2025â€“2026',
+      heading:   'Bay Area Water Polo League · Fall 2025–2026',
+      shortName: 'BAWL Fall 2025–2026',
       filter:    e => /bay area|bawl/i.test((e.name || '') + (e.id || ''))
                    && /fall/i.test((e.name || '') + (e.id || '')),
     },
     {
-      heading:     'Evan Cousineau Memorial Cup Â· 2025',
+      heading:     'Evan Cousineau Memorial Cup · 2025',
       shortName:   'EC Cup 2025',
       noStandings: true,
       filter:      e => /evan.?cousineau|ec.?cup/i.test((e.name || '') + (e.id || '')),
     },
     {
-      heading:    'Pacific Zone Champions Cup Qualification Â· 2025',
+      heading:    'Pacific Zone Champions Cup Qualification · 2025',
       shortName:  'Pacific Zone Qual 2025',
       noStandings: true,
       filter:     e => /pac.?zone|champions.?cup/i.test((e.name || '') + (e.id || '')),
@@ -7013,21 +6729,21 @@ function renderHistoryTab() {
     cardWrap.className = 'history-section-card';
     listEl.appendChild(cardWrap);
 
-    // â”€â”€ Collapsible section heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Collapsible section heading ───────────────────────────────────────────
     const secEl = document.createElement('div');
     secEl.className = 'history-section-heading history-section-toggle';
     secEl.setAttribute('aria-expanded', 'false');
-    secEl.innerHTML = `<span class="hs-title">${escHtml(group.heading)}</span><span class="hs-chevron">â–¶</span>`;
+    secEl.innerHTML = `<span class="hs-title">${escHtml(group.heading)}</span><span class="hs-chevron">▶</span>`;
     secEl.onclick = () => toggleHistorySection(sectionId, secEl);
     cardWrap.appendChild(secEl);
 
-    // â”€â”€ Collapsible content wrapper (collapsed by default) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Collapsible content wrapper (collapsed by default) ────────────────────
     const contentEl = document.createElement('div');
     contentEl.id = sectionId;
     contentEl.className = 'history-section-content';
     cardWrap.appendChild(contentEl);
 
-    // â”€â”€ Standings card (only for tournaments with bracket points) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Standings card (only for tournaments with bracket points) ─────────────
     if (!group.noStandings) {
       const standDiv = document.createElement('div');
       standDiv.className = 'history-section-standings';
@@ -7035,7 +6751,7 @@ function renderHistoryTab() {
       contentEl.appendChild(standDiv);
     }
 
-    // â”€â”€ Team sub-sections â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Team sub-sections ────────────────────────────────────────────────────
     const byTeam = {};
     entries.forEach(e => {
       const sub = e.subtitle || '';
@@ -7063,7 +6779,7 @@ function renderHistoryTab() {
     });
   });
 
-  // â”€â”€ Ungrouped entries (manually added via admin) â€” group by season â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Ungrouped entries (manually added via admin) — group by season ─────────
   const grouped = new Set();
   TOURNEY_GROUPS.forEach(g => history.filter(g.filter).forEach(e => grouped.add(e.id)));
   const ungrouped = history.filter(e => !grouped.has(e.id));
@@ -7087,12 +6803,12 @@ function renderHistoryTab() {
 
       const totalW = sEntries.reduce((s, h) => s + (h.wins || 0), 0);
       const totalL = sEntries.reduce((s, h) => s + (h.losses || 0), 0);
-      const record = totalW || totalL ? ` Â· ${totalW}Wâ€“${totalL}L` : '';
+      const record = totalW || totalL ? ` · ${totalW}W–${totalL}L` : '';
 
       const secEl = document.createElement('div');
       secEl.className = 'history-section-heading history-section-toggle';
       secEl.setAttribute('aria-expanded', 'false');
-      secEl.innerHTML = `<span class="hs-title">${escHtml(season)}${record}</span><span class="hs-chevron">â–¶</span>`;
+      secEl.innerHTML = `<span class="hs-title">${escHtml(season)}${record}</span><span class="hs-chevron">▶</span>`;
       secEl.onclick = () => toggleHistorySection(sectionId, secEl);
       cardWrap.appendChild(secEl);
 
@@ -7113,7 +6829,7 @@ function toggleHistorySection(contentId, headingEl) {
   if (headingEl) {
     headingEl.setAttribute('aria-expanded', String(isOpen));
     const chevron = headingEl.querySelector('.hs-chevron');
-    if (chevron) chevron.textContent = isOpen ? 'â–¼' : 'â–¶';
+    if (chevron) chevron.textContent = isOpen ? '▼' : '▶';
   }
 }
 
@@ -7121,7 +6837,7 @@ function toggleHistoryCard(id) {
   document.getElementById(`history-card-${id}`)?.classList.toggle('expanded');
 }
 
-// â”€â”€â”€ HISTORY SEED â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── HISTORY SEED ─────────────────────────────────────────────────────────────
 // Removes any test/placeholder history entries that should never appear in production.
 const PURGE_IDS = [
   // Add any test/placeholder history IDs here to auto-purge them on load
@@ -7150,14 +6866,14 @@ function seedHistory() {
         changed = true;
       }
     } else {
-      history.push(entry);   // append â€” seed entries are older, show after current
+      history.push(entry);   // append — seed entries are older, show after current
       changed = true;
     }
   }
   if (changed) localStorage.setItem(STORE.HISTORY, JSON.stringify(history));
 }
 
-// â”€â”€â”€ CUMULATIVE STANDINGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CUMULATIVE STANDINGS ─────────────────────────────────────────────────────
 // Pass in a filtered array of history entries; returns sorted team totals.
 
 function getCumulativeStandings(entries) {
@@ -7187,19 +6903,19 @@ function buildStandingsHtml(entries, seriesLabel) {
   const maxPts = Math.max(...standings.map(s => s.pts));
   const rows = standings.map((s, i) => {
     const isLeader = s.pts === maxPts && s.pts > 0;
-    const pos = i === 0 && isLeader ? 'ðŸ¥‡' : i === 1 ? 'ðŸ¥ˆ' : `${i + 1}`;
+    const pos = i === 0 && isLeader ? '🥇' : i === 1 ? '🥈' : `${i + 1}`;
     return `
       <div class="standings-row${isLeader ? ' standings-leader' : ''}">
         <span class="standings-pos">${pos}</span>
         <span class="standings-team-name">${escHtml(s.team)}</span>
-        <span class="standings-wl">${s.wins}-${s.losses} Â· ${s.days} day${s.days !== 1 ? 's' : ''}</span>
+        <span class="standings-wl">${s.wins}-${s.losses} · ${s.days} day${s.days !== 1 ? 's' : ''}</span>
         <span class="standings-pts">${s.pts} pts</span>
       </div>`;
   }).join('');
   return `
     <div class="standings-card">
       <div class="standings-heading">Bracket Points Standings</div>
-      <div class="standings-series">${escHtml(seriesLabel)} Â· Cumulative</div>
+      <div class="standings-series">${escHtml(seriesLabel)} · Cumulative</div>
       ${rows}
     </div>`;
 }
@@ -7246,7 +6962,7 @@ function _renderHistoryMulti(slots) {
   seedHistory();
 }
 
-// Schedule tab â€” only show Futures standings (the active bracket play).
+// Schedule tab — only show Futures standings (the active bracket play).
 function renderHistoryStandings(targetId = 'history-standings', historyData = null) {
   const el = $(targetId);
   if (!el) return;
@@ -7257,7 +6973,7 @@ function renderHistoryStandings(targetId = 'history-standings', historyData = nu
   el.innerHTML = buildStandingsHtml(futuresEntries, 'Kap 7 Futures League');
 }
 
-// â”€â”€â”€ RELOAD TOURNAMENT DATA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── RELOAD TOURNAMENT DATA ───────────────────────────────────────────────────
 // Called when a PUSH_SYNC arrives after an admin deploy.
 // Fetches fresh tournament.js from the network (bypassing SW cache),
 // re-evaluates it so window.TOURNAMENT / window.HISTORY_SEED are updated,
@@ -7267,7 +6983,7 @@ async function reloadTournamentJs() {
   try {
     const res = await fetch(`/tournament.js?_=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) {
-      // Can't fetch â€” just re-render with what we have
+      // Can't fetch — just re-render with what we have
       renderScheduleTab();
       renderPossibleTab();
       return;
@@ -7353,7 +7069,7 @@ async function syncSheetConfigToServiceWorker() {
   } catch (_) {}
 }
 
-// â”€â”€â”€ INIT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── INIT ─────────────────────────────────────────────────────────────────────
 
 function init() {
   // Tag the HTML element with the native platform so CSS can scope native-only styles.
@@ -7364,7 +7080,7 @@ function init() {
     document.documentElement.classList.add('native-android');
   }
 
-  // Hide native splash screen â€” in remote URL mode launchAutoHide doesn't fire reliably
+  // Hide native splash screen — in remote URL mode launchAutoHide doesn't fire reliably
   try {
     if (window.Capacitor?.isNativePlatform?.()) {
       window.Capacitor.nativePromise('SplashScreen', 'hide', {}).catch(() => {});
@@ -7380,13 +7096,13 @@ function init() {
   // Firebase still inits in the background so the picker can list clubs
   if (typeof fbInit === 'function') fbInit();
 
-  // â”€â”€ Handle ?join=CLUB_ID â€” parent clicked admin's share link â”€â”€
+  // ── Handle ?join=CLUB_ID — parent clicked admin's share link ──
   _handleJoinParam();
 
-  // â”€â”€ Backward compat: migrate existing club selection to joined list â”€â”€
+  // ── Backward compat: migrate existing club selection to joined list ──
   _migrateJoinedClubs();
 
-  // â”€â”€ One-time migration: clear stale 14u-girls data for HS clubs â”€â”€
+  // ── One-time migration: clear stale 14u-girls data for HS clubs ──
   if (!localStorage.getItem('ebwp-migrated-v2')) {
     const clubType = localStorage.getItem('ebwp-club-type');
     const teamKey  = localStorage.getItem('ebwp-team-key');
@@ -7406,11 +7122,11 @@ function init() {
     localStorage.setItem('ebwp-migrated-v2', '1');
   }
 
-  if (showClubPickerIfNeeded()) return; // picker shown â€” wait for selection
+  if (showClubPickerIfNeeded()) return; // picker shown — wait for selection
 
   checkTournamentChange(); // also restores state.liveScores from localStorage
 
-  // ðŸ©¹ One-time data fix: Untoggle accidental DONS win
+  // 🩹 One-time data fix: Untoggle accidental DONS win
   if (!localStorage.getItem('ebwp-patch-dons-fix-v1')) {
     const _games = getTournamentGames();
     const _dons = _games.find(g => (g.opponent || '').toUpperCase().includes('DONS'));
@@ -7433,14 +7149,14 @@ function init() {
   renderPossibleTab();
   renderHistoryTab();
   renderRosterTab();
-  updateParentCrowns(); // show/hide ðŸ‘‘ on History + Bracket based on parent tier
+  updateParentCrowns(); // show/hide 👑 on History + Bracket based on parent tier
   startLivePoller(); // start polling for live scores from other devices
   updateLiveDot();   // set dot state on initial load
   startDirScorePolling(); // start polling for director game scores
   restoreTournScoreSession(); // restore Tournament Score tab session if saved
   updateTScoreTabVisibility(); // hide T-Score tab unless director pkg imported
 
-  // Load team data for all selected age groups (async â€” updates TOURNAMENT from KV)
+  // Load team data for all selected age groups (async — updates TOURNAMENT from KV)
   // IMPORTANT: fetch club info FIRST to set correct TEAM_OPTIONS before loading data
   const _appClubId = getAppClubId();
   if (_appClubId && typeof fbSetClubId === 'function') {
@@ -7464,14 +7180,14 @@ function init() {
         const infoRes = await fetch(WORKER + '/club-info?club=' + encodeURIComponent(_appClubId));
         const info = await infoRes.json();
         if (info.ok) {
-          // â”€â”€ Apply logo FIRST â€” before any processing that could throw â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Apply logo FIRST — before any processing that could throw ─────────
           // This guarantees the logo shows even if clubType/teamOptions code errors.
           _pendingLogoUrl  = info.logo   || null;
           _pendingLogoName = info.clubName || null;
           applyClubLogo(_pendingLogoUrl, _pendingLogoName);
 
           if (info.clubName) {
-            // Title-case if it's a slug (e.g., "alameda-high" â†’ "Alameda High")
+            // Title-case if it's a slug (e.g., "alameda-high" → "Alameda High")
             const displayName = info.clubName.includes('-') && !info.clubName.includes(' ')
               ? info.clubName.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
               : info.clubName;
@@ -7513,7 +7229,7 @@ function init() {
         if (brand.ok && brand.primaryColor) {
           applyClubBranding(brand.primaryColor, brand.secondaryColor, brand.headerStyle);
         } else if (brand.ok) {
-          // Club exists but has no custom branding â€” reset CSS vars to defaults
+          // Club exists but has no custom branding — reset CSS vars to defaults
           // so colors don't bleed from a previously viewed club
           applyClubBranding('#002868', null, null);
           window._clubPrimaryColor = null;
@@ -7533,7 +7249,7 @@ function init() {
     renderPossibleTab();
     renderHistoryTab();
     renderRosterTab();
-    // Re-poll live scores now that TOURNAMENT.id is populated â€” the startup poll used
+    // Re-poll live scores now that TOURNAMENT.id is populated — the startup poll used
     // an empty tournament ID and got no results, so state.liveScores was empty.
     // This second poll fetches with the correct ID and triggers sync inside pollLiveScores
     // if any game is live (changed=true path).
@@ -7546,21 +7262,21 @@ function init() {
 
   _doTeamLoad();
 
-  // Phase 3: listen for active tournament changes â€” auto-reload when admin switches tournaments
+  // Phase 3: listen for active tournament changes — auto-reload when admin switches tournaments
   if (typeof fbListenToActiveTournament === 'function') {
     let _knownActiveTournId = null;
     fbListenToActiveTournament(tourDoc => {
       if (!tourDoc) return;
       if (_knownActiveTournId === null) {
-        // First snapshot â€” record current active tournament
+        // First snapshot — record current active tournament
         _knownActiveTournId = tourDoc.id;
         return;
       }
       if (tourDoc.id !== _knownActiveTournId) {
-        // Active tournament changed â€” reload to pick up new deployed data
-        console.info('[phase3] Active tournament changed:', _knownActiveTournId, 'â†’', tourDoc.id);
+        // Active tournament changed — reload to pick up new deployed data
+        console.info('[phase3] Active tournament changed:', _knownActiveTournId, '→', tourDoc.id);
         _knownActiveTournId = tourDoc.id;
-        if (typeof showToast === 'function') showToast('New tournament activated â€” refreshingâ€¦');
+        if (typeof showToast === 'function') showToast('New tournament activated — refreshing…');
         setTimeout(() => location.replace('/?_r=' + Date.now()), 1500);
       }
     });
@@ -7596,7 +7312,7 @@ function init() {
     });
   }
 
-  // â”€â”€ Offline/online detection (Phase 5E) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Offline/online detection (Phase 5E) ─────────────────────────────────
   window.addEventListener('offline', () => {
     const b = document.getElementById('offline-banner');
     if (b) b.classList.remove('hidden');
@@ -7604,13 +7320,13 @@ function init() {
   window.addEventListener('online', () => {
     const b = document.getElementById('offline-banner');
     if (b) b.classList.add('hidden');
-    // Directly clear the schedule tab's inline offline bar â€” don't wait for data reload
+    // Directly clear the schedule tab's inline offline bar — don't wait for data reload
     if (typeof renderScheduleTab === 'function' && state.currentTab === 'schedule') renderScheduleTab();
     // Auto-refresh tournament data on reconnect
     if (typeof reloadTournamentJs === 'function') reloadTournamentJs();
   });
 
-  // â”€â”€ Power-aware polling: restart timers when battery or data-saver state changes â”€â”€
+  // ── Power-aware polling: restart timers when battery or data-saver state changes ──
   refreshNativeSystemState().finally(() => _restartPollOnPowerChange());
   getNativeSystemPlugin()?.addListener?.('systemStateChanged', info => {
     _applyNativeSystemState(info || {});
@@ -7660,7 +7376,7 @@ function init() {
             // Re-fetch tournament.js from the network and refresh all tabs
             reloadTournamentJs();
           }
-          // SW signals that a new version just activated â€” reload to get fresh assets
+          // SW signals that a new version just activated — reload to get fresh assets
           if (e.data?.type === 'SW_UPDATED') {
             window.location.replace(location.pathname);
           }
@@ -7668,14 +7384,14 @@ function init() {
         // Register periodic background sync (Android/Chrome, best-effort)
         if ('periodicSync' in reg) {
           reg.periodicSync.register('check-schedule', { minInterval: 30 * 60 * 1000 })
-            .catch(() => { /* permission not granted â€” push will still work */ });
+            .catch(() => { /* permission not granted — push will still work */ });
         }
         await syncSheetConfigToServiceWorker();
       })
       .catch(() => {});
   }
 
-  // Initial Widget Sync â€” wait 2 s for team-data KV fetch before writing
+  // Initial Widget Sync — wait 2 s for team-data KV fetch before writing
   setTimeout(() => _syncWidgetsAll(), 2000);
 
   // On app resume (foreground after background): immediately re-poll live scores and
@@ -7710,13 +7426,13 @@ function init() {
   }
 }
 
-// â”€â”€â”€ PUSH NOTIFICATIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PUSH NOTIFICATIONS ───────────────────────────────────────────────────────
 
 // VAPID public key for the ebwp-push Cloudflare Worker
 const PUSH_SERVER_URL = 'https://ebwp-push.sarah-new.workers.dev';
 const WORKER = PUSH_SERVER_URL;
 
-// â”€â”€ Parent tier â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Parent tier ───────────────────────────────────────────────────────────────
 // Set to true when ready to enforce parent subscriptions in production.
 const ENFORCE_PARENT_TIERS = false;
 
@@ -7728,7 +7444,7 @@ function parentHasFeature(feature) {
   return parentHasFeatureByTier(feature);
 }
 
-// Always checks real tier â€” ignores ENFORCE_PARENT_TIERS. Used for crown badges.
+// Always checks real tier — ignores ENFORCE_PARENT_TIERS. Used for crown badges.
 function parentHasFeatureByTier(feature) {
   const tier = (state.parentTier || localStorage.getItem('ebwp-parent-tier') || 'free');
   if (tier === 'parent') return true;
@@ -7748,13 +7464,13 @@ function updateParentCrowns() {
 function renderParentNudge(tabKey) {
   const nudges = {
     history: {
-      icon: 'ðŸ“Š', title: 'Player Stats & History', tier: 'Parent Monthly',
-      price: '$4.99/mo Â· Cancel anytime',
+      icon: '📊', title: 'Player Stats & History', tier: 'Parent Monthly',
+      price: '$4.99/mo · Cancel anytime',
       items: ['Season stats across all tournaments', 'Player progress & goal tracking', 'Win/loss record & standings history', 'Full tournament archive'],
     },
     possible: {
-      icon: 'ðŸ†', title: 'Tournament Bracket View', tier: 'Parent Monthly',
-      price: '$4.99/mo Â· Cancel anytime',
+      icon: '🏆', title: 'Tournament Bracket View', tier: 'Parent Monthly',
+      price: '$4.99/mo · Cancel anytime',
       items: ['Full bracket with live results', 'Pool play standings & seedings', 'Advancement tracking round-by-round', 'Shareable bracket link'],
     },
   };
@@ -7763,20 +7479,20 @@ function renderParentNudge(tabKey) {
     <div style="display:flex;flex-direction:column;align-items:center;padding:40px 24px;text-align:center;max-width:360px;margin:0 auto">
       <div style="font-size:3rem;margin-bottom:12px">${n.icon}</div>
       <div style="font-size:1.2rem;font-weight:800;color:var(--gray-900);margin-bottom:4px">${n.title}</div>
-      <div style="font-size:0.82rem;font-weight:700;color:#16a34a;background:#dcfce7;padding:3px 10px;border-radius:20px;margin-bottom:16px">${n.tier} ðŸ‘‘</div>
+      <div style="font-size:0.82rem;font-weight:700;color:#16a34a;background:#dcfce7;padding:3px 10px;border-radius:20px;margin-bottom:16px">${n.tier} 👑</div>
       <ul style="text-align:left;list-style:none;padding:0;margin:0 0 20px;width:100%">
-        ${n.items.map(i => `<li style="padding:6px 0;font-size:0.9rem;color:var(--gray-700);display:flex;gap:8px;align-items:flex-start"><span style="color:#16a34a;font-weight:700;flex-shrink:0">âœ“</span>${i}</li>`).join('')}
+        ${n.items.map(i => `<li style="padding:6px 0;font-size:0.9rem;color:var(--gray-700);display:flex;gap:8px;align-items:flex-start"><span style="color:#16a34a;font-weight:700;flex-shrink:0">✓</span>${i}</li>`).join('')}
       </ul>
       <div style="font-size:0.85rem;color:var(--gray-500);margin-bottom:16px">${n.price}</div>
-      <button onclick="showParentUpgradeSheet()" style="background:#16a34a;color:white;border:none;border-radius:10px;padding:14px 28px;font-size:1rem;font-weight:700;cursor:pointer;width:100%">Upgrade to Parent ðŸ‘‘</button>
+      <button onclick="showParentUpgradeSheet()" style="background:#16a34a;color:white;border:none;border-radius:10px;padding:14px 28px;font-size:1rem;font-weight:700;cursor:pointer;width:100%">Upgrade to Parent 👑</button>
     </div>`;
 }
 
 function showParentUpgradeSheet() {
-  alert('Parent Monthly â€” $4.99/mo\n\nUnlocks: Player Stats History, Tournament Bracket, Live Follow\n\nBilling is not enabled in this beta build yet.\nEmail hello@eggbeater.app if you want Parent access turned on for testing.');
+  alert('Parent Monthly — $4.99/mo\n\nUnlocks: Player Stats History, Tournament Bracket, Live Follow\n\nBilling is not enabled in this beta build yet.\nEmail hello@eggbeater.app if you want Parent access turned on for testing.');
 }
 
-// Phase 3: Club ID detection â€” URL param > localStorage > tournament data > default
+// Phase 3: Club ID detection — URL param > localStorage > tournament data > default
 function getAppClubId() {
   const params = new URLSearchParams(window.location.search);
   // Accept both ?club= (legacy) and ?join= (preferred/canonical)
@@ -7787,14 +7503,14 @@ function getAppClubId() {
   }
   const saved = localStorage.getItem('ebwp-club-id');
   if (saved) return saved;
-  // NOTE: do NOT fall back to TOURNAMENT.clubId here â€” that's a legacy single-club default
+  // NOTE: do NOT fall back to TOURNAMENT.clubId here — that's a legacy single-club default
   // that prevents the splash/club-picker from appearing after _returnToSplash() clears the selection.
   return null;
 }
 
-// â”€â”€â”€ CLUB PICKER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CLUB PICKER ──────────────────────────────────────────────────────────────
 
-// â”€â”€ Joined clubs list management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Joined clubs list management ──────────────────────────────────────────────
 
 function getJoinedClubs() {
   try {
@@ -7849,7 +7565,7 @@ async function _handleJoinParam() {
       _openModal('join-pw-modal');
       return;
     }
-    // Not gated or fetch failed â€” proceed normally
+    // Not gated or fetch failed — proceed normally
     if (data.ok) {
       addJoinedClub(joinClub);
       _selectClub(joinClub, data.clubName, data.clubType);
@@ -7921,10 +7637,10 @@ async function _loadClubPickerList(switchMode) {
   listEl.innerHTML = '';
 
   if (!clubs.length) {
-    // No joined clubs â€” show join prompt
+    // No joined clubs — show join prompt
     listEl.innerHTML = `
       <div style="text-align:center;padding:24px 16px">
-        <div style="font-size:2.2rem;margin-bottom:10px">ðŸ¤½â€â™€ï¸</div>
+        <div style="font-size:2.2rem;margin-bottom:10px">🤽‍♀️</div>
         <div style="font-size:1.1rem;font-weight:700;color:white;margin-bottom:8px">Join Your Club</div>
         <div style="font-size:0.88rem;color:rgba(255,255,255,0.7);line-height:1.5;margin-bottom:16px">
           Ask your club admin for the parent join link.<br>
@@ -8044,7 +7760,7 @@ async function submitJoinPassword() {
       _selectClub(pending.id, pending.name, pending.clubType);
       input.value = '';
     } else {
-      errEl.textContent = 'Incorrect password â€” check with your club admin and try again';
+      errEl.textContent = 'Incorrect password — check with your club admin and try again';
     }
   } catch (e) {
     errEl.textContent = 'Error connecting to server';
@@ -8119,7 +7835,7 @@ function _selectClub(clubId, clubName, clubType) {
 }
 
 /**
- * Reset club selection â€” shows the picker again.
+ * Reset club selection — shows the picker again.
  * Called from "Change Club" link in header.
  */
 function changeClub() {
@@ -8131,7 +7847,7 @@ function changeClub() {
   localStorage.removeItem('ebwp-team-keys');
   localStorage.removeItem('ebwp-team-key');
   TEAM_OPTIONS = TEAM_OPTIONS_CLUB_YOUTH; // reset to default
-  // Note: ebwp-joined-clubs is NOT cleared â€” user keeps their club memberships
+  // Note: ebwp-joined-clubs is NOT cleared — user keeps their club memberships
   // Clear URL club param
   const url = new URL(window.location);
   url.searchParams.delete('club');
@@ -8140,7 +7856,7 @@ function changeClub() {
   _showPickerForSwitch();
 }
 
-/** Show picker in "switch" mode â€” always shows all clubs + add option, never auto-selects */
+/** Show picker in "switch" mode — always shows all clubs + add option, never auto-selects */
 function _showPickerForSwitch() {
   const picker = document.getElementById('club-picker');
   if (!picker) return;
@@ -8151,7 +7867,7 @@ function _showPickerForSwitch() {
   _loadClubPickerList(true); // true = switch mode (no auto-select)
 }
 
-// â”€â”€â”€ TEAM / AGE-GROUP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── TEAM / AGE-GROUP ─────────────────────────────────────────────────────────
 
 const TEAM_OPTIONS_CLUB_YOUTH = [
   { key: '10u-coed',  label: '10u Co-Ed' },
@@ -8204,7 +7920,7 @@ let TEAM_OPTIONS = getClubTeamOptions(
   storedPrograms.mastersOnly
 );
 
-// â”€â”€ Age-group selection (supports multiple selections) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Age-group selection (supports multiple selections) ────────────────────────
 
 function _teamKeysKey() {
   // Per-club namespaced key so each club remembers its own selected teams
@@ -8244,7 +7960,7 @@ function setSelectedTeams(keys) {
   if (typeof fbSavePrefs === 'function') fbSavePrefs();
 }
 
-// â”€â”€ Favorite age groups (Phase 5A) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Favorite age groups (Phase 5A) ────────────────────────────────────────────
 
 function _favKey() {
   // Per-club namespaced key so each club remembers its own favorites independently
@@ -8289,7 +8005,7 @@ function toggleFavGroup(key) {
   renderTeamPicker();
 }
 
-// â”€â”€ Live Activity / Live Update per-team preferences â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Live Activity / Live Update per-team preferences ──────────────────────────
 
 /** In-memory set of game IDs that were auto-started this session (prevents double-trigger). */
 const _laAutoStarted = new Set();
@@ -8359,8 +8075,8 @@ function openLASettingsModal() {
       <div class="roster-modal-backdrop" onclick="closeLASettingsModal()"></div>
       <div class="roster-modal-sheet">
         <div class="roster-modal-header">
-          <span class="roster-modal-title">ðŸ“¡ ${escHtml(title)}</span>
-          <button class="roster-modal-close" onclick="closeLASettingsModal()" aria-label="Close">âœ•</button>
+          <span class="roster-modal-title">📡 ${escHtml(title)}</span>
+          <button class="roster-modal-close" onclick="closeLASettingsModal()" aria-label="Close">✕</button>
         </div>
         <div style="padding:16px">
           <p style="margin:0 0 16px 0;font-size:0.85rem;color:var(--gray-500)">${escHtml(desc)}</p>
@@ -8382,7 +8098,7 @@ function closeLASettingsModal() {
 
 function toggleLAPref(teamKey) {
   const prefs = getLAPrefs();
-  setLAPref(teamKey, prefs[teamKey] === false); // flip (default on â†’ off; off â†’ on)
+  setLAPref(teamKey, prefs[teamKey] === false); // flip (default on → off; off → on)
   const listEl = document.getElementById('la-teams-list');
   if (listEl) listEl.innerHTML = _buildLATeamListHTML();
 }
@@ -8421,7 +8137,7 @@ async function loadTeamData(teamKey) {
       window.TOURNAMENT    = tournament;
       window.HISTORY_SEED  = history || [];
       // Clear cached roster and history so fresh data from server is used.
-      // seedHistory() only appends â€” it never removes stale entries, so old data
+      // seedHistory() only appends — it never removes stale entries, so old data
       // from a previous fallback key (e.g. 680-drivers) would persist forever without this.
       localStorage.removeItem(STORE.ROSTER);
       localStorage.removeItem(STORE.ROSTER + '-A');
@@ -8438,7 +8154,7 @@ async function loadTeamData(teamKey) {
       if (branding.logoUrl) {
         applyClubLogo(branding.logoUrl, clubName);
       }
-      // Don't call applyClubLogo(null) here â€” if team-data has no logoUrl,
+      // Don't call applyClubLogo(null) here — if team-data has no logoUrl,
       // keep whatever logo was already set by the club-info fetch in _doTeamLoad.
     }
     // Detect HS club type and switch team options dynamically
@@ -8544,12 +8260,12 @@ async function subscribeToPush() {
   try {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted' && _isNativePlatform()) {
-      showToast('Notifications blocked Ã¢â‚¬â€ opening device settings');
+      showToast('Notifications blocked â€” opening device settings');
       openNativeNotificationSettings();
       return;
     }
     if (permission !== 'granted') {
-      showToast('Notifications blocked â€” enable in browser settings');
+      showToast('Notifications blocked — enable in browser settings');
       return;
     }
 
@@ -8572,10 +8288,10 @@ async function subscribeToPush() {
 
     if (res.ok) {
       localStorage.setItem('ebwp-push-subscribed', '1');
-      showToast('ðŸ”” Notifications enabled! You\'ll be alerted when new games are added.', 'ok');
+      showToast('🔔 Notifications enabled! You\'ll be alerted when new games are added.', 'ok');
       renderPushButton();
     } else {
-      showToast('Subscription failed â€” try again');
+      showToast('Subscription failed — try again');
     }
   } catch (e) {
     console.error('Push subscribe error:', e);
@@ -8613,14 +8329,14 @@ function renderPushButton() {
   const subscribed = isPushSubscribed();
 
   if (subscribed) {
-    // â”€â”€ Subscribed: show preferences + unsubscribe â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Subscribed: show preferences + unsubscribe ───────────────────────
     const prefs = _loadPushPrefs();
     const ageGroups = (typeof getSelectedTeams === 'function') ? getSelectedTeams() : [];
 
     el.innerHTML = `
       <div class="push-card">
         <div class="push-header">
-          <span class="push-icon">ðŸ””</span>
+          <span class="push-icon">🔔</span>
           <span class="push-title">Notifications On${native ? ' (iOS)' : ''}</span>
         </div>
         <div class="push-prefs">
@@ -8633,7 +8349,7 @@ function renderPushButton() {
             <label class="push-pref-row push-pref-sub">
               <input type="radio" name="score-freq" value="everyGoal" ${prefs.scoreFrequency === 'everyGoal' ? 'checked' : ''}
                      onchange="onPushPrefChange()">
-              <span>Every goal ðŸŸ¡</span>
+              <span>Every goal 🟡</span>
             </label>
             <label class="push-pref-row push-pref-sub">
               <input type="radio" name="score-freq" value="endOfQuarter" ${prefs.scoreFrequency === 'endOfQuarter' ? 'checked' : ''}
@@ -8659,7 +8375,7 @@ function renderPushButton() {
           <label class="push-pref-row">
             <input type="checkbox" id="pref-reminders" ${prefs.gameReminders ? 'checked' : ''}
                    onchange="onPushPrefChange()">
-            <span>Game reminders â°</span>
+            <span>Game reminders ⏰</span>
           </label>
           <div id="reminder-lead-section" class="push-sub-prefs" style="${prefs.gameReminders ? '' : 'display:none'}">
             <label class="push-pref-row push-pref-sub">
@@ -8684,8 +8400,8 @@ function renderPushButton() {
         </button>
       </div>`;
   } else {
-    // â”€â”€ Not subscribed: warm-up card before triggering native prompt â”€â”€â”€â”€â”€
-    // Honest, specific description â†’ user taps â†’ THEN the native OS dialog appears.
+    // ── Not subscribed: warm-up card before triggering native prompt ─────
+    // Honest, specific description → user taps → THEN the native OS dialog appears.
     // This pattern dramatically reduces permission denials.
 
     // If the user dismissed within the last 14 days, respect that and stay quiet.
@@ -8699,7 +8415,7 @@ function renderPushButton() {
     el.innerHTML = `
       <div class="push-card">
         <div class="push-header">
-          <span class="push-icon">ðŸ””</span>
+          <span class="push-icon">🔔</span>
           <span class="push-title">Game Alerts</span>
         </div>
         <p class="push-desc" style="margin-bottom:6px">We'll send you a notification when new games are added to the schedule. Nothing else.</p>
@@ -8804,7 +8520,7 @@ async function handlePushUnsubscribe() {
   localStorage.removeItem('ebwp-push-dismissed');
 }
 
-// â”€â”€â”€ SCORER MODE (password-gated scoring controls) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── SCORER MODE (password-gated scoring controls) ────────────────────────────
 
 function _getUnlockedScoringTournamentIds() {
   try {
@@ -8875,11 +8591,11 @@ function submitScoringPassword() {
     localStorage.setItem('ebwp-scorer-tournament',  primaryId);
     state.viewerMode = false;
     closeScoringPasswordModal();
-    showToast('ðŸ”“ Scorer mode unlocked!', 'ok');
+    showToast('🔓 Scorer mode unlocked!', 'ok');
     renderGamesList();
     if (state.currentTab === 'scores') renderScoresTab();
   } else {
-    $('scoring-pw-error').textContent = 'Incorrect password â€” try again';
+    $('scoring-pw-error').textContent = 'Incorrect password — try again';
     $('scoring-pw-input').value = '';
     $('scoring-pw-input').focus();
   }
@@ -8898,7 +8614,7 @@ function lockScoring() {
     }
   }
   document.querySelector('.app-header')?.classList.remove('scoring-active');
-  showToast('ðŸ”’ Scorer mode locked');
+  showToast('🔒 Scorer mode locked');
   updateLiveDot();
   renderGamesList();
   renderNextGameCard(); // clear LIVE badge on blue card
@@ -8906,7 +8622,7 @@ function lockScoring() {
   syncHeaderHeight();
 }
 
-// â”€â”€â”€ LIVE SCORE BROADCAST & SYNC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── LIVE SCORE BROADCAST & SYNC ──────────────────────────────────────────────
 // Scorer device pushes state after every event.
 // Viewer devices poll every 5 s and merge remote state into their display.
 // Devices are distinguished by a random per-device ID stored in localStorage
@@ -8957,7 +8673,7 @@ async function broadcastLiveScore(gameId) {
   }
 }
 
-// â”€â”€ Offline Score Queue (IndexedDB) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Offline Score Queue (IndexedDB) ──────────────────────────────────────────
 
 function _openScoreDB() {
   return new Promise((resolve, reject) => {
@@ -9008,10 +8724,10 @@ async function _syncPendingScores() {
     let synced = 0;
     for (const entry of all) {
       if (entry.retryCount >= 10) {
-        // Give up â€” delete and notify
+        // Give up — delete and notify
         const dtx = db.transaction('pending-scores', 'readwrite');
         dtx.objectStore('pending-scores').delete(entry.id);
-        showToast('âŒ Failed to sync a score after 10 retries', 'err');
+        showToast('❌ Failed to sync a score after 10 retries', 'err');
         continue;
       }
       try {
@@ -9023,7 +8739,7 @@ async function _syncPendingScores() {
           body:    JSON.stringify(entry.payload),
         });
         if (!res.ok) throw new Error('HTTP ' + res.status);
-        // Success â€” remove from queue
+        // Success — remove from queue
         const dtx = db.transaction('pending-scores', 'readwrite');
         dtx.objectStore('pending-scores').delete(entry.id);
         synced++;
@@ -9035,7 +8751,7 @@ async function _syncPendingScores() {
       }
     }
     if (synced > 0) {
-      showToast(`âœ… ${synced} score${synced > 1 ? 's' : ''} synced`, 'ok');
+      showToast(`✅ ${synced} score${synced > 1 ? 's' : ''} synced`, 'ok');
     }
     // Check if queue is empty now
     const checkTx = db.transaction('pending-scores', 'readonly');
@@ -9054,7 +8770,7 @@ function _showOfflineBanner(show) {
     banner = document.createElement('div');
     banner.id = 'offline-score-banner';
     banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9998;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:0.82rem;font-weight:700;text-align:center;padding:8px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.15)';
-    banner.textContent = 'ðŸ“¡ Offline â€” scores will sync when connected';
+    banner.textContent = '📡 Offline — scores will sync when connected';
     document.body.appendChild(banner);
   } else if (!show && banner) {
     banner.remove();
@@ -9072,7 +8788,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// â”€â”€ Cache tournament data for offline fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Cache tournament data for offline fallback ───────────────────────────────
 
 async function _cacheTournamentData(team, data) {
   try {
@@ -9164,7 +8880,7 @@ async function pollLiveScores() {
 
     for (const [gameId, remoteScore] of Object.entries(remote)) {
       const scopedKey = _scopedGameKey(gameId, remoteScore.ageGroup || remoteScore.score?.ageGroup || '');
-      if ((myGames.has(scopedKey) || myGames.has(gameId)) && isScorerUnlocked()) continue; // active scorer â€” don't overwrite local state
+      if ((myGames.has(scopedKey) || myGames.has(gameId)) && isScorerUnlocked()) continue; // active scorer — don't overwrite local state
       const local = state.liveScores[scopedKey] || state.liveScores[gameId] || {};
       if ((remoteScore.broadcastAt || 0) <= (local._broadcastAt || 0)) continue; // not newer
 
@@ -9222,7 +8938,7 @@ async function pollLiveScores() {
       _auditMultiTeamIntegrity();
       saveLiveScores();
       // Start the 250ms clock ticker if any received game has a running timer.
-      // Without this, viewer clocks never tick â€” ensureClockTicker() is only called
+      // Without this, viewer clocks never tick — ensureClockTicker() is only called
       // on the scorer path, not after a remote poll update.
       if (Object.values(state.liveScores).some(s => s && s.timerRunning)) {
         ensureClockTicker();
@@ -9281,7 +8997,7 @@ async function pollLiveScores() {
         }
       }
     }
-    // Android 16 Live Update â€” runs on EVERY successful poll cycle (not just when changed).
+    // Android 16 Live Update — runs on EVERY successful poll cycle (not just when changed).
     // If the foreground service start fails silently on first detection, the 5-second poller
     // retries automatically without needing broadcastAt to change again.
     // Only skip if tournament data hasn't loaded yet (empty array = race condition on startup).
@@ -9298,14 +9014,14 @@ async function pollLiveScores() {
         EggbeaterLiveUpdate.stop();
       }
     }
-  } catch { /* ignore network errors â€” offline is fine */ }
+  } catch { /* ignore network errors — offline is fine */ }
 }
 
 let _liveToastShown = false;
 function showLiveToast() {
   if (_liveToastShown) return;
   _liveToastShown = true;
-  showToast('ðŸ“¡ Live scoring update received', 'ok');
+  showToast('📡 Live scoring update received', 'ok');
   setTimeout(() => { _liveToastShown = false; }, 15000);
 }
 
@@ -9316,7 +9032,7 @@ async function startLivePoller() {
   _livePollTimer = setInterval(pollLiveScores, interval);
 }
 
-// â”€â”€â”€ PLAYER STATS DOWNLOAD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PLAYER STATS DOWNLOAD ────────────────────────────────────────────────────
 
 /**
  * Scans all events (current tournament + full history) and returns a
@@ -9390,8 +9106,8 @@ function getAllPlayersWithStats(teamKey = '') {
  * Matching rules (in order of specificity):
  *  1. Full name exact match (case-insensitive)
  *  2. First name exact match (only when first name is > 2 chars, avoids "Jo" collisions)
- * Cap numbers are intentionally ignored for matching â€” they rotate per tournament.
- * Returns an array of row objects sorted oldest â†’ newest.
+ * Cap numbers are intentionally ignored for matching — they rotate per tournament.
+ * Returns an array of row objects sorted oldest → newest.
  */
 function collectPlayerGameRows(name, teamKey = '') {
   const rows    = [];
@@ -9503,7 +9219,7 @@ function buildPlayerStatsCSV(playerLabel, rows) {
     : 'Tournament,Date,Opponent,Result,Team Score,Opp Score,Goals,Assists,Steals,Sprint Wins,Forced Ball Under,Field Blocks,Exclusions,6v5 Goals';
 
   const lines = [
-    q('Eggbeater Water Polo â€” Player Stats Export'),
+    q('Eggbeater Water Polo — Player Stats Export'),
     q(`Player: ${playerLabel}`),
     q(`Exported: ${now}`),
     q(`${rows.length} game${rows.length !== 1 ? 's' : ''}  |  Record: ${totalWins}-${rows.length - totalWins}  |  Goals: ${totalG}  Assists: ${totalA}  Steals: ${totalStl}  Exclusions: ${totalExcl}${totalSW ? '  Sprint Wins: ' + totalSW : ''}${totalFBU ? '  FBU: ' + totalFBU : ''}${totalFB ? '  Field Blocks: ' + totalFB : ''}${total6v5 ? '  6v5: ' + total6v5 : ''}${isGkPlayer ? `  Saves: ${totalSv}` : ''}`),
@@ -9575,7 +9291,7 @@ function openPlayerStatsModal() {
       const nameEncoded = encodeURIComponent(p.name || '');
       return `<button class="pstats-player-btn" onclick="downloadPlayerStats('${nameEncoded}')" aria-label="Download stats for ${displayName}">
         <div class="pstats-player-left"><span class="pstats-name">${displayName}</span></div>
-        <div class="pstats-player-right">${totals}${gamesStr}<span class="pstats-dl-icon" aria-hidden="true">â¬‡</span></div>
+        <div class="pstats-player-right">${totals}${gamesStr}<span class="pstats-dl-icon" aria-hidden="true">⬇</span></div>
       </button>`;
     }).join('');
   }
@@ -9590,7 +9306,7 @@ function closePlayerStatsModal() {
   _closeModal('player-stats-modal');
 }
 
-// â”€â”€ Season Stats Modal (from archived tournaments) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Season Stats Modal (from archived tournaments) ──────────────────────────
 
 let _seasonStatsData = [];
 let _seasonStatsSort = { col: 'goals', desc: true };
@@ -9605,8 +9321,8 @@ async function openSeasonStatsModal() {
     modal.innerHTML = `
       <div class="modal-content" style="max-width:480px;width:100%;max-height:90vh;overflow-y:auto;border-radius:16px;padding:0">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px;border-bottom:1px solid var(--gray-200,#e5e7eb)">
-          <h2 style="margin:0;font-size:1.1rem">ðŸ“Š Season Player Stats</h2>
-          <button onclick="closeSeasonStatsModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--gray-500,#6b7280)">âœ•</button>
+          <h2 style="margin:0;font-size:1.1rem">📊 Season Player Stats</h2>
+          <button onclick="closeSeasonStatsModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--gray-500,#6b7280)">✕</button>
         </div>
         <div id="season-stats-body" style="padding:12px 16px"></div>
       </div>`;
@@ -9616,7 +9332,7 @@ async function openSeasonStatsModal() {
 
   modal.classList.remove('hidden');
   const body = $('season-stats-body');
-  body.innerHTML = '<div style="text-align:center;color:var(--gray-500,#6b7280);padding:24px;font-size:0.85rem">Loading season statsâ€¦</div>';
+  body.innerHTML = '<div style="text-align:center;color:var(--gray-500,#6b7280);padding:24px;font-size:0.85rem">Loading season stats…</div>';
 
   try {
     const clubId = localStorage.getItem('ebwp-club') || 'my-club';
@@ -9662,7 +9378,7 @@ function renderSeasonStatsTable() {
     return desc ? bv - av : av - bv;
   });
 
-  const arrow = (c) => _seasonStatsSort.col === c ? (_seasonStatsSort.desc ? ' â–¼' : ' â–²') : '';
+  const arrow = (c) => _seasonStatsSort.col === c ? (_seasonStatsSort.desc ? ' ▼' : ' ▲') : '';
   const th = (label, key, align) => `<th style="padding:6px 4px;cursor:pointer;white-space:nowrap;font-size:0.68rem;text-align:${align||'center'};color:${_seasonStatsSort.col===key?'#1d4ed8':'#6b7280'};font-weight:700;user-select:none" onclick="sortSeasonStats('${key}')">${label}${arrow(key)}</th>`;
 
   let html = `<div style="overflow-x:auto;margin:0 -16px;padding:0 16px">
@@ -9686,7 +9402,7 @@ function renderSeasonStatsTable() {
   }
 
   html += '</tbody></table></div>';
-  html += `<div style="font-size:0.68rem;color:#9ca3af;margin-top:8px;text-align:right">${sorted.length} players Â· tap column to sort</div>`;
+  html += `<div style="font-size:0.68rem;color:#9ca3af;margin-top:8px;text-align:right">${sorted.length} players · tap column to sort</div>`;
   body.innerHTML = html;
 }
 
@@ -9707,10 +9423,10 @@ function downloadPlayerStats(nameEncoded) {
   const csv = buildPlayerStatsCSV(playerLabel, rows);
   triggerDownload(filename, csv);
   closePlayerStatsModal();
-  showToast(`ðŸ“¥ Downloaded ${playerLabel}'s stats (${rows.length} game${rows.length !== 1 ? 's' : ''})`, 'ok');
+  showToast(`📥 Downloaded ${playerLabel}'s stats (${rows.length} game${rows.length !== 1 ? 's' : ''})`, 'ok');
 }
 
-// â”€â”€â”€ HELP TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── HELP TAB ─────────────────────────────────────────────────────────────────
 
 function renderHelpTab() {
   const el = $('view-help');
@@ -9718,131 +9434,131 @@ function renderHelpTab() {
 
   const sections = [
     {
-      icon: 'ðŸ“²',
+      icon: '📲',
       title: 'Installing the App (iOS App Store & Google Play)',
-      body: `<p>Download the native <strong>Eggbeater Water Polo</strong> app for the best experience â€” faster performance, reliable push notifications, and home screen access.</p>
-      <p style="margin-top:10px"><strong>ðŸŽ iPhone / iPad (iOS)</strong></p>
+      body: `<p>Download the native <strong>Eggbeater Water Polo</strong> app for the best experience — faster performance, reliable push notifications, and home screen access.</p>
+      <p style="margin-top:10px"><strong>🍎 iPhone / iPad (iOS)</strong></p>
       <ol>
         <li>Open the <strong>App Store</strong> on your iPhone or iPad.</li>
         <li>Search for <strong>Eggbeater Water Polo</strong>.</li>
         <li>Tap <strong>Get</strong> to download and install.</li>
-        <li>Open the app, select your club and age group, then go to <strong>Settings â†’ Notifications</strong> to enable push notifications.</li>
+        <li>Open the app, select your club and age group, then go to <strong>Settings → Notifications</strong> to enable push notifications.</li>
       </ol>
-      <p style="margin-top:10px"><strong>ðŸ¤– Android</strong></p>
+      <p style="margin-top:10px"><strong>🤖 Android</strong></p>
       <ol>
         <li>Open the <strong>Google Play Store</strong> on your Android device.</li>
         <li>Search for <strong>Eggbeater Water Polo</strong>.</li>
         <li>Tap <strong>Install</strong>.</li>
         <li>Open the app, select your club and age group, then allow notifications when prompted.</li>
       </ol>
-      <p style="margin-top:8px;color:var(--text-muted);font-size:0.85rem">ðŸ’¡ The native app is recommended for the most reliable notifications and the smoothest experience.</p>`
+      <p style="margin-top:8px;color:var(--text-muted);font-size:0.85rem">💡 The native app is recommended for the most reliable notifications and the smoothest experience.</p>`
     },
     {
-      icon: 'ðŸ“±',
+      icon: '📱',
       title: 'Installing the Web App (iOS & Android)',
-      body: `<p>No App Store needed â€” you can install the Eggbeater web app directly from your browser and add it to your home screen for a full-screen, app-like experience.</p>
-      <p style="margin-top:10px"><strong>ðŸŽ iPhone / iPad (iOS â€” Safari required)</strong></p>
+      body: `<p>No App Store needed — you can install the Eggbeater web app directly from your browser and add it to your home screen for a full-screen, app-like experience.</p>
+      <p style="margin-top:10px"><strong>🍎 iPhone / iPad (iOS — Safari required)</strong></p>
       <ol>
-        <li>Open <a href="https://eggbeater.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater.app</a> in <strong>Safari</strong> (must be Safari â€” Chrome and other iOS browsers cannot install home screen apps).</li>
-        <li>Tap the <strong>Share</strong> button â€” the box-with-arrow icon at the bottom of the screen (top-right on iPad).</li>
+        <li>Open <a href="https://eggbeater.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater.app</a> in <strong>Safari</strong> (must be Safari — Chrome and other iOS browsers cannot install home screen apps).</li>
+        <li>Tap the <strong>Share</strong> button — the box-with-arrow icon at the bottom of the screen (top-right on iPad).</li>
         <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
-        <li>Tap <strong>Add</strong> â€” the Eggbeater icon appears on your home screen.</li>
+        <li>Tap <strong>Add</strong> — the Eggbeater icon appears on your home screen.</li>
         <li>Always open from the home screen icon for full-screen mode and push notifications.</li>
-        <li>Go to <strong>Settings â†’ Calendar &amp; Notifications</strong> and tap <em>Enable Notifications</em>.</li>
+        <li>Go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <em>Enable Notifications</em>.</li>
       </ol>
-      <p style="margin-top:8px;color:var(--text-muted);font-size:0.85rem">âš ï¸ Push notifications on iOS require iOS 16.4+ and the app must be opened from the home screen icon, not from Safari directly.</p>
-      <p style="margin-top:10px"><strong>ðŸ¤– Android (Chrome)</strong></p>
+      <p style="margin-top:8px;color:var(--text-muted);font-size:0.85rem">⚠️ Push notifications on iOS require iOS 16.4+ and the app must be opened from the home screen icon, not from Safari directly.</p>
+      <p style="margin-top:10px"><strong>🤖 Android (Chrome)</strong></p>
       <ol>
         <li>Open <a href="https://eggbeater.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater.app</a> in <strong>Chrome</strong>.</li>
-        <li>Tap the <strong>three-dot menu</strong> (â‹®) in the top-right corner.</li>
+        <li>Tap the <strong>three-dot menu</strong> (⋮) in the top-right corner.</li>
         <li>Tap <strong>Add to Home screen</strong> or <strong>Install app</strong>.</li>
         <li>Tap <strong>Add</strong> or <strong>Install</strong> to confirm.</li>
         <li>Open from your home screen icon, then tap <em>Get Notified</em> and allow notifications when prompted.</li>
       </ol>`
     },
     {
-      icon: 'ðŸ“…',
+      icon: '📅',
       title: 'Schedule Tab',
       body: `<p>The <strong>Schedule</strong> tab shows all upcoming games for the selected team sorted by game number.</p>
       <ul>
-        <li>The <strong>Next Game</strong> card at the top highlights your next upcoming game in blue â€” when a game is being live-scored it turns red, shows <strong>ðŸ”´ LIVE</strong>, and displays the current score, quarter, and live clock so you can follow the action at a glance.</li>
+        <li>The <strong>Next Game</strong> card at the top highlights your next upcoming game in blue — when a game is being live-scored it turns red, shows <strong>🔴 LIVE</strong>, and displays the current score, quarter, and live clock so you can follow the action at a glance.</li>
         <li>Games below the Next Game card show opponent, game number, time, pool, location, and cap color. Dark-cap games use the club's dark card treatment; white-cap games stay on the white card treatment so Schedule and Scores match visually.</li>
-        <li>The next game only appears once â€” it won't duplicate in the list below.</li>
-        <li>Once a game is marked with a result it automatically moves to the <strong>History</strong> tab â€” keeping this screen clean and future-focused.</li>
+        <li>The next game only appears once — it won't duplicate in the list below.</li>
+        <li>Once a game is marked with a result it automatically moves to the <strong>History</strong> tab — keeping this screen clean and future-focused.</li>
         <li>Tap <strong>Add to Calendar</strong> to sync all games to your Google Calendar.</li>
         <li>Tap <strong>Get Notified</strong> to enable push notifications when the schedule is updated.</li>
-        <li>If multiple age groups are selected, the schedule is divided into labeled sections â€” one per age group â€” so you can see all your kids' games on one screen.</li>
+        <li>If multiple age groups are selected, the schedule is divided into labeled sections — one per age group — so you can see all your kids' games on one screen.</li>
       </ul>`
     },
     {
-      icon: 'ðŸ†',
-      title: 'Scores Tab â€” Live Scores & Box Scores',
-      body: `<p>The <strong>Scores</strong> tab is where all live scoring and box scores live. Watch for a <strong>pulsing red dot</strong> on the Scores nav button â€” it lights up whenever a game is being actively scored.</p>
+      icon: '🏆',
+      title: 'Scores Tab — Live Scores & Box Scores',
+      body: `<p>The <strong>Scores</strong> tab is where all live scoring and box scores live. Watch for a <strong>pulsing red dot</strong> on the Scores nav button — it lights up whenever a game is being actively scored.</p>
       <ul>
-        <li><strong>ðŸ‘ View Live Scores</strong> â€” tap this button (above the scorer login) to follow a live game in real time without needing the scoring password. You'll see the live score, event log, and box score updating every 5 seconds.</li>
-        <li>Tap <strong>ðŸ”’ Login to Score</strong> in the top-right corner of the viewer to switch to full scoring mode if you have the password.</li>
-        <li>When a scorer is active, you'll see a <strong>ðŸ”´ LIVE</strong> badge and all updates appear within 5 seconds.</li>
-        <li>The <strong>event log</strong> shows every goal ðŸ, assist ðŸ¤, exclusion âŒ, and other events with clock times.</li>
+        <li><strong>👁 View Live Scores</strong> — tap this button (above the scorer login) to follow a live game in real time without needing the scoring password. You'll see the live score, event log, and box score updating every 5 seconds.</li>
+        <li>Tap <strong>🔒 Login to Score</strong> in the top-right corner of the viewer to switch to full scoring mode if you have the password.</li>
+        <li>When a scorer is active, you'll see a <strong>🔴 LIVE</strong> badge and all updates appear within 5 seconds.</li>
+        <li>The <strong>event log</strong> shows every goal 🏐, assist 🤝, exclusion ❌, and other events with clock times.</li>
         <li>The <strong>box score</strong> shows each player's totals: Goals, Attempts, 5m Goals, 5m Attempts, SO Goals, SO Attempts, Assists, Exclusions, and Earned Exclusions.</li>
         <li>After the game, all stats are saved and flow into each player's history in the Roster tab.</li>
       </ul>`
     },
     {
-      icon: 'ðŸ“Š',
-      title: 'Live Scoring â€” Scorer Controls',
-      body: `<p>If you have the scoring password, tap <strong>ðŸ”’ Login to Score</strong> (top-right of the viewer screen) and enter the tournament password to unlock full scoring controls.</p>
+      icon: '📊',
+      title: 'Live Scoring — Scorer Controls',
+      body: `<p>If you have the scoring password, tap <strong>🔒 Login to Score</strong> (top-right of the viewer screen) and enter the tournament password to unlock full scoring controls.</p>
       <ul>
-        <li><strong>Only the current game</strong> shows its full scoring buttons â€” upcoming games are collapsed to keep the screen clean. Tap any game header to expand it when it's time to score.</li>
-        <li><strong>Auto Clock</strong> â€” the clock counts down automatically from the quarter length set by the admin. Tap <strong>â–¶ Start</strong> to begin Q1 and the clock. Every scoring event is instantly stamped with the current clock time the moment you tap the button â€” no prompts, no manual entry.</li>
-        <li><strong>Game State bar</strong> â€” â–¶ Start â†’ Q1 â†’ Q2 â†’ Â½ Time â†’ Q3 â†’ Q4 â†’ ðŸ End. The <strong>â†© Pre</strong> button resets to pre-game from any state.</li>
-        <li><strong>Goal / Opp Goal</strong> â€” records a goal and prompts you to pick the scorer. Check <strong>6-on-5</strong> in the picker to tag it as a power-play goal.</li>
-        <li><strong>Attempt / Opp Attempt</strong> â€” records a shot that didn't score (used to calculate shooting %).</li>
-        <li><strong>Assist</strong> â€” tap and pick the player who assisted.</li>
-        <li><strong>Steal</strong> â€” tap and pick the player who won possession. Check <strong>Forced Ball Under</strong> in the picker if the steal came from a forced ball under.</li>
-        <li><strong>Field Block</strong> â€” tap and pick the field player who blocked a shot on goal.</li>
-        <li><strong>Opp Steal</strong> â€” records an opponent steal so the event log stays balanced.</li>
-        <li><strong>Excl / Opp Excl</strong> â€” records an exclusion foul for either team.</li>
-        <li><strong>Earned Excl</strong> â€” tap and pick the player who drew the exclusion (forced the defender into the foul). Tracked separately from regular exclusions so you can see who is creating power-play opportunities.</li>
-        <li><strong>5m / Opp 5m</strong> â€” records a 5-meter penalty shot as a goal.</li>
-        <li><strong>5m Attempt / Opp 5m Attempt</strong> â€” records a 5-meter shot that didn't score.</li>
-        <li><strong>ðŸ§¤ GK Save</strong> â€” records goalie saves.</li>
-        <li><strong>Timeouts</strong> â€” separate buttons for each timeout length (e.g. <em>1 Min T/O</em> and <em>30s T/O</em>). Each button can only be used once â€” it grays out after use. The clock pauses automatically during a timeout.</li>
-        <li><strong>â†º Reset Clock</strong> â€” resets the clock back to the full quarter length without changing the game state.</li>
-        <li><strong>â†© Undo</strong> â€” removes the last logged event if you make a mistake.</li>
+        <li><strong>Only the current game</strong> shows its full scoring buttons — upcoming games are collapsed to keep the screen clean. Tap any game header to expand it when it's time to score.</li>
+        <li><strong>Auto Clock</strong> — the clock counts down automatically from the quarter length set by the admin. Tap <strong>▶ Start</strong> to begin Q1 and the clock. Every scoring event is instantly stamped with the current clock time the moment you tap the button — no prompts, no manual entry.</li>
+        <li><strong>Game State bar</strong> — ▶ Start → Q1 → Q2 → ½ Time → Q3 → Q4 → 🏁 End. The <strong>↩ Pre</strong> button resets to pre-game from any state.</li>
+        <li><strong>Goal / Opp Goal</strong> — records a goal and prompts you to pick the scorer. Check <strong>6-on-5</strong> in the picker to tag it as a power-play goal.</li>
+        <li><strong>Attempt / Opp Attempt</strong> — records a shot that didn't score (used to calculate shooting %).</li>
+        <li><strong>Assist</strong> — tap and pick the player who assisted.</li>
+        <li><strong>Steal</strong> — tap and pick the player who won possession. Check <strong>Forced Ball Under</strong> in the picker if the steal came from a forced ball under.</li>
+        <li><strong>Field Block</strong> — tap and pick the field player who blocked a shot on goal.</li>
+        <li><strong>Opp Steal</strong> — records an opponent steal so the event log stays balanced.</li>
+        <li><strong>Excl / Opp Excl</strong> — records an exclusion foul for either team.</li>
+        <li><strong>Earned Excl</strong> — tap and pick the player who drew the exclusion (forced the defender into the foul). Tracked separately from regular exclusions so you can see who is creating power-play opportunities.</li>
+        <li><strong>5m / Opp 5m</strong> — records a 5-meter penalty shot as a goal.</li>
+        <li><strong>5m Attempt / Opp 5m Attempt</strong> — records a 5-meter shot that didn't score.</li>
+        <li><strong>🧤 GK Save</strong> — records goalie saves.</li>
+        <li><strong>Timeouts</strong> — separate buttons for each timeout length (e.g. <em>1 Min T/O</em> and <em>30s T/O</em>). Each button can only be used once — it grays out after use. The clock pauses automatically during a timeout.</li>
+        <li><strong>↺ Reset Clock</strong> — resets the clock back to the full quarter length without changing the game state.</li>
+        <li><strong>↩ Undo</strong> — removes the last logged event if you make a mistake.</li>
         <li>All updates are visible to everyone watching the app within 5 seconds.</li>
       </ul>`
     },
     {
-      icon: 'ðŸŽ¯',
+      icon: '🎯',
       title: 'Shootout Mode',
-      body: `<p>When a game is tied at the end of regulation, tap <strong>ðŸŽ¯ SO</strong> in the game state bar to enter Shootout Mode.</p>
+      body: `<p>When a game is tied at the end of regulation, tap <strong>🎯 SO</strong> in the game state bar to enter Shootout Mode.</p>
       <ul>
         <li>Each team selects 5 players who each take a 5-meter shot.</li>
-        <li>Every shootout goal scores <strong>+0.1 points</strong> â€” so a 3-goal shootout shows as 7.3 vs 7.0 if the score was 7â€“7.</li>
+        <li>Every shootout goal scores <strong>+0.1 points</strong> — so a 3-goal shootout shows as 7.3 vs 7.0 if the score was 7–7.</li>
         <li>The <strong>SO Goal / Opp SO Goal</strong> buttons replace the regular goal buttons in shootout mode.</li>
         <li><strong>SO Attempts</strong> buttons track missed shootout shots for stats purposes.</li>
         <li>The 5m penalty row is hidden during shootouts since 5m penalties don't occur during SO.</li>
-        <li>Tap the <strong>ðŸŽ¯âœˆï¸ Shootout Alert</strong> button to send an alert to your Telegram or GroupMe channel when a shootout begins.</li>
-        <li>Tapping ðŸŽ¯ SO a second time undoes the shootout state â€” use <strong>â†© Pre</strong> to fully reset if needed.</li>
+        <li>Tap the <strong>🎯✈️ Shootout Alert</strong> button to send an alert to your Telegram or GroupMe channel when a shootout begins.</li>
+        <li>Tapping 🎯 SO a second time undoes the shootout state — use <strong>↩ Pre</strong> to fully reset if needed.</li>
       </ul>`
     },
     {
-      icon: 'ðŸ…',
+      icon: '🏅',
       title: 'Bracket Tab',
-      body: `<p><strong>ðŸ‘‘ Requires Parent Monthly subscription ($4.99/mo).</strong> Subscribe in <em>Settings â†’ Subscription</em>.</p>
+      body: `<p><strong>👑 Requires Parent Monthly subscription ($4.99/mo).</strong> Subscribe in <em>Settings → Subscription</em>.</p>
       <p>The <strong>Bracket</strong> tab shows where the team could end up based on pool play results.</p>
       <ul>
-        <li>Before the schedule is posted the tab shows <em>"Bracket Coming Soon"</em> â€” it activates once games are loaded.</li>
+        <li>Before the schedule is posted the tab shows <em>"Bracket Coming Soon"</em> — it activates once games are loaded.</li>
         <li>As pool play results are entered, the projected bracket path highlights automatically.</li>
         <li>Gold, Silver, and Bronze paths each show the possible opponent, time, and location.</li>
-        <li>Bracket points: <strong>Win = 4 Â· SO Win = 3 Â· SO Loss = 2 Â· Loss = 1 Â· Forfeit = 0</strong>.</li>
-        <li>When multiple age groups or A/B teams are selected, each has its own labeled bracket section â€” scroll to see them all.</li>
+        <li>Bracket points: <strong>Win = 4 · SO Win = 3 · SO Loss = 2 · Loss = 1 · Forfeit = 0</strong>.</li>
+        <li>When multiple age groups or A/B teams are selected, each has its own labeled bracket section — scroll to see them all.</li>
       </ul>`
     },
     {
-      icon: 'ðŸ“œ',
+      icon: '📜',
       title: 'History Tab',
-      body: `<p><strong>ðŸ‘‘ Requires Parent Monthly subscription ($4.99/mo).</strong> Subscribe in <em>Settings â†’ Subscription</em>.</p>
+      body: `<p><strong>👑 Requires Parent Monthly subscription ($4.99/mo).</strong> Subscribe in <em>Settings → Subscription</em>.</p>
       <p>The <strong>History</strong> tab keeps a running record of every completed tournament.</p>
       <ul>
         <li>When you mark a game result in the Scores tab, it moves off the Schedule and into History automatically.</li>
@@ -9853,124 +9569,124 @@ function renderHelpTab() {
       </ul>`
     },
     {
-      icon: 'â­',
-      title: 'My Player â€” Follow Your Child',
+      icon: '⭐',
+      title: 'My Player — Follow Your Child',
       body: `<p>In the <strong>Roster</strong> tab, the <em>My Player</em> card lets you follow your child's full stats across the entire season. If you have kids on multiple age groups, you can follow one player per team simultaneously.</p>
       <ul>
         <li><strong>Single age group:</strong> tap the dropdown on the My Player card and select your child's name to start tracking them. Tap the card header to collapse or expand it.</li>
-        <li><strong>Multiple age groups selected:</strong> a "My Players" card appears for each age group â€” pick your child from each team's dropdown. All followed players are shown at the top of the Roster tab.</li>
-        <li><strong>Row 1 (large):</strong> Goals Â· Assists Â· Attempts â€” the three primary stats at a glance.</li>
-        <li><strong>Row 2:</strong> 6on5 Goals Â· 5m Goals Â· 5m Attempts Â· SO Goals â€” specialty scoring stats.</li>
-        <li><strong>Row 3:</strong> Exclusions Â· Earned Excl Â· SO Attempts Â· Games â€” discipline, earned power plays, and game count.</li>
-        <li>Three <strong>Shooting % boxes</strong> show regular shot %, 5m shot %, and SO shot % â€” each with made/attempts breakdown.</li>
+        <li><strong>Multiple age groups selected:</strong> a "My Players" card appears for each age group — pick your child from each team's dropdown. All followed players are shown at the top of the Roster tab.</li>
+        <li><strong>Row 1 (large):</strong> Goals · Assists · Attempts — the three primary stats at a glance.</li>
+        <li><strong>Row 2:</strong> 6on5 Goals · 5m Goals · 5m Attempts · SO Goals — specialty scoring stats.</li>
+        <li><strong>Row 3:</strong> Exclusions · Earned Excl · SO Attempts · Games — discipline, earned power plays, and game count.</li>
+        <li>Three <strong>Shooting % boxes</strong> show regular shot %, 5m shot %, and SO shot % — each with made/attempts breakdown.</li>
         <li>Recent games are listed with per-game stats and scores.</li>
-        <li>The <strong>ðŸ“Š Download Stats CSV</strong> button exports the full stat history as a spreadsheet.</li>
+        <li>The <strong>📊 Download Stats CSV</strong> button exports the full stat history as a spreadsheet.</li>
         <li>Goalies see Saves instead of shooting stats.</li>
       </ul>`
     },
     {
-      icon: 'ðŸ¤½â€â™€ï¸',
+      icon: '🤽‍♀️',
       title: 'Age Group Selector & A/B Team Picker',
-      body: `<p>The <strong>age group pills</strong> just below the tournament header let you choose which age group(s) to view â€” 10u Co-Ed through Masters, always displayed in age order.</p>
+      body: `<p>The <strong>age group pills</strong> just below the tournament header let you choose which age group(s) to view — 10u Co-Ed through Masters, always displayed in age order.</p>
       <ul>
         <li><strong>Tap any pill</strong> to activate that age group. The active pill turns blue and all tabs reload with that group's data.</li>
-<li><strong>Tap a second pill</strong> to add another age group â€” great for parents with kids on two different teams. Multiple selections always display in age order (10u â†’ 12u â†’ 14u â†’ 16u â†’ 18u â†’ Masters) regardless of the order you tap them.</li>
+<li><strong>Tap a second pill</strong> to add another age group — great for parents with kids on two different teams. Multiple selections always display in age order (10u → 12u → 14u → 16u → 18u → Masters) regardless of the order you tap them.</li>
         <li>Tap an active pill again to deselect it (at least one must stay selected).</li>
         <li>Your selections are remembered between sessions.</li>
-        <li>The pills scroll horizontally â€” swipe left or right to see all age groups.</li>
+        <li>The pills scroll horizontally — swipe left or right to see all age groups.</li>
       </ul>
       <p style="margin-top:10px"><strong>A/B team sub-selector (compound pill):</strong> when a tournament has multiple squads in the same age group (e.g. Pacific Red and Pacific Blue), the age group pill expands into a <em>compound pill</em>:</p>
       <ul>
-        <li>The pill shows the age group label followed by team name buttons: <code>14u Girls Â· Pacific Red  Pacific Blue</code></li>
+        <li>The pill shows the age group label followed by team name buttons: <code>14u Girls · Pacific Red  Pacific Blue</code></li>
         <li>The currently active team name(s) are highlighted with a white background inside the pill.</li>
         <li><strong>Tap a team name button</strong> to select it. Tap it again to deselect it (at least one must stay selected per age group).</li>
-        <li><strong>You can select both A and B at the same time</strong> â€” perfect if your child plays on both squads. When both are active, every tab shows two separate labeled sections: one for each team.</li>
-        <li>Each age group has its own <em>independent</em> A/B selection â€” pick 12u Girls A-team and 16u Boys B-team at the same time with no conflict.</li>
+        <li><strong>You can select both A and B at the same time</strong> — perfect if your child plays on both squads. When both are active, every tab shows two separate labeled sections: one for each team.</li>
+        <li>Each age group has its own <em>independent</em> A/B selection — pick 12u Girls A-team and 16u Boys B-team at the same time with no conflict.</li>
       </ul>`
     },
     {
-      icon: 'ðŸ‘¥',
+      icon: '👥',
       title: 'Multi-Age-Group & Split-Team View',
       body: `<p>The app supports viewing multiple age groups and multiple team squads simultaneously across all tabs.</p>
       <ul>
-        <li><strong>Multiple age groups:</strong> when two or more age group pills are active, every tab â€” Schedule, Scores, Bracket, Roster, History â€” splits into labeled sections, one per age group. Scroll to see each team's data without switching back and forth.</li>
-        <li><strong>Both A and B teams selected:</strong> when you select both team names within one age group, that group expands into two separate sections labeled "14u Girls Â· Pacific Red" and "14u Girls Â· Pacific Blue" â€” each showing only that squad's games, bracket, and roster. No mixing.</li>
-        <li>Section headers always tell you exactly which squad you're looking at: <em>age group Â· team name</em>.</li>
+        <li><strong>Multiple age groups:</strong> when two or more age group pills are active, every tab — Schedule, Scores, Bracket, Roster, History — splits into labeled sections, one per age group. Scroll to see each team's data without switching back and forth.</li>
+        <li><strong>Both A and B teams selected:</strong> when you select both team names within one age group, that group expands into two separate sections labeled "14u Girls · Pacific Red" and "14u Girls · Pacific Blue" — each showing only that squad's games, bracket, and roster. No mixing.</li>
+        <li>Section headers always tell you exactly which squad you're looking at: <em>age group · team name</em>.</li>
         <li>Each team's history and bracket are tracked separately across all tournaments.</li>
         <li>The A/B sub-selector only appears when the admin has enabled multi-team mode for that age group.</li>
       </ul>`
     },
     {
-      icon: 'ðŸŒ',
+      icon: '🌐',
       title: 'Accessing the Parent App from the Web',
-      body: `<p>No install required â€” the full app works in any modern browser on any device: phone, tablet, or computer.</p>
+      body: `<p>No install required — the full app works in any modern browser on any device: phone, tablet, or computer.</p>
       <ul>
-        <li>Open <a href="https://eggbeater.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater.app</a> in any browser â€” Chrome, Safari, Firefox, Edge, etc.</li>
+        <li>Open <a href="https://eggbeater.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater.app</a> in any browser — Chrome, Safari, Firefox, Edge, etc.</li>
         <li>All features work in the browser: schedule, live scores, bracket, roster, and history.</li>
-        <li><strong>Bookmark it</strong> for quick access â€” tap the browser's share or bookmark icon and save it to your favorites.</li>
+        <li><strong>Bookmark it</strong> for quick access — tap the browser's share or bookmark icon and save it to your favorites.</li>
         <li>Your age group selections and preferences are remembered automatically in your browser.</li>
-        <li>For push notifications and full-screen mode, install the app to your home screen â€” see <em>Installing the Web App</em> above, or download the native app from the App Store or Google Play.</li>
+        <li>For push notifications and full-screen mode, install the app to your home screen — see <em>Installing the Web App</em> above, or download the native app from the App Store or Google Play.</li>
       </ul>`
     },
     {
-      icon: 'âš™ï¸',
-      title: 'Settings â€” Team Selection, My Clubs & Account',
+      icon: '⚙️',
+      title: 'Settings — Team Selection, My Clubs & Account',
       body: `<p>Open the <strong>Settings</strong> tab to manage everything about your setup.</p>
       <ul>
-        <li><strong>Team Selection</strong> â€” shows all available age groups as tappable pills. Tap any pill to follow that group. Tap a second pill to follow multiple teams at once. Tap an active pill again to deselect it. Your selections are saved automatically.
+        <li><strong>Team Selection</strong> — shows all available age groups as tappable pills. Tap any pill to follow that group. Tap a second pill to follow multiple teams at once. Tap an active pill again to deselect it. Your selections are saved automatically.
           <ul>
             <li>Tap <em>Reset selection</em> (link below the pills) to clear all selected age groups and start fresh.</li>
           </ul>
         </li>
-        <li><strong>My Clubs</strong> â€” lists every club you've joined. Tap any non-current club to switch to it. Tap the <strong>Ã—</strong> button on any row to remove that club from your list.
+        <li><strong>My Clubs</strong> — lists every club you've joined. Tap any non-current club to switch to it. Tap the <strong>×</strong> button on any row to remove that club from your list.
           <ul>
             <li>Removing your current or only club clears your selection and returns you to the Splash Screen.</li>
           </ul>
         </li>
-        <li><strong>Add Club</strong> â€” tap to enter a club code and join a new club.</li>
-        <li><strong>Return to Splash Screen</strong> â€” clears your current club selection and returns to the club picker. Your joined clubs list is preserved â€” you can rejoin any of them instantly.</li>
-        <li><strong>Account</strong> â€” when signed in with Google, your name and email are shown here along with a red <em>Sign Out</em> button. When not signed in, tap <em>Sign In with Google</em> to sync your preferences across devices.</li>
+        <li><strong>Add Club</strong> — tap to enter a club code and join a new club.</li>
+        <li><strong>Return to Splash Screen</strong> — clears your current club selection and returns to the club picker. Your joined clubs list is preserved — you can rejoin any of them instantly.</li>
+        <li><strong>Account</strong> — when signed in with Google, your name and email are shown here along with a red <em>Sign Out</em> button. When not signed in, tap <em>Sign In with Google</em> to sync your preferences across devices.</li>
       </ul>`
     },
     {
-      icon: 'â˜ï¸',
-      title: 'Sign In with Google â€” One Tap Covers Everything',
-      body: `<p>Go to <strong>Settings â†’ Account</strong> and tap <strong>Sign In with Google</strong>. This single sign-in covers <em>both</em> preference sync and Google Calendar access â€” no second popup ever.</p>
+      icon: '☁️',
+      title: 'Sign In with Google — One Tap Covers Everything',
+      body: `<p>Go to <strong>Settings → Account</strong> and tap <strong>Sign In with Google</strong>. This single sign-in covers <em>both</em> preference sync and Google Calendar access — no second popup ever.</p>
       <ul>
         <li><strong>Preferences sync:</strong> your selected age group(s), A/B team choices, and My Player picks are saved to the cloud and restored automatically on every device you use.</li>
-        <li><strong>Calendar access included:</strong> the same sign-in grants calendar permission, so when you tap Connect in Settings â†’ Calendar &amp; Notifications you just pick which calendar to use â€” Google doesn't ask you to sign in again.</li>
+        <li><strong>Calendar access included:</strong> the same sign-in grants calendar permission, so when you tap Connect in Settings → Calendar &amp; Notifications you just pick which calendar to use — Google doesn't ask you to sign in again.</li>
         <li><strong>Automatic reconnect:</strong> on every future visit your calendar reconnects silently in the background. You'll never need to re-authenticate unless you revoke access.</li>
-        <li>Sign in on your phone â€” within seconds your tablet or laptop shows the exact same setup.</li>
-        <li>Tap <strong>Sign Out</strong> (same button) to disconnect. Your local preferences stay on the device â€” nothing is deleted.</li>
+        <li>Sign in on your phone — within seconds your tablet or laptop shows the exact same setup.</li>
+        <li>Tap <strong>Sign Out</strong> (same button) to disconnect. Your local preferences stay on the device — nothing is deleted.</li>
         <li>The app works fully without signing in. Sign-In is purely additive and optional.</li>
       </ul>`
     },
     {
-      icon: 'ðŸ””',
+      icon: '🔔',
       title: 'Notifications & Calendar Sync',
       body: `<p>Stay up to date automatically:</p>
       <ul>
-        <li><strong>Google Calendar</strong> â€” Sign in with Google first (tap <strong>Sign In</strong> in Settings), then go to <strong>Settings â†’ Calendar &amp; Notifications</strong> and tap <strong>Connect</strong> to choose which of your Google calendars to sync to. All games are added automatically and update if times or locations change.</li>
+        <li><strong>Google Calendar</strong> — Sign in with Google first (tap <strong>Sign In</strong> in Settings), then go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <strong>Connect</strong> to choose which of your Google calendars to sync to. All games are added automatically and update if times or locations change.</li>
         <li>To change which calendar is used, tap <em>Change</em> in the connected calendar card in Settings.</li>
-        <li>Your calendar connection is remembered. On future visits the app reconnects silently in the background â€” no action needed.</li>
-        <li><strong>Push Notifications</strong> â€” On iOS (iPhone/iPad), first install the app to your home screen (see <em>Installing the Web App</em> above), open from the home screen icon, then go to <strong>Settings â†’ Calendar &amp; Notifications</strong> and tap <em>Enable Notifications</em>. On Android you can do the same directly in Chrome, or use the native Google Play app.</li>
-        <li><strong>Telegram / GroupMe</strong> â€” The scorer can send box score updates and shootout alerts directly to your team channel from the Scores tab.</li>
-        <li><strong>WebCal Subscribe Link</strong> â€” If your admin shares a <code>webcal://</code> link (often for NJO or tournament brackets), tap it once to add all games to your calendar. The feed auto-updates every 5 minutes as times, locations, and bracket opponents change. Works with Google Calendar, Apple Calendar, and Outlook.</li>
+        <li>Your calendar connection is remembered. On future visits the app reconnects silently in the background — no action needed.</li>
+        <li><strong>Push Notifications</strong> — On iOS (iPhone/iPad), first install the app to your home screen (see <em>Installing the Web App</em> above), open from the home screen icon, then go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <em>Enable Notifications</em>. On Android you can do the same directly in Chrome, or use the native Google Play app.</li>
+        <li><strong>Telegram / GroupMe</strong> — The scorer can send box score updates and shootout alerts directly to your team channel from the Scores tab.</li>
+        <li><strong>WebCal Subscribe Link</strong> — If your admin shares a <code>webcal://</code> link (often for NJO or tournament brackets), tap it once to add all games to your calendar. The feed auto-updates every 5 minutes as times, locations, and bracket opponents change. Works with Google Calendar, Apple Calendar, and Outlook.</li>
       </ul>`
     },
     {
-      icon: 'ðŸ”´',
+      icon: '🔴',
       title: 'Live Activities &amp; Live Updates',
       body: `<p>Follow live-scored games without opening the app.</p>
       <ul>
-        <li><strong>iPhone (Live Activities)</strong> â€” when a game is being scored, the score appears on your <strong>lock screen</strong> and in the <strong>Dynamic Island</strong> with team logos, a running clock, and a live event feed. It starts automatically when scoring begins and ends on Final.</li>
-        <li><strong>Android 16+ (Live Updates)</strong> â€” a persistent notification chip shows the current score (e.g. "Q2 7&ndash;5") and updates on every poll tick. Make sure notifications are enabled in your device settings.</li>
+        <li><strong>iPhone (Live Activities)</strong> — when a game is being scored, the score appears on your <strong>lock screen</strong> and in the <strong>Dynamic Island</strong> with team logos, a running clock, and a live event feed. It starts automatically when scoring begins and ends on Final.</li>
+        <li><strong>Android 16+ (Live Updates)</strong> — a persistent notification chip shows the current score (e.g. "Q2 7&ndash;5") and updates on every poll tick. Make sure notifications are enabled in your device settings.</li>
         <li>Tap <strong>Follow Live</strong> on any in-progress game in the Schedule tab to start the Live Activity.</li>
-        <li>Live Activities work alongside push notifications â€” you can have both enabled.</li>
+        <li>Live Activities work alongside push notifications — you can have both enabled.</li>
       </ul>`
     },
     {
-      icon: 'âŒš',
+      icon: '⌚',
       title: 'Apple Watch Companion App',
       body: `<p>The native iOS app includes an <strong>Apple Watch companion app</strong> for quick tournament-day checks from your wrist.</p>
       <ul>
@@ -9983,64 +9699,64 @@ function renderHelpTab() {
       </ul>`
     },
     {
-      icon: 'ðŸ§©',
+      icon: '🧩',
       title: 'Home Screen Widgets',
       body: `<p>Add Eggbeater widgets to your home screen for at-a-glance info without opening the app.</p>
       <ul>
-        <li><strong>Score Widget</strong> â€” shows the live score of the current or most recent game.</li>
-        <li><strong>Schedule Widget</strong> â€” shows the next upcoming game with time, opponent, and location.</li>
-        <li><strong>Stats Widget</strong> â€” shows top scorers from the current tournament.</li>
-        <li><strong>How to add (iOS):</strong> Long-press your home screen â†’ tap <strong>+</strong> â†’ search "Eggbeater" â†’ choose a widget size â†’ Add Widget.</li>
-        <li><strong>How to add (Android):</strong> Long-press your home screen â†’ tap <strong>Widgets</strong> â†’ find Eggbeater â†’ drag to your home screen.</li>
+        <li><strong>Score Widget</strong> — shows the live score of the current or most recent game.</li>
+        <li><strong>Schedule Widget</strong> — shows the next upcoming game with time, opponent, and location.</li>
+        <li><strong>Stats Widget</strong> — shows top scorers from the current tournament.</li>
+        <li><strong>How to add (iOS):</strong> Long-press your home screen → tap <strong>+</strong> → search "Eggbeater" → choose a widget size → Add Widget.</li>
+        <li><strong>How to add (Android):</strong> Long-press your home screen → tap <strong>Widgets</strong> → find Eggbeater → drag to your home screen.</li>
         <li>Widgets update automatically whenever scores or schedules change.</li>
       </ul>`
     },
     {
-      icon: 'ðŸ“º',
-      title: 'T-Score Tab â€” Tournament Director Scores',
-      body: `<p>The <strong>T-Score</strong> tab shows official game scores submitted by the tournament director â€” separate from the live stat tracking on the Scores tab.</p>
+      icon: '📺',
+      title: 'T-Score Tab — Tournament Director Scores',
+      body: `<p>The <strong>T-Score</strong> tab shows official game scores submitted by the tournament director — separate from the live stat tracking on the Scores tab.</p>
       <ul>
         <li><strong>Director scores</strong> are the official final scores published by tournament organizers. They appear here as simple win/loss results with final scores.</li>
-        <li>If the tournament director has enabled score entry, authorized scorers can submit final scores directly from this tab using the <strong>ðŸ† Submit Live Scores</strong> button.</li>
-        <li>Director scores are used to calculate <strong>bracket placement</strong> and standings â€” they feed directly into the Bracket tab.</li>
+        <li>If the tournament director has enabled score entry, authorized scorers can submit final scores directly from this tab using the <strong>🏆 Submit Live Scores</strong> button.</li>
+        <li>Director scores are used to calculate <strong>bracket placement</strong> and standings — they feed directly into the Bracket tab.</li>
         <li>These scores update automatically when the director publishes new results. Pull down to refresh or use the refresh button.</li>
         <li>The T-Score tab also shows the <strong>import schedule</strong> option if the tournament provides a director-managed schedule feed.</li>
       </ul>`
     },
     {
-      icon: 'ðŸ¢',
+      icon: '🏢',
       title: 'Multi-Club Support',
       body: `<p>Eggbeater supports multiple water polo clubs, each with their own tournaments, rosters, and admin teams.</p>
       <ul>
-        <li>Each club has a unique <strong>club ID</strong> that scopes all data â€” schedules, scores, rosters, and history are kept completely separate between clubs.</li>
+        <li>Each club has a unique <strong>club ID</strong> that scopes all data — schedules, scores, rosters, and history are kept completely separate between clubs.</li>
         <li>If you receive a link with <code>?join=</code> in the URL, the app adds that club and loads its data automatically.</li>
         <li>Your age group selections and My Player picks are saved per club, so switching between clubs doesn't lose your preferences.</li>
-        <li>Club admins manage their own tournaments independently â€” changes by one club's admin never affect another club.</li>
-        <li><strong>Custom club colors</strong> â€” each club's admin can set custom brand colors (primary and secondary). The app automatically applies these colors when you visit that club's page, theming the header, buttons, and accents to match the club's identity.</li>
+        <li>Club admins manage their own tournaments independently — changes by one club's admin never affect another club.</li>
+        <li><strong>Custom club colors</strong> — each club's admin can set custom brand colors (primary and secondary). The app automatically applies these colors when you visit that club's page, theming the header, buttons, and accents to match the club's identity.</li>
       </ul>`
     },
     {
-      icon: 'ðŸŒ™',
+      icon: '🌙',
       title: 'Dark Mode',
       body: `<p>Eggbeater supports <strong>dark mode</strong> for comfortable viewing in low-light environments.</p>
       <ul>
-        <li><strong>Toggle:</strong> go to <strong>Settings â†’ Appearance</strong> and choose Light, Dark, or System to match your preference.</li>
+        <li><strong>Toggle:</strong> go to <strong>Settings → Appearance</strong> and choose Light, Dark, or System to match your preference.</li>
         <li><strong>Auto-detection:</strong> on first visit, the app matches your device's system theme (e.g. if your iPhone is set to dark mode, the app starts in dark mode).</li>
         <li><strong>Remembered:</strong> your preference is saved in your browser and will persist across visits and page reloads.</li>
         <li>All tabs, cards, modals, the bottom nav, and the More drawer are fully styled for dark mode.</li>
       </ul>`
     },
     {
-      icon: 'ðŸ“',
+      icon: '📍',
       title: 'Map & Directions',
       body: `<p>Game cards include <strong>tappable direction links</strong> so you can get to the venue in your preferred maps app.</p>
       <ul>
-        <li>When a game has a location, the ðŸ“ location name is a tappable link.</li>
-        <li>Three direction buttons appear next to each location â€” choose whichever app you prefer:
+        <li>When a game has a location, the 📍 location name is a tappable link.</li>
+        <li>Three direction buttons appear next to each location — choose whichever app you prefer:
           <ul style="margin-top:4px">
-            <li><strong>Apple</strong> â€” opens Apple Maps (great for iPhone users)</li>
-            <li><strong>Google</strong> â€” opens Google Maps</li>
-            <li><strong>Waze</strong> â€” opens Waze for live traffic routing</li>
+            <li><strong>Apple</strong> — opens Apple Maps (great for iPhone users)</li>
+            <li><strong>Google</strong> — opens Google Maps</li>
+            <li><strong>Waze</strong> — opens Waze for live traffic routing</li>
           </ul>
         </li>
         <li>Both the Next Game card and regular schedule cards show direction buttons.</li>
@@ -10048,20 +9764,20 @@ function renderHelpTab() {
       </ul>`
     },
     {
-      icon: 'ðŸ“¡',
+      icon: '📡',
       title: 'Offline Scoring Support',
       body: `<p>Scorers can now continue entering scores even when their internet connection drops.</p>
       <ul>
         <li>If a live score update fails due to a network error, it is <strong>automatically queued</strong> on the device.</li>
-        <li>A yellow <strong>"ðŸ“¡ Offline â€” scores will sync when connected"</strong> banner appears when scores are queued.</li>
+        <li>A yellow <strong>"📡 Offline — scores will sync when connected"</strong> banner appears when scores are queued.</li>
         <li>When connectivity returns, all queued scores are automatically replayed in order.</li>
-        <li>A green <strong>"âœ… Scores synced"</strong> toast confirms successful sync.</li>
+        <li>A green <strong>"✅ Scores synced"</strong> toast confirms successful sync.</li>
         <li>If the app is closed, the <strong>Background Sync API</strong> retries automatically when the device reconnects.</li>
         <li>Each queued score retries up to 10 times before raising an error.</li>
       </ul>`
     },
     {
-      icon: 'ðŸ”',
+      icon: '🔍',
       title: 'Club Directory',
       body: `<p>A <strong>public club directory</strong> is available for discovering clubs on the Eggbeater platform.</p>
       <ul>
@@ -10073,20 +9789,20 @@ function renderHelpTab() {
       </ul>`
     },
     {
-      icon: 'â™¿',
+      icon: '♿',
       title: 'Accessibility',
       body: `<p>Eggbeater is designed to work with the accessibility features built into iOS and Android. All features listed below are fully supported.</p>
       <ul>
-        <li><strong>VoiceOver (iOS) / TalkBack (Android)</strong> â€” the app is fully navigable by screen reader. The tab bar, all modals, and live score updates are all announced correctly. Say "Tap Schedule", "Tap Scores", or "Tap History" to switch tabs.</li>
-        <li><strong>Voice Control (iOS) / Voice Access (Android)</strong> â€” every button has a unique descriptive label matching its visible text, so you can activate any control by name.</li>
-        <li><strong>Dark Mode</strong> â€” go to <strong>Settings â†’ Appearance</strong> to choose Light, Dark, or System. The app immediately adapts without a reload.</li>
-        <li><strong>Larger Text</strong> â€” all text scales with your device's system font size. Increase it in <em>iOS Settings â†’ Display &amp; Brightness â†’ Text Size</em> or <em>Android Settings â†’ Display â†’ Font size</em>.</li>
-        <li><strong>Reduce Motion</strong> â€” when enabled in your system settings, all animations and transitions are suppressed, including live score pulses and toast slide-ins.</li>
-        <li><strong>Increase Contrast / High Contrast Text</strong> â€” when enabled, secondary text is boosted to high-contrast dark tones and result pill backgrounds become solid colors.</li>
-        <li><strong>Colour Independence</strong> â€” no information is conveyed by colour alone. The active tab has a visible top-bar indicator; the Live badge has an accessible label; Win/Loss pills always include text.</li>
+        <li><strong>VoiceOver (iOS) / TalkBack (Android)</strong> — the app is fully navigable by screen reader. The tab bar, all modals, and live score updates are all announced correctly. Say "Tap Schedule", "Tap Scores", or "Tap History" to switch tabs.</li>
+        <li><strong>Voice Control (iOS) / Voice Access (Android)</strong> — every button has a unique descriptive label matching its visible text, so you can activate any control by name.</li>
+        <li><strong>Dark Mode</strong> — go to <strong>Settings → Appearance</strong> to choose Light, Dark, or System. The app immediately adapts without a reload.</li>
+        <li><strong>Larger Text</strong> — all text scales with your device's system font size. Increase it in <em>iOS Settings → Display &amp; Brightness → Text Size</em> or <em>Android Settings → Display → Font size</em>.</li>
+        <li><strong>Reduce Motion</strong> — when enabled in your system settings, all animations and transitions are suppressed, including live score pulses and toast slide-ins.</li>
+        <li><strong>Increase Contrast / High Contrast Text</strong> — when enabled, secondary text is boosted to high-contrast dark tones and result pill backgrounds become solid colors.</li>
+        <li><strong>Colour Independence</strong> — no information is conveyed by colour alone. The active tab has a visible top-bar indicator; the Live badge has an accessible label; Win/Loss pills always include text.</li>
       </ul>
       <p style="margin-top:10px">For a full accessibility statement and step-by-step setup instructions, visit <a href="https://eggbeater.app/accessibility.html" target="_blank" style="color:var(--royal);font-weight:700">eggbeater.app/accessibility.html</a>.</p>
-      <p style="margin-top:8px">To report an accessibility issue or suggest an improvement, email <a href="mailto:hello@eggbeater.app?subject=Accessibility%20Feedback" style="color:var(--royal);font-weight:700">hello@eggbeater.app</a> â€” we aim to respond within 2 business days.</p>`
+      <p style="margin-top:8px">To report an accessibility issue or suggest an improvement, email <a href="mailto:hello@eggbeater.app?subject=Accessibility%20Feedback" style="color:var(--royal);font-weight:700">hello@eggbeater.app</a> — we aim to respond within 2 business days.</p>`
     },
   ];
 
@@ -10110,7 +9826,7 @@ function renderHelpTab() {
         </div>
       </div>
       <a href="eggbeater-quickstart.pdf" target="_blank" rel="noopener" class="help-quickstart-btn">
-        ðŸ“„ Download Quick Start Guide
+        📄 Download Quick Start Guide
       </a>
     </div>
 
@@ -10120,25 +9836,25 @@ function renderHelpTab() {
 
     <div class="card tab-card help-feedback-card">
       <div class="help-feedback-header">
-        <span class="help-feedback-icon">ðŸ’¡</span>
+        <span class="help-feedback-icon">💡</span>
         <div>
           <div class="help-feedback-title">Have an idea or feedback?</div>
-          <div class="help-feedback-sub">We're always adding new features â€” let us know what you'd find useful!</div>
+          <div class="help-feedback-sub">We're always adding new features — let us know what you'd find useful!</div>
         </div>
       </div>
       <a class="help-request-btn"
          href="mailto:hello@eggbeater.app?subject=Eggbeater%20App%20Feature%20Request&body=Hi%2C%20I%20have%20a%20suggestion%20for%20the%20Eggbeater%20WP%20app%3A%0A%0A"
          target="_blank" rel="noopener">
-        âœ‰ï¸ Request a Feature
+        ✉️ Request a Feature
       </a>
       <p class="help-feedback-note">Tapping this opens your email app addressed to the app team. Just type your idea and hit send!</p>
     </div>
 
-    <div class="help-version">Eggbeater Water Polo Â· Built with â¤ï¸ for the team</div>
+    <div class="help-version">Eggbeater Water Polo · Built with ❤️ for the team</div>
   `;
 }
 
-// â”€â”€â”€ WIDGET SYNC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── WIDGET SYNC ──────────────────────────────────────────────────────────────
 // Writes all widget data to shared UserDefaults via the LiveActivity plugin.
 // Called whenever club branding, live scores, or player stats change.
 // On iOS, LiveActivityPlugin.updateWidgetData() writes to group.com.eggbeater.waterpolo
@@ -10216,14 +9932,14 @@ async function _syncWidgetsAll() {
     const primary   = (state.clubInfo?.primaryColor)   || '#002868';
     const secondary = (state.clubInfo?.secondaryColor) || '#00A693';
 
-    // 2. Available teams â€” selected age group keys + human labels
+    // 2. Available teams — selected age group keys + human labels
     const selectedTeamKeys = getSelectedTeams();
     const availableTeams   = selectedTeamKeys.map(key => ({
       key,
       label: TEAM_OPTIONS.find(t => t.key === key)?.label || key,
     }));
 
-    // 3. All live scores â€” keyed by age-group label for widget matching
+    // 3. All live scores — keyed by age-group label for widget matching
     const allLiveScores = {};
     const games = getTournamentGames();
     const clubName = localStorage.getItem('ebwp-club-name') || '';
@@ -10290,17 +10006,17 @@ async function _syncWidgetsAll() {
     let writes;
     if (isAndroid) {
       // Android widget providers read specific keys in specific formats
-      // ScoreWidgetProvider reads 'score_widget_data' â€” flat object for the first live game
+      // ScoreWidgetProvider reads 'score_widget_data' — flat object for the first live game
       const liveEntries = Object.values(allLiveScores);
       const liveGame    = liveEntries[0] || null;
 
-      // StatsWidgetProvider reads 'stats_widget_data' â€” {players:[{name,detail}]}
+      // StatsWidgetProvider reads 'stats_widget_data' — {players:[{name,detail}]}
       const statsPlayers = myPlayersStats.map(p => ({
         name:   p.name,
         detail: `${p.goals} G, ${p.assists} A`,
       }));
 
-      // ScheduleWidgetProvider reads 'schedule_widget_data' â€” {games:[{teams,time}]}
+      // ScheduleWidgetProvider reads 'schedule_widget_data' — {games:[{teams,time}]}
       const scheduleGames = upcoming.slice(0, 3).map(x => ({
         teams: `vs ${x.game.opponent || 'TBD'}`,
         time:  x.game.time || '',
@@ -10323,7 +10039,7 @@ async function _syncWidgetsAll() {
         })});
       }
     } else {
-      // iOS â€” write to shared UserDefaults; each call triggers WidgetCenter reload
+      // iOS — write to shared UserDefaults; each call triggers WidgetCenter reload
       writes = [
         { key: 'club_primary_color',   data: primary },
         { key: 'club_secondary_color', data: secondary },
@@ -10338,11 +10054,11 @@ async function _syncWidgetsAll() {
     // Fire all writes concurrently; failures are silent (non-critical)
     await Promise.all(writes.map(w => plugin.updateWidgetData(w).catch(() => {})));
   } catch (_) {
-    // Widget sync is non-critical â€” never throw
+    // Widget sync is non-critical — never throw
   }
 }
 
-// â”€â”€â”€ MY PLAYER(S) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MY PLAYER(S) ─────────────────────────────────────────────────────────────
 
 /** Returns array of followed players: [{name, teamKey}]. */
 function getMyPlayers() {
@@ -10357,12 +10073,12 @@ function saveMyPlayers(arr) {
 function addMyPlayer(name, teamKey) {
   const arr = getMyPlayers();
   const key = teamKey || getSelectedTeam();
-  // Uniqueness is per team â€” two different kids in two different age groups can
+  // Uniqueness is per team — two different kids in two different age groups can
   // share the same name, and two kids in the same age group can both be followed.
   if (!arr.find(p => p.name.toLowerCase() === name.toLowerCase() && p.teamKey === key)) {
     arr.push({ name, teamKey: key });
     saveMyPlayers(arr);
-    showToast(`â­ Following ${name}`, 'ok');
+    showToast(`⭐ Following ${name}`, 'ok');
   }
   renderRosterTab();
 }
@@ -10373,9 +10089,9 @@ function removeMyPlayer(name, teamKey) {
   // Otherwise remove ALL entries with this name (legacy / fallback).
   saveMyPlayers(getMyPlayers().filter(p => {
     const nameMatch = p.name.toLowerCase() === name.toLowerCase();
-    if (!nameMatch) return true;        // keep â€” different name
-    if (teamKey)    return p.teamKey !== teamKey;  // keep â€” different team
-    return false;                       // no teamKey â€” remove all with this name
+    if (!nameMatch) return true;        // keep — different name
+    if (teamKey)    return p.teamKey !== teamKey;  // keep — different team
+    return false;                       // no teamKey — remove all with this name
   }));
   // Also clear legacy single-player if it matches
   if ((localStorage.getItem(STORE.MY_PLAYER) || '').toLowerCase() === name.toLowerCase()) {
@@ -10390,14 +10106,14 @@ function removeMyPlayer(name, teamKey) {
   });
 }
 
-/** Legacy single-player getter â€” returns first tracked player's name. */
+/** Legacy single-player getter — returns first tracked player's name. */
 function getMyPlayer() {
   const arr = getMyPlayers();
   if (arr.length) return arr[0].name;
   return localStorage.getItem(STORE.MY_PLAYER) || '';
 }
 
-/** Legacy single-player setter â€” replaces the first tracked player. */
+/** Legacy single-player setter — replaces the first tracked player. */
 function setMyPlayer(name) {
   if (name) {
     const arr = getMyPlayers();
@@ -10410,7 +10126,7 @@ function setMyPlayer(name) {
       saveMyPlayers(arr);
     }
     localStorage.setItem(STORE.MY_PLAYER, name);
-    showToast(`â­ Following ${name}`, 'ok');
+    showToast(`⭐ Following ${name}`, 'ok');
   } else {
     localStorage.removeItem(STORE.MY_PLAYER);
   }
@@ -10461,8 +10177,8 @@ function renderMyPlayersCard() {
     if (tracked.length) {
       const badges = tracked.map(p => `
         <span class="mp-multi-badge">
-          â­ ${escHtml(p.name)}
-          <button class="mp-multi-remove" onclick="removeMyPlayer('${escHtml(p.name)}','${escHtml(p.teamKey)}')" title="Remove">Ã—</button>
+          ⭐ ${escHtml(p.name)}
+          <button class="mp-multi-remove" onclick="removeMyPlayer('${escHtml(p.name)}','${escHtml(p.teamKey)}')" title="Remove">×</button>
         </span>`).join('');
       const statCards = tracked.map(p => _renderPlayerStatsCard(p.name, teamKey)).join('');
       html += `<div class="card tab-card mp-multi-card">
@@ -10470,7 +10186,7 @@ function renderMyPlayersCard() {
         <div class="mp-multi-badges">${badges}</div>
         ${opts ? `<div class="mp-multi-add-row">
           <select class="mp-multi-select" id="mp-sel-${escHtml(teamKey)}">
-            <option value="">+ Add another playerâ€¦</option>${opts}
+            <option value="">+ Add another player…</option>${opts}
           </select>
           <button class="mp-multi-add-btn" onclick="_addPlayerFromSelect('${escHtml(teamKey)}')">Add</button>
         </div>` : ''}
@@ -10482,7 +10198,7 @@ function renderMyPlayersCard() {
         <p class="step-desc" style="margin-bottom:8px">Tap a player below to follow their stats.</p>
         ${opts ? `<div class="mp-multi-add-row">
           <select class="mp-multi-select" id="mp-sel-${escHtml(teamKey)}">
-            <option value="">Select a playerâ€¦</option>${opts}
+            <option value="">Select a player…</option>${opts}
           </select>
           <button class="mp-multi-add-btn" onclick="_addPlayerFromSelect('${escHtml(teamKey)}')">Follow</button>
         </div>` : '<p class="empty-msg">No roster loaded yet.</p>'}
@@ -10575,7 +10291,7 @@ function _renderPlayerStatsCard(playerName, teamKey = getSelectedTeam()) {
 
   function shotPct(made, missed) {
     const total = made + missed;
-    if (!total) return { pct: 'â€”', frac: '0/0' };
+    if (!total) return { pct: '—', frac: '0/0' };
     return { pct: Math.round((made / total) * 100) + '%', frac: `${made}/${total}` };
   }
   const regPct  = shotPct(G, SM);
@@ -10593,7 +10309,7 @@ function _renderPlayerStatsCard(playerName, teamKey = getSelectedTeam()) {
     const recent = [...rows].reverse().slice(0, 5);
     const cells  = recent.map(r => {
       const res   = r.result ? `<span class="mp-game-result mp-res-${r.result.toLowerCase()}">${resultLabel(r.result)}</span>` : '';
-      const score = (r.teamScore !== '' && r.oppScore !== '') ? `${r.teamScore}â€“${r.oppScore}` : '';
+      const score = (r.teamScore !== '' && r.oppScore !== '') ? `${r.teamScore}–${r.oppScore}` : '';
       return `<div class="mp-game-row">
         <div class="mp-game-opp">${escHtml(r.opponent)}${res ? ' ' + res : ''} ${score ? `<span class="mp-game-score">${score}</span>` : ''}</div>
         <div class="mp-game-stats">${playerIsGoalie
@@ -10620,7 +10336,7 @@ function _renderPlayerStatsCard(playerName, teamKey = getSelectedTeam()) {
         <button class="mp-change-btn" onclick="event.stopPropagation();removeMyPlayer('${escHtml(playerName)}')">Remove</button>
       </div>
       <div style="display:flex;align-items:center;gap:6px">
-        <span class="mp-star-badge">â­</span>
+        <span class="mp-star-badge">⭐</span>
         <svg class="mp-collapse-chevron${isCollapsed ? ' mp-collapsed' : ''}" data-mpkey="${escHtml(key)}" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
     </div>
@@ -10682,11 +10398,11 @@ function _renderPlayerStatsCard(playerName, teamKey = getSelectedTeam()) {
       </div>
     </div>` : ''}
 
-    ${!hasStats ? `<p class="mp-no-stats">No stats tracked yet â€” start live scoring to build this player's history!</p>` : ''}
+    ${!hasStats ? `<p class="mp-no-stats">No stats tracked yet — start live scoring to build this player's history!</p>` : ''}
     ${gameRows}
     <div class="mp-dl-bar">
       <button class="mp-dl-wide-btn" onclick="downloadPlayerStats('${nameEnc}')">
-        <span class="mp-dl-wide-icon">ðŸ“Š</span>
+        <span class="mp-dl-wide-icon">📊</span>
         <span class="mp-dl-wide-lbl">Download Stats CSV</span>
       </button>
     </div>
@@ -10718,7 +10434,7 @@ function renderMyPlayerCard() {
   if (!players.length) {
     return `<div class="card tab-card my-player-card mp-empty">
       <div class="mp-empty-header">
-        <span class="mp-empty-star">â­</span>
+        <span class="mp-empty-star">⭐</span>
         <div>
           <div class="mp-empty-title">My Players</div>
           <div class="mp-empty-sub">Follow your child's stats at a glance</div>
@@ -10727,7 +10443,7 @@ function renderMyPlayerCard() {
       ${opts
         ? `<div class="mp-multi-add-row">
              <select class="mp-multi-select" id="mp-sel-${escHtml(teamKey)}">
-               <option value="">â€” Pick a player â€”</option>${opts}
+               <option value="">— Pick a player —</option>${opts}
              </select>
              <button class="mp-multi-add-btn" onclick="_addPlayerFromSelect('${escHtml(teamKey)}')">Follow</button>
            </div>`
@@ -10738,17 +10454,17 @@ function renderMyPlayerCard() {
 
   // Selection management card
   let html = `<div class="card tab-card my-player-card">
-    <div class="mp-multi-header"><span>â­</span> <strong>My Players</strong></div>
+    <div class="mp-multi-header"><span>⭐</span> <strong>My Players</strong></div>
     <div class="mp-multi-badges">
       ${players.map(p => `
         <span class="mp-multi-badge">
-          â­ ${escHtml(p.name)}
-          <button class="mp-multi-remove" onclick="removeMyPlayer('${escHtml(p.name)}','${escHtml(p.teamKey || teamKey)}')" title="Remove">Ã—</button>
+          ⭐ ${escHtml(p.name)}
+          <button class="mp-multi-remove" onclick="removeMyPlayer('${escHtml(p.name)}','${escHtml(p.teamKey || teamKey)}')" title="Remove">×</button>
         </span>`).join('')}
     </div>
     ${opts ? `<div class="mp-multi-add-row">
       <select class="mp-multi-select" id="mp-sel-${escHtml(teamKey)}">
-        <option value="">+ Add another playerâ€¦</option>${opts}
+        <option value="">+ Add another player…</option>${opts}
       </select>
       <button class="mp-multi-add-btn" onclick="_addPlayerFromSelect('${escHtml(teamKey)}')">Add</button>
     </div>` : ''}
@@ -10761,7 +10477,7 @@ function renderMyPlayerCard() {
   return html;
 }
 
-// â”€â”€â”€ LIVE ACTIVITIES (iOS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── LIVE ACTIVITIES (iOS) ───────────────────────────────────────────────────
 
 // Tracks the currently active Live Activity so pollLiveScores can update it.
 window._activeLA = null;
@@ -10780,21 +10496,21 @@ function _buildLastEventStr(gameId) {
   const sc = `${s.team || 0}-${s.opp || 0}`;
   const pl = [ev.cap ? `#${ev.cap}` : '', ev.name || ''].filter(Boolean).join(' ');
   switch (ev.type) {
-    case 'goal':       return `ðŸŸ¡ ${pl || 'Goal'} scored${ev.sixOnFive ? ' (6 on 5)' : ''} Â· ${q}${t} Â· ${sc}`;
-    case 'goal_5m':    return `ðŸŸ¡ ${pl || 'Penalty'} scored (5m) Â· ${q}${t} Â· ${sc}`;
-    case 'opp_goal':   return `ðŸŸ¡ Opponent scored Â· ${q}${t} Â· ${sc}`;
-    case 'opp_goal_5m':return `ðŸŸ¡ Opponent penalty (5m) Â· ${q}${t} Â· ${sc}`;
-    case 'so_goal':    return `ðŸŸ¡ ${pl || 'SO goal'} Â· ${sc}`;
-    case 'opp_so_goal':return `ðŸŸ¡ Opponent SO goal Â· ${sc}`;
-    case 'exclusion':  return pl ? `ðŸŸ¡ ${pl} excluded Â· ${q}${t}` : '';
-    case 'timeout':    return `â± Timeout Â· ${q}${t}`;
-    case 'opp_timeout':return `â± Opponent timeout Â· ${q}${t}`;
+    case 'goal':       return `🟡 ${pl || 'Goal'} scored${ev.sixOnFive ? ' (6 on 5)' : ''} · ${q}${t} · ${sc}`;
+    case 'goal_5m':    return `🟡 ${pl || 'Penalty'} scored (5m) · ${q}${t} · ${sc}`;
+    case 'opp_goal':   return `🟡 Opponent scored · ${q}${t} · ${sc}`;
+    case 'opp_goal_5m':return `🟡 Opponent penalty (5m) · ${q}${t} · ${sc}`;
+    case 'so_goal':    return `🟡 ${pl || 'SO goal'} · ${sc}`;
+    case 'opp_so_goal':return `🟡 Opponent SO goal · ${sc}`;
+    case 'exclusion':  return pl ? `🟡 ${pl} excluded · ${q}${t}` : '';
+    case 'timeout':    return `⏱ Timeout · ${q}${t}`;
+    case 'opp_timeout':return `⏱ Opponent timeout · ${q}${t}`;
     case 'game_state':
-      if (ev.gameState === 'q1') return 'â–¶ Game started';
-      if (ev.gameState === 'q2') return 'â–¶ Q2 started';
-      if (ev.gameState === 'q3') return 'â–¶ Q3 started';
-      if (ev.gameState === 'q4') return 'â–¶ Q4 started';
-      if (ev.gameState === 'final') return `ðŸ Final: ${sc}`;
+      if (ev.gameState === 'q1') return '▶ Game started';
+      if (ev.gameState === 'q2') return '▶ Q2 started';
+      if (ev.gameState === 'q3') return '▶ Q3 started';
+      if (ev.gameState === 'q4') return '▶ Q4 started';
+      if (ev.gameState === 'final') return `🏁 Final: ${sc}`;
       return '';
     default: return '';
   }
@@ -10804,13 +10520,13 @@ async function toggleLiveActivity(gameId) {
   const platform = window.Capacitor?.getPlatform?.();
   const isNative = window.Capacitor?.isNativePlatform?.();
 
-  // â”€â”€ Android: route to Live Update chip (not iOS Live Activities) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Android: route to Live Update chip (not iOS Live Activities) ──────────
   if (isNative && platform === 'android') {
     const game  = _findGameByRef(gameId);
     const score = getLiveScore(gameId);
     const gs    = score?.gameState || 'pre';
     if (gs === 'pre') {
-      showToast("Game hasn't started yet â€” check back when it begins!", "info");
+      showToast("Game hasn't started yet — check back when it begins!", "info");
       return;
     }
     if (gs === 'final') {
@@ -10826,7 +10542,7 @@ async function toggleLiveActivity(gameId) {
     return;
   }
 
-  // â”€â”€ Web / non-native â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Web / non-native ──────────────────────────────────────────────────────
   if (!isNative || platform !== 'ios') {
     showToast("Follow Live is available in the iOS and Android apps.");
     return;
@@ -10838,7 +10554,7 @@ async function toggleLiveActivity(gameId) {
     return;
   }
 
-  // If already following this game â€” end it
+  // If already following this game — end it
   if (window._activeLA && window._activeLA.gameId === _gameRef(gameId)) {
     try { await LiveActivity.endActivity({}); } catch {}
     window._activeLA = null;
@@ -10876,9 +10592,9 @@ async function toggleLiveActivity(gameId) {
       clock:         score.clock || "0:00",
       quarter:       String(score.period || 1),
       lastEvent:     _buildLastEventStr(gameId),
-      // Native iOS countdown â€” non-zero timerEnd makes SwiftUI tick the clock automatically
+      // Native iOS countdown — non-zero timerEnd makes SwiftUI tick the clock automatically
       timerEnd:      score.timerRunning && _laRemaining > 0 ? (Date.now() / 1000 + _laRemaining) : 0,
-      // Use HTTPS worker URL for logo â€” base64 data: URLs don't load in AsyncImage
+      // Use HTTPS worker URL for logo — base64 data: URLs don't load in AsyncImage
       homeLogoUrl:   state.clubInfo?.logo ? `${PUSH_SERVER_URL}/club-logo?club=${encodeURIComponent(getAppClubId())}` : '',
       awayLogoUrl:   '',   // opponent logo not yet stored
       primaryColor:  primaryColor,
