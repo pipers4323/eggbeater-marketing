@@ -3521,7 +3521,12 @@
     </div>
   `;
 
-      for (const draft of (S.savedTournaments || [])) {
+      // Only show drafts that belong to the active age group.
+      // Drafts saved before team-scoping was added (no draft.team) are shown to all groups
+      // for backwards-compat; they will pick up a team tag the next time they are saved.
+      const visibleDrafts = (S.savedTournaments || []).filter(d => !d.team || d.team === S.team);
+
+      for (const draft of visibleDrafts) {
         const draftGames = [...(draft.tournament.games || [])].sort((a, b) => gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum));
         cardsHtml += `
       <div class="card">
@@ -8812,6 +8817,7 @@
       const snapshot = {
         id: draftId,
         name: name,
+        team: S.team,   // scope this draft to the active age group
         updatedAt: new Date().toISOString(),
         tournament: JSON.parse(JSON.stringify(S.tournament)),
         roster: S.roster ? JSON.parse(JSON.stringify(S.roster)) : null
