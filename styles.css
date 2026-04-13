@@ -7155,6 +7155,23 @@ html.native-android .game-card.cap-white-bg .scoring-section .score-btn-opp {
   border-color: #d1d5db !important;
 }
 
+/* ── Android: selected club label legibility ─────────────────────────────── */
+/* --royal-subtle (#edf1f8) is near-white; native-android dark mode renders
+   the label in near-white too, making it invisible. Force dark text. */
+html.native-android .settings-item.current-club-item .settings-item-label {
+  color: #1a202c !important;
+}
+
+/* ── Android: bracket step row spacing ───────────────────────────────────── */
+html.native-android .bracket-step-row {
+  padding: 14px 14px;
+}
+
+html.native-android .bracket-result-btn {
+  padding: 8px 0;
+  font-size: 0.82rem;
+}
+
 html.native-ios .game-card.cap-white-bg .scoring-section .gs-btn,
 html.native-ios .game-card.cap-white-bg .scoring-section .stat-btn,
 html.native-ios .game-card.cap-white-bg .scoring-section .ls-undo-btn,
