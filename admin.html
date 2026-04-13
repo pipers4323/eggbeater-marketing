@@ -2690,8 +2690,8 @@
 
           const typeLabel = club.clubType === 'highschool' ? '🎓 HS' : '🤽‍♀️ Club';
           const logoHtml = club.logo
-            ? `<div style="width:44px;height:44px;background:white;border-radius:10px;border:1px solid var(--g200);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">`
-            + `<img src="${club.logo}" style="width:40px;height:40px;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display=''">`
+            ? `<div style="width:56px;height:44px;background:linear-gradient(180deg,#0b0f14 0%,#111827 100%);border-radius:10px;border:1px solid rgba(15,23,42,.16);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;padding:4px 6px">`
+            + `<img src="${club.logo}" style="width:100%;height:100%;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display=''">`
             + `<div style="font-size:1.4rem;display:none">${club.clubType === 'highschool' ? '🎓' : '🤽‍♀️'}</div>`
             + `</div>`
             : `<div style="width:44px;height:44px;background:var(--g100);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.4rem">${club.clubType === 'highschool' ? '🎓' : '🤽‍♀️'}</div>`;
