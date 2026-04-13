@@ -1250,6 +1250,7 @@ function _getTournamentLastDateISO(tournament = TOURNAMENT) {
 }
 
 function _isTournamentPastWindow(tournament = TOURNAMENT, now = new Date()) {
+  if (tournament?.upcomingMode || tournament?.comingSoon) return false;
   const lastDateISO = _getTournamentLastDateISO(tournament);
   if (!lastDateISO) return false;
   const cutoff = new Date(lastDateISO + 'T23:59:59');

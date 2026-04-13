@@ -9060,11 +9060,15 @@
           const res = await api('GET', `/admin/data?team=${encodeURIComponent(key)}`);
           if (!res.ok) throw new Error('fetch failed ' + res.status);
           const data = await res.json();
-          const t = data.tournament || {};
-          t.upcomingMode = true;
-          t.comingSoon = t.comingSoon || 'Schedule coming soon — check back closer to tournament day!';
-          const saveRes = await api('PUT', `/admin/data?team=${encodeURIComponent(key)}`, { tournament: t, history: data.history || [] });
-          try { await _pushToFirebaseMirror(key, t, data.history || []); } catch(e){}
+          const freshT = {
+            id: 't' + Date.now().toString(36),
+            name: '',
+            games: [],
+            upcomingMode: true,
+            comingSoon: (data.tournament && data.tournament.comingSoon) || 'Schedule coming soon — check back closer to tournament day!',
+          };
+          const saveRes = await api('PUT', `/admin/data?team=${encodeURIComponent(key)}`, { tournament: freshT, history: [] });
+          try { await _pushToFirebaseMirror(key, freshT, []); } catch(e){}
           if (!saveRes.ok) throw new Error('save failed ' + saveRes.status);
           done++;
         } catch (e) {
