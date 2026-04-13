@@ -354,6 +354,59 @@
       flex: 1;
     }
 
+    .admin-header-spacer {
+      flex: 1;
+    }
+
+    .admin-lang-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, .28);
+      background: rgba(255, 255, 255, .12);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      flex-shrink: 0;
+    }
+
+    .admin-lang-label {
+      font-size: 0.6rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, .78);
+    }
+
+    .admin-lang-select {
+      appearance: none;
+      -webkit-appearance: none;
+      border: none;
+      background: transparent;
+      color: #fff;
+      font: inherit;
+      font-size: 0.72rem;
+      font-weight: 800;
+      line-height: 1;
+      padding: 0 12px 0 0;
+      min-width: 40px;
+      cursor: pointer;
+      background-image: linear-gradient(45deg, transparent 50%, rgba(255,255,255,.9) 50%), linear-gradient(135deg, rgba(255,255,255,.9) 50%, transparent 50%);
+      background-position: calc(100% - 8px) calc(50% - 1px), calc(100% - 4px) calc(50% - 1px);
+      background-size: 4px 4px, 4px 4px;
+      background-repeat: no-repeat;
+    }
+
+    .admin-lang-select:focus {
+      outline: none;
+    }
+
+    .admin-lang-select option {
+      color: var(--g900);
+      background: #fff;
+    }
+
     .deploy-btn {
       flex-shrink: 0;
       background: white;
@@ -1945,8 +1998,17 @@
         <img src="logo_large.svg" alt="Eggbeater Water Polo" class="admin-logo-img">
       </div>
       <div class="admin-header-bar">
-        <span class="admin-header-title">Super Admin Dashboard</span>
-        <span class="admin-header-sub">Select a club to manage</span>
+        <span id="dashboard-header-title" class="admin-header-title">Super Admin Dashboard</span>
+        <span id="dashboard-header-sub" class="admin-header-sub">Select a club to manage</span>
+        <div class="admin-header-spacer"></div>
+        <div class="admin-lang-wrap">
+          <label class="admin-lang-label" for="dashboard-lang-picker">Lang</label>
+          <select id="dashboard-lang-picker" class="admin-lang-select" onchange="setAdminLang(this.value)" aria-label="Select admin language">
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="fr">FR</option>
+          </select>
+        </div>
         <button class="save-btn"
           style="background:var(--red);color:white;border-color:var(--red);padding:4px 14px;font-size:0.78rem"
           onclick="doLogout()">🚪 Logout</button>
@@ -2005,8 +2067,16 @@
         <img src="logo_large.svg" class="eggbeater-inline-logo" alt="eggbeater">
       </div>
       <div class="admin-header-bar">
-        <span class="admin-header-title">Admin</span>
+        <span id="admin-header-title" class="admin-header-title">Admin</span>
         <span id="header-sub" class="admin-header-sub">Loading…</span>
+        <div class="admin-lang-wrap">
+          <label class="admin-lang-label" for="admin-header-lang-picker">Lang</label>
+          <select id="admin-header-lang-picker" class="admin-lang-select" onchange="setAdminLang(this.value)" aria-label="Select admin language">
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="fr">FR</option>
+          </select>
+        </div>
         <button id="switch-club-btn" onclick="switchClub()"
           style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px"
           title="Switch Club (SuperAdmin)">🔀 Switch Club</button>
@@ -2078,7 +2148,7 @@
           <line x1="8" y1="2" x2="8" y2="6" />
           <line x1="16" y1="2" x2="16" y2="6" />
         </svg>
-        Schedule
+        <span id="admin-tab-schedule">Schedule</span>
       </button>
       <button class="tab-btn" data-tab="roster" onclick="switchTab('roster')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -2087,7 +2157,7 @@
           <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
           <path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
-        Roster
+        <span id="admin-tab-roster">Roster</span>
       </button>
       <button class="tab-btn" data-tab="addgames" onclick="switchTab('addgames')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -2095,7 +2165,7 @@
           <line x1="12" y1="8" x2="12" y2="16" />
           <line x1="8" y1="12" x2="16" y2="12" />
         </svg>
-        Add Games
+        <span id="admin-tab-addgames">Add Games</span>
       </button>
       <button class="tab-btn" data-tab="more" onclick="toggleAdminMore()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -2103,7 +2173,7 @@
           <line x1="3" y1="12" x2="21" y2="12" />
           <line x1="3" y1="18" x2="21" y2="18" />
         </svg>
-        More
+        <span id="admin-tab-more">More</span>
       </button>
       <!-- Desktop-only sidebar items (hidden on mobile via CSS) -->
       <div class="admin-desktop-divider"></div>
@@ -2113,13 +2183,13 @@
           <path d="M5 21V7l7-4 7 4v14" />
           <path d="M9 21v-6h6v6" />
         </svg>
-        Club Info
+        <span id="admin-tab-clubinfo">Club Info</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="teamcomm" onclick="switchTab('teamcomm')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
-        Team Comm<span class="tab-crown" style="display:none"> 👑</span>
+        <span id="admin-tab-teamcomm">Team Comm</span><span class="tab-crown" style="display:none"> 👑</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="director" onclick="switchTab('director')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2129,7 +2199,7 @@
           <line x1="8" y1="21" x2="16" y2="21" />
           <line x1="12" y1="17" x2="12" y2="21" />
         </svg>
-        Director<span class="tab-crown" style="display:none"> 👑</span>
+        <span id="admin-tab-director">Director</span><span class="tab-crown" style="display:none"> 👑</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="archive" onclick="switchTab('archive')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2137,14 +2207,14 @@
           <path d="M1 3h22v5H1z" />
           <path d="M10 12h4" />
         </svg>
-        Archive
+        <span id="admin-tab-archive">Archive</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="history" onclick="switchTab('history')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 8v4l3 3" />
           <circle cx="12" cy="12" r="10" />
         </svg>
-        History<span class="tab-crown" style="display:none"> 👑</span>
+        <span id="admin-tab-history">History</span><span class="tab-crown" style="display:none"> 👑</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="settings" onclick="switchTab('settings')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2152,7 +2222,7 @@
           <path
             d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
-        Settings
+        <span id="admin-tab-settings">Settings</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="help" onclick="switchTab('help')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2160,7 +2230,7 @@
           <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
           <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
-        Help
+        <span id="admin-tab-help">Help</span>
       </button>
     </nav>
 
@@ -2658,6 +2728,7 @@
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('admin-app').setAttribute('hidden', '');
       document.getElementById('club-dashboard').style.display = '';
+      applyAdminTranslations();
       showStatus('');
 
       const listEl = document.getElementById('club-dashboard-list');
@@ -3098,6 +3169,7 @@
     async function _doAdminLoad() {
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('admin-app').removeAttribute('hidden');
+      applyAdminTranslations();
       // Sync header height now that admin-app is visible (sidebar needs correct padding-top)
       requestAnimationFrame(() => syncAdminHeaderHeight());
       // Show Switch Club button for superadmin (password login)
@@ -3275,6 +3347,133 @@
     // Auto-refresh token every 50 minutes
     setInterval(refreshIdToken, 50 * 60 * 1000);
 
+    const ADMIN_LANG_KEY = 'ebadmin-lang';
+    const ADMIN_I18N = {
+      en: {
+        dashboard_title: 'Super Admin Dashboard',
+        dashboard_sub: 'Select a club to manage',
+        admin_title: 'Admin',
+        tab_schedule: 'Schedule',
+        tab_roster: 'Roster',
+        tab_addgames: 'Add Games',
+        tab_more: 'More',
+        tab_clubinfo: 'Club Info',
+        tab_teamcomm: 'Team Comm',
+        tab_director: 'Director',
+        tab_archive: 'Archive',
+        tab_history: 'History',
+        tab_settings: 'Settings',
+        tab_help: 'Help',
+        settings_title: 'Settings',
+        settings_sub: 'Manage your account and club.',
+        settings_account: 'Account',
+        settings_club: 'Club',
+        settings_current_club: 'Current club',
+        settings_return_dashboard: 'Return to Club Dashboard',
+        settings_danger: 'Danger Zone',
+        settings_delete_club: 'Delete Club',
+        settings_delete_desc: 'Permanently removes all tournaments, rosters, and admin data. Cannot be undone.',
+        settings_sign_out: 'Sign Out'
+      },
+      es: {
+        dashboard_title: 'Panel Super Admin',
+        dashboard_sub: 'Selecciona un club para administrar',
+        admin_title: 'Admin',
+        tab_schedule: 'Calendario',
+        tab_roster: 'Roster',
+        tab_addgames: 'Partidos',
+        tab_more: 'Mas',
+        tab_clubinfo: 'Club',
+        tab_teamcomm: 'Mensajes',
+        tab_director: 'Director',
+        tab_archive: 'Archivo',
+        tab_history: 'Historial',
+        tab_settings: 'Ajustes',
+        tab_help: 'Ayuda',
+        settings_title: 'Ajustes',
+        settings_sub: 'Administra tu cuenta y club.',
+        settings_account: 'Cuenta',
+        settings_club: 'Club',
+        settings_current_club: 'Club actual',
+        settings_return_dashboard: 'Volver al panel de clubes',
+        settings_danger: 'Zona de riesgo',
+        settings_delete_club: 'Eliminar club',
+        settings_delete_desc: 'Elimina torneos, rosters y datos del club. No se puede deshacer.',
+        settings_sign_out: 'Cerrar sesion'
+      },
+      fr: {
+        dashboard_title: 'Tableau Super Admin',
+        dashboard_sub: 'Choisissez un club a gerer',
+        admin_title: 'Admin',
+        tab_schedule: 'Calendrier',
+        tab_roster: 'Effectif',
+        tab_addgames: 'Matchs',
+        tab_more: 'Plus',
+        tab_clubinfo: 'Club',
+        tab_teamcomm: 'Messages',
+        tab_director: 'Directeur',
+        tab_archive: 'Archive',
+        tab_history: 'Historique',
+        tab_settings: 'Reglages',
+        tab_help: 'Aide',
+        settings_title: 'Reglages',
+        settings_sub: 'Gerez votre compte et votre club.',
+        settings_account: 'Compte',
+        settings_club: 'Club',
+        settings_current_club: 'Club actuel',
+        settings_return_dashboard: 'Retour au tableau des clubs',
+        settings_danger: 'Zone sensible',
+        settings_delete_club: 'Supprimer le club',
+        settings_delete_desc: 'Supprime tournois, effectifs et donnees du club. Action irreversible.',
+        settings_sign_out: 'Se deconnecter'
+      }
+    };
+
+    function getAdminLang() {
+      return localStorage.getItem(ADMIN_LANG_KEY) || 'en';
+    }
+
+    function adminT(key) {
+      const lang = getAdminLang();
+      return (ADMIN_I18N[lang] && ADMIN_I18N[lang][key]) || ADMIN_I18N.en[key] || key;
+    }
+
+    function applyAdminTranslations() {
+      const dashboardPicker = document.getElementById('dashboard-lang-picker');
+      const adminPicker = document.getElementById('admin-header-lang-picker');
+      if (dashboardPicker) dashboardPicker.value = getAdminLang();
+      if (adminPicker) adminPicker.value = getAdminLang();
+      const map = {
+        'dashboard-header-title': 'dashboard_title',
+        'dashboard-header-sub': 'dashboard_sub',
+        'admin-header-title': 'admin_title',
+        'admin-tab-schedule': 'tab_schedule',
+        'admin-tab-roster': 'tab_roster',
+        'admin-tab-addgames': 'tab_addgames',
+        'admin-tab-more': 'tab_more',
+        'admin-tab-clubinfo': 'tab_clubinfo',
+        'admin-tab-teamcomm': 'tab_teamcomm',
+        'admin-tab-director': 'tab_director',
+        'admin-tab-archive': 'tab_archive',
+        'admin-tab-history': 'tab_history',
+        'admin-tab-settings': 'tab_settings',
+        'admin-tab-help': 'tab_help'
+      };
+      Object.entries(map).forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = adminT(key);
+      });
+    }
+
+    function setAdminLang(lang) {
+      if (!ADMIN_I18N[lang]) lang = 'en';
+      localStorage.setItem(ADMIN_LANG_KEY, lang);
+      applyAdminTranslations();
+      if (!document.getElementById('admin-app')?.hidden && S.currentTab === 'settings') {
+        renderTab();
+      }
+    }
+
     // ─── TABS ─────────────────────────────────────────────────────────────────────
 
     function switchTab(tab) {
@@ -3363,6 +3562,7 @@
       if (S.currentTab === 'settings') {
         el.innerHTML = renderAdminSettingsTab();
       }
+      applyAdminTranslations();
     }
 
     function renderAdminSettingsTab() {
@@ -3385,7 +3585,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent" onclick="doLogout()">
         <span style="font-size:1.1rem">🚪</span>
-        <span style="font-weight:600;color:#dc2626;font-size:0.95rem">Sign Out</span>
+        <span style="font-weight:600;color:#dc2626;font-size:0.95rem">${adminT('settings_sign_out')}</span>
       </div>
     `;
       } else if (S.loginMode === 'password') {
@@ -3399,45 +3599,45 @@
       </div>
       <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;border-top:1px solid var(--g100)" onclick="doLogout()">
         <span style="font-size:1.1rem">🚪</span>
-        <span style="font-weight:600;color:#dc2626;font-size:0.95rem">Sign Out</span>
+        <span style="font-weight:600;color:#dc2626;font-size:0.95rem">${adminT('settings_sign_out')}</span>
       </div>
     `;
       }
 
       return `
     <div class="card" style="margin-bottom:12px">
-      <div class="card-header">Settings</div>
-      <div style="padding:10px 16px;font-size:0.85rem;color:var(--g400)">Manage your account and club.</div>
+      <div class="card-header">${adminT('settings_title')}</div>
+      <div style="padding:10px 16px;font-size:0.85rem;color:var(--g400)">${adminT('settings_sub')}</div>
     </div>
 
     <div class="card" style="margin-bottom:12px">
-      <div class="card-header">Account</div>
+      <div class="card-header">${adminT('settings_account')}</div>
       ${accountHtml}
     </div>
 
     <div class="card" style="margin-bottom:12px">
-      <div class="card-header">Club</div>
+      <div class="card-header">${adminT('settings_club')}</div>
       <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--g100)">
         <span style="font-size:1.1rem">🤽‍♀️</span>
         <div style="flex:1">
           <div style="font-weight:700;font-size:0.95rem">${esc(clubName)}</div>
-          <div style="font-size:0.8rem;color:var(--g400)">Current club · ${esc(clubId)}</div>
+          <div style="font-size:0.8rem;color:var(--g400)">${adminT('settings_current_club')} · ${esc(clubId)}</div>
         </div>
         <span style="color:var(--royal);font-weight:800">✓</span>
       </div>
       <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent" onclick="switchClub()">
         <span style="font-size:1.1rem">🏠</span>
-        <span style="font-weight:600;font-size:0.95rem">Return to Club Dashboard</span>
+        <span style="font-weight:600;font-size:0.95rem">${adminT('settings_return_dashboard')}</span>
       </div>
     </div>
 
     <div class="card" style="margin-bottom:12px;border:1px solid #fca5a5">
-      <div class="card-header" style="color:#dc2626">Danger Zone</div>
+      <div class="card-header" style="color:#dc2626">${adminT('settings_danger')}</div>
       <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent" onclick="deleteClub('${esc(clubId)}','${esc(clubName)}')">
         <span style="font-size:1.1rem">🗑️</span>
         <div style="flex:1">
-          <div style="font-weight:700;font-size:0.95rem;color:#dc2626">Delete Club</div>
-          <div style="font-size:0.78rem;color:var(--g400)">Permanently removes all tournaments, rosters, and admin data. Cannot be undone.</div>
+          <div style="font-weight:700;font-size:0.95rem;color:#dc2626">${adminT('settings_delete_club')}</div>
+          <div style="font-size:0.78rem;color:var(--g400)">${adminT('settings_delete_desc')}</div>
         </div>
       </div>
     </div>

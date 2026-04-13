@@ -39,16 +39,16 @@
     </div>
     <div class="club-picker-body">
       <div class="club-picker-inner">
-        <h1 class="club-picker-title">Welcome to Eggbeater</h1>
-        <p class="club-picker-subtitle">Select your club to get started</p>
+        <h1 id="club-picker-title" class="club-picker-title">Welcome to Eggbeater</h1>
+        <p id="club-picker-subtitle" class="club-picker-subtitle">Select your club to get started</p>
         <div id="club-picker-list" class="club-picker-list">
           <div class="club-picker-loading">Loading clubs…</div>
         </div>
-        <p class="club-picker-footer">Don't see your club? Ask your club admin for the link.</p>
-        <a href="parent-guide.html" target="_blank" style="display:block;text-align:center;margin-top:12px;font-size:0.82rem;color:rgba(255,255,255,0.8);text-decoration:none;font-weight:600">New to Eggbeater? Read the Parent Guide &rarr;</a>
+        <p id="club-picker-footer" class="club-picker-footer">Don't see your club? Ask your club admin for the link.</p>
+        <a id="parent-guide-link" href="parent-guide.html" target="_blank" style="display:block;text-align:center;margin-top:12px;font-size:0.82rem;color:rgba(255,255,255,0.8);text-decoration:none;font-weight:600">New to Eggbeater? Read the Parent Guide &rarr;</a>
         <!-- Returning user sign-in — hidden once signed in via _fbUpdateAuthUI -->
         <div id="splash-signin-section" class="splash-signin-section">
-          <div class="splash-signin-divider"><span>Returning user?</span></div>
+          <div class="splash-signin-divider"><span id="returning-user-label">Returning user?</span></div>
           <button class="splash-google-btn" onclick="fbSignIn()">
             <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
@@ -58,7 +58,7 @@
             </svg>
             Sign in with Google
           </button>
-          <p class="splash-signin-hint">Restore your clubs &amp; settings instantly</p>
+          <p id="splash-signin-hint" class="splash-signin-hint">Restore your clubs &amp; settings instantly</p>
         </div>
       </div>
     </div>
@@ -98,6 +98,14 @@
       </div>
       <div class="header-right">
         <div id="sync-badge" class="sync-badge hidden"></div>
+        <div class="header-lang-wrap">
+          <label class="header-lang-label" for="header-lang-picker">Lang</label>
+          <select id="header-lang-picker" class="header-lang-select" onchange="setAppLang(this.value)" aria-label="Select language">
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="fr">FR</option>
+          </select>
+        </div>
         <!-- Auth UI moved to Settings tab — hidden elements kept for firebase.js compat -->
         <span id="fb-user-info" class="fb-user-info hidden" style="display:none"></span>
         <button id="fb-auth-btn" class="fb-auth-btn hidden" style="display:none">Sign In</button>
@@ -111,7 +119,7 @@
     <!-- Tournament info strip -->
     <div class="tournament-strip">
       <span id="header-tournament-name">Loading...</span>
-      <span class="strip-dot">·</span>
+      <span class="strip-dot">&middot;</span>
       <span id="header-tournament-dates"></span>
     </div>
     <!-- Age group + team picker (always shown, rendered by renderTeamPicker) -->
@@ -210,7 +218,7 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
       </svg>
-      <span>Schedule</span>
+      <span id="nav-label-schedule">Schedule</span>
     </button>
     <button class="nav-btn" id="tab-scores" role="tab" aria-selected="false" aria-controls="view-scores" data-tab="scores" onclick="switchTab('scores')">
       <div class="nav-icon-wrap">
@@ -219,19 +227,19 @@
         </svg>
         <span id="scores-live-dot" class="scores-live-dot hidden" role="img" aria-label="Live game in progress"></span>
       </div>
-      <span>Scores</span>
+      <span id="nav-label-scores">Scores</span>
     </button>
     <button class="nav-btn" id="tab-history" role="tab" aria-selected="false" aria-controls="view-history" data-tab="history" onclick="switchTab('history')" data-parent-tab="history">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
       </svg>
-      <span>History<span class="nav-crown" style="display:none"> 👑</span></span>
+      <span id="nav-label-history">History<span class="nav-crown" style="display:none"> 👑</span></span>
     </button>
     <button class="nav-btn" id="more-btn" data-tab="more" onclick="toggleMoreDrawer()" aria-haspopup="dialog" aria-expanded="false" aria-label="More navigation options">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
       </svg>
-      <span>More</span>
+      <span id="nav-label-more">More</span>
     </button>
     <!-- Desktop-only sidebar items (hidden on mobile via CSS) -->
     <div class="desktop-nav-divider"></div>
@@ -246,19 +254,19 @@
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
         <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
       </svg>
-      <span>Roster</span>
+      <span id="nav-label-roster-desktop">Roster</span>
     </button>
     <button class="desktop-nav-item" data-tab="settings" onclick="moreNavigate('settings')">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
-      <span>Settings</span>
+      <span id="nav-label-settings-desktop">Settings</span>
     </button>
     <button class="desktop-nav-item" data-tab="help" onclick="moreNavigate('help')">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
       </svg>
-      <span>Help</span>
+      <span id="nav-label-help-desktop">Help</span>
     </button>
   </nav>
 
@@ -282,7 +290,7 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="12" y1="3" x2="12" y2="17"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
           </svg>
-          <span>Tournament Scores</span>
+          <span id="nav-label-tscore-drawer">Tournament Scores</span>
           <svg class="more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
         <button class="more-drawer-item" onclick="moreNavigate('roster')">
@@ -290,7 +298,7 @@
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-          <span>Roster</span>
+          <span id="nav-label-roster-drawer">Roster</span>
           <svg class="more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
         <div class="more-drawer-divider"></div>
@@ -298,14 +306,14 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
-          <span>Settings</span>
+          <span id="nav-label-settings-drawer">Settings</span>
           <svg class="more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
         <button class="more-drawer-item" onclick="moreNavigate('help')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
-          <span>Help</span>
+          <span id="nav-label-help-drawer">Help</span>
           <svg class="more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>

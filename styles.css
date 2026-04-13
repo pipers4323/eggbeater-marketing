@@ -403,6 +403,54 @@ body {
   z-index: 2;
 }
 
+.header-lang-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.28);
+  background: rgba(255,255,255,.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.header-lang-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.78);
+}
+
+.header-lang-select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0 12px 0 0;
+  min-width: 40px;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, rgba(255,255,255,.9) 50%), linear-gradient(135deg, rgba(255,255,255,.9) 50%, transparent 50%);
+  background-position: calc(100% - 8px) calc(50% - 1px), calc(100% - 4px) calc(50% - 1px);
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+}
+
+.header-lang-select:focus {
+  outline: none;
+}
+
+.header-lang-select option {
+  color: #111827;
+  background: #ffffff;
+}
+
 .club-name-block {
   display: flex;
   flex-direction: column;
@@ -4985,6 +5033,10 @@ details[open] .help-chevron { transform: rotate(180deg); }
   .header-right {
     position: static;
     margin-left: auto;
+  }
+
+  .header-lang-wrap {
+    margin-left: 8px;
   }
 
   /* Tournament info strip — left-aligned padding matches header */

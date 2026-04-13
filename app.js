@@ -53,6 +53,155 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
 // Init icon on load
 setTimeout(updateThemeIcon, 0);
 
+const APP_LANG_KEY = 'ebwp-lang';
+const APP_I18N = {
+  en: {
+    club_picker_title: 'Welcome to Eggbeater',
+    club_picker_subtitle: 'Select your club to get started',
+    club_picker_footer: "Don't see your club? Ask your club admin for the link.",
+    parent_guide_link: 'New to Eggbeater? Read the Parent Guide ->',
+    returning_user: 'Returning user?',
+    splash_signin_hint: 'Restore your clubs and settings instantly',
+    nav_schedule: 'Schedule',
+    nav_scores: 'Scores',
+    nav_history: 'History',
+    nav_more: 'More',
+    nav_roster: 'Roster',
+    nav_settings: 'Settings',
+    nav_help: 'Help',
+    nav_tournament_scores: 'Tournament Scores',
+    settings_title: 'Settings',
+    settings_subtitle: 'Manage your team and preferences.',
+    settings_team_selection: 'Team Selection',
+    settings_my_clubs: 'My Clubs',
+    settings_add_club: 'Add Club',
+    settings_add_club_desc: 'Join another club via code',
+    settings_return_splash: 'Return to Splash Screen',
+    settings_return_splash_desc: 'Go back to club selection',
+    settings_appearance: 'Appearance',
+    settings_appearance_desc: 'Choose your display theme',
+    settings_calendar: 'Calendar and Notifications',
+    settings_subscription: 'Subscription',
+    settings_help: 'Help and Support',
+    settings_account: 'Account',
+    settings_how_to_use: 'How to Use Eggbeater',
+    settings_how_to_use_desc: 'Scoring, bracket, notifications and more'
+  },
+  es: {
+    club_picker_title: 'Bienvenido a Eggbeater',
+    club_picker_subtitle: 'Selecciona tu club para comenzar',
+    club_picker_footer: 'No ves tu club? Pidele el enlace al administrador del club.',
+    parent_guide_link: 'Nuevo en Eggbeater? Lee la guia para familias ->',
+    returning_user: 'Ya usaste la app?',
+    splash_signin_hint: 'Restaura tus clubes y ajustes al instante',
+    nav_schedule: 'Calendario',
+    nav_scores: 'Marcadores',
+    nav_history: 'Historial',
+    nav_more: 'Mas',
+    nav_roster: 'Roster',
+    nav_settings: 'Ajustes',
+    nav_help: 'Ayuda',
+    nav_tournament_scores: 'Marcadores del torneo',
+    settings_title: 'Ajustes',
+    settings_subtitle: 'Administra tu equipo y preferencias.',
+    settings_team_selection: 'Seleccion de equipo',
+    settings_my_clubs: 'Mis clubes',
+    settings_add_club: 'Agregar club',
+    settings_add_club_desc: 'Unete a otro club con un codigo',
+    settings_return_splash: 'Volver a inicio',
+    settings_return_splash_desc: 'Regresa a la seleccion de club',
+    settings_appearance: 'Apariencia',
+    settings_appearance_desc: 'Elige el tema de la app',
+    settings_calendar: 'Calendario y notificaciones',
+    settings_subscription: 'Suscripcion',
+    settings_help: 'Ayuda y soporte',
+    settings_account: 'Cuenta',
+    settings_how_to_use: 'Como usar Eggbeater',
+    settings_how_to_use_desc: 'Marcacion, cuadro, notificaciones y mas'
+  },
+  fr: {
+    club_picker_title: 'Bienvenue sur Eggbeater',
+    club_picker_subtitle: 'Choisissez votre club pour commencer',
+    club_picker_footer: 'Vous ne voyez pas votre club ? Demandez le lien a votre administrateur.',
+    parent_guide_link: 'Nouveau sur Eggbeater ? Lire le guide parents ->',
+    returning_user: 'Utilisateur deja inscrit ?',
+    splash_signin_hint: 'Retrouvez vos clubs et reglages instantanement',
+    nav_schedule: 'Calendrier',
+    nav_scores: 'Scores',
+    nav_history: 'Historique',
+    nav_more: 'Plus',
+    nav_roster: 'Effectif',
+    nav_settings: 'Reglages',
+    nav_help: 'Aide',
+    nav_tournament_scores: 'Scores du tournoi',
+    settings_title: 'Reglages',
+    settings_subtitle: 'Gerez votre equipe et vos preferences.',
+    settings_team_selection: "Selection d'equipe",
+    settings_my_clubs: 'Mes clubs',
+    settings_add_club: 'Ajouter un club',
+    settings_add_club_desc: 'Rejoindre un autre club avec un code',
+    settings_return_splash: "Retour a l'accueil",
+    settings_return_splash_desc: 'Revenir a la selection du club',
+    settings_appearance: 'Apparence',
+    settings_appearance_desc: "Choisissez le theme d'affichage",
+    settings_calendar: 'Calendrier et notifications',
+    settings_subscription: 'Abonnement',
+    settings_help: 'Aide et support',
+    settings_account: 'Compte',
+    settings_how_to_use: 'Comment utiliser Eggbeater',
+    settings_how_to_use_desc: 'Score, tableau, notifications et plus'
+  }
+};
+
+function getAppLang() {
+  return localStorage.getItem(APP_LANG_KEY) || 'en';
+}
+
+function appT(key) {
+  const lang = getAppLang();
+  return (APP_I18N[lang] && APP_I18N[lang][key]) || APP_I18N.en[key] || key;
+}
+
+function applyAppTranslations() {
+  const picker = document.getElementById('header-lang-picker');
+  if (picker) picker.value = getAppLang();
+  const textMap = {
+    'club-picker-title': 'club_picker_title',
+    'club-picker-subtitle': 'club_picker_subtitle',
+    'club-picker-footer': 'club_picker_footer',
+    'parent-guide-link': 'parent_guide_link',
+    'returning-user-label': 'returning_user',
+    'splash-signin-hint': 'splash_signin_hint',
+    'nav-label-schedule': 'nav_schedule',
+    'nav-label-scores': 'nav_scores',
+    'nav-label-more': 'nav_more',
+    'nav-label-roster-desktop': 'nav_roster',
+    'nav-label-settings-desktop': 'nav_settings',
+    'nav-label-help-desktop': 'nav_help',
+    'nav-label-tscore-drawer': 'nav_tournament_scores',
+    'nav-label-roster-drawer': 'nav_roster',
+    'nav-label-settings-drawer': 'nav_settings',
+    'nav-label-help-drawer': 'nav_help'
+  };
+  Object.entries(textMap).forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = appT(key);
+  });
+  const historyEl = document.getElementById('nav-label-history');
+  if (historyEl) {
+    const crown = historyEl.querySelector('.nav-crown');
+    historyEl.textContent = appT('nav_history');
+    if (crown) historyEl.appendChild(crown);
+  }
+}
+
+function setAppLang(lang) {
+  if (!APP_I18N[lang]) lang = 'en';
+  localStorage.setItem(APP_LANG_KEY, lang);
+  applyAppTranslations();
+  if (state.currentTab === 'settings') renderSettingsTab();
+}
+
 // ─── CLUB BRANDING ────────────────────────────────────────────────────────────
 
 /**
@@ -4055,12 +4204,12 @@ function renderSettingsTab() {
 
   el.innerHTML = `
     <div class="card tab-card" style="padding:12px 16px;margin-bottom:8px">
-      <h2 style="font-size:1.1rem;margin:0 0 2px 0">Settings</h2>
-      <p class="step-desc" style="margin:0;font-size:0.78rem">Manage your team and preferences.</p>
+      <h2 style="font-size:1.1rem;margin:0 0 2px 0">${appT('settings_title')}</h2>
+      <p class="step-desc" style="margin:0;font-size:0.78rem">${appT('settings_subtitle')}</p>
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">Team Selection</div>
+      <div class="settings-section-title">${appT('settings_team_selection')}</div>
       <div id="settings-team-picker" class="settings-team-picker"></div>
       ${_isNativePlatform() ? `
       <div class="settings-item" onclick="openLASettingsModal()" style="border-top:1px solid var(--gray-100)">
@@ -4074,30 +4223,30 @@ function renderSettingsTab() {
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">My Clubs</div>
+      <div class="settings-section-title">${appT('settings_my_clubs')}</div>
       <div id="settings-clubs-list">
         <div class="settings-item" style="justify-content:center;color:var(--gray-400);font-size:0.85rem">Loading clubs…</div>
       </div>
       <div class="settings-item" onclick="_settingsAddClub()" style="border-top:1px solid var(--gray-100)">
         <span class="settings-item-icon" style="color:var(--royal)">＋</span>
           <div class="settings-item-text">
-            <div class="settings-item-label">Add Club</div>
-          <div class="settings-item-value">Join another club via code</div>
+            <div class="settings-item-label">${appT('settings_add_club')}</div>
+          <div class="settings-item-value">${appT('settings_add_club_desc')}</div>
         </div>
       </div>
       <div class="settings-item" onclick="_returnToSplash()" style="border-top:1px solid var(--gray-100)">
         <span class="settings-item-icon">🏠</span>
         <div class="settings-item-text">
-          <div class="settings-item-label">Return to Splash Screen</div>
-          <div class="settings-item-value">Go back to club selection</div>
+          <div class="settings-item-label">${appT('settings_return_splash')}</div>
+          <div class="settings-item-value">${appT('settings_return_splash_desc')}</div>
         </div>
       </div>
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">🎨 Appearance</div>
+      <div class="settings-section-title">${appT('settings_appearance')}</div>
       <div style="padding:12px 16px">
-        <div style="font-size:0.82rem;color:var(--gray-500);margin-bottom:10px">Choose your display theme</div>
+        <div style="font-size:0.82rem;color:var(--gray-500);margin-bottom:10px">${appT('settings_appearance_desc')}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           ${themePill('light', '☀️ Light')}
           ${themePill('dark', '🌙 Dark')}
@@ -4107,7 +4256,7 @@ function renderSettingsTab() {
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">📅 Calendar &amp; Notifications</div>
+      <div class="settings-section-title">${appT('settings_calendar')}</div>
       <div id="sync-section"></div>
       <div id="push-btn-container"></div>
       ${_isNativePlatform() ? `
@@ -4130,7 +4279,7 @@ function renderSettingsTab() {
       </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">⭐ Subscription</div>
+      <div class="settings-section-title">${appT('settings_subscription')}</div>
       ${(state.parentTier || localStorage.getItem('ebwp-parent-tier') || 'free') === 'parent' ? `
         <div class="settings-item" style="cursor:default">
           <span style="background:#16a34a;color:white;padding:2px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;flex-shrink:0">Parent ✓</span>
@@ -4153,19 +4302,19 @@ function renderSettingsTab() {
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">❓ Help &amp; Support</div>
+      <div class="settings-section-title">${appT('settings_help')}</div>
       <div class="settings-item" onclick="switchTab('help')">
         <span class="settings-item-icon">📖</span>
         <div class="settings-item-text">
-          <div class="settings-item-label">How to Use Eggbeater</div>
-          <div class="settings-item-value">Scoring, bracket, notifications &amp; more</div>
+          <div class="settings-item-label">${appT('settings_how_to_use')}</div>
+          <div class="settings-item-value">${appT('settings_how_to_use_desc')}</div>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
     </div>
 
     <div class="settings-section" style="margin-bottom:24px">
-      <div class="settings-section-title">Account</div>
+      <div class="settings-section-title">${appT('settings_account')}</div>
       ${user ? `
         <div class="settings-item" style="cursor:default">
           <span class="settings-item-icon" style="font-size:1.3rem">☁️</span>
@@ -7092,6 +7241,8 @@ function init() {
     return;
   }
 
+  applyAppTranslations();
+
   // Phase 3: Show club picker on first visit (no club selected yet)
   // Firebase still inits in the background so the picker can list clubs
   if (typeof fbInit === 'function') fbInit();
@@ -7249,6 +7400,7 @@ function init() {
     renderPossibleTab();
     renderHistoryTab();
     renderRosterTab();
+    applyAppTranslations();
     // Re-poll live scores now that TOURNAMENT.id is populated — the startup poll used
     // an empty tournament ID and got no results, so state.liveScores was empty.
     // This second poll fetches with the correct ID and triggers sync inside pollLiveScores
