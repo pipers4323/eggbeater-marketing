@@ -3125,6 +3125,9 @@
       if (S.currentTab === 'help') el.innerHTML = renderHelpTab();
       if (S.currentTab === 'director') {
         if (!tierHasFeature('tournament_host')) { el.innerHTML = renderTieredNudge('director'); return; }
+        // Firebase-authenticated admins are auto-unlocked — the password gate only applies
+        // to legacy password-based login where identity cannot be confirmed another way.
+        if (S.idToken) S.directorUnlocked = true;
         if (!S.directorUnlocked) { el.innerHTML = renderDirectorLoginGate(); return; }
         el.innerHTML = renderDirectorTab(); setTimeout(() => { initDirectorPlaces(); (S.director?.ageGroups || []).forEach((_, ai) => renderDirToLengthInputs(ai)); }, 0);
       }
