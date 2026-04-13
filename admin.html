@@ -3402,7 +3402,7 @@
       showStatus('Creating tournament…', 'info');
       try {
         const id = await fbCreateTournament({ name, dates, location: '', address: '', status: 'upcoming' });
-        if (!id) throw new Error('Firestore create failed');
+        if (!id) throw new Error('Tournament created but no ID returned — check Firestore setup');
         // Refresh list and select the new tournament
         S.tournamentList = await fbLoadTournaments();
         S.tournamentId = id;

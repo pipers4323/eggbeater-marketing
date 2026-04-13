@@ -808,7 +808,7 @@ async function fbCreateTournament({ name, dates, location, address, status }) {
     return ref.id;
   } catch (e) {
     console.warn('[firebase] fbCreateTournament error:', e.message);
-    return null;
+    throw e; // re-throw so the caller can surface the real error message
   }
 }
 
