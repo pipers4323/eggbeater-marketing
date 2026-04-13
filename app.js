@@ -7107,7 +7107,7 @@ function init() {
     const clubType = localStorage.getItem('ebwp-club-type');
     const teamKey  = localStorage.getItem('ebwp-team-key');
     const HS_KEYS  = ['boys-varsity','boys-jv','girls-varsity','girls-jv'];
-    const CLUB_KEYS = ['10u-coed','12u-girls','12u-boys','14u-girls','14u-boys','16u-girls','16u-boys','18u-girls','18u-boys'];
+    const CLUB_KEYS = ['10u-coed','12u-girls','12u-boys','14u-girls','14u-boys','16u-girls','16u-boys','18u-girls','18u-boys','masters-women','masters-men'];
     // If HS club but team key is a club key (or vice versa), clear stale data
     if ((clubType === 'highschool' && teamKey && CLUB_KEYS.includes(teamKey)) ||
         (clubType === 'club' && teamKey && HS_KEYS.includes(teamKey))) {
@@ -7196,8 +7196,9 @@ function init() {
           }
           if (info.clubType) {
             localStorage.setItem('ebwp-club-type', info.clubType);
+            storeClubPrograms(!!info.enableMasters, !!info.mastersOnly);
             const isHS = info.clubType === 'highschool';
-            TEAM_OPTIONS = isHS ? TEAM_OPTIONS_HS : TEAM_OPTIONS_CLUB;
+            TEAM_OPTIONS = getClubTeamOptions(info.clubType, !!info.enableMasters, !!info.mastersOnly);
             // Reset selection if current keys are invalid for this club type
             const validKeys = TEAM_OPTIONS.map(t => t.key);
             // Always prioritize favorite if current selection is the default or missing
@@ -7800,7 +7801,8 @@ function _selectClub(clubId, clubName, clubType) {
   localStorage.setItem('ebwp-club-id', clubId);
   if (clubName) localStorage.setItem('ebwp-club-name', clubName);
   localStorage.setItem('ebwp-club-type', clubType || 'club');
-  TEAM_OPTIONS = clubType === 'highschool' ? TEAM_OPTIONS_HS : TEAM_OPTIONS_CLUB;
+  storeClubPrograms(false, false);
+  TEAM_OPTIONS = getClubTeamOptions(clubType || 'club', false, false);
   // Reset team selection to first valid team for this club type
   localStorage.setItem('ebwp-team-keys', JSON.stringify([TEAM_OPTIONS[0].key]));
 
@@ -7840,9 +7842,11 @@ function changeClub() {
   localStorage.removeItem('ebwp-club-id');
   localStorage.removeItem('ebwp-club-name');
   localStorage.removeItem('ebwp-club-type');
+  localStorage.removeItem('ebwp-enable-masters');
+  localStorage.removeItem('ebwp-masters-only');
   localStorage.removeItem('ebwp-team-keys');
   localStorage.removeItem('ebwp-team-key');
-  TEAM_OPTIONS = TEAM_OPTIONS_CLUB; // reset to default
+  TEAM_OPTIONS = TEAM_OPTIONS_CLUB_YOUTH; // reset to default
   // Note: ebwp-joined-clubs is NOT cleared — user keeps their club memberships
   // Clear URL club param
   const url = new URL(window.location);
@@ -7865,7 +7869,7 @@ function _showPickerForSwitch() {
 
 // ─── TEAM / AGE-GROUP ─────────────────────────────────────────────────────────
 
-const TEAM_OPTIONS_CLUB = [
+const TEAM_OPTIONS_CLUB_YOUTH = [
   { key: '10u-coed',  label: '10u Co-Ed' },
   { key: '12u-girls', label: '12u Girls' },
   { key: '12u-boys',  label: '12u Boys'  },
@@ -7877,6 +7881,12 @@ const TEAM_OPTIONS_CLUB = [
   { key: '18u-boys',  label: '18u Boys'  },
 ];
 
+const TEAM_OPTIONS_CLUB_MASTERS = [
+  { key: 'masters-women', label: 'Masters Women' },
+  { key: 'masters-men',   label: 'Masters Men'   },
+];
+const TEAM_OPTIONS_CLUB = [...TEAM_OPTIONS_CLUB_YOUTH, ...TEAM_OPTIONS_CLUB_MASTERS];
+
 const TEAM_OPTIONS_HS = [
   { key: 'boys-varsity',  label: 'Boys Varsity' },
   { key: 'boys-jv',       label: 'Boys JV' },
@@ -7884,8 +7894,31 @@ const TEAM_OPTIONS_HS = [
   { key: 'girls-jv',      label: 'Girls JV' },
 ];
 
-let TEAM_OPTIONS = localStorage.getItem('ebwp-club-type') === 'highschool'
-  ? TEAM_OPTIONS_HS : TEAM_OPTIONS_CLUB;
+function getStoredClubPrograms() {
+  return {
+    enableMasters: localStorage.getItem('ebwp-enable-masters') === 'true',
+    mastersOnly: localStorage.getItem('ebwp-masters-only') === 'true',
+  };
+}
+
+function storeClubPrograms(enableMasters, mastersOnly) {
+  localStorage.setItem('ebwp-enable-masters', enableMasters ? 'true' : 'false');
+  localStorage.setItem('ebwp-masters-only', enableMasters && mastersOnly ? 'true' : 'false');
+}
+
+function getClubTeamOptions(clubType, enableMasters = false, mastersOnly = false) {
+  if (clubType === 'highschool') return TEAM_OPTIONS_HS;
+  if (enableMasters && mastersOnly) return TEAM_OPTIONS_CLUB_MASTERS;
+  if (enableMasters) return TEAM_OPTIONS_CLUB;
+  return TEAM_OPTIONS_CLUB_YOUTH;
+}
+
+const storedPrograms = getStoredClubPrograms();
+let TEAM_OPTIONS = getClubTeamOptions(
+  localStorage.getItem('ebwp-club-type'),
+  storedPrograms.enableMasters,
+  storedPrograms.mastersOnly
+);
 
 // ── Age-group selection (supports multiple selections) ────────────────────────
 
@@ -8098,7 +8131,7 @@ async function loadTeamData(teamKey) {
       return;
     }
     const data = await res.json();
-    const { tournament, history, clubType, clubName, branding } = data;
+    const { tournament, history, clubType, clubName, branding, enableMasters, mastersOnly } = data;
     if (tournament) {
       TEAM_CACHE[teamKey]  = { tournament, history: history || [] };
       window.TOURNAMENT    = tournament;
@@ -8127,8 +8160,9 @@ async function loadTeamData(teamKey) {
     // Detect HS club type and switch team options dynamically
     if (clubType && clubType !== localStorage.getItem('ebwp-club-type')) {
       localStorage.setItem('ebwp-club-type', clubType);
+      storeClubPrograms(!!enableMasters, !!mastersOnly);
       const isHS = clubType === 'highschool';
-      TEAM_OPTIONS = isHS ? TEAM_OPTIONS_HS : TEAM_OPTIONS_CLUB;
+      TEAM_OPTIONS = getClubTeamOptions(clubType, !!enableMasters, !!mastersOnly);
       // If the current team key doesn't belong to the new options, reset selection
       const validKeys = TEAM_OPTIONS.map(t => t.key);
       const current = getSelectedTeams();
@@ -9553,10 +9587,10 @@ function renderHelpTab() {
     {
       icon: '🤽‍♀️',
       title: 'Age Group Selector & A/B Team Picker',
-      body: `<p>The <strong>age group pills</strong> just below the tournament header let you choose which age group(s) to view — 10u Co-Ed through 18u Boys, always displayed in age order.</p>
+      body: `<p>The <strong>age group pills</strong> just below the tournament header let you choose which age group(s) to view — 10u Co-Ed through Masters, always displayed in age order.</p>
       <ul>
         <li><strong>Tap any pill</strong> to activate that age group. The active pill turns blue and all tabs reload with that group's data.</li>
-        <li><strong>Tap a second pill</strong> to add another age group — great for parents with kids on two different teams. Multiple selections always display in age order (10u → 12u → 14u → 16u → 18u) regardless of the order you tap them.</li>
+<li><strong>Tap a second pill</strong> to add another age group — great for parents with kids on two different teams. Multiple selections always display in age order (10u → 12u → 14u → 16u → 18u → Masters) regardless of the order you tap them.</li>
         <li>Tap an active pill again to deselect it (at least one must stay selected).</li>
         <li>Your selections are remembered between sessions.</li>
         <li>The pills scroll horizontally — swipe left or right to see all age groups.</li>

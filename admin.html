@@ -3431,7 +3431,7 @@
   `;
     }
 
-    const ADMIN_TEAMS_CLUB = [
+    const ADMIN_TEAMS_CLUB_YOUTH = [
       { key: '10u-coed', label: '10u Co-Ed' },
       { key: '12u-girls', label: '12u Girls' },
       { key: '12u-boys', label: '12u Boys' },
@@ -3442,6 +3442,11 @@
       { key: '18u-girls', label: '18u Girls' },
       { key: '18u-boys', label: '18u Boys' },
     ];
+    const ADMIN_TEAMS_CLUB_MASTERS = [
+      { key: 'masters-women', label: 'Masters Women' },
+      { key: 'masters-men', label: 'Masters Men' },
+    ];
+    const ADMIN_TEAMS_CLUB = [...ADMIN_TEAMS_CLUB_YOUTH, ...ADMIN_TEAMS_CLUB_MASTERS];
 
     const ADMIN_TEAMS_HS = [
       { key: 'boys-varsity', label: 'Boys Varsity' },
@@ -3453,8 +3458,19 @@
     // Legacy compat
     const ADMIN_TEAMS = ADMIN_TEAMS_CLUB;
 
+    function isMastersEnabledForClub() {
+      return !!S._clubPrograms?.enableMasters;
+    }
+
+    function isMastersOnlyClub() {
+      return !!S._clubPrograms?.enableMasters && !!S._clubPrograms?.mastersOnly;
+    }
+
     function getAdminTeams() {
-      return S.clubType === 'highschool' ? ADMIN_TEAMS_HS : ADMIN_TEAMS_CLUB;
+      if (S.clubType === 'highschool') return ADMIN_TEAMS_HS;
+      if (isMastersOnlyClub()) return ADMIN_TEAMS_CLUB_MASTERS;
+      if (isMastersEnabledForClub()) return ADMIN_TEAMS_CLUB;
+      return ADMIN_TEAMS_CLUB_YOUTH;
     }
 
     function renderAdminTeamPills() {
@@ -3631,7 +3647,7 @@
             tournament: S.tournament, history: S.history, roster: S.roster,
           });
           // Save other teams from KV
-          for (const key of ALL_TEAM_KEYS) {
+          for (const key of getAllTeamKeys()) {
             if (key === S.team) continue; // already saved above
             try {
               const res = await api('GET', `/admin/data?team=${encodeURIComponent(key)}`);
@@ -5549,8 +5565,34 @@
           </div>
           <div class="info-hint">${isHS
           ? '🎓 Teams: Boys Varsity, Boys JV, Girls Varsity, Girls JV · Roster includes grade'
-          : '🤽‍♀️ Teams: 10u Co-Ed through 18u Boys/Girls age groups'}</div>
+          : (isMastersOnlyClub()
+            ? '🤽‍♀️ Teams: Masters Women and Masters Men only'
+            : (isMastersEnabledForClub()
+              ? '🤽‍♀️ Teams: 10u Co-Ed through Masters Men/Women age groups'
+              : '🤽‍♀️ Teams: 10u Co-Ed through 18u Boys/Girls age groups'))}</div>
         </div>
+        ${!isHS ? `
+        <div class="info-field">
+          <div class="info-label">Adult Programs</div>
+          <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-bottom:8px">
+            <input type="checkbox" id="club-enable-masters" ${S._clubPrograms?.enableMasters ? 'checked' : ''}
+                   onchange="const mo=document.getElementById('club-masters-only'); if(mo){ mo.disabled=!this.checked; if(!this.checked) mo.checked=false; }"
+                   style="margin-top:2px;width:16px;height:16px;accent-color:var(--royal)">
+            <span style="font-size:0.88rem;line-height:1.35">
+              <strong>Enable Masters Men and Masters Women</strong><br>
+              <span style="color:var(--g500)">Adds adult-program age group pills to admin and parent views.</span>
+            </span>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer">
+            <input type="checkbox" id="club-masters-only" ${S._clubPrograms?.mastersOnly ? 'checked' : ''}
+                   ${!S._clubPrograms?.enableMasters ? 'disabled' : ''}
+                   style="margin-top:2px;width:16px;height:16px;accent-color:var(--royal)">
+            <span style="font-size:0.88rem;line-height:1.35">
+              <strong>Masters only</strong><br>
+              <span style="color:var(--g500)">Hides all youth age groups and shows only Masters Men/Women.</span>
+            </span>
+          </label>
+        </div>` : ''}
         <div class="info-field">
           <div class="info-label">Club Name <span style="color:var(--g400);font-weight:400;text-transform:none">(shown in header &amp; vs. lines)</span></div>
           <input class="info-input" value="${esc(t.clubName || '')}" placeholder="e.g. Pacific Waves"
@@ -9130,11 +9172,11 @@
 
     // ─── GLOBAL ACTIONS (all age groups at once) ──────────────────────────────────
 
-    const ALL_TEAM_KEYS = ['10u-coed', '12u-girls', '12u-boys', '14u-girls', '14u-boys', '16u-girls', '16u-boys', '18u-girls', '18u-boys'];
+    const ALL_TEAM_KEYS = ['10u-coed', '12u-girls', '12u-boys', '14u-girls', '14u-boys', '16u-girls', '16u-boys', '18u-girls', '18u-boys', 'masters-women', 'masters-men'];
     const ALL_HS_TEAM_KEYS = ['boys-varsity', 'boys-jv', 'girls-varsity', 'girls-jv'];
 
     function getAllTeamKeys() {
-      return S.clubType === 'highschool' ? ALL_HS_TEAM_KEYS : ALL_TEAM_KEYS;
+      return getAdminTeams().map(t => t.key);
     }
 
     /**
@@ -9254,8 +9296,9 @@
 
       let done = 0, failed = [];
 
-      for (const key of ALL_TEAM_KEYS) {
-        showStatus(`Setting upcoming mode: ${key} (${done + 1}/${ALL_TEAM_KEYS.length})…`, 'info');
+      const teamKeys = getAllTeamKeys();
+      for (const key of teamKeys) {
+        showStatus(`Setting upcoming mode: ${key} (${done + 1}/${teamKeys.length})…`, 'info');
         try {
           const res = await api('GET', `/admin/data?team=${encodeURIComponent(key)}`);
           if (!res.ok) throw new Error('fetch failed ' + res.status);
@@ -9293,7 +9336,7 @@
       try {
         const depRes = await api('POST', `/admin/deploy?team=${encodeURIComponent(S.team)}`);
         if (!depRes.ok) throw new Error('deploy failed ' + depRes.status);
-        showStatus(`✅ All ${ALL_TEAM_KEYS.length} age groups set to Upcoming Mode and deployed!`, 'ok');
+        showStatus(`✅ All ${teamKeys.length} age groups set to Upcoming Mode and deployed!`, 'ok');
       } catch (e) {
         showStatus('⚠️ Upcoming mode saved for all teams — but deploy failed: ' + e.message, 'err');
       } finally {
@@ -10745,12 +10788,18 @@
     async function saveClubSettings() {
       const statusEl = document.getElementById('club-settings-status');
       try {
+        const enableMasters = !!document.getElementById('club-enable-masters')?.checked;
+        const mastersOnly = enableMasters && !!document.getElementById('club-masters-only')?.checked;
         const res = await api('PUT', '/admin/club-settings', {
           clubName: S.tournament.clubName || '',
           clubType: S.clubType || 'club',
           joinPassword: S.tournament.joinPassword || '',
+          enableMasters,
+          mastersOnly,
         });
         if (!res.ok) throw new Error('Save failed: ' + res.status);
+        S._clubPrograms = { enableMasters, mastersOnly };
+        renderApp();
         if (statusEl) statusEl.innerHTML = '<span style="color:var(--green)">✅ Club settings saved</span>';
       } catch (e) {
         if (statusEl) statusEl.innerHTML = '<span style="color:#dc2626">❌ ' + e.message + '</span>';
@@ -10775,6 +10824,10 @@
         if (data.joinPassword !== undefined) {
           S.tournament.joinPassword = data.joinPassword;
         }
+        S._clubPrograms = {
+          enableMasters: !!data.enableMasters,
+          mastersOnly: !!data.enableMasters && !!data.mastersOnly,
+        };
         // Load branding for THIS club (fresh from KV, not stale state)
         S._branding = {
           primaryColor: data.primaryColor || '#002868',
@@ -11541,7 +11594,7 @@
         <li><strong>Name / Subtitle / Dates / Location / Pool</strong> — displayed in the app header and schedule.</li>
         <li><strong>Coming Soon message</strong> — shown on the schedule tab before games are posted. Clear this field once you've added games.</li>
         <li><strong>Scoring Password</strong> — when set, parents must enter this password to use live scoring controls. Leave blank to allow anyone to score. Recommended: set a simple word (e.g. <em>bawl2026</em>).</li>
-        <li><strong>Age Group</strong> — select the age group (10u Co-Ed through 18u Boys) at the top. Each age group stores its own tournament data, roster, and history independently.</li>
+            <li><strong>Age Group</strong> — select the age group pill enabled for your club at the top. Each age group stores its own tournament data, roster, and history independently.</li>
         <li><strong>Multi-Team Mode</strong> — enabled by default. Check "Disable multi-team" for single-team tournaments. You can also set custom labels for each team (e.g. "Team A" / "Team B"). Enable <strong>C Team</strong> to add a third team for tournaments where three squads are entered — this can be toggled on/off without losing any C Team data.</li>
         <li><strong>Sync Games from Sheet</strong> — import the schedule from a Google Sheet in the Add Games tab.</li>
       </ul>
