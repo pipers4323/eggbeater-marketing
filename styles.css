@@ -2144,6 +2144,26 @@ h2 {
   white-space: nowrap;
 }
 
+.settings-item.current-club-item {
+  background: var(--royal-subtle);
+}
+
+.settings-item.current-club-item .settings-item-label {
+  color: var(--gray-900);
+  font-weight: 700;
+}
+
+.settings-item.current-club-item .settings-item-value {
+  color: var(--gray-500);
+}
+
+.current-club-check {
+  color: var(--royal);
+  font-weight: 800;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
 .settings-team-picker {
   padding: 12px 16px 16px;
   border-top: 1px solid var(--gray-100);
@@ -5510,6 +5530,14 @@ details[open] .help-chevron { transform: rotate(180deg); }
 
 [data-theme="dark"] .settings-item-value {
   color: #8b949e;
+}
+
+[data-theme="dark"] .settings-item.current-club-item .settings-item-label {
+  color: #e6edf3;
+}
+
+[data-theme="dark"] .settings-item.current-club-item .settings-item-value {
+  color: #9fb0c3;
 }
 
 [data-theme="dark"] .settings-team-picker {

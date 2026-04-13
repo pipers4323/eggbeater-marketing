@@ -975,6 +975,8 @@ function escHtml(str) {
 function normalizeOpponentName(name) {
   let s = String(name || '').trim();
   if (!s) return '';
+  s = s.replace(/^\(\s*\d+(?:st|nd|rd|th)\s+[A-Z]\s*\)\s*[-–]\s*/i, '');
+  s = s.replace(/^\(\s*[A-Z]\d+\s*\)\s*[-–]\s*/i, '');
   s = s.replace(/^[A-Z]\d+\s*[-–]\s*/i, '');
   s = s.replace(/^[A-Z]?\d+\s*\([^)]*\)\s*[-–]\s*/i, '');
   s = s.replace(/^\d+(?:st|nd|rd|th)\s+[A-Z]\s*[-–]\s*/i, '');
@@ -1233,6 +1235,42 @@ function _localDateStr(d = new Date()) {
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
 
+function _getTournamentLastDateISO(tournament = TOURNAMENT) {
+  const dates = new Set();
+  (tournament?.games || []).forEach(g => {
+    if (g?.dateISO) dates.add(g.dateISO);
+  });
+  (tournament?.bracket?.paths || []).forEach(path => {
+    (path?.steps || []).forEach(step => {
+      if (step?.dateISO) dates.add(step.dateISO);
+    });
+  });
+  const sorted = [...dates].sort();
+  return sorted[sorted.length - 1] || '';
+}
+
+function _isTournamentPastWindow(tournament = TOURNAMENT, now = new Date()) {
+  const lastDateISO = _getTournamentLastDateISO(tournament);
+  if (!lastDateISO) return false;
+  const cutoff = new Date(lastDateISO + 'T23:59:59');
+  return now.getTime() > cutoff.getTime();
+}
+
+function _renderTournamentCompleteCard() {
+  const record = getPoolRecord();
+  return `
+    <div class="coming-soon-wrap">
+      <div class="coming-soon-card tournament-complete-card">
+        <div class="coming-soon-icon">🏁</div>
+        <div class="coming-soon-text">
+          <div class="coming-soon-label">Tournament Complete</div>
+          <div class="coming-soon-sub">${escHtml(TOURNAMENT.name || 'This tournament')} has ended.</div>
+          <div class="coming-soon-sub" style="margin-top:8px">Check the History tab for final results${record ? ` · ${escHtml(record)}` : ''}.</div>
+        </div>
+      </div>
+    </div>`;
+}
+
 function parseGameTime(dateISO, timeStr) {
   if (!dateISO || !timeStr || timeStr === 'TBD') return null;
   try {
@@ -1260,6 +1298,7 @@ function toISOLocal(date) {
 
 function findNextGameOrProjected() {
   const now = new Date();
+  if (_isTournamentPastWindow(TOURNAMENT, now)) return null;
   const games = getTournamentGames();
   const unplayedGames = games.filter(g => !_getResultForGame(g));
 
@@ -1284,19 +1323,17 @@ function findNextGameOrProjected() {
 
   if (nextPool) return { game: nextPool, type: 'pool' };
 
-  // 2. All pool games past (or no time data) → look at projected bracket path
   const projected = inferProjectedPath();
   if (!projected) return null;
 
   for (const step of (projected.steps || [])) {
     const stepKey = `${projected.id}-${step.gameNum}`;
     if (!state.bracketResults[stepKey]) {
-      // This step hasn't been played yet
       return { game: step, type: 'bracket', pathLabel: projected.label };
     }
   }
 
-  return null; // all done!
+  return null;
 }
 
 // ─── BRACKET PROJECTION ───────────────────────────────────────────────────────
@@ -1627,17 +1664,21 @@ function getLiveScore(gameId) {
   const scopedKey = _scopedGameKey(gameId);
   const rawKey = _gameIdOnly(gameId);
   const scopedGroup = _contextGroupKey(gameId);
+  const baseTiming = _getScopedClockSettings(gameId);
+  const singleScopedTeam = getSelectedTeams().length <= 1;
   let key = scopedKey;
   if (!state.liveScores[key]) {
     const legacy = state.liveScores[rawKey];
-    if (legacy && (!scopedGroup || !legacy.ageGroup || legacy.ageGroup === scopedGroup)) {
+    if (legacy && (!scopedGroup || legacy.ageGroup === scopedGroup || (!legacy.ageGroup && singleScopedTeam))) {
       state.liveScores[key] = { ...legacy, ageGroup: legacy.ageGroup || scopedGroup };
     }
   }
   if (!state.liveScores[key]) {
     state.liveScores[key] = {
       team: 0, opp: 0, clock: '', period: 0, gameState: 'pre', events: [],
-      quarterMins: 8, halfMins: 5, timeoutMins: 1,
+      quarterMins: baseTiming.quarterMins,
+      halfMins: baseTiming.halftimeMins,
+      timeoutMins: baseTiming.timeoutLengths[0] ?? 1,
     };
   }
   const s = state.liveScores[key];
@@ -1653,9 +1694,28 @@ function getLiveScore(gameId) {
   if (!s.events)      s.events      = [];
   if (!s.gameState)   s.gameState   = 'pre';
   if (s.period == null) s.period    = 0;
-  if (s.quarterMins == null) s.quarterMins = 8;
-  if (s.halfMins    == null) s.halfMins    = 5;
-  if (s.timeoutMins == null) s.timeoutMins = 1;
+  const pristineTiming = !s.timingLocked
+    || (
+      (s.gameState === 'pre' || !s.gameState)
+      && !s.timerPhase
+      && !(s.timerSecondsLeft > 0)
+      && !(Array.isArray(s.events) && s.events.length)
+      && !(s.team > 0)
+      && !(s.opp > 0)
+    );
+  if (pristineTiming) {
+    s.quarterMins = baseTiming.quarterMins;
+    s.halfMins = baseTiming.halftimeMins;
+    s.timeoutMins = baseTiming.timeoutLengths[0] ?? 1;
+    s.breakMins = baseTiming.breakMins;
+    s.timeoutsPerTeam = baseTiming.timeoutsPerTeam;
+    s.timeoutLengths = [...baseTiming.timeoutLengths];
+    if (!s.timerRunning) s.timingLocked = false;
+  } else {
+    if (s.quarterMins == null) s.quarterMins = baseTiming.quarterMins;
+    if (s.halfMins    == null) s.halfMins    = baseTiming.halftimeMins;
+    if (s.timeoutMins == null) s.timeoutMins = baseTiming.timeoutLengths[0] ?? 1;
+  }
   if (scopedGroup && !s.ageGroup) s.ageGroup = scopedGroup;
   return s;
 }
@@ -2906,23 +2966,33 @@ function buildTeamSearchResult(opponent) {
 
 // ── Auto-Clock Engine ────────────────────────────────────────────────────────
 
-function getClockSettings(gameOrRef = null) {
+function _getScopedClockSettings(gameOrRef = null) {
   const groupKey = gameOrRef ? _contextGroupKey(gameOrRef) : '';
-  const gameScore = gameOrRef ? state.liveScores[_scopedGameKey(gameOrRef)] : null;
   const cs = (groupKey && TEAM_CACHE[groupKey]?.tournament?.clockSettings)
     || TOURNAMENT.clockSettings
     || {};
-  const useLiveTiming = !!gameScore?.timingLocked;
-  const timeoutLengths = useLiveTiming && Array.isArray(gameScore?.timeoutLengths) && gameScore.timeoutLengths.length
-      ? gameScore.timeoutLengths
-      : (Array.isArray(cs.timeoutLengths) && cs.timeoutLengths.length ? cs.timeoutLengths : [1, 0.5]);
   return {
-      quarterMins:     useLiveTiming ? (gameScore?.quarterMins     ?? cs.quarterMins     ?? 7) : (cs.quarterMins     ?? 7),
-      breakMins:       useLiveTiming ? (gameScore?.breakMins       ?? cs.breakMins       ?? 2) : (cs.breakMins       ?? 2),
-      halftimeMins:    useLiveTiming ? (gameScore?.halfMins        ?? cs.halftimeMins    ?? 5) : (cs.halftimeMins    ?? 5),
-      timeoutsPerTeam: useLiveTiming ? (gameScore?.timeoutsPerTeam ?? cs.timeoutsPerTeam ?? 2) : (cs.timeoutsPerTeam ?? 2),
-      timeoutLengths,
-    };
+    quarterMins: cs.quarterMins ?? 7,
+    breakMins: cs.breakMins ?? 2,
+    halftimeMins: cs.halftimeMins ?? 5,
+    timeoutsPerTeam: cs.timeoutsPerTeam ?? 2,
+    timeoutLengths: Array.isArray(cs.timeoutLengths) && cs.timeoutLengths.length ? cs.timeoutLengths : [1, 0.5],
+  };
+}
+
+function getClockSettings(gameOrRef = null) {
+  const gameScore = gameOrRef ? state.liveScores[_scopedGameKey(gameOrRef)] : null;
+  const base = _getScopedClockSettings(gameOrRef);
+  const useLiveTiming = !!gameScore?.timingLocked;
+  return {
+    quarterMins: useLiveTiming ? (gameScore?.quarterMins ?? base.quarterMins) : base.quarterMins,
+    breakMins: useLiveTiming ? (gameScore?.breakMins ?? base.breakMins) : base.breakMins,
+    halftimeMins: useLiveTiming ? (gameScore?.halfMins ?? base.halftimeMins) : base.halftimeMins,
+    timeoutsPerTeam: useLiveTiming ? (gameScore?.timeoutsPerTeam ?? base.timeoutsPerTeam) : base.timeoutsPerTeam,
+    timeoutLengths: useLiveTiming && Array.isArray(gameScore?.timeoutLengths) && gameScore.timeoutLengths.length
+      ? gameScore.timeoutLengths
+      : [...base.timeoutLengths],
+  };
 }
 
 function fmtClock(seconds) {
@@ -4181,16 +4251,15 @@ async function _renderSettingsClubList() {
   let html = '';
   for (const club of clubs) {
     const isCurrent = club.id === currentClubId;
-    const checkMark = isCurrent ? '<span style="color:var(--royal);font-weight:800;font-size:1rem;flex-shrink:0">✓</span>' : '';
-    const nameStyle = isCurrent ? 'font-weight:700;color:var(--royal)' : '';
+    const checkMark = isCurrent ? '<span class="current-club-check">✓</span>' : '';
     const clubIcon = club.logo
       ? `<img src="${escHtml(club.logo)}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.5px solid var(--gray-200)">`
       : `<span style="font-size:1.3rem">🤽‍♀️</span>`;
     html += `
-      <div class="settings-item${isCurrent ? '' : ''}" onclick="${isCurrent ? '' : `_settingsSwitchClub('${escHtml(club.id)}','${escHtml(club.name || club.id)}','${escHtml(club.clubType || '')}')`}" ${isCurrent ? 'style="cursor:default;background:var(--royal-subtle)"' : ''}>
+      <div class="settings-item${isCurrent ? ' current-club-item' : ''}" onclick="${isCurrent ? '' : `_settingsSwitchClub('${escHtml(club.id)}','${escHtml(club.name || club.id)}','${escHtml(club.clubType || '')}')`}" ${isCurrent ? 'style="cursor:default"' : ''}>
         <span class="settings-item-icon" style="display:flex;align-items:center;justify-content:center">${clubIcon}</span>
         <div class="settings-item-text">
-          <div class="settings-item-label" style="${nameStyle}">${escHtml(club.name || club.id)}</div>
+          <div class="settings-item-label${isCurrent ? ' current-club-name' : ''}">${escHtml(club.name || club.id)}</div>
           ${isCurrent ? '<div class="settings-item-value">Current club</div>' : ''}
         </div>
         ${checkMark}
@@ -5515,16 +5584,16 @@ function renderNextGameCard() {
   const next = findNextGameOrProjected();
 
   if (!next) {
-    // Check if tournament is fully complete
-    const allPoolDone = getTournamentGames().length > 0 &&
-      getTournamentGames().every(g => _getResultForGame(g));
-    if (allPoolDone) {
+    const games = getTournamentGames();
+    const tournamentPast = _isTournamentPastWindow();
+    const allPoolDone = games.length > 0 && games.every(g => _getResultForGame(g));
+    if (allPoolDone || tournamentPast) {
       section.innerHTML = `
         <div class="next-game-wrap">
           <div class="next-game-card next-complete">
-            <div class="next-label">Tournament</div>
-            <div class="next-vs">Pool Play Complete ${swimmerEmoji()}</div>
-            <div class="next-meta"><span>Record: ${getPoolRecord()} — Check Possible tab for bracket path</span></div>
+            <div class="next-label">${tournamentPast ? 'Tournament Complete' : 'All Games Complete'}</div>
+            <div class="next-vs">${tournamentPast ? 'Check History for final results' : 'No more scheduled games'}</div>
+            <div class="next-meta"><span>Record: ${getPoolRecord()} — ${tournamentPast ? 'Waiting for the next tournament update' : 'Check the History tab for results'}</span></div>
           </div>
         </div>`;
     } else {
@@ -5573,7 +5642,6 @@ function renderNextGameCard() {
         </div>
       </div>`;
   } else {
-    // Projected bracket game
     const g = next.game;
     const timeStr = g.time && g.time !== 'TBD'
       ? `🕐 ${escHtml(g.time)} · ${escHtml(g.date || g.dateISO)}`
@@ -5583,7 +5651,7 @@ function renderNextGameCard() {
         <div class="next-game-card next-projected">
           ${g.gameNum ? `<div class="next-game-num">${escHtml(g.gameNum)}</div>` : ''}
           <div class="next-label">Projected Next — ${escHtml(next.pathLabel || '')}</div>
-          <div class="next-vs">${escHtml(g.desc || 'Bracket Game')}</div>
+          <div class="next-vs">${escHtml(normalizeOpponentName(g.desc || 'Bracket Game'))}</div>
           <div class="next-meta">
             <span>${timeStr}</span>
             ${bracketLocationDisplay(g.location) ? buildLocationLink(bracketLocationDisplay(g.location)) : ''}
@@ -5734,7 +5802,9 @@ function renderGamesList() {
   );
 
   if (!upcomingGames.length) {
-    listEl.innerHTML = '<p class="empty-msg" style="padding:24px 18px;">All games complete — check the History tab for results.</p>';
+    listEl.innerHTML = _isTournamentPastWindow()
+      ? _renderTournamentCompleteCard()
+      : '<p class="empty-msg" style="padding:24px 18px;">All games complete — check the History tab for results.</p>';
     return;
   }
 
