@@ -263,6 +263,11 @@
       overflow: hidden;
     }
 
+    .admin-logo-wrap.has-custom-logo {
+      min-height: 88px;
+      overflow: visible;
+    }
+
     .admin-logo-img {
       width: auto;
       max-width: 100%;
@@ -274,22 +279,27 @@
     .admin-custom-logo-wrap {
       display: flex;
       align-items: center;
-      padding: 4px 18px 2px;
+      justify-content: flex-start;
+      width: 100%;
+      min-width: 0;
+      padding: 8px 18px 4px;
       padding-left: max(18px, env(safe-area-inset-left, 0px));
       padding-right: max(18px, env(safe-area-inset-right, 0px));
       background: transparent;
-      min-height: 72px;
-      overflow: hidden;
+      min-height: 84px;
+      overflow: visible;
     }
 
     .admin-custom-logo-img {
       width: auto;
-      max-width: min(100%, 320px);
-      max-height: 72px;
+      max-width: min(100%, 440px);
+      max-height: 84px;
+      height: auto;
       display: block;
       background: transparent;
       object-fit: contain;
       object-position: left center;
+      filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.18));
     }
 
     .eggbeater-poweredby-bar {
@@ -1659,9 +1669,26 @@
         padding: 8px 24px;
       }
 
+      .admin-logo-wrap.has-custom-logo {
+        min-height: 100px;
+        padding-top: 10px;
+        padding-bottom: 6px;
+      }
+
       .admin-logo-img {
         height: 64px;
         width: auto;
+      }
+
+      .admin-custom-logo-wrap {
+        padding-left: 24px;
+        padding-right: 24px;
+        min-height: 96px;
+      }
+
+      .admin-custom-logo-img {
+        max-width: min(100%, 560px);
+        max-height: 96px;
       }
 
       /* Admin info bar stretches full width */
@@ -10938,6 +10965,7 @@
       // Handle custom club logo vs default eggbeater logo
       // Scope to #admin-app so we don't accidentally touch the #club-dashboard header logo
       const adminApp = document.getElementById('admin-app');
+      const logoWrap = adminApp ? adminApp.querySelector('.admin-logo-wrap') : null;
       const defaultLogoImg = adminApp ? adminApp.querySelector('.admin-logo-img') : null;
       const customWrap = adminApp ? adminApp.querySelector('.admin-custom-logo-wrap') : null;
       const customImg = adminApp ? adminApp.querySelector('.admin-custom-logo-img') : null;
@@ -10945,6 +10973,7 @@
       const inlineLogo = poweredByBar ? poweredByBar.querySelector('.eggbeater-inline-logo') : null;
 
       if (clubLogo) {
+        if (logoWrap) logoWrap.classList.add('has-custom-logo');
         if (customWrap) customWrap.classList.remove('hidden');
         if (poweredByBar) poweredByBar.classList.remove('hidden');
         if (defaultLogoImg) {
@@ -10957,6 +10986,7 @@
           removeLogoBackground(clubLogo).then(processed => { customImg.src = processed; });
         }
       } else {
+        if (logoWrap) logoWrap.classList.remove('has-custom-logo');
         if (customWrap) customWrap.classList.add('hidden');
         if (poweredByBar) poweredByBar.classList.add('hidden');
         if (defaultLogoImg) {
