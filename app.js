@@ -85,7 +85,41 @@ const APP_I18N = {
     settings_help: 'Help and Support',
     settings_account: 'Account',
     settings_how_to_use: 'How to Use Eggbeater',
-    settings_how_to_use_desc: 'Scoring, bracket, notifications and more'
+    settings_how_to_use_desc: 'Scoring, bracket, notifications and more',
+    team_picker_title: 'Select Age Groups',
+    team_picker_select_all: 'Select all',
+    team_picker_clear: 'Clear',
+    team_picker_done_count: 'Done ({count})',
+    team_picker_select_one: 'Select at least one',
+    team_picker_selected: 'Selected',
+    team_picker_tap_include: 'Tap to include',
+    team_picker_change: 'Change age groups',
+    team_picker_empty_chip: 'Select Team',
+    schedule_select_prompt: 'Select an age group above to view the schedule.',
+    schedule_force_refresh: 'Force Refresh',
+    next_tournament_complete: 'Tournament Complete',
+    next_check_history_final: 'Check History for final results',
+    next_all_games_complete: 'All Games Complete',
+    next_no_more_scheduled: 'No more scheduled games',
+    next_waiting_update: 'Waiting for the next tournament update',
+    next_check_history_results: 'Check the History tab for results',
+    next_in_progress: 'In Progress',
+    next_next_game: 'Next Game',
+    next_projected_next: 'Projected Next',
+    next_based_on_record: 'Based on {record} pool record',
+    possible_division_standings: 'Division Standings',
+    possible_select_prompt: 'Select an age group above to view the bracket.',
+    possible_coming_soon_title: 'Bracket Coming Soon',
+    possible_coming_soon_body: 'The Bracket feature will be made available once the tournament schedule is received.',
+    possible_no_data: 'No bracket data for this tournament.',
+    possible_confirmed: '{record} pool record → {label} confirmed.',
+    possible_projected: '{record} pool record → projected {label}.',
+    possible_mark_results: 'Mark pool play results to see your projected bracket path.',
+    possible_projected_badge: 'Projected',
+    history_title: 'Tournament History',
+    history_select_prompt: 'Select an age group above to view tournament history.',
+    history_desc: 'Past tournament results, most recent first.',
+    history_empty: 'No history yet. Results from completed tournaments will appear here automatically.'
   },
   es: {
     club_picker_title: 'Bienvenido a Eggbeater',
@@ -117,7 +151,41 @@ const APP_I18N = {
     settings_help: 'Ayuda y soporte',
     settings_account: 'Cuenta',
     settings_how_to_use: 'Como usar Eggbeater',
-    settings_how_to_use_desc: 'Marcacion, cuadro, notificaciones y mas'
+    settings_how_to_use_desc: 'Marcacion, cuadro, notificaciones y mas',
+    team_picker_title: 'Seleccionar grupos de edad',
+    team_picker_select_all: 'Seleccionar todo',
+    team_picker_clear: 'Limpiar',
+    team_picker_done_count: 'Listo ({count})',
+    team_picker_select_one: 'Selecciona al menos uno',
+    team_picker_selected: 'Seleccionado',
+    team_picker_tap_include: 'Toca para incluir',
+    team_picker_change: 'Cambiar grupos de edad',
+    team_picker_empty_chip: 'Seleccionar equipo',
+    schedule_select_prompt: 'Selecciona un grupo de edad arriba para ver el calendario.',
+    schedule_force_refresh: 'Actualizar',
+    next_tournament_complete: 'Torneo finalizado',
+    next_check_history_final: 'Consulta Historial para los resultados finales',
+    next_all_games_complete: 'Todos los partidos finalizados',
+    next_no_more_scheduled: 'No hay mas partidos programados',
+    next_waiting_update: 'Esperando la proxima actualizacion del torneo',
+    next_check_history_results: 'Consulta la pestaña Historial para ver los resultados',
+    next_in_progress: 'En juego',
+    next_next_game: 'Proximo partido',
+    next_projected_next: 'Siguiente proyectado',
+    next_based_on_record: 'Segun record de grupo {record}',
+    possible_division_standings: 'Clasificacion de division',
+    possible_select_prompt: 'Selecciona un grupo de edad arriba para ver el cuadro.',
+    possible_coming_soon_title: 'Cuadro proximamente',
+    possible_coming_soon_body: 'La funcion de cuadro estara disponible cuando llegue el calendario del torneo.',
+    possible_no_data: 'No hay datos de cuadro para este torneo.',
+    possible_confirmed: 'Record de grupo {record} → {label} confirmado.',
+    possible_projected: 'Record de grupo {record} → {label} proyectado.',
+    possible_mark_results: 'Marca los resultados de fase de grupos para ver tu camino proyectado.',
+    possible_projected_badge: 'Proyectado',
+    history_title: 'Historial del torneo',
+    history_select_prompt: 'Selecciona un grupo de edad arriba para ver el historial del torneo.',
+    history_desc: 'Resultados de torneos pasados, del mas reciente al mas antiguo.',
+    history_empty: 'Todavia no hay historial. Los resultados de torneos finalizados apareceran aqui automaticamente.'
   },
   fr: {
     club_picker_title: 'Bienvenue sur Eggbeater',
@@ -149,7 +217,41 @@ const APP_I18N = {
     settings_help: 'Aide et support',
     settings_account: 'Compte',
     settings_how_to_use: 'Comment utiliser Eggbeater',
-    settings_how_to_use_desc: 'Score, tableau, notifications et plus'
+    settings_how_to_use_desc: 'Score, tableau, notifications et plus',
+    team_picker_title: "Choisir les groupes d'age",
+    team_picker_select_all: 'Tout selectionner',
+    team_picker_clear: 'Effacer',
+    team_picker_done_count: 'Terminer ({count})',
+    team_picker_select_one: 'Selectionnez au moins un groupe',
+    team_picker_selected: 'Selectionne',
+    team_picker_tap_include: 'Touchez pour inclure',
+    team_picker_change: "Changer les groupes d'age",
+    team_picker_empty_chip: "Choisir l'equipe",
+    schedule_select_prompt: "Choisissez un groupe d'age ci-dessus pour voir le calendrier.",
+    schedule_force_refresh: 'Actualiser',
+    next_tournament_complete: 'Tournoi termine',
+    next_check_history_final: "Voir l'historique pour les resultats finaux",
+    next_all_games_complete: 'Tous les matchs sont termines',
+    next_no_more_scheduled: "Aucun autre match n'est programme",
+    next_waiting_update: 'En attente de la prochaine mise a jour du tournoi',
+    next_check_history_results: "Voir l'onglet Historique pour les resultats",
+    next_in_progress: 'En cours',
+    next_next_game: 'Prochain match',
+    next_projected_next: 'Prochain projete',
+    next_based_on_record: 'Base sur le bilan {record} en poule',
+    possible_division_standings: 'Classement de division',
+    possible_select_prompt: "Choisissez un groupe d'age ci-dessus pour voir le tableau.",
+    possible_coming_soon_title: 'Tableau a venir',
+    possible_coming_soon_body: 'La fonction Tableau sera disponible lorsque le calendrier du tournoi sera recu.',
+    possible_no_data: 'Aucune donnee de tableau pour ce tournoi.',
+    possible_confirmed: 'Bilan de poule {record} → {label} confirme.',
+    possible_projected: 'Bilan de poule {record} → {label} projete.',
+    possible_mark_results: 'Entrez les resultats de poule pour voir votre parcours projete.',
+    possible_projected_badge: 'Projete',
+    history_title: 'Historique du tournoi',
+    history_select_prompt: "Choisissez un groupe d'age ci-dessus pour voir l'historique du tournoi.",
+    history_desc: 'Resultats des tournois passes, du plus recent au plus ancien.',
+    history_empty: "Aucun historique pour l'instant. Les resultats des tournois termines apparaitront ici automatiquement."
   }
 };
 
@@ -160,6 +262,10 @@ function getAppLang() {
 function appT(key) {
   const lang = getAppLang();
   return (APP_I18N[lang] && APP_I18N[lang][key]) || APP_I18N.en[key] || key;
+}
+
+function appFormat(key, vars = {}) {
+  return Object.entries(vars).reduce((out, [name, value]) => out.replaceAll(`{${name}}`, value), appT(key));
 }
 
 function applyAppTranslations() {
@@ -181,7 +287,10 @@ function applyAppTranslations() {
     'nav-label-tscore-drawer': 'nav_tournament_scores',
     'nav-label-roster-drawer': 'nav_roster',
     'nav-label-settings-drawer': 'nav_settings',
-    'nav-label-help-drawer': 'nav_help'
+    'nav-label-help-drawer': 'nav_help',
+    'team-picker-modal-title': 'team_picker_title',
+    'team-picker-select-all': 'team_picker_select_all',
+    'team-picker-clear': 'team_picker_clear'
   };
   Object.entries(textMap).forEach(([id, key]) => {
     const el = document.getElementById(id);
@@ -193,13 +302,19 @@ function applyAppTranslations() {
     historyEl.textContent = appT('nav_history');
     if (crown) historyEl.appendChild(crown);
   }
+  const teamPickerModal = document.getElementById('team-picker-modal');
+  if (teamPickerModal) teamPickerModal.setAttribute('aria-label', appT('team_picker_title'));
 }
 
 function setAppLang(lang) {
   if (!APP_I18N[lang]) lang = 'en';
   localStorage.setItem(APP_LANG_KEY, lang);
   applyAppTranslations();
+  renderHeader();
   if (state.currentTab === 'settings') renderSettingsTab();
+  if (state.currentTab === 'schedule') renderScheduleTab();
+  if (state.currentTab === 'possible') renderPossibleTab();
+  if (state.currentTab === 'history') renderHistoryTab();
 }
 
 // ─── CLUB BRANDING ────────────────────────────────────────────────────────────
@@ -5576,12 +5691,12 @@ function renderTeamPickerModal() {
       <span class="team-picker-modal-check">✓</span>
       <span class="team-picker-modal-copy">
         <span class="team-picker-modal-titleline">${escHtml(opt.label)}</span>
-        <span class="team-picker-modal-subline">${on ? 'Selected' : 'Tap to include'}</span>
+        <span class="team-picker-modal-subline">${on ? appT('team_picker_selected') : appT('team_picker_tap_include')}</span>
       </span>
     </button>`;
   }).join('');
   doneBtn.disabled = _pendingTeamPickerKeys.length === 0;
-  doneBtn.textContent = labels.length ? `Done (${labels.length})` : 'Select at least one';
+  doneBtn.textContent = labels.length ? appFormat('team_picker_done_count', { count: String(labels.length) }) : appT('team_picker_select_one');
 }
 
 function openTeamPickerModal() {
@@ -5656,8 +5771,8 @@ function renderTeamPicker() {
   const more = labels.length > 2 ? `<span class="header-team-chip header-team-chip-more">+${labels.length - 2}</span>` : '';
 
   el.innerHTML = `
-    <button class="header-team-badge" onclick="openTeamPickerModal()" title="Change age groups">
-      <span class="header-team-badge-chips">${visible || '<span class="header-team-chip">Select Team</span>'}${more}</span>
+    <button class="header-team-badge" onclick="openTeamPickerModal()" title="${escHtml(appT('team_picker_change'))}">
+      <span class="header-team-badge-chips">${visible || `<span class="header-team-chip">${escHtml(appT('team_picker_empty_chip'))}</span>`}${more}</span>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
   `;
@@ -5675,7 +5790,7 @@ function renderScheduleTab() {
   _renderSuffix = '';
   const slots = getExpandedTeamSlots();
   if (slots.length === 0) {
-    const msg = '<p class="empty-msg" style="padding:24px;text-align:center;color:var(--gray-500)">Select an age group above to view the schedule.</p>';
+    const msg = `<p class="empty-msg" style="padding:24px;text-align:center;color:var(--gray-500)">${appT('schedule_select_prompt')}</p>`;
     const ns = $('next-game-section'); if (ns) ns.innerHTML = '';
     const sl = $('schedule-list');    if (sl) sl.innerHTML = msg;
     const ss = $('schedule-standings'); if (ss) ss.innerHTML = '';
@@ -5706,7 +5821,7 @@ function renderScheduleTab() {
   if (rb) rb.innerHTML = `
     <button class="schedule-refresh-btn" id="schedule-refresh-btn" onclick="forceAppRefresh(this)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-      Force Refresh
+      ${appT('schedule_force_refresh')}
     </button>`;
 
 }
@@ -5790,7 +5905,7 @@ function _renderScheduleMulti(slots) {
   const rb = $('schedule-refresh-wrap');
   if (rb) rb.innerHTML = `<button class="schedule-refresh-btn" id="schedule-refresh-btn" onclick="forceAppRefresh(this)">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-    Force Refresh</button>`;
+    ${appT('schedule_force_refresh')}</button>`;
 }
 
 /** Clears SW cache and reloads to pick up latest code + data. */
@@ -5827,9 +5942,9 @@ function renderNextGameCard() {
       section.innerHTML = `
         <div class="next-game-wrap">
           <div class="next-game-card next-complete">
-            <div class="next-label">${tournamentPast ? 'Tournament Complete' : 'All Games Complete'}</div>
-            <div class="next-vs">${tournamentPast ? 'Check History for final results' : 'No more scheduled games'}</div>
-            <div class="next-meta"><span>Record: ${getPoolRecord()} — ${tournamentPast ? 'Waiting for the next tournament update' : 'Check the History tab for results'}</span></div>
+            <div class="next-label">${tournamentPast ? appT('next_tournament_complete') : appT('next_all_games_complete')}</div>
+            <div class="next-vs">${tournamentPast ? appT('next_check_history_final') : appT('next_no_more_scheduled')}</div>
+            <div class="next-meta"><span>Record: ${getPoolRecord()} — ${tournamentPast ? appT('next_waiting_update') : appT('next_check_history_results')}</span></div>
           </div>
         </div>`;
     } else {
@@ -5867,7 +5982,7 @@ function renderNextGameCard() {
             ${nextLive ? `<span class="live-badge-next">🔴 LIVE</span>` : ''}
             <button class="follow-live-btn" onclick="toggleLiveActivity('${_gameRef(g)}')">📡 Follow Live</button>
           </div>
-          <div class="next-label">${nextLive ? 'In Progress' : 'Next Game'}</div>
+          <div class="next-label">${nextLive ? appT('next_in_progress') : appT('next_next_game')}</div>
           <div class="next-vs">vs ${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}</div>
           ${liveSummary}
           <div class="next-meta">
@@ -5886,13 +6001,13 @@ function renderNextGameCard() {
       <div class="next-game-wrap">
         <div class="next-game-card next-projected">
           ${g.gameNum ? `<div class="next-game-num">${escHtml(g.gameNum)}</div>` : ''}
-          <div class="next-label">Projected Next — ${escHtml(next.pathLabel || '')}</div>
+          <div class="next-label">${appT('next_projected_next')} - ${escHtml(next.pathLabel || '')}</div>
           <div class="next-vs">${escHtml(normalizeOpponentName(g.desc || 'Bracket Game'))}</div>
           <div class="next-meta">
             <span>${timeStr}</span>
             ${bracketLocationDisplay(g.location) ? buildLocationLink(bracketLocationDisplay(g.location)) : ''}
           </div>
-          <div class="next-cap-badge projected-note">Based on ${getPoolRecord()} pool record</div>
+          <div class="next-cap-badge projected-note">${escHtml(appFormat('next_based_on_record', { record: getPoolRecord() }))}</div>
         </div>
       </div>`;
   }
@@ -6434,7 +6549,7 @@ function renderPossibleTab() {
       const card = document.createElement('div');
       card.id = 'dir-standings-card';
       card.className = 'card tab-card';
-      card.innerHTML = `<div class="history-header-row"><h2>Division Standings</h2></div>
+      card.innerHTML = `<div class="history-header-row"><h2>${appT('possible_division_standings')}</h2></div>
         <div id="dir-standings-body"></div>
         <div id="dir-reseed-body"></div>`;
       container.insertBefore(card, container.firstChild);
@@ -6450,7 +6565,7 @@ function renderPossibleTab() {
     const listEl = $('possible-list');   if (listEl) listEl.innerHTML = '';
     const descEl = $('possible-desc');   if (descEl) descEl.innerHTML = '';
     const emptyEl = $('possible-empty');
-    if (emptyEl) { emptyEl.classList.remove('hidden'); emptyEl.innerHTML = 'Select an age group above to view the bracket.'; }
+    if (emptyEl) { emptyEl.classList.remove('hidden'); emptyEl.innerHTML = appT('possible_select_prompt'); }
     return;
   }
   if (slots.length > 1 && !_inMultiRender) { _renderPossibleMulti(slots); return; }
@@ -6466,9 +6581,9 @@ function renderPossibleTab() {
     emptyEl.innerHTML = `
       <div style="text-align:center;padding:20px 0">
         <div style="font-size:2rem;margin-bottom:10px">🏆</div>
-        <div style="font-weight:700;font-size:1rem;margin-bottom:6px">Bracket Coming Soon</div>
+        <div style="font-weight:700;font-size:1rem;margin-bottom:6px">${appT('possible_coming_soon_title')}</div>
         <div style="color:var(--gray-600);font-size:0.88rem;line-height:1.55">
-          The Bracket feature will be made available once the tournament schedule is received.
+          ${appT('possible_coming_soon_body')}
         </div>
       </div>`;
     emptyEl.classList.remove('hidden');
@@ -6477,7 +6592,7 @@ function renderPossibleTab() {
   }
 
   const paths = getTournamentBracketPaths();
-  if (!paths?.length) { emptyEl.innerHTML = 'No bracket data for this tournament.'; emptyEl.classList.remove('hidden'); return; }
+  if (!paths?.length) { emptyEl.innerHTML = appT('possible_no_data'); emptyEl.classList.remove('hidden'); return; }
   emptyEl.classList.add('hidden');
 
   const projected  = inferProjectedPath();
@@ -6485,10 +6600,10 @@ const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && get
 
   if (projected) {
     descEl.textContent = allPoolDone
-      ? `${getPoolRecord()} pool record → ${projected.label} confirmed.`
-      : `${getPoolRecord()} pool record → projected ${projected.label}.`;
+      ? appFormat('possible_confirmed', { record: getPoolRecord(), label: projected.label })
+      : appFormat('possible_projected', { record: getPoolRecord(), label: projected.label });
   } else {
-    descEl.textContent = 'Mark pool play results to see your projected bracket path.';
+    descEl.textContent = appT('possible_mark_results');
   }
 
   paths.forEach(path => {
@@ -6502,7 +6617,7 @@ const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && get
     header.className = 'bracket-header';
     header.innerHTML = `
       <span class="bracket-title">${escHtml(path.label)}</span>
-      ${isProjected ? '<span class="bracket-projected-badge">Projected</span>' : ''}`;
+      ${isProjected ? `<span class="bracket-projected-badge">${appT('possible_projected_badge')}</span>` : ''}`;
     section.appendChild(header);
 
     if (path.qualifier) {
@@ -6731,8 +6846,8 @@ function renderHistoryTab() {
   if (slots.length === 0 && !_inMultiRender) {
     const viewEl = document.getElementById('view-history');
     if (viewEl) viewEl.innerHTML = `<div class="card tab-card">
-      <div class="history-header-row"><h2>Tournament History</h2></div>
-      <p class="step-desc">Select an age group above to view tournament history.</p>
+      <div class="history-header-row"><h2>${appT('history_title')}</h2></div>
+      <p class="step-desc">${appT('history_select_prompt')}</p>
     </div>`;
     return;
   }
@@ -6747,15 +6862,15 @@ function renderHistoryTab() {
       const label = _groupSectionLabelFor(slots[0].groupKey, slots[0].letter);
       viewEl.innerHTML = `<div class="card tab-card">
         <div class="history-header-row">
-          <h2>Tournament History</h2>
+          <h2>${appT('history_title')}</h2>
           <span class="history-subtitle" id="history-subtitle">${escHtml(label)}</span>
         </div>
-        <p class="step-desc" id="history-desc">Past tournament results, most recent first.</p>
+        <p class="step-desc" id="history-desc">${appT('history_desc')}</p>
         <div id="history-team-search"></div>
         <div id="history-standings"></div>
         <div id="history-list"></div>
         <div id="history-empty" class="empty-msg hidden">
-          No history yet. Results from completed tournaments will appear here automatically.
+          ${appT('history_empty')}
         </div>
       </div>`;
     } else {
@@ -10864,3 +10979,7 @@ async function toggleLiveActivity(gameId) {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+
+
+
