@@ -217,6 +217,98 @@ const APP_I18N = {
         <li>Section headers tell you exactly which age group and team you are looking at.</li>
         <li>History and bracket tracking remain independent per team.</li>
       </ul>`,
+    help_settings_title: 'Settings — Team Selection, My Clubs & Account',
+    help_settings_body: `<p>Open the <strong>Settings</strong> tab to manage your setup.</p>
+      <ul>
+        <li><strong>Team Selection</strong> lets you choose one or multiple age groups and saves those selections automatically.</li>
+        <li><strong>My Clubs</strong> lists every club you have joined and lets you switch between them.</li>
+        <li><strong>Add Club</strong> lets you join another club with its code or invite link.</li>
+        <li><strong>Return to Splash Screen</strong> clears the current club view without deleting your saved clubs.</li>
+        <li><strong>Account</strong> shows your signed-in identity when you use Google sign-in, and lets you sign out.</li>
+      </ul>`,
+    help_notifications_title: 'Notifications & Calendar Sync',
+    help_notifications_body: `<p>Use notifications and calendar sync so tournament-day changes reach you automatically.</p>
+      <ul>
+        <li><strong>Google Calendar</strong> can sync games so time and location updates flow into your calendar.</li>
+        <li>You can change the connected calendar later from the calendar settings card.</li>
+        <li>The calendar connection reconnects automatically on future visits once it has been authorized.</li>
+        <li><strong>Push Notifications</strong> notify you when schedules change or games go live.</li>
+        <li><strong>Telegram / GroupMe</strong> updates can also be sent by the scorer to your team channels.</li>
+        <li>If your admin shares a <code>webcal://</code> link, you can subscribe and keep bracket or NJO feeds synced in Apple Calendar, Google Calendar, or Outlook.</li>
+      </ul>`,
+    help_live_updates_title: 'Live Activities & Live Updates',
+    help_live_updates_body: `<p>Follow live-scored games without leaving your lock screen.</p>
+      <ul>
+        <li><strong>iPhone</strong> uses Live Activities on the lock screen and Dynamic Island.</li>
+        <li><strong>Android 16+</strong> uses a persistent Live Update notification chip.</li>
+        <li>Tap <strong>Follow Live</strong> on an in-progress game to start following it.</li>
+        <li>Live updates work alongside push notifications.</li>
+      </ul>`,
+    help_watch_title: 'Apple Watch Companion App',
+    help_watch_body: `<p>The native iOS app includes an Apple Watch companion app for quick tournament-day checks.</p>
+      <ul>
+        <li>The Watch app uses club branding and shows the selected club and team.</li>
+        <li>You can choose which team the Watch should follow.</li>
+        <li>You can pin a featured game or let Eggbeater auto-select the next game.</li>
+        <li>The Watch can show schedules and haptic goal alerts for the live game you are following.</li>
+      </ul>`,
+    help_widgets_title: 'Home Screen Widgets',
+    help_widgets_body: `<p>Add Eggbeater widgets to your home screen for quick access.</p>
+      <ul>
+        <li><strong>Score Widget</strong> shows the live or most recent score.</li>
+        <li><strong>Schedule Widget</strong> shows the next upcoming game.</li>
+        <li><strong>Stats Widget</strong> highlights top scorers from the current tournament.</li>
+        <li>Widgets are available on both iOS and Android and refresh automatically when data changes.</li>
+      </ul>`,
+    help_tscore_title: 'T-Score Tab — Tournament Director Scores',
+    help_tscore_body: `<p>The <strong>T-Score</strong> tab shows official scores published by the tournament director, separate from the live stat tracking flow.</p>
+      <ul>
+        <li>Director scores are the official finals used for standings and bracket placement.</li>
+        <li>Authorized scorers may be able to submit final scores from this tab if the director has enabled that flow.</li>
+        <li>Scores refresh as new director results are published.</li>
+        <li>This tab can also expose director-managed schedule import flows.</li>
+      </ul>`,
+    help_multiclub_title: 'Multi-Club Support',
+    help_multiclub_body: `<p>Eggbeater supports multiple clubs, each with separate tournaments, rosters, and admin teams.</p>
+      <ul>
+        <li>Each club uses its own club ID so schedules, scores, rosters, and history stay separated.</li>
+        <li>A <code>?join=</code> link can add and open a club automatically.</li>
+        <li>Your age-group selections and My Player picks are saved per club.</li>
+        <li>Club branding colors and logos are also scoped per club.</li>
+      </ul>`,
+    help_darkmode_title: 'Dark Mode',
+    help_darkmode_body: `<p>Eggbeater supports dark mode for easier viewing in low light.</p>
+      <ul>
+        <li>Choose <strong>Light</strong>, <strong>Dark</strong>, or <strong>System</strong> in Settings.</li>
+        <li>The app can match your device theme automatically.</li>
+        <li>Your preference is remembered between visits.</li>
+        <li>All major tabs, cards, modals, and navigation surfaces support dark mode.</li>
+      </ul>`,
+    help_maps_title: 'Map & Directions',
+    help_maps_body: `<p>Game cards include direction links so you can navigate to the venue quickly.</p>
+      <ul>
+        <li>The location line opens directions when tapped.</li>
+        <li>Apple Maps, Google Maps, and Waze buttons are supported where available.</li>
+        <li>Both the Next Game card and regular schedule cards can include map links.</li>
+        <li>Coordinates are passed directly when available; otherwise the app searches by venue name.</li>
+      </ul>`,
+    help_offline_title: 'Offline Scoring Support',
+    help_offline_body: `<p>Scorers can keep entering events even if connectivity drops.</p>
+      <ul>
+        <li>Failed live-score updates are queued automatically on the device.</li>
+        <li>An offline banner appears while scores are waiting to sync.</li>
+        <li>Queued events replay in order when the connection returns.</li>
+        <li>A confirmation toast appears after scores sync successfully.</li>
+      </ul>`,
+    help_accessibility_title: 'Accessibility',
+    help_accessibility_body: `<p>Eggbeater is designed to work with built-in iOS and Android accessibility features.</p>
+      <ul>
+        <li>Screen readers can navigate the app and read live updates.</li>
+        <li>Voice control can activate controls by their visible names.</li>
+        <li>Text scales with device font settings.</li>
+        <li>Reduce Motion and higher contrast settings are respected where supported.</li>
+        <li>Important state is never conveyed by color alone.</li>
+      </ul>`,
     help_box_score_title: 'Live Scoring and Box Score',
     scorer_controls: 'Scoring Controls',
     scorer_open: 'Open Scorer',
@@ -474,6 +566,98 @@ const APP_I18N = {
         <li>Los encabezados te dicen exactamente que grupo y equipo estas viendo.</li>
         <li>El historial y el bracket se siguen de forma independiente por equipo.</li>
       </ul>`,
+    help_settings_title: 'Ajustes — seleccion de equipo, mis clubes y cuenta',
+    help_settings_body: `<p>Abre la pestaña <strong>Ajustes</strong> para administrar tu configuracion.</p>
+      <ul>
+        <li><strong>Seleccion de equipo</strong> te permite elegir uno o varios grupos y guarda esas selecciones automaticamente.</li>
+        <li><strong>Mis clubes</strong> muestra todos los clubes a los que te has unido y permite cambiar entre ellos.</li>
+        <li><strong>Add Club</strong> te permite unirte a otro club con su codigo o enlace.</li>
+        <li><strong>Return to Splash Screen</strong> limpia la vista actual sin borrar tus clubes guardados.</li>
+        <li><strong>Cuenta</strong> muestra tu identidad conectada con Google y te permite cerrar sesion.</li>
+      </ul>`,
+    help_notifications_title: 'Notificaciones y sincronizacion de calendario',
+    help_notifications_body: `<p>Usa notificaciones y calendario para recibir cambios automaticamente durante el torneo.</p>
+      <ul>
+        <li><strong>Google Calendar</strong> puede sincronizar juegos para que cambios de hora y lugar lleguen a tu calendario.</li>
+        <li>Puedes cambiar luego el calendario conectado desde la tarjeta de ajustes.</li>
+        <li>La conexion del calendario se reconecta automaticamente en visitas futuras una vez autorizada.</li>
+        <li><strong>Push Notifications</strong> te avisan cuando cambia el calendario o un partido entra en vivo.</li>
+        <li><strong>Telegram / GroupMe</strong> tambien pueden recibir actualizaciones del anotador.</li>
+        <li>Si tu admin comparte un enlace <code>webcal://</code>, puedes suscribirte para mantener sincronizados feeds de bracket o NJO.</li>
+      </ul>`,
+    help_live_updates_title: 'Live Activities y Live Updates',
+    help_live_updates_body: `<p>Sigue partidos en vivo sin abrir la app.</p>
+      <ul>
+        <li><strong>iPhone</strong> usa Live Activities en la pantalla bloqueada y Dynamic Island.</li>
+        <li><strong>Android 16+</strong> usa una notificacion persistente tipo Live Update.</li>
+        <li>Toca <strong>Follow Live</strong> en un juego en progreso para empezar a seguirlo.</li>
+        <li>Las actualizaciones en vivo funcionan junto con las notificaciones push.</li>
+      </ul>`,
+    help_watch_title: 'App complementaria de Apple Watch',
+    help_watch_body: `<p>La app nativa de iOS incluye una app para Apple Watch para revisar rapidamente el torneo.</p>
+      <ul>
+        <li>La app del Watch usa los colores del club y muestra el club y equipo seleccionados.</li>
+        <li>Puedes elegir que equipo debe seguir el Watch.</li>
+        <li>Puedes fijar un juego destacado o dejar que Eggbeater elija el siguiente.</li>
+        <li>El Watch puede mostrar calendario y alertas de gol con vibracion para el juego en vivo seguido.</li>
+      </ul>`,
+    help_widgets_title: 'Widgets de pantalla de inicio',
+    help_widgets_body: `<p>Agrega widgets de Eggbeater a tu pantalla de inicio para acceso rapido.</p>
+      <ul>
+        <li><strong>Score Widget</strong> muestra el marcador en vivo o el mas reciente.</li>
+        <li><strong>Schedule Widget</strong> muestra el siguiente juego.</li>
+        <li><strong>Stats Widget</strong> destaca a los maximos goleadores del torneo actual.</li>
+        <li>Los widgets existen en iOS y Android y se actualizan automaticamente cuando cambian los datos.</li>
+      </ul>`,
+    help_tscore_title: 'Pestaña T-Score — marcadores del director',
+    help_tscore_body: `<p>La pestaña <strong>T-Score</strong> muestra los marcadores oficiales publicados por el director del torneo, separados del flujo de estadisticas en vivo.</p>
+      <ul>
+        <li>Los marcadores del director son los resultados oficiales usados para standings y bracket.</li>
+        <li>Los anotadores autorizados pueden enviar finales desde esta pestaña si el director lo habilita.</li>
+        <li>Los marcadores se actualizan al publicarse nuevos resultados del director.</li>
+        <li>Esta pestaña tambien puede mostrar importaciones de calendario gestionadas por el director.</li>
+      </ul>`,
+    help_multiclub_title: 'Soporte multi-club',
+    help_multiclub_body: `<p>Eggbeater admite varios clubes, cada uno con torneos, rosters y admins separados.</p>
+      <ul>
+        <li>Cada club usa su propio ID para mantener separados calendario, marcadores, roster e historial.</li>
+        <li>Un enlace con <code>?join=</code> puede agregar y abrir un club automaticamente.</li>
+        <li>Tus selecciones de grupos y My Player se guardan por club.</li>
+        <li>Los colores y logos tambien se administran por club.</li>
+      </ul>`,
+    help_darkmode_title: 'Modo oscuro',
+    help_darkmode_body: `<p>Eggbeater admite modo oscuro para una lectura mas comoda en poca luz.</p>
+      <ul>
+        <li>Elige <strong>Light</strong>, <strong>Dark</strong> o <strong>System</strong> en Ajustes.</li>
+        <li>La app puede seguir automaticamente el tema del dispositivo.</li>
+        <li>Tu preferencia se recuerda entre visitas.</li>
+        <li>Todas las pantallas principales y modales soportan modo oscuro.</li>
+      </ul>`,
+    help_maps_title: 'Mapas y direcciones',
+    help_maps_body: `<p>Las tarjetas de juego incluyen enlaces de direccion para llegar rapido a la sede.</p>
+      <ul>
+        <li>La linea de ubicacion abre direcciones al tocarla.</li>
+        <li>Apple Maps, Google Maps y Waze estan soportados donde existan.</li>
+        <li>Tanto la tarjeta de Proximo Juego como las tarjetas normales pueden incluir mapas.</li>
+        <li>Si hay coordenadas se usan directamente; si no, la app busca por nombre del lugar.</li>
+      </ul>`,
+    help_offline_title: 'Soporte de anotacion offline',
+    help_offline_body: `<p>Los anotadores pueden seguir registrando eventos incluso si se cae la conexion.</p>
+      <ul>
+        <li>Las actualizaciones fallidas se ponen automaticamente en cola en el dispositivo.</li>
+        <li>Aparece una banda offline mientras los marcadores esperan sincronizarse.</li>
+        <li>Los eventos en cola se reenvian en orden cuando regresa la conexion.</li>
+        <li>Una notificacion confirma cuando los marcadores se sincronizan correctamente.</li>
+      </ul>`,
+    help_accessibility_title: 'Accesibilidad',
+    help_accessibility_body: `<p>Eggbeater esta diseñado para funcionar con las funciones de accesibilidad integradas en iOS y Android.</p>
+      <ul>
+        <li>Los lectores de pantalla pueden navegar la app y leer actualizaciones en vivo.</li>
+        <li>El control por voz puede activar controles por su nombre visible.</li>
+        <li>El texto escala con el tamano configurado en el dispositivo.</li>
+        <li>Reduce Motion y ajustes de mayor contraste se respetan cuando estan disponibles.</li>
+        <li>La informacion importante nunca depende solo del color.</li>
+      </ul>`,
     help_box_score_title: 'Marcador en vivo y box score',
     scorer_controls: 'Controles de anotación',
     scorer_open: 'Abrir anotador',
@@ -730,6 +914,98 @@ const APP_I18N = {
         <li>Quand A et B sont actives, chaque equipe a sa propre section et les donnees ne se melangent pas.</li>
         <li>Les entetes indiquent clairement le groupe d'age et l'equipe affiches.</li>
         <li>L'historique et le bracket restent separes par equipe.</li>
+      </ul>`,
+    help_settings_title: 'Reglages — selection equipe, mes clubs et compte',
+    help_settings_body: `<p>Ouvrez l'onglet <strong>Reglages</strong> pour gerer votre configuration.</p>
+      <ul>
+        <li><strong>Selection equipe</strong> permet de choisir un ou plusieurs groupes d'age et enregistre ces choix automatiquement.</li>
+        <li><strong>Mes clubs</strong> affiche tous les clubs rejoints et permet de passer de l'un a l'autre.</li>
+        <li><strong>Add Club</strong> permet de rejoindre un autre club avec son code ou son lien.</li>
+        <li><strong>Return to Splash Screen</strong> efface la vue actuelle sans supprimer vos clubs enregistres.</li>
+        <li><strong>Compte</strong> montre votre identite Google connectee et permet de vous deconnecter.</li>
+      </ul>`,
+    help_notifications_title: 'Notifications et synchronisation calendrier',
+    help_notifications_body: `<p>Utilisez les notifications et le calendrier pour recevoir automatiquement les changements pendant le tournoi.</p>
+      <ul>
+        <li><strong>Google Calendar</strong> peut synchroniser les matchs afin que les changements d'horaire et de lieu apparaissent dans votre calendrier.</li>
+        <li>Vous pouvez changer de calendrier connecte depuis la carte de reglages.</li>
+        <li>La connexion calendrier se reconnecte automatiquement lors des prochaines visites une fois autorisee.</li>
+        <li><strong>Push Notifications</strong> vous alertent quand le calendrier change ou quand un match passe en direct.</li>
+        <li><strong>Telegram / GroupMe</strong> peuvent aussi recevoir les mises a jour envoyees par le scoreur.</li>
+        <li>Si votre admin partage un lien <code>webcal://</code>, vous pouvez vous abonner pour garder les flux de bracket ou NJO synchronises.</li>
+      </ul>`,
+    help_live_updates_title: 'Live Activities et Live Updates',
+    help_live_updates_body: `<p>Suivez les matchs scores en direct sans ouvrir l'application.</p>
+      <ul>
+        <li><strong>iPhone</strong> utilise Live Activities sur l'ecran verrouille et la Dynamic Island.</li>
+        <li><strong>Android 16+</strong> utilise une notification Live Update persistante.</li>
+        <li>Touchez <strong>Follow Live</strong> sur un match en cours pour le suivre.</li>
+        <li>Les mises a jour en direct fonctionnent avec les notifications push.</li>
+      </ul>`,
+    help_watch_title: 'Application compagnon Apple Watch',
+    help_watch_body: `<p>L'application iOS native inclut une app Apple Watch pour verifier rapidement le tournoi.</p>
+      <ul>
+        <li>L'app Watch utilise les couleurs du club et montre le club et l'equipe selectionnes.</li>
+        <li>Vous pouvez choisir l'equipe suivie par la montre.</li>
+        <li>Vous pouvez epingler un match vedette ou laisser Eggbeater choisir automatiquement le prochain match.</li>
+        <li>La montre peut afficher le calendrier et des alertes vibrantes sur les buts du match suivi.</li>
+      </ul>`,
+    help_widgets_title: 'Widgets ecran d accueil',
+    help_widgets_body: `<p>Ajoutez des widgets Eggbeater a l'ecran d'accueil pour un acces rapide.</p>
+      <ul>
+        <li><strong>Score Widget</strong> affiche le score en direct ou le plus recent.</li>
+        <li><strong>Schedule Widget</strong> affiche le prochain match a venir.</li>
+        <li><strong>Stats Widget</strong> met en avant les meilleurs buteurs du tournoi en cours.</li>
+        <li>Les widgets existent sur iOS et Android et se mettent a jour automatiquement lorsque les donnees changent.</li>
+      </ul>`,
+    help_tscore_title: 'Onglet T-Score — scores du directeur',
+    help_tscore_body: `<p>L'onglet <strong>T-Score</strong> affiche les scores officiels publies par le directeur du tournoi, separes du flux de statistiques en direct.</p>
+      <ul>
+        <li>Les scores du directeur sont les resultats officiels utilises pour les classements et le bracket.</li>
+        <li>Les scoreurs autorises peuvent soumettre les scores finaux depuis cet onglet si le directeur active ce flux.</li>
+        <li>Les scores se rafraichissent quand de nouveaux resultats du directeur sont publies.</li>
+        <li>Cet onglet peut aussi exposer des imports de calendrier geres par le directeur.</li>
+      </ul>`,
+    help_multiclub_title: 'Support multi-clubs',
+    help_multiclub_body: `<p>Eggbeater prend en charge plusieurs clubs, chacun avec ses propres tournois, effectifs et equipes admin.</p>
+      <ul>
+        <li>Chaque club utilise son propre identifiant afin que calendrier, scores, effectif et historique restent separes.</li>
+        <li>Un lien avec <code>?join=</code> peut ajouter et ouvrir automatiquement un club.</li>
+        <li>Vos selections de groupes d'age et My Player sont enregistrees par club.</li>
+        <li>Les couleurs et logos de marque sont eux aussi geres par club.</li>
+      </ul>`,
+    help_darkmode_title: 'Mode sombre',
+    help_darkmode_body: `<p>Eggbeater prend en charge le mode sombre pour un confort visuel en faible luminosite.</p>
+      <ul>
+        <li>Choisissez <strong>Light</strong>, <strong>Dark</strong> ou <strong>System</strong> dans Reglages.</li>
+        <li>L'app peut suivre automatiquement le theme de votre appareil.</li>
+        <li>Votre preference est memorisee entre les visites.</li>
+        <li>Tous les ecrans principaux et modales prennent en charge le mode sombre.</li>
+      </ul>`,
+    help_maps_title: 'Cartes et itineraire',
+    help_maps_body: `<p>Les cartes de match incluent des liens d'itineraire pour arriver rapidement au lieu.</p>
+      <ul>
+        <li>La ligne de lieu ouvre l'itineraire au toucher.</li>
+        <li>Apple Maps, Google Maps et Waze sont pris en charge lorsque disponibles.</li>
+        <li>La carte Prochain match et les cartes d'horaire peuvent inclure des liens cartographiques.</li>
+        <li>Les coordonnees sont envoyees directement quand elles existent, sinon l'app recherche par nom du lieu.</li>
+      </ul>`,
+    help_offline_title: 'Support score hors ligne',
+    help_offline_body: `<p>Les scoreurs peuvent continuer a saisir des evenements meme si la connexion tombe.</p>
+      <ul>
+        <li>Les mises a jour qui echouent sont mises en file automatiquement sur l'appareil.</li>
+        <li>Une bannière hors ligne apparait pendant que les scores attendent la synchronisation.</li>
+        <li>Les evenements en file sont renvoyes dans l'ordre lorsque la connexion revient.</li>
+        <li>Une notification confirme quand les scores sont synchronises avec succes.</li>
+      </ul>`,
+    help_accessibility_title: 'Accessibilite',
+    help_accessibility_body: `<p>Eggbeater est conçu pour fonctionner avec les fonctions d'accessibilite integrees d'iOS et d'Android.</p>
+      <ul>
+        <li>Les lecteurs d'ecran peuvent naviguer dans l'app et lire les mises a jour en direct.</li>
+        <li>Le controle vocal peut activer les boutons par leur nom visible.</li>
+        <li>Le texte suit la taille de police choisie sur l'appareil.</li>
+        <li>Reduce Motion et les reglages de contraste plus eleve sont respectes lorsque possibles.</li>
+        <li>Les informations importantes ne dependent jamais uniquement de la couleur.</li>
       </ul>`,
     help_box_score_title: 'Score en direct et box score',
     scorer_controls: 'Commandes de score',
@@ -10461,23 +10737,8 @@ function renderHelpTab() {
     },
     {
       icon: '⚙️',
-      title: 'Settings — Team Selection, My Clubs & Account',
-      body: `<p>Open the <strong>Settings</strong> tab to manage everything about your setup.</p>
-      <ul>
-        <li><strong>Team Selection</strong> — shows all available age groups as tappable pills. Tap any pill to follow that group. Tap a second pill to follow multiple teams at once. Tap an active pill again to deselect it. Your selections are saved automatically.
-          <ul>
-            <li>Tap <em>Reset selection</em> (link below the pills) to clear all selected age groups and start fresh.</li>
-          </ul>
-        </li>
-        <li><strong>My Clubs</strong> — lists every club you've joined. Tap any non-current club to switch to it. Tap the <strong>×</strong> button on any row to remove that club from your list.
-          <ul>
-            <li>Removing your current or only club clears your selection and returns you to the Splash Screen.</li>
-          </ul>
-        </li>
-        <li><strong>Add Club</strong> — tap to enter a club code and join a new club.</li>
-        <li><strong>Return to Splash Screen</strong> — clears your current club selection and returns to the club picker. Your joined clubs list is preserved — you can rejoin any of them instantly.</li>
-        <li><strong>Account</strong> — when signed in with Google, your name and email are shown here along with a red <em>Sign Out</em> button. When not signed in, tap <em>Sign In with Google</em> to sync your preferences across devices.</li>
-      </ul>`
+      title: appT('help_settings_title'),
+      body: appT('help_settings_body')
     },
     {
       icon: '☁️',
@@ -10494,118 +10755,48 @@ function renderHelpTab() {
     },
     {
       icon: '🔔',
-      title: 'Notifications & Calendar Sync',
-      body: `<p>Stay up to date automatically:</p>
-      <ul>
-        <li><strong>Google Calendar</strong> — Sign in with Google first (tap <strong>Sign In</strong> in Settings), then go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <strong>Connect</strong> to choose which of your Google calendars to sync to. All games are added automatically and update if times or locations change.</li>
-        <li>To change which calendar is used, tap <em>Change</em> in the connected calendar card in Settings.</li>
-        <li>Your calendar connection is remembered. On future visits the app reconnects silently in the background — no action needed.</li>
-        <li><strong>Push Notifications</strong> — On iOS (iPhone/iPad), first install the app to your home screen (see <em>Installing the Web App</em> above), open from the home screen icon, then go to <strong>Settings → Calendar &amp; Notifications</strong> and tap <em>Enable Notifications</em>. On Android you can do the same directly in Chrome, or use the native Google Play app.</li>
-        <li><strong>Telegram / GroupMe</strong> — The scorer can send box score updates and shootout alerts directly to your team channel from the Scores tab.</li>
-        <li><strong>WebCal Subscribe Link</strong> — If your admin shares a <code>webcal://</code> link (often for NJO or tournament brackets), tap it once to add all games to your calendar. The feed auto-updates every 5 minutes as times, locations, and bracket opponents change. Works with Google Calendar, Apple Calendar, and Outlook.</li>
-      </ul>`
+      title: appT('help_notifications_title'),
+      body: appT('help_notifications_body')
     },
     {
       icon: '🔴',
-      title: 'Live Activities &amp; Live Updates',
-      body: `<p>Follow live-scored games without opening the app.</p>
-      <ul>
-        <li><strong>iPhone (Live Activities)</strong> — when a game is being scored, the score appears on your <strong>lock screen</strong> and in the <strong>Dynamic Island</strong> with team logos, a running clock, and a live event feed. It starts automatically when scoring begins and ends on Final.</li>
-        <li><strong>Android 16+ (Live Updates)</strong> — a persistent notification chip shows the current score (e.g. "Q2 7&ndash;5") and updates on every poll tick. Make sure notifications are enabled in your device settings.</li>
-        <li>Tap <strong>Follow Live</strong> on any in-progress game in the Schedule tab to start the Live Activity.</li>
-        <li>Live Activities work alongside push notifications — you can have both enabled.</li>
-      </ul>`
+      title: appT('help_live_updates_title'),
+      body: appT('help_live_updates_body')
     },
     {
       icon: '⌚',
-      title: 'Apple Watch Companion App',
-      body: `<p>The native iOS app includes an <strong>Apple Watch companion app</strong> for quick tournament-day checks from your wrist.</p>
-      <ul>
-        <li>The Watch app uses your club branding colors and shows the selected club and team at the top.</li>
-        <li>Tap <strong>Choose team</strong> on the Watch to switch between teams you are following in the parent app.</li>
-        <li>Tap <strong>Featured Game</strong> to pin a specific game to the Watch home screen, or choose <strong>Auto Next Game</strong> to let Eggbeater pick the next upcoming game automatically.</li>
-        <li>Tap <strong>Team Schedule</strong> to see today's games and later upcoming games for the selected team.</li>
-        <li>When the selected or featured live game receives a goal update, the Watch gives a haptic and can show a local goal alert if Watch notifications are allowed.</li>
-        <li>The Watch updates from the iPhone app's live payload, so keep the iPhone app installed and signed into the same club/team setup.</li>
-      </ul>`
+      title: appT('help_watch_title'),
+      body: appT('help_watch_body')
     },
     {
       icon: '🧩',
-      title: 'Home Screen Widgets',
-      body: `<p>Add Eggbeater widgets to your home screen for at-a-glance info without opening the app.</p>
-      <ul>
-        <li><strong>Score Widget</strong> — shows the live score of the current or most recent game.</li>
-        <li><strong>Schedule Widget</strong> — shows the next upcoming game with time, opponent, and location.</li>
-        <li><strong>Stats Widget</strong> — shows top scorers from the current tournament.</li>
-        <li><strong>How to add (iOS):</strong> Long-press your home screen → tap <strong>+</strong> → search "Eggbeater" → choose a widget size → Add Widget.</li>
-        <li><strong>How to add (Android):</strong> Long-press your home screen → tap <strong>Widgets</strong> → find Eggbeater → drag to your home screen.</li>
-        <li>Widgets update automatically whenever scores or schedules change.</li>
-      </ul>`
+      title: appT('help_widgets_title'),
+      body: appT('help_widgets_body')
     },
     {
       icon: '📺',
-      title: 'T-Score Tab — Tournament Director Scores',
-      body: `<p>The <strong>T-Score</strong> tab shows official game scores submitted by the tournament director — separate from the live stat tracking on the Scores tab.</p>
-      <ul>
-        <li><strong>Director scores</strong> are the official final scores published by tournament organizers. They appear here as simple win/loss results with final scores.</li>
-        <li>If the tournament director has enabled score entry, authorized scorers can submit final scores directly from this tab using the <strong>🏆 Submit Live Scores</strong> button.</li>
-        <li>Director scores are used to calculate <strong>bracket placement</strong> and standings — they feed directly into the Bracket tab.</li>
-        <li>These scores update automatically when the director publishes new results. Pull down to refresh or use the refresh button.</li>
-        <li>The T-Score tab also shows the <strong>import schedule</strong> option if the tournament provides a director-managed schedule feed.</li>
-      </ul>`
+      title: appT('help_tscore_title'),
+      body: appT('help_tscore_body')
     },
     {
       icon: '🏢',
-      title: 'Multi-Club Support',
-      body: `<p>Eggbeater supports multiple water polo clubs, each with their own tournaments, rosters, and admin teams.</p>
-      <ul>
-        <li>Each club has a unique <strong>club ID</strong> that scopes all data — schedules, scores, rosters, and history are kept completely separate between clubs.</li>
-        <li>If you receive a link with <code>?join=</code> in the URL, the app adds that club and loads its data automatically.</li>
-        <li>Your age group selections and My Player picks are saved per club, so switching between clubs doesn't lose your preferences.</li>
-        <li>Club admins manage their own tournaments independently — changes by one club's admin never affect another club.</li>
-        <li><strong>Custom club colors</strong> — each club's admin can set custom brand colors (primary and secondary). The app automatically applies these colors when you visit that club's page, theming the header, buttons, and accents to match the club's identity.</li>
-      </ul>`
+      title: appT('help_multiclub_title'),
+      body: appT('help_multiclub_body')
     },
     {
       icon: '🌙',
-      title: 'Dark Mode',
-      body: `<p>Eggbeater supports <strong>dark mode</strong> for comfortable viewing in low-light environments.</p>
-      <ul>
-        <li><strong>Toggle:</strong> go to <strong>Settings → Appearance</strong> and choose Light, Dark, or System to match your preference.</li>
-        <li><strong>Auto-detection:</strong> on first visit, the app matches your device's system theme (e.g. if your iPhone is set to dark mode, the app starts in dark mode).</li>
-        <li><strong>Remembered:</strong> your preference is saved in your browser and will persist across visits and page reloads.</li>
-        <li>All tabs, cards, modals, the bottom nav, and the More drawer are fully styled for dark mode.</li>
-      </ul>`
+      title: appT('help_darkmode_title'),
+      body: appT('help_darkmode_body')
     },
     {
       icon: '📍',
-      title: 'Map & Directions',
-      body: `<p>Game cards include <strong>tappable direction links</strong> so you can get to the venue in your preferred maps app.</p>
-      <ul>
-        <li>When a game has a location, the 📍 location name is a tappable link.</li>
-        <li>Three direction buttons appear next to each location — choose whichever app you prefer:
-          <ul style="margin-top:4px">
-            <li><strong>Apple</strong> — opens Apple Maps (great for iPhone users)</li>
-            <li><strong>Google</strong> — opens Google Maps</li>
-            <li><strong>Waze</strong> — opens Waze for live traffic routing</li>
-          </ul>
-        </li>
-        <li>Both the Next Game card and regular schedule cards show direction buttons.</li>
-        <li>If the location is GPS coordinates, they're passed directly; otherwise the venue name is searched.</li>
-      </ul>`
+      title: appT('help_maps_title'),
+      body: appT('help_maps_body')
     },
     {
       icon: '📡',
-      title: 'Offline Scoring Support',
-      body: `<p>Scorers can now continue entering scores even when their internet connection drops.</p>
-      <ul>
-        <li>If a live score update fails due to a network error, it is <strong>automatically queued</strong> on the device.</li>
-        <li>A yellow <strong>"📡 Offline — scores will sync when connected"</strong> banner appears when scores are queued.</li>
-        <li>When connectivity returns, all queued scores are automatically replayed in order.</li>
-        <li>A green <strong>"✅ Scores synced"</strong> toast confirms successful sync.</li>
-        <li>If the app is closed, the <strong>Background Sync API</strong> retries automatically when the device reconnects.</li>
-        <li>Each queued score retries up to 10 times before raising an error.</li>
-      </ul>`
+      title: appT('help_offline_title'),
+      body: appT('help_offline_body')
     },
     {
       icon: '🔍',
@@ -10621,19 +10812,8 @@ function renderHelpTab() {
     },
     {
       icon: '♿',
-      title: 'Accessibility',
-      body: `<p>Eggbeater is designed to work with the accessibility features built into iOS and Android. All features listed below are fully supported.</p>
-      <ul>
-        <li><strong>VoiceOver (iOS) / TalkBack (Android)</strong> — the app is fully navigable by screen reader. The tab bar, all modals, and live score updates are all announced correctly. Say "Tap Schedule", "Tap Scores", or "Tap History" to switch tabs.</li>
-        <li><strong>Voice Control (iOS) / Voice Access (Android)</strong> — every button has a unique descriptive label matching its visible text, so you can activate any control by name.</li>
-        <li><strong>Dark Mode</strong> — go to <strong>Settings → Appearance</strong> to choose Light, Dark, or System. The app immediately adapts without a reload.</li>
-        <li><strong>Larger Text</strong> — all text scales with your device's system font size. Increase it in <em>iOS Settings → Display &amp; Brightness → Text Size</em> or <em>Android Settings → Display → Font size</em>.</li>
-        <li><strong>Reduce Motion</strong> — when enabled in your system settings, all animations and transitions are suppressed, including live score pulses and toast slide-ins.</li>
-        <li><strong>Increase Contrast / High Contrast Text</strong> — when enabled, secondary text is boosted to high-contrast dark tones and result pill backgrounds become solid colors.</li>
-        <li><strong>Colour Independence</strong> — no information is conveyed by colour alone. The active tab has a visible top-bar indicator; the Live badge has an accessible label; Win/Loss pills always include text.</li>
-      </ul>
-      <p style="margin-top:10px">For a full accessibility statement and step-by-step setup instructions, visit <a href="https://eggbeater.app/accessibility.html" target="_blank" style="color:var(--royal);font-weight:700">eggbeater.app/accessibility.html</a>.</p>
-      <p style="margin-top:8px">To report an accessibility issue or suggest an improvement, email <a href="mailto:hello@eggbeater.app?subject=Accessibility%20Feedback" style="color:var(--royal);font-weight:700">hello@eggbeater.app</a> — we aim to respond within 2 business days.</p>`
+      title: appT('help_accessibility_title'),
+      body: appT('help_accessibility_body')
     },
   ];
 
