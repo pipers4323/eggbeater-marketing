@@ -3459,7 +3459,45 @@
         addgames_score_entry_password: 'Score Entry Password',
         addgames_share_code_help: 'Other teams enter this code in the parent app under Sync from Tournament Director to import tournament info.',
         addgames_share_code_expiry: 'Expires in 30 days.',
-        addgames_clear: 'Clear'
+        addgames_clear: 'Clear',
+        help_archive_title: 'Archive & Season History',
+        help_archive_body: `<p>When a tournament is over, archive it to preserve the full record of games, scores, box scores, and player stats.</p>
+      <ul>
+        <li><strong>Archive a tournament:</strong> use the tournament selector actions and tap <strong>Archive</strong>. The tournament becomes read-only and moves into the archived set.</li>
+        <li><strong>Season stats:</strong> archived tournament stats feed cumulative player stats on eligible plans.</li>
+        <li><strong>Clone from archive:</strong> reuse an older tournament structure with games and roster while clearing scores.</li>
+        <li>Parents continue to see past results in the History tab of the parent app.</li>
+      </ul>`,
+        help_addgames_settings_title: 'Add Games Tab — Tournament Settings',
+        help_addgames_settings_body: `<p>Configure the current tournament and how the app behaves.</p>
+      <ul>
+        <li><strong>Club Name</strong> controls how your team name appears on game cards.</li>
+        <li><strong>Tournament ID</strong> is the unique key for this event. Only change it when starting a new tournament because changing it archives the current event on parent devices.</li>
+        <li><strong>Name, subtitle, dates, location, and pool</strong> appear in the app header and schedule.</li>
+        <li><strong>Coming Soon message</strong> is shown before games are posted. Clear it after publishing games.</li>
+        <li><strong>Scoring Password</strong> controls who can unlock scorer mode in the parent app.</li>
+        <li><strong>Age Group</strong> keeps each team workspace separate for tournament data, roster, and history.</li>
+        <li><strong>Multi-Team Mode</strong> lets you manage A, B, and optional C teams independently.</li>
+        <li><strong>Sync Games from Sheet</strong> imports schedule data from Google Sheets.</li>
+      </ul>
+      <p style="margin-top:8px">Use <strong>Save & Deploy Info</strong> or the header Deploy button to push changes live.</p>`,
+        help_deploy_title: 'The Deploy Button — When & Why',
+        help_deploy_body: `<p>The <strong>Deploy</strong> button in the header publishes your latest changes to the live app.</p>
+      <ul>
+        <li><strong>What it does:</strong> saves tournament data to the server and updates the live store parents read from.</li>
+        <li><strong>When to use it:</strong> after editing games, tournament info, or roster data.</li>
+        <li>The header Deploy button is the main way to publish changes. Nothing is live until you deploy.</li>
+        <li>Deploy usually takes a few seconds and then parents see updates shortly after.</li>
+      </ul>`,
+        help_tournament_selector_title: 'Tournament Selector — Multi-Tournament Management',
+        help_tournament_selector_body: `<p>The tournament selector below the header lets you manage more than one tournament for the same club.</p>
+      <ul>
+        <li><strong>Dropdown:</strong> switch between tournaments. Active and archived states are labeled clearly.</li>
+        <li><strong>New Tournament:</strong> creates a new cloud tournament for the club.</li>
+        <li><strong>Activate / Archive:</strong> changes whether a tournament is current or archived. Archiving snapshots age-group data before moving it aside.</li>
+        <li><strong>Delete:</strong> permanently removes a tournament from the cloud.</li>
+        <li>When you select a tournament, the admin loads that tournament's cloud data and you deploy updates back into that same record.</li>
+      </ul>`,
       },
       es: {
         dashboard_title: 'Panel Super Admin',
@@ -3526,7 +3564,45 @@
         addgames_score_entry_password: 'Contrasena de ingreso de marcadores',
         addgames_share_code_help: 'Otros equipos ingresan este codigo en la app de familias bajo Sincronizar desde el director del torneo para importar la informacion del torneo.',
         addgames_share_code_expiry: 'Expira en 30 dias.',
-        addgames_clear: 'Borrar'
+        addgames_clear: 'Borrar',
+        help_archive_title: 'Archivo e historial de temporada',
+        help_archive_body: `<p>Cuando termina un torneo, archivarlo conserva el registro completo de juegos, marcadores, box scores y estadisticas.</p>
+      <ul>
+        <li><strong>Archivar un torneo:</strong> usa las acciones del selector y toca <strong>Archivar</strong>. El torneo pasa a solo lectura y entra en el conjunto archivado.</li>
+        <li><strong>Estadisticas de temporada:</strong> las estadisticas archivadas alimentan los acumulados de jugadores en los planes elegibles.</li>
+        <li><strong>Clonar desde archivo:</strong> reutiliza la estructura de un torneo anterior con juegos y roster, pero sin marcadores.</li>
+        <li>Las familias siguen viendo resultados pasados en la pestaña Historial.</li>
+      </ul>`,
+        help_addgames_settings_title: 'Pestana Partidos — configuracion del torneo',
+        help_addgames_settings_body: `<p>Configura el torneo actual y como se comporta la app.</p>
+      <ul>
+        <li><strong>Nombre del club</strong> controla como aparece el equipo en las tarjetas de juego.</li>
+        <li><strong>ID del torneo</strong> es la clave unica del evento. Solo debes cambiarla al iniciar un torneo nuevo porque eso archiva el evento actual en los dispositivos de familias.</li>
+        <li><strong>Nombre, subtitulo, fechas, sede y pool</strong> se muestran en el encabezado y calendario.</li>
+        <li><strong>Mensaje Coming Soon</strong> aparece antes de publicar juegos. Borrarlo cuando ya hayas publicado.</li>
+        <li><strong>Contrasena del anotador</strong> controla quien puede desbloquear el modo de anotacion.</li>
+        <li><strong>Grupo de edad</strong> mantiene separado el espacio de trabajo de cada equipo.</li>
+        <li><strong>Modo multi-equipo</strong> permite manejar equipos A, B y C opcional por separado.</li>
+        <li><strong>Sync Games from Sheet</strong> importa el calendario desde Google Sheets.</li>
+      </ul>
+      <p style="margin-top:8px">Usa <strong>Guardar y desplegar info</strong> o el boton Deploy del encabezado para publicar cambios.</p>`,
+        help_deploy_title: 'El boton Deploy — cuando y por que',
+        help_deploy_body: `<p>El boton <strong>Deploy</strong> del encabezado publica tus cambios en la app en vivo.</p>
+      <ul>
+        <li><strong>Que hace:</strong> guarda los datos del torneo en el servidor y actualiza la fuente en vivo que leen las familias.</li>
+        <li><strong>Cuando usarlo:</strong> despues de editar juegos, informacion del torneo o roster.</li>
+        <li>El boton Deploy del encabezado es la via principal para publicar cambios. Nada se ve hasta desplegar.</li>
+        <li>Normalmente tarda pocos segundos y luego las familias ven la actualizacion poco despues.</li>
+      </ul>`,
+        help_tournament_selector_title: 'Selector de torneos — gestion de multiples torneos',
+        help_tournament_selector_body: `<p>El selector bajo el encabezado te permite administrar mas de un torneo para el mismo club.</p>
+      <ul>
+        <li><strong>Desplegable:</strong> cambia entre torneos. Los estados activo y archivado se muestran claramente.</li>
+        <li><strong>Nuevo torneo:</strong> crea un nuevo torneo en la nube para el club.</li>
+        <li><strong>Activar / Archivar:</strong> cambia si un torneo es actual o archivado. Archivar toma una instantanea de los datos por grupo antes de moverlo.</li>
+        <li><strong>Eliminar:</strong> borra un torneo permanentemente de la nube.</li>
+        <li>Al seleccionar un torneo, el panel carga sus datos en la nube y tus deploys vuelven a ese mismo registro.</li>
+      </ul>`,
       },
       fr: {
         dashboard_title: 'Tableau Super Admin',
@@ -3593,7 +3669,45 @@
         addgames_score_entry_password: 'Mot de passe de saisie des scores',
         addgames_share_code_help: 'Les autres equipes saisissent ce code dans l application parent sous Synchroniser depuis le directeur du tournoi pour importer les informations du tournoi.',
         addgames_share_code_expiry: 'Expire dans 30 jours.',
-        addgames_clear: 'Effacer'
+        addgames_clear: 'Effacer',
+        help_archive_title: 'Archive et historique de saison',
+        help_archive_body: `<p>Quand un tournoi est termine, l'archiver preserve l'historique complet des matchs, scores, box scores et statistiques joueurs.</p>
+      <ul>
+        <li><strong>Archiver un tournoi :</strong> utilisez les actions du selecteur puis touchez <strong>Archiver</strong>. Le tournoi devient en lecture seule et passe dans les archives.</li>
+        <li><strong>Stats de saison :</strong> les stats archivees alimentent les cumuls joueurs sur les offres eligibles.</li>
+        <li><strong>Cloner depuis les archives :</strong> reutilisez la structure d'un ancien tournoi avec matchs et effectif mais sans scores.</li>
+        <li>Les parents continuent de voir les anciens resultats dans l'onglet Historique.</li>
+      </ul>`,
+        help_addgames_settings_title: 'Onglet Matchs — reglages du tournoi',
+        help_addgames_settings_body: `<p>Configurez le tournoi en cours et le comportement de l'application.</p>
+      <ul>
+        <li><strong>Nom du club</strong> controle la facon dont votre equipe apparait sur les cartes de match.</li>
+        <li><strong>ID du tournoi</strong> est la cle unique de l'evenement. Ne la changez qu'au debut d'un nouveau tournoi car cela archive l'evenement en cours sur les appareils des parents.</li>
+        <li><strong>Nom, sous-titre, dates, lieu et poule</strong> s'affichent dans l'en-tete et le calendrier.</li>
+        <li><strong>Message Coming Soon</strong> s'affiche avant la publication des matchs. Effacez-le une fois les matchs publies.</li>
+        <li><strong>Mot de passe scoreur</strong> controle qui peut deverrouiller le mode scoreur.</li>
+        <li><strong>Groupe d'age</strong> garde chaque espace equipe separe pour les donnees, l'effectif et l'historique.</li>
+        <li><strong>Mode multi-equipes</strong> permet de gerer les equipes A, B et C en option separement.</li>
+        <li><strong>Sync Games from Sheet</strong> importe le calendrier depuis Google Sheets.</li>
+      </ul>
+      <p style="margin-top:8px">Utilisez <strong>Enregistrer et deployer les infos</strong> ou le bouton Deploy de l'en-tete pour publier les changements.</p>`,
+        help_deploy_title: 'Le bouton Deploy — quand et pourquoi',
+        help_deploy_body: `<p>Le bouton <strong>Deploy</strong> dans l'en-tete publie vos changements vers l'application en direct.</p>
+      <ul>
+        <li><strong>Ce qu'il fait :</strong> enregistre les donnees du tournoi sur le serveur et met a jour la source lue par les parents.</li>
+        <li><strong>Quand l'utiliser :</strong> apres avoir modifie des matchs, les infos du tournoi ou l'effectif.</li>
+        <li>Le bouton Deploy de l'en-tete est le moyen principal de publier les changements. Rien n'est en ligne avant le deploy.</li>
+        <li>Le deploy prend generalement quelques secondes, puis les parents voient les mises a jour peu apres.</li>
+      </ul>`,
+        help_tournament_selector_title: 'Selecteur de tournois — gestion multi-tournois',
+        help_tournament_selector_body: `<p>Le selecteur de tournoi sous l'en-tete permet de gerer plusieurs tournois pour le meme club.</p>
+      <ul>
+        <li><strong>Liste deroulante :</strong> changez de tournoi. Les etats actif et archive sont affiches clairement.</li>
+        <li><strong>Nouveau tournoi :</strong> cree un nouveau tournoi cloud pour le club.</li>
+        <li><strong>Activer / Archiver :</strong> change si un tournoi est courant ou archive. L'archivage capture d'abord les donnees par groupe d'age.</li>
+        <li><strong>Supprimer :</strong> retire definitivement un tournoi du cloud.</li>
+        <li>Quand vous selectionnez un tournoi, l'admin charge ses donnees cloud et vos deploys retournent dans ce meme dossier.</li>
+      </ul>`,
       }
     };
 
@@ -12108,14 +12222,8 @@
         },
         {
           icon: 'ðŸ“¦',
-          title: 'Archive &amp; Season History',
-          body: `<p>When a tournament is over, archive it to preserve the full record &mdash; games, scores, box scores, and player stats.</p>
-      <ul>
-        <li><strong>Archive a tournament:</strong> Use the tournament bar dropdown &rarr; tap <strong>Archive</strong>. The tournament becomes read-only and moves to the "Archived" section.</li>
-        <li><strong>Season stats:</strong> Archived tournament stats feed into cumulative player stats (Club plan). View them in the Roster tab &rarr; ðŸ“Š Player Stats.</li>
-        <li><strong>Clone from archive:</strong> Reuse a past tournament&rsquo;s structure (games + roster, scores cleared) by tapping <strong>Clone from Archive</strong> in the Games tab.</li>
-        <li>Parents see past results in the <strong>History</strong> tab of the parent app.</li>
-      </ul>`
+          title: adminT('help_archive_title'),
+          body: adminT('help_archive_body')
         },
         {
           icon: 'ðŸ‘¥',
@@ -12133,19 +12241,8 @@
         },
         {
           icon: 'â„¹ï¸',
-          title: 'Add Games Tab â€” Tournament Settings',
-          body: `<p>Configure everything about the current tournament and how the app behaves.</p>
-      <ul>
-        <li><strong>Club Name</strong> â€” your club's name as it should appear in game cards (e.g. <em>Pacific Waves</em>). When set, games display as "Pacific Waves vs. NorCal Gold" instead of just "vs. NorCal Gold". Leave blank to use the default "vs." style.</li>
-        <li><strong>Tournament ID</strong> âš ï¸ â€” a unique key for this tournament (e.g. <code>kap7-day1-2026</code>). <em>Only change this when starting a new tournament.</em> Changing the ID archives the current tournament on every parent's device and starts fresh.</li>
-        <li><strong>Name / Subtitle / Dates / Location / Pool</strong> â€” displayed in the app header and schedule.</li>
-        <li><strong>Coming Soon message</strong> â€” shown on the schedule tab before games are posted. Clear this field once you've added games.</li>
-        <li><strong>Scoring Password</strong> â€” when set, parents must enter this password to use live scoring controls. Leave blank to allow anyone to score. Recommended: set a simple word (e.g. <em>bawl2026</em>).</li>
-            <li><strong>Age Group</strong> â€” select the age group pill enabled for your club at the top. Each age group stores its own tournament data, roster, and history independently.</li>
-        <li><strong>Multi-Team Mode</strong> â€” enabled by default. Check "Disable multi-team" for single-team tournaments. You can also set custom labels for each team (e.g. "Team A" / "Team B"). Enable <strong>C Team</strong> to add a third team for tournaments where three squads are entered â€” this can be toggled on/off without losing any C Team data.</li>
-        <li><strong>Sync Games from Sheet</strong> â€” import the schedule from a Google Sheet in the Add Games tab.</li>
-      </ul>
-      <p style="margin-top:8px">Hit <strong>ðŸ’¾ ${adminT('addgames_save_deploy_info')}</strong> at the bottom of this tab (or the main Deploy button) to push changes live.</p>`
+          title: adminT('help_addgames_settings_title'),
+          body: adminT('help_addgames_settings_body')
         },
         {
           icon: 'â±',
@@ -12197,15 +12294,8 @@
         },
         {
           icon: 'ðŸ’¾',
-          title: 'The Deploy Button â€” When & Why',
-          body: `<p>The <strong>ðŸ’¾ Deploy</strong> button in the top-right header publishes all your changes to the live app at once.</p>
-      <ul>
-        <li><strong>What it does</strong> â€” saves tournament data to the server (Cloudflare KV) and updates Cloudflare KV so every parent's app sees the changes within seconds.</li>
-        <li><strong>When to use it</strong> â€” after adding or editing games, changing tournament info, or updating the roster. Nothing is visible to parents until you deploy.</li>
-        <li>The main <strong>ðŸ’¾ Deploy</strong> button in the header is the primary way to push changes. Use it after making any changes.</li>
-        <li><strong>Deploy time</strong> â€” usually 5â€“10 seconds. The button shows a spinner while deploying and a âœ“ confirmation when done.</li>
-        <li><strong>Parents see updates</strong> â€” within about 10 seconds on most devices. If a parent doesn't see changes, they can use the <strong>â†» Force Refresh</strong> button at the bottom of their Schedule tab.</li>
-      </ul>`
+          title: adminT('help_deploy_title'),
+          body: adminT('help_deploy_body')
         },
         {
           icon: 'ðŸ”',
@@ -12222,16 +12312,8 @@
         },
         {
           icon: 'ðŸ†',
-          title: 'Tournament Selector â€” Multi-Tournament Management',
-          body: `<p>The tournament selector strip below the header lets you manage multiple tournaments for your club.</p>
-      <ul>
-        <li><strong>Dropdown</strong> â€” switch between tournaments. The currently active tournament is marked with a green "Active" badge; archived ones show a gray "Archived" badge.</li>
-        <li><strong>+ New</strong> â€” create a new tournament. Enter a name and it's added to your club's tournament list in the cloud and assigned an auto-generated ID.</li>
-        <li><strong>Activate / Archive</strong> â€” toggle a tournament between active and archived. Only one tournament can be active at a time per club. When you archive a tournament, all age group data is automatically snapshotted to the cloud before archiving.</li>
-        <li><strong>Delete</strong> â€” permanently remove a tournament from the cloud. This cannot be undone.</li>
-        <li>When you select a tournament, the admin panel loads that tournament's data from the cloud and overlays it on the current KV data. Changes you make and deploy are saved to both the server and the cloud.</li>
-        <li>Tournament data is stored in Firestore under <code>clubs/{clubId}/tournaments/{tournamentId}</code> â€” completely separate per club.</li>
-      </ul>`
+          title: adminT('help_tournament_selector_title'),
+          body: adminT('help_tournament_selector_body')
         },
         {
           icon: 'ðŸ‘¥',

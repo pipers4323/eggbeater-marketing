@@ -131,6 +131,92 @@ const APP_I18N = {
     help_history_title: 'History Tab',
     help_scores_title: 'Scores Tab — Live Scores & Box Scores',
     help_live_scoring_title: 'Live Scoring — Scorer Controls',
+    help_schedule_body: `<p>The <strong>Schedule</strong> tab shows all upcoming games for the selected team sorted by game number.</p>
+      <ul>
+        <li>The <strong>Next Game</strong> card at the top highlights your next upcoming game in blue. When a game is being live-scored it turns red, shows <strong>LIVE</strong>, and displays the current score, quarter, and live clock.</li>
+        <li>Games below the Next Game card show opponent, game number, time, pool, location, and cap color.</li>
+        <li>The next game only appears once and does not duplicate in the list below.</li>
+        <li>Once a game has a result it automatically moves to the <strong>History</strong> tab.</li>
+        <li>Tap <strong>Add to Calendar</strong> to sync all games to Google Calendar.</li>
+        <li>Tap <strong>Get Notified</strong> to enable push notifications when the schedule changes.</li>
+        <li>If multiple age groups are selected, the schedule splits into labeled sections so you can follow more than one team at once.</li>
+      </ul>`,
+    help_scores_body: `<p>The <strong>Scores</strong> tab is where live scoring and box scores live. Watch for a pulsing red dot on the Scores nav button when a game is being actively scored.</p>
+      <ul>
+        <li><strong>View Live Scores</strong> lets you follow a live game without the scoring password.</li>
+        <li>Tap <strong>Login to Score</strong> in the viewer if you have the password and need full scoring controls.</li>
+        <li>When a scorer is active you will see a <strong>LIVE</strong> badge and updates appear within about 5 seconds.</li>
+        <li>The <strong>event log</strong> shows every goal, assist, exclusion, and other event with clock times.</li>
+        <li>The <strong>box score</strong> shows each player's totals for goals, attempts, 5m, shootout stats, assists, exclusions, and earned exclusions.</li>
+        <li>After the game, stats flow into player history in the Roster tab.</li>
+      </ul>`,
+    help_live_scoring_body: `<p>If you have the scoring password, tap <strong>Login to Score</strong> in the top-right of the viewer and enter the tournament password to unlock full scoring controls.</p>
+      <ul>
+        <li>Only the current game shows its full scoring buttons. Upcoming games stay collapsed until you need them.</li>
+        <li><strong>Auto Clock</strong> counts down automatically from the admin-set quarter length. Tap <strong>Start</strong> to begin Q1 and the clock.</li>
+        <li><strong>Game State bar</strong> moves through Start, quarters, halftime, and Final. The <strong>Pre</strong> button resets back to pre-game.</li>
+        <li><strong>Goal / Opp Goal</strong> records a goal and prompts for the scorer.</li>
+        <li><strong>Attempt / Opp Attempt</strong> records a shot that did not score.</li>
+        <li><strong>Assist</strong>, <strong>Steal</strong>, <strong>Field Block</strong>, <strong>Excl</strong>, and <strong>Earned Excl</strong> track the rest of the stat line.</li>
+        <li><strong>5m</strong> and <strong>5m Attempt</strong> track penalty shots.</li>
+        <li><strong>GK Save</strong> records goalie saves.</li>
+        <li><strong>Timeout</strong> buttons pause the clock automatically and gray out after use.</li>
+        <li><strong>Reset Clock</strong> restores the full quarter length without changing the game state.</li>
+        <li><strong>Undo</strong> removes the last logged event.</li>
+      </ul>`,
+    help_history_body: `<p><strong>History</strong> keeps a running record of completed tournaments.</p>
+      <ul>
+        <li>When you mark a result in Scores, that game moves off Schedule and into History automatically.</li>
+        <li>Full tournament results archive automatically when a new tournament loads.</li>
+        <li>The standings table shows cumulative bracket points across all tournament days.</li>
+        <li>Tap any tournament entry to expand it and see game-by-game results.</li>
+        <li>History is stored on your device and also seeded from the official record on first install.</li>
+      </ul>`,
+    help_shootout_title: 'Shootout Mode',
+    help_shootout_body: `<p>When a game is tied at the end of regulation, tap <strong>SO</strong> in the game state bar to enter Shootout Mode.</p>
+      <ul>
+        <li>Each team selects 5 players to take 5-meter shots.</li>
+        <li>Each shootout goal adds <strong>+0.1</strong> to the score so a tied game can still display the shootout result.</li>
+        <li><strong>SO Goal / Opp SO Goal</strong> replaces the normal goal buttons during shootout mode.</li>
+        <li><strong>SO Miss</strong> tracks missed shootout shots for stats.</li>
+        <li>The normal 5m row is hidden during shootouts.</li>
+        <li>You can send a shootout alert to Telegram or GroupMe when the shootout begins.</li>
+      </ul>`,
+    help_bracket_title: 'Bracket Tab',
+    help_bracket_body: `<p>The <strong>Bracket</strong> tab shows where the team could end up based on pool-play results.</p>
+      <ul>
+        <li>Before the schedule is posted it shows <em>Bracket Coming Soon</em>.</li>
+        <li>As results are entered, the projected bracket path highlights automatically.</li>
+        <li>Gold, Silver, and Bronze paths can show the possible opponent, time, and location.</li>
+        <li>Bracket points are <strong>Win 4, SO Win 3, SO Loss 2, Loss 1, Forfeit 0</strong>.</li>
+        <li>If multiple age groups or split teams are selected, each gets its own labeled bracket section.</li>
+      </ul>`,
+    help_myplayer_title: 'My Player — Follow Your Child',
+    help_myplayer_body: `<p>In the <strong>Roster</strong> tab, the <em>My Player</em> card lets you follow your child's stats across the season.</p>
+      <ul>
+        <li>With one age group selected, choose your child from the dropdown.</li>
+        <li>With multiple age groups selected, a separate My Player card appears for each team.</li>
+        <li>The card surfaces goals, assists, attempts, exclusions, earned exclusions, games played, and shooting percentages.</li>
+        <li>Recent games are listed with per-game stats and scores.</li>
+        <li>The stats CSV export downloads the full tracked history.</li>
+        <li>Goalies see saves instead of shooting percentages.</li>
+      </ul>`,
+    help_agegroup_title: 'Age Group Selector & A/B Team Picker',
+    help_agegroup_body: `<p>The age group selector below the tournament header controls which teams you are viewing.</p>
+      <ul>
+        <li>Tap an age group to activate it.</li>
+        <li>Tap another group to follow multiple age groups at the same time.</li>
+        <li>Selections stay sorted in age order and are remembered between sessions.</li>
+        <li>If a club has A/B teams in the same age group, the selector expands so you can choose one or both squads independently.</li>
+      </ul>`,
+    help_multi_title: 'Multi-Age-Group & Split-Team View',
+    help_multi_body: `<p>Eggbeater can show multiple age groups and multiple squads at the same time across Schedule, Scores, Bracket, Roster, and History.</p>
+      <ul>
+        <li>When multiple age groups are active, each tab splits into labeled sections.</li>
+        <li>When both A and B teams are selected, each squad gets its own section and data stays separated.</li>
+        <li>Section headers tell you exactly which age group and team you are looking at.</li>
+        <li>History and bracket tracking remain independent per team.</li>
+      </ul>`,
     help_box_score_title: 'Live Scoring and Box Score',
     scorer_controls: 'Scoring Controls',
     scorer_open: 'Open Scorer',
@@ -302,6 +388,92 @@ const APP_I18N = {
     help_history_title: 'Pestaña Historial',
     help_scores_title: 'Pestaña Marcadores — Marcadores en vivo y box score',
     help_live_scoring_title: 'Marcación en vivo — Controles del anotador',
+    help_schedule_body: `<p>La pestaña <strong>Calendario</strong> muestra todos los partidos pendientes del equipo seleccionado ordenados por numero de juego.</p>
+      <ul>
+        <li>La tarjeta de <strong>Proximo partido</strong> arriba destaca el siguiente juego. Cuando se anota en vivo se pone roja, muestra <strong>LIVE</strong> y enseña marcador, periodo y reloj.</li>
+        <li>Las tarjetas de abajo muestran rival, numero de juego, hora, pool, sede y color de gorro.</li>
+        <li>El proximo juego solo aparece una vez y no se duplica en la lista.</li>
+        <li>Cuando un juego recibe resultado se mueve automaticamente a <strong>Historial</strong>.</li>
+        <li>Toca <strong>Add to Calendar</strong> para sincronizar con Google Calendar.</li>
+        <li>Toca <strong>Get Notified</strong> para activar avisos cuando cambie el calendario.</li>
+        <li>Si eliges varios grupos, el calendario se divide en secciones etiquetadas.</li>
+      </ul>`,
+    help_scores_body: `<p>La pestaña <strong>Marcadores</strong> contiene el marcador en vivo y el box score. Mira el punto rojo pulsante en la barra cuando un partido se esta anotando activamente.</p>
+      <ul>
+        <li><strong>View Live Scores</strong> te deja seguir un partido en tiempo real sin la clave de anotacion.</li>
+        <li>Toca <strong>Login to Score</strong> si tienes la clave y necesitas controles completos.</li>
+        <li>Cuando un anotador esta activo veras la insignia <strong>LIVE</strong> y las actualizaciones llegan en unos 5 segundos.</li>
+        <li>El <strong>registro de eventos</strong> muestra goles, asistencias, exclusiones y otros eventos con la hora del reloj.</li>
+        <li>El <strong>box score</strong> muestra totales por jugador para goles, intentos, 5m, shootout, asistencias y exclusiones.</li>
+        <li>Despues del juego las estadisticas pasan al historial del jugador en Roster.</li>
+      </ul>`,
+    help_live_scoring_body: `<p>Si tienes la clave de anotacion, toca <strong>Login to Score</strong> en la parte superior del visor e ingresa la clave del torneo para desbloquear los controles completos.</p>
+      <ul>
+        <li>Solo el juego actual muestra todos los botones de anotacion. Los demas quedan plegados.</li>
+        <li><strong>Auto Clock</strong> cuenta hacia atras automaticamente desde la duracion configurada por el admin. Toca <strong>Start</strong> para iniciar Q1.</li>
+        <li>La <strong>barra de estado</strong> avanza por Start, cuartos, medio tiempo y Final. <strong>Pre</strong> regresa al estado previo.</li>
+        <li><strong>Goal / Opp Goal</strong> registra un gol y pide elegir al goleador.</li>
+        <li><strong>Attempt / Opp Attempt</strong> registra un tiro que no entro.</li>
+        <li><strong>Assist</strong>, <strong>Steal</strong>, <strong>Field Block</strong>, <strong>Excl</strong> y <strong>Earned Excl</strong> completan la linea estadistica.</li>
+        <li><strong>5m</strong> y <strong>5m Attempt</strong> registran tiros de penalty.</li>
+        <li><strong>GK Save</strong> registra atajadas del portero.</li>
+        <li>Los <strong>timeouts</strong> pausan el reloj automaticamente y se desactivan tras usarse.</li>
+        <li><strong>Reset Clock</strong> restaura el tiempo completo del cuarto sin cambiar el estado del juego.</li>
+        <li><strong>Undo</strong> elimina el ultimo evento registrado.</li>
+      </ul>`,
+    help_history_body: `<p><strong>Historial</strong> guarda un registro continuo de los torneos completados.</p>
+      <ul>
+        <li>Cuando marcas un resultado en Marcadores, ese partido sale de Calendario y entra en Historial automaticamente.</li>
+        <li>Los resultados completos del torneo se archivan automaticamente cuando carga un torneo nuevo.</li>
+        <li>La tabla de posiciones muestra puntos acumulados de bracket a lo largo de todos los dias del torneo.</li>
+        <li>Toca cualquier torneo para expandirlo y ver los resultados juego por juego.</li>
+        <li>El historial se guarda en tu dispositivo y tambien se inicializa desde el registro oficial.</li>
+      </ul>`,
+    help_shootout_title: 'Modo Shootout',
+    help_shootout_body: `<p>Cuando un juego termina empatado, toca <strong>SO</strong> en la barra de estado para entrar al modo shootout.</p>
+      <ul>
+        <li>Cada equipo elige 5 jugadores para tirar penales de 5 metros.</li>
+        <li>Cada gol del shootout suma <strong>+0.1</strong> al marcador para reflejar el desempate.</li>
+        <li><strong>SO Goal / Opp SO Goal</strong> reemplaza los botones normales de gol durante el shootout.</li>
+        <li><strong>SO Miss</strong> registra tiros fallados para estadisticas.</li>
+        <li>La fila normal de 5m se oculta durante el shootout.</li>
+        <li>Puedes enviar una alerta de shootout a Telegram o GroupMe cuando comience.</li>
+      </ul>`,
+    help_bracket_title: 'Pestaña Bracket',
+    help_bracket_body: `<p>La pestaña <strong>Bracket</strong> muestra a donde puede llegar el equipo segun los resultados del grupo.</p>
+      <ul>
+        <li>Antes de que exista calendario publicado se muestra <em>Bracket Coming Soon</em>.</li>
+        <li>A medida que entran resultados, el camino proyectado se resalta automaticamente.</li>
+        <li>Las rutas Oro, Plata y Bronce pueden mostrar rival posible, hora y lugar.</li>
+        <li>Los puntos del bracket son <strong>Win 4, SO Win 3, SO Loss 2, Loss 1, Forfeit 0</strong>.</li>
+        <li>Si eliges varios grupos o equipos A/B, cada uno recibe su propia seccion etiquetada.</li>
+      </ul>`,
+    help_myplayer_title: 'My Player — Sigue a tu jugador',
+    help_myplayer_body: `<p>En la pestaña <strong>Roster</strong>, la tarjeta <em>My Player</em> te permite seguir las estadisticas de tu hijo o hija durante la temporada.</p>
+      <ul>
+        <li>Con un solo grupo seleccionado, elige al jugador desde el desplegable.</li>
+        <li>Con varios grupos seleccionados, aparece una tarjeta independiente por equipo.</li>
+        <li>La tarjeta muestra goles, asistencias, intentos, exclusiones, exclusiones generadas, juegos y porcentajes de tiro.</li>
+        <li>Tambien muestra juegos recientes con estadisticas por partido.</li>
+        <li>La exportacion CSV descarga el historial completo.</li>
+        <li>Los porteros ven atajadas en lugar de porcentajes de tiro.</li>
+      </ul>`,
+    help_agegroup_title: 'Selector de grupo y equipos A/B',
+    help_agegroup_body: `<p>El selector de grupos debajo del encabezado del torneo controla que equipos ves.</p>
+      <ul>
+        <li>Toca un grupo para activarlo.</li>
+        <li>Toca otro grupo para seguir varios grupos al mismo tiempo.</li>
+        <li>Las selecciones se mantienen en orden por edad y se recuerdan entre sesiones.</li>
+        <li>Si un club tiene equipos A/B en el mismo grupo, el selector se expande para elegir uno o ambos equipos.</li>
+      </ul>`,
+    help_multi_title: 'Vista multi-grupo y multi-equipo',
+    help_multi_body: `<p>Eggbeater puede mostrar varios grupos y varios equipos al mismo tiempo en Calendario, Marcadores, Bracket, Roster e Historial.</p>
+      <ul>
+        <li>Cuando varios grupos estan activos, cada pestaña se divide en secciones etiquetadas.</li>
+        <li>Cuando A y B estan activos, cada equipo recibe su propia seccion y los datos no se mezclan.</li>
+        <li>Los encabezados te dicen exactamente que grupo y equipo estas viendo.</li>
+        <li>El historial y el bracket se siguen de forma independiente por equipo.</li>
+      </ul>`,
     help_box_score_title: 'Marcador en vivo y box score',
     scorer_controls: 'Controles de anotación',
     scorer_open: 'Abrir anotador',
@@ -473,6 +645,92 @@ const APP_I18N = {
     help_history_title: 'Onglet Historique',
     help_scores_title: 'Onglet Scores — Scores en direct et box score',
     help_live_scoring_title: 'Score en direct — Commandes du marqueur',
+    help_schedule_body: `<p>L'onglet <strong>Calendrier</strong> affiche tous les matchs a venir pour l'equipe selectionnee, tries par numero de match.</p>
+      <ul>
+        <li>La carte <strong>Prochain match</strong> en haut met en avant le match suivant. Lorsqu'un match est score en direct, elle devient rouge et affiche le score, la periode et l'horloge.</li>
+        <li>Les cartes en dessous montrent l'adversaire, le numero de match, l'heure, la poule, le lieu et la couleur du bonnet.</li>
+        <li>Le prochain match n'apparait qu'une seule fois et n'est pas duplique plus bas.</li>
+        <li>Lorsqu'un resultat est enregistre, le match passe automatiquement dans <strong>Historique</strong>.</li>
+        <li>Touchez <strong>Add to Calendar</strong> pour synchroniser les matchs avec Google Calendar.</li>
+        <li>Touchez <strong>Get Notified</strong> pour activer les notifications de mise a jour.</li>
+        <li>Si plusieurs groupes d'age sont selectionnes, le calendrier se divise en sections etiquetees.</li>
+      </ul>`,
+    help_scores_body: `<p>L'onglet <strong>Scores</strong> rassemble le score en direct et le box score. Surveillez le point rouge pulsant dans la navigation quand un match est activement score.</p>
+      <ul>
+        <li><strong>View Live Scores</strong> permet de suivre un match en temps reel sans le mot de passe scoreur.</li>
+        <li>Touchez <strong>Login to Score</strong> si vous avez le mot de passe et avez besoin des commandes completes.</li>
+        <li>Quand un scoreur est actif, le badge <strong>LIVE</strong> apparait et les mises a jour arrivent en environ 5 secondes.</li>
+        <li>Le <strong>journal d'evenements</strong> montre les buts, passes, exclusions et autres actions avec l'heure au chronometre.</li>
+        <li>Le <strong>box score</strong> montre les totaux par joueur pour buts, tentatives, 5m, shootout, passes et exclusions.</li>
+        <li>Apres le match, les stats alimentent l'historique joueur dans l'onglet Effectif.</li>
+      </ul>`,
+    help_live_scoring_body: `<p>Si vous avez le mot de passe scoreur, touchez <strong>Login to Score</strong> en haut a droite du lecteur et saisissez le mot de passe du tournoi pour debloquer toutes les commandes.</p>
+      <ul>
+        <li>Seul le match en cours affiche tous les boutons de score. Les matchs suivants restent replies.</li>
+        <li><strong>Auto Clock</strong> decompte automatiquement depuis la duree de quart configuree par l'admin. Touchez <strong>Start</strong> pour lancer Q1.</li>
+        <li>La <strong>barre d'etat</strong> avance entre Start, les quarts, la mi-temps et Final. <strong>Pre</strong> remet le match en pre-game.</li>
+        <li><strong>Goal / Opp Goal</strong> enregistre un but et demande le joueur marqueur.</li>
+        <li><strong>Attempt / Opp Attempt</strong> enregistre un tir manque.</li>
+        <li><strong>Assist</strong>, <strong>Steal</strong>, <strong>Field Block</strong>, <strong>Excl</strong> et <strong>Earned Excl</strong> completent la feuille de stats.</li>
+        <li><strong>5m</strong> et <strong>5m Attempt</strong> suivent les penalties de 5 metres.</li>
+        <li><strong>GK Save</strong> enregistre les arrets du gardien.</li>
+        <li>Les boutons de <strong>temps morts</strong> mettent l'horloge en pause automatiquement et se grisent apres utilisation.</li>
+        <li><strong>Reset Clock</strong> restaure le temps complet du quart sans changer l'etat du match.</li>
+        <li><strong>Undo</strong> supprime le dernier evenement enregistre.</li>
+      </ul>`,
+    help_history_body: `<p><strong>Historique</strong> conserve un enregistrement continu des tournois termines.</p>
+      <ul>
+        <li>Quand vous enregistrez un resultat dans Scores, le match quitte Calendrier et passe automatiquement dans Historique.</li>
+        <li>Les resultats complets du tournoi s'archivent automatiquement lorsqu'un nouveau tournoi est charge.</li>
+        <li>Le tableau des classements affiche les points de bracket cumules sur toute la duree du tournoi.</li>
+        <li>Touchez une entree de tournoi pour l'ouvrir et voir les resultats match par match.</li>
+        <li>L'historique est stocke sur votre appareil et initialise a partir du dossier officiel lors de la premiere installation.</li>
+      </ul>`,
+    help_shootout_title: 'Mode Shootout',
+    help_shootout_body: `<p>Quand un match est a egalite a la fin du temps reglementaire, touchez <strong>SO</strong> dans la barre d'etat pour entrer en mode shootout.</p>
+      <ul>
+        <li>Chaque equipe selectionne 5 joueurs pour tirer les penalties de 5 metres.</li>
+        <li>Chaque but de shootout ajoute <strong>+0.1</strong> au score pour afficher clairement le vainqueur.</li>
+        <li><strong>SO Goal / Opp SO Goal</strong> remplace les boutons de but normaux pendant le shootout.</li>
+        <li><strong>SO Miss</strong> suit les tirs manques pour les statistiques.</li>
+        <li>La ligne 5m normale est masquee pendant le shootout.</li>
+        <li>Vous pouvez envoyer une alerte de shootout a Telegram ou GroupMe lorsqu'il commence.</li>
+      </ul>`,
+    help_bracket_title: 'Onglet Bracket',
+    help_bracket_body: `<p>L'onglet <strong>Bracket</strong> montre la trajectoire possible de l'equipe selon les resultats de poule.</p>
+      <ul>
+        <li>Avant la publication du calendrier, il affiche <em>Bracket Coming Soon</em>.</li>
+        <li>A mesure que les resultats arrivent, la trajectoire projetee se met en surbrillance automatiquement.</li>
+        <li>Les parcours Or, Argent et Bronze peuvent montrer l'adversaire possible, l'heure et le lieu.</li>
+        <li>Les points de bracket sont <strong>Win 4, SO Win 3, SO Loss 2, Loss 1, Forfeit 0</strong>.</li>
+        <li>Si plusieurs groupes d'age ou equipes A/B sont selectionnes, chacun a sa propre section etiquetee.</li>
+      </ul>`,
+    help_myplayer_title: 'My Player — Suivre votre enfant',
+    help_myplayer_body: `<p>Dans l'onglet <strong>Effectif</strong>, la carte <em>My Player</em> permet de suivre les statistiques de votre enfant sur toute la saison.</p>
+      <ul>
+        <li>Avec un seul groupe d'age selectionne, choisissez votre enfant dans la liste.</li>
+        <li>Avec plusieurs groupes selectionnes, une carte My Player apparait pour chaque equipe.</li>
+        <li>La carte affiche buts, passes, tentatives, exclusions, exclusions provoquees, matchs et pourcentages de tir.</li>
+        <li>Les matchs recents avec stats et scores par match sont aussi visibles.</li>
+        <li>L'export CSV telecharge l'historique complet suivi.</li>
+        <li>Les gardiens voient les arrets a la place des pourcentages de tir.</li>
+      </ul>`,
+    help_agegroup_title: 'Selecteur de groupe d age et equipes A/B',
+    help_agegroup_body: `<p>Le selecteur sous l'entete du tournoi controle les equipes affichees.</p>
+      <ul>
+        <li>Touchez un groupe d'age pour l'activer.</li>
+        <li>Touchez un autre groupe pour en suivre plusieurs en meme temps.</li>
+        <li>Les selections restent triees par age et sont memorisees entre les sessions.</li>
+        <li>Si un club a des equipes A/B dans le meme groupe, le selecteur s'etend pour choisir l'une ou les deux.</li>
+      </ul>`,
+    help_multi_title: 'Vue multi-groupes et equipes multiples',
+    help_multi_body: `<p>Eggbeater peut afficher plusieurs groupes d'age et plusieurs equipes en meme temps dans Calendrier, Scores, Bracket, Effectif et Historique.</p>
+      <ul>
+        <li>Quand plusieurs groupes sont actifs, chaque onglet se divise en sections etiquetees.</li>
+        <li>Quand A et B sont actives, chaque equipe a sa propre section et les donnees ne se melangent pas.</li>
+        <li>Les entetes indiquent clairement le groupe d'age et l'equipe affiches.</li>
+        <li>L'historique et le bracket restent separes par equipe.</li>
+      </ul>`,
     help_box_score_title: 'Score en direct et box score',
     scorer_controls: 'Commandes de score',
     scorer_open: 'Ouvrir le marqueur',
@@ -10147,142 +10405,47 @@ function renderHelpTab() {
     {
       icon: '📅',
       title: appT('help_schedule_title'),
-      body: `<p>The <strong>Schedule</strong> tab shows all upcoming games for the selected team sorted by game number.</p>
-      <ul>
-        <li>The <strong>Next Game</strong> card at the top highlights your next upcoming game in blue — when a game is being live-scored it turns red, shows <strong>🔴 LIVE</strong>, and displays the current score, quarter, and live clock so you can follow the action at a glance.</li>
-        <li>Games below the Next Game card show opponent, game number, time, pool, location, and cap color. Dark-cap games use the club's dark card treatment; white-cap games stay on the white card treatment so Schedule and Scores match visually.</li>
-        <li>The next game only appears once — it won't duplicate in the list below.</li>
-        <li>Once a game is marked with a result it automatically moves to the <strong>History</strong> tab — keeping this screen clean and future-focused.</li>
-        <li>Tap <strong>Add to Calendar</strong> to sync all games to your Google Calendar.</li>
-        <li>Tap <strong>Get Notified</strong> to enable push notifications when the schedule is updated.</li>
-        <li>If multiple age groups are selected, the schedule is divided into labeled sections — one per age group — so you can see all your kids' games on one screen.</li>
-      </ul>`
+      body: appT('help_schedule_body')
     },
     {
       icon: '🏆',
       title: appT('help_scores_title'),
-      body: `<p>The <strong>Scores</strong> tab is where all live scoring and box scores live. Watch for a <strong>pulsing red dot</strong> on the Scores nav button — it lights up whenever a game is being actively scored.</p>
-      <ul>
-        <li><strong>👁 View Live Scores</strong> — tap this button (above the scorer login) to follow a live game in real time without needing the scoring password. You'll see the live score, event log, and box score updating every 5 seconds.</li>
-        <li>Tap <strong>🔒 Login to Score</strong> in the top-right corner of the viewer to switch to full scoring mode if you have the password.</li>
-        <li>When a scorer is active, you'll see a <strong>🔴 LIVE</strong> badge and all updates appear within 5 seconds.</li>
-        <li>The <strong>event log</strong> shows every goal 🏐, assist 🤝, exclusion ❌, and other events with clock times.</li>
-        <li>The <strong>box score</strong> shows each player's totals: Goals, Attempts, 5m Goals, 5m Attempts, SO Goals, SO Attempts, Assists, Exclusions, and Earned Exclusions.</li>
-        <li>After the game, all stats are saved and flow into each player's history in the Roster tab.</li>
-      </ul>`
+      body: appT('help_scores_body')
     },
     {
       icon: '📊',
       title: appT('help_live_scoring_title'),
-      body: `<p>If you have the scoring password, tap <strong>🔒 Login to Score</strong> (top-right of the viewer screen) and enter the tournament password to unlock full scoring controls.</p>
-      <ul>
-        <li><strong>Only the current game</strong> shows its full scoring buttons — upcoming games are collapsed to keep the screen clean. Tap any game header to expand it when it's time to score.</li>
-        <li><strong>Auto Clock</strong> — the clock counts down automatically from the quarter length set by the admin. Tap <strong>▶ Start</strong> to begin Q1 and the clock. Every scoring event is instantly stamped with the current clock time the moment you tap the button — no prompts, no manual entry.</li>
-        <li><strong>Game State bar</strong> — ▶ Start → Q1 → Q2 → ½ Time → Q3 → Q4 → 🏁 End. The <strong>↩ Pre</strong> button resets to pre-game from any state.</li>
-        <li><strong>Goal / Opp Goal</strong> — records a goal and prompts you to pick the scorer. Check <strong>6-on-5</strong> in the picker to tag it as a power-play goal.</li>
-        <li><strong>Attempt / Opp Attempt</strong> — records a shot that didn't score (used to calculate shooting %).</li>
-        <li><strong>Assist</strong> — tap and pick the player who assisted.</li>
-        <li><strong>Steal</strong> — tap and pick the player who won possession. Check <strong>Forced Ball Under</strong> in the picker if the steal came from a forced ball under.</li>
-        <li><strong>Field Block</strong> — tap and pick the field player who blocked a shot on goal.</li>
-        <li><strong>Opp Steal</strong> — records an opponent steal so the event log stays balanced.</li>
-        <li><strong>Excl / Opp Excl</strong> — records an exclusion foul for either team.</li>
-        <li><strong>Earned Excl</strong> — tap and pick the player who drew the exclusion (forced the defender into the foul). Tracked separately from regular exclusions so you can see who is creating power-play opportunities.</li>
-        <li><strong>5m / Opp 5m</strong> — records a 5-meter penalty shot as a goal.</li>
-        <li><strong>5m Attempt / Opp 5m Attempt</strong> — records a 5-meter shot that didn't score.</li>
-        <li><strong>🧤 GK Save</strong> — records goalie saves.</li>
-        <li><strong>Timeouts</strong> — separate buttons for each timeout length (e.g. <em>1 Min T/O</em> and <em>30s T/O</em>). Each button can only be used once — it grays out after use. The clock pauses automatically during a timeout.</li>
-        <li><strong>↺ Reset Clock</strong> — resets the clock back to the full quarter length without changing the game state.</li>
-        <li><strong>↩ Undo</strong> — removes the last logged event if you make a mistake.</li>
-        <li>All updates are visible to everyone watching the app within 5 seconds.</li>
-      </ul>`
+      body: appT('help_live_scoring_body')
     },
     {
       icon: '🎯',
-      title: 'Shootout Mode',
-      body: `<p>When a game is tied at the end of regulation, tap <strong>🎯 SO</strong> in the game state bar to enter Shootout Mode.</p>
-      <ul>
-        <li>Each team selects 5 players who each take a 5-meter shot.</li>
-        <li>Every shootout goal scores <strong>+0.1 points</strong> — so a 3-goal shootout shows as 7.3 vs 7.0 if the score was 7–7.</li>
-        <li>The <strong>SO Goal / Opp SO Goal</strong> buttons replace the regular goal buttons in shootout mode.</li>
-        <li><strong>SO Attempts</strong> buttons track missed shootout shots for stats purposes.</li>
-        <li>The 5m penalty row is hidden during shootouts since 5m penalties don't occur during SO.</li>
-        <li>Tap the <strong>🎯✈️ Shootout Alert</strong> button to send an alert to your Telegram or GroupMe channel when a shootout begins.</li>
-        <li>Tapping 🎯 SO a second time undoes the shootout state — use <strong>↩ Pre</strong> to fully reset if needed.</li>
-      </ul>`
+      title: appT('help_shootout_title'),
+      body: appT('help_shootout_body')
     },
     {
       icon: '🏅',
-      title: 'Bracket Tab',
-      body: `<p><strong>👑 Requires Parent Monthly subscription ($4.99/mo).</strong> Subscribe in <em>Settings → Subscription</em>.</p>
-      <p>The <strong>Bracket</strong> tab shows where the team could end up based on pool play results.</p>
-      <ul>
-        <li>Before the schedule is posted the tab shows <em>"Bracket Coming Soon"</em> — it activates once games are loaded.</li>
-        <li>As pool play results are entered, the projected bracket path highlights automatically.</li>
-        <li>Gold, Silver, and Bronze paths each show the possible opponent, time, and location.</li>
-        <li>Bracket points: <strong>Win = 4 · SO Win = 3 · SO Loss = 2 · Loss = 1 · Forfeit = 0</strong>.</li>
-        <li>When multiple age groups or A/B teams are selected, each has its own labeled bracket section — scroll to see them all.</li>
-      </ul>`
+      title: appT('help_bracket_title'),
+      body: appT('help_bracket_body')
     },
     {
       icon: '📜',
       title: appT('help_history_title'),
-      body: `<p><strong>👑 Requires Parent Monthly subscription ($4.99/mo).</strong> Subscribe in <em>Settings → Subscription</em>.</p>
-      <p>The <strong>History</strong> tab keeps a running record of every completed tournament.</p>
-      <ul>
-        <li>When you mark a game result in the Scores tab, it moves off the Schedule and into History automatically.</li>
-        <li>Full tournament results archive automatically when a new tournament loads on any device.</li>
-        <li>The standings table shows cumulative bracket points across all tournament days.</li>
-        <li>Tap any tournament entry to expand and see game-by-game results.</li>
-        <li>History is stored on your device and also seeded from the official record on first install.</li>
-      </ul>`
+      body: appT('help_history_body')
     },
     {
       icon: '⭐',
-      title: 'My Player — Follow Your Child',
-      body: `<p>In the <strong>Roster</strong> tab, the <em>My Player</em> card lets you follow your child's full stats across the entire season. If you have kids on multiple age groups, you can follow one player per team simultaneously.</p>
-      <ul>
-        <li><strong>Single age group:</strong> tap the dropdown on the My Player card and select your child's name to start tracking them. Tap the card header to collapse or expand it.</li>
-        <li><strong>Multiple age groups selected:</strong> a "My Players" card appears for each age group — pick your child from each team's dropdown. All followed players are shown at the top of the Roster tab.</li>
-        <li><strong>Row 1 (large):</strong> Goals · Assists · Attempts — the three primary stats at a glance.</li>
-        <li><strong>Row 2:</strong> 6on5 Goals · 5m Goals · 5m Attempts · SO Goals — specialty scoring stats.</li>
-        <li><strong>Row 3:</strong> Exclusions · Earned Excl · SO Attempts · Games — discipline, earned power plays, and game count.</li>
-        <li>Three <strong>Shooting % boxes</strong> show regular shot %, 5m shot %, and SO shot % — each with made/attempts breakdown.</li>
-        <li>Recent games are listed with per-game stats and scores.</li>
-        <li>The <strong>📊 Download Stats CSV</strong> button exports the full stat history as a spreadsheet.</li>
-        <li>Goalies see Saves instead of shooting stats.</li>
-      </ul>`
+      title: appT('help_myplayer_title'),
+      body: appT('help_myplayer_body')
     },
     {
       icon: '🤽‍♀️',
-      title: 'Age Group Selector & A/B Team Picker',
-      body: `<p>The <strong>age group pills</strong> just below the tournament header let you choose which age group(s) to view — 10u Co-Ed through Masters, always displayed in age order.</p>
-      <ul>
-        <li><strong>Tap any pill</strong> to activate that age group. The active pill turns blue and all tabs reload with that group's data.</li>
-<li><strong>Tap a second pill</strong> to add another age group — great for parents with kids on two different teams. Multiple selections always display in age order (10u → 12u → 14u → 16u → 18u → Masters) regardless of the order you tap them.</li>
-        <li>Tap an active pill again to deselect it (at least one must stay selected).</li>
-        <li>Your selections are remembered between sessions.</li>
-        <li>The pills scroll horizontally — swipe left or right to see all age groups.</li>
-      </ul>
-      <p style="margin-top:10px"><strong>A/B team sub-selector (compound pill):</strong> when a tournament has multiple squads in the same age group (e.g. Pacific Red and Pacific Blue), the age group pill expands into a <em>compound pill</em>:</p>
-      <ul>
-        <li>The pill shows the age group label followed by team name buttons: <code>14u Girls · Pacific Red  Pacific Blue</code></li>
-        <li>The currently active team name(s) are highlighted with a white background inside the pill.</li>
-        <li><strong>Tap a team name button</strong> to select it. Tap it again to deselect it (at least one must stay selected per age group).</li>
-        <li><strong>You can select both A and B at the same time</strong> — perfect if your child plays on both squads. When both are active, every tab shows two separate labeled sections: one for each team.</li>
-        <li>Each age group has its own <em>independent</em> A/B selection — pick 12u Girls A-team and 16u Boys B-team at the same time with no conflict.</li>
-      </ul>`
+      title: appT('help_agegroup_title'),
+      body: appT('help_agegroup_body')
     },
     {
       icon: '👥',
-      title: 'Multi-Age-Group & Split-Team View',
-      body: `<p>The app supports viewing multiple age groups and multiple team squads simultaneously across all tabs.</p>
-      <ul>
-        <li><strong>Multiple age groups:</strong> when two or more age group pills are active, every tab — Schedule, Scores, Bracket, Roster, History — splits into labeled sections, one per age group. Scroll to see each team's data without switching back and forth.</li>
-        <li><strong>Both A and B teams selected:</strong> when you select both team names within one age group, that group expands into two separate sections labeled "14u Girls · Pacific Red" and "14u Girls · Pacific Blue" — each showing only that squad's games, bracket, and roster. No mixing.</li>
-        <li>Section headers always tell you exactly which squad you're looking at: <em>age group · team name</em>.</li>
-        <li>Each team's history and bracket are tracked separately across all tournaments.</li>
-        <li>The A/B sub-selector only appears when the admin has enabled multi-team mode for that age group.</li>
-      </ul>`
+      title: appT('help_multi_title'),
+      body: appT('help_multi_body')
     },
     {
       icon: '🌐',
