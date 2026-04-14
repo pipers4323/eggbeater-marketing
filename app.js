@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Eggbeater Water Polo — Tournament App
  * =========================================
  * Features:
@@ -119,7 +119,19 @@ const APP_I18N = {
     history_title: 'Tournament History',
     history_select_prompt: 'Select an age group above to view tournament history.',
     history_desc: 'Past tournament results, most recent first.',
-    history_empty: 'No history yet. Results from completed tournaments will appear here automatically.'
+    history_empty: 'No history yet. Results from completed tournaments will appear here automatically.',
+    history_goals_label: 'Goals:',
+    history_assists_label: 'Assists:',
+    history_player_label: 'Player',
+    common_share: 'Share',
+    common_follow_live: 'Follow Live',
+    common_send_telegram: 'Send to Telegram',
+    common_send_groupme: 'Send to GroupMe',
+    help_schedule_title: 'Schedule Tab',
+    help_history_title: 'History Tab',
+    help_scores_title: 'Scores Tab — Live Scores & Box Scores',
+    help_live_scoring_title: 'Live Scoring — Scorer Controls',
+    help_box_score_title: 'Live Scoring and Box Score'
   },
   es: {
     club_picker_title: 'Bienvenido a Eggbeater',
@@ -185,7 +197,19 @@ const APP_I18N = {
     history_title: 'Historial del torneo',
     history_select_prompt: 'Selecciona un grupo de edad arriba para ver el historial del torneo.',
     history_desc: 'Resultados de torneos pasados, del mas reciente al mas antiguo.',
-    history_empty: 'Todavia no hay historial. Los resultados de torneos finalizados apareceran aqui automaticamente.'
+    history_empty: 'Todavia no hay historial. Los resultados de torneos finalizados apareceran aqui automaticamente.',
+    history_goals_label: 'Goles:',
+    history_assists_label: 'Asistencias:',
+    history_player_label: 'Jugador',
+    common_share: 'Compartir',
+    common_follow_live: 'Seguir en vivo',
+    common_send_telegram: 'Enviar a Telegram',
+    common_send_groupme: 'Enviar a GroupMe',
+    help_schedule_title: 'Pestaña Calendario',
+    help_history_title: 'Pestaña Historial',
+    help_scores_title: 'Pestaña Marcadores — Marcadores en vivo y box score',
+    help_live_scoring_title: 'Marcación en vivo — Controles del anotador',
+    help_box_score_title: 'Marcador en vivo y box score'
   },
   fr: {
     club_picker_title: 'Bienvenue sur Eggbeater',
@@ -251,7 +275,19 @@ const APP_I18N = {
     history_title: 'Historique du tournoi',
     history_select_prompt: "Choisissez un groupe d'age ci-dessus pour voir l'historique du tournoi.",
     history_desc: 'Resultats des tournois passes, du plus recent au plus ancien.',
-    history_empty: "Aucun historique pour l'instant. Les resultats des tournois termines apparaitront ici automatiquement."
+    history_empty: "Aucun historique pour l'instant. Les resultats des tournois termines apparaitront ici automatiquement.",
+    history_goals_label: 'Buts :',
+    history_assists_label: 'Passes :',
+    history_player_label: 'Joueur',
+    common_share: 'Partager',
+    common_follow_live: 'Suivre en direct',
+    common_send_telegram: 'Envoyer vers Telegram',
+    common_send_groupme: 'Envoyer vers GroupMe',
+    help_schedule_title: 'Onglet Calendrier',
+    help_history_title: 'Onglet Historique',
+    help_scores_title: 'Onglet Scores — Scores en direct et box score',
+    help_live_scoring_title: 'Score en direct — Commandes du marqueur',
+    help_box_score_title: 'Score en direct et box score'
   }
 };
 
@@ -5980,7 +6016,7 @@ function renderNextGameCard() {
           <div class="next-game-card-top">
             ${g.gameNum ? `<div class="next-game-num">${escHtml(g.gameNum)}</div>` : ''}
             ${nextLive ? `<span class="live-badge-next">🔴 LIVE</span>` : ''}
-            <button class="follow-live-btn" onclick="toggleLiveActivity('${_gameRef(g)}')">📡 Follow Live</button>
+            <button class="follow-live-btn" onclick="toggleLiveActivity('${_gameRef(g)}')">📡 ${appT('common_follow_live')}</button>
           </div>
           <div class="next-label">${nextLive ? appT('next_in_progress') : appT('next_next_game')}</div>
           <div class="next-vs">vs ${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}</div>
@@ -6001,7 +6037,7 @@ function renderNextGameCard() {
       <div class="next-game-wrap">
         <div class="next-game-card next-projected">
           ${g.gameNum ? `<div class="next-game-num">${escHtml(g.gameNum)}</div>` : ''}
-          <div class="next-label">${appT('next_projected_next')} - ${escHtml(next.pathLabel || '')}</div>
+          <div class="next-label">${appT('next_projected_next')} · ${escHtml(next.pathLabel || '')}</div>
           <div class="next-vs">${escHtml(normalizeOpponentName(g.desc || 'Bracket Game'))}</div>
           <div class="next-meta">
             <span>${timeStr}</span>
@@ -6205,7 +6241,7 @@ function buildScheduleCard(g) {
   // LIVE badge is handled by the Next Game blue card; plain schedule cards don't show it
   const isLive = isGameLive(_gameRef(g));
   const liveBadge = isLive ? ' <span class="live-badge">🔴 LIVE</span>' : '';
-  const followBtn = `<button class="follow-live-btn-sm" onclick="toggleLiveActivity('${_gameRef(g)}')" title="Follow Live on Lock Screen">📡 Follow</button>`;
+  const followBtn = `<button class="follow-live-btn-sm" onclick="toggleLiveActivity('${_gameRef(g)}')" title="${escHtml(appT('common_follow_live'))}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
 
   return `
     <div class="sched-card ${capBgClass}">
@@ -6387,7 +6423,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       </div>
       <div class="ls-actions-row">
         <button class="ls-undo-btn" onclick="undoLastEvent('${gid}')">↩ Undo</button>
-        <button class="ls-share-btn" onclick="shareBoxScore('${gid}')">📤 Share</button>
+        <button class="ls-share-btn" onclick="shareBoxScore('${gid}')">📤 ${appT('common_share')}</button>
       </div>
       ${s.gameState === 'shootout' ? `
       <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:6px 10px;margin-bottom:6px;text-align:center">
@@ -6467,7 +6503,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       ${eventLogHtml}
       ${hasEvents ? `
         <div class="bs-actions-row">
-          <button class="bs-share-btn" onclick="shareBoxScore('${gid}')">📤 Share</button>
+          <button class="bs-share-btn" onclick="shareBoxScore('${gid}')">📤 ${appT('common_share')}</button>
         </div>` : ''}
       ${boxScoreHtml}
     </div>`;
@@ -6503,8 +6539,8 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
         <button class="notify-btn" style="background:#fef3c7;color:#92400e;border-color:#f59e0b" onclick="sendShootoutAlert('${gid}','gm')">🎯💬 Shootout Alert → GroupMe</button>
       </div>` : ''}
       <div class="result-notify-row">
-        <button class="notify-btn notify-tg" onclick="sendBoxScoreNotify('${gid}','tg')">✈️ Send to Telegram</button>
-        <button class="notify-btn notify-gm" onclick="sendBoxScoreNotify('${gid}','gm')">💬 Send to GroupMe</button>
+        <button class="notify-btn notify-tg" onclick="sendBoxScoreNotify('${gid}','tg')">✈️ ${appT('common_send_telegram')}</button>
+        <button class="notify-btn notify-gm" onclick="sendBoxScoreNotify('${gid}','gm')">💬 ${appT('common_send_groupme')}</button>
       </div>` : ''}
     </div>`;
 }
@@ -6732,7 +6768,7 @@ function buildHistoryCard(t, options = {}) {
     const boxScoreTable = hasStats ? `
       <div class="hist-box-score">
         <div class="hist-bs-row hist-bs-header">
-          <span class="hist-bs-player">Player</span>
+          <span class="hist-bs-player">${appT('history_player_label')}</span>
           <span class="hist-bs-stat">G</span>
           <span class="hist-bs-stat">A</span>
           <span class="hist-bs-stat">Ex</span>
@@ -6756,12 +6792,12 @@ function buildHistoryCard(t, options = {}) {
       </div>
       ${scorerChips ? `
         <div class="hist-scorer-row">
-          <span class="hist-scorers-label">Goals:</span>
+          <span class="hist-scorers-label">${appT('history_goals_label')}</span>
           <div class="hist-scorer-chips">${scorerChips}</div>
         </div>` : ''}
       ${assistChips ? `
         <div class="hist-scorer-row">
-          <span class="hist-scorers-label">Assists:</span>
+          <span class="hist-scorers-label">${appT('history_assists_label')}</span>
           <div class="hist-scorer-chips">${assistChips}</div>
         </div>` : ''}
       ${boxScoreTable}`;
@@ -9831,7 +9867,7 @@ function renderHelpTab() {
     },
     {
       icon: '📅',
-      title: 'Schedule Tab',
+      title: appT('help_schedule_title'),
       body: `<p>The <strong>Schedule</strong> tab shows all upcoming games for the selected team sorted by game number.</p>
       <ul>
         <li>The <strong>Next Game</strong> card at the top highlights your next upcoming game in blue — when a game is being live-scored it turns red, shows <strong>🔴 LIVE</strong>, and displays the current score, quarter, and live clock so you can follow the action at a glance.</li>
@@ -9845,7 +9881,7 @@ function renderHelpTab() {
     },
     {
       icon: '🏆',
-      title: 'Scores Tab — Live Scores & Box Scores',
+      title: appT('help_scores_title'),
       body: `<p>The <strong>Scores</strong> tab is where all live scoring and box scores live. Watch for a <strong>pulsing red dot</strong> on the Scores nav button — it lights up whenever a game is being actively scored.</p>
       <ul>
         <li><strong>👁 View Live Scores</strong> — tap this button (above the scorer login) to follow a live game in real time without needing the scoring password. You'll see the live score, event log, and box score updating every 5 seconds.</li>
@@ -9858,7 +9894,7 @@ function renderHelpTab() {
     },
     {
       icon: '📊',
-      title: 'Live Scoring — Scorer Controls',
+      title: appT('help_live_scoring_title'),
       body: `<p>If you have the scoring password, tap <strong>🔒 Login to Score</strong> (top-right of the viewer screen) and enter the tournament password to unlock full scoring controls.</p>
       <ul>
         <li><strong>Only the current game</strong> shows its full scoring buttons — upcoming games are collapsed to keep the screen clean. Tap any game header to expand it when it's time to score.</li>
@@ -9910,7 +9946,7 @@ function renderHelpTab() {
     },
     {
       icon: '📜',
-      title: 'History Tab',
+      title: appT('help_history_title'),
       body: `<p><strong>👑 Requires Parent Monthly subscription ($4.99/mo).</strong> Subscribe in <em>Settings → Subscription</em>.</p>
       <p>The <strong>History</strong> tab keeps a running record of every completed tournament.</p>
       <ul>
