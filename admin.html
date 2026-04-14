@@ -3558,6 +3558,10 @@
         admins_name_prompt: 'Set display name for this admin:',
         admins_name_updated: 'Admin name updated',
         admins_role_updated: 'Role updated to {role}',
+        admins_role_admin: 'Admin',
+        admins_role_scorer: 'Scorer',
+        admins_name_button: 'Name',
+        admins_remove_button: 'Remove',
         admins_enter_uid: 'Enter a Google UID',
         admins_uid_exists: 'UID already in admin list',
         admins_added: 'Admin added{name}',
@@ -3627,6 +3631,43 @@
         roster_saving: 'Saving roster...',
         roster_saved: 'Roster saved - will be included in next deploy',
         roster_save_failed: 'Save failed: {message}',
+        roster_preview_none: 'No players found. Check your data format.',
+        roster_preview_title: 'Preview ({count} players found)',
+        roster_import_to: 'Import to:',
+        roster_import_current_age: 'Players will import to the currently selected age group.',
+        roster_import_autoroute: 'Will auto-route to {count} age group{suffix}: {groups}',
+        roster_import_unrecognized: 'Unrecognized groups (will skip): {groups}',
+        roster_import_players: 'Import {count} Players',
+        roster_col_first: 'First',
+        roster_col_last: 'Last',
+        roster_col_pos: 'Pos',
+        roster_col_team: 'Team',
+        roster_col_age_group: 'Age Group',
+        roster_save_button: 'Save Roster',
+        roster_sheet_card_title: 'Google Sheets Sync',
+        roster_sheet_help: 'Paste your Google Sheet link - sheet must be shared as Anyone with link can view. Columns expected: Team  Cap #  First Name  Last Name',
+        roster_sheet_placeholder: 'https://docs.google.com/spreadsheets/d/...',
+        roster_sheet_sync_button: 'Sync from Sheet',
+        roster_sheet_save_url_button: 'Save URL',
+        roster_bulk_card_title: 'Bulk Import',
+        roster_bulk_help: 'Paste from Google Sheets / Excel or upload a CSV. Auto-detects columns by header row.',
+        roster_bulk_paste_button: 'Paste from Spreadsheet',
+        roster_bulk_upload_csv: 'Upload CSV',
+        roster_bulk_placeholder: 'Paste rows from your spreadsheet here...',
+        roster_bulk_example: 'e.g.:  #  First  Last  Pos',
+        roster_bulk_example_row: '1  John  Smith  Attacker',
+        roster_bulk_parse_button: 'Parse and Preview',
+        roster_hint: 'Roster is saved independently - names persist across tournaments. Update cap numbers here any time; tap Save Roster when done.',
+        sheets_url_required: 'Enter a URL first',
+        sheets_url_saved: 'URL saved',
+        sheets_fetching: 'Fetching sheet...',
+        sheets_fetching_data: 'Fetching sheet data...',
+        sheets_synced_multi: 'Synced {count} players ({labelA}: {totalA}, {labelB}: {totalB}) - saving...',
+        sheets_synced_single: 'Synced {count} players - saving...',
+        sheets_sync_retry: 'Sync succeeded but save failed - tap Save Roster to retry',
+        sheets_saved_suffix: 'saved',
+        njo_fetching: 'Fetching sheet and detecting NJO format...',
+        publish_season_sync: 'Season synced to all HS teams - Deploying...',
         library_name_prompt: 'Enter a name for this tournament draft:',
         library_saved: 'Saved "{name}" to Library!',
         library_load_confirm: 'Load "{name}" into your workspace? This will replace your current unsaved edits.',
@@ -3819,6 +3860,10 @@
         admins_name_prompt: 'Define el nombre visible para este admin:',
         admins_name_updated: 'Nombre del admin actualizado',
         admins_role_updated: 'Rol actualizado a {role}',
+        admins_role_admin: 'Admin',
+        admins_role_scorer: 'Anotador',
+        admins_name_button: 'Nombre',
+        admins_remove_button: 'Eliminar',
         admins_enter_uid: 'Ingresa un UID de Google',
         admins_uid_exists: 'Ese UID ya existe en la lista',
         admins_added: 'Admin agregado{name}',
@@ -3888,6 +3933,43 @@
         roster_saving: 'Guardando roster...',
         roster_saved: 'Roster guardado - se incluira en el siguiente deploy',
         roster_save_failed: 'Fallo al guardar: {message}',
+        roster_preview_none: 'No se encontraron jugadores. Revisa el formato de tus datos.',
+        roster_preview_title: 'Vista previa ({count} jugadores encontrados)',
+        roster_import_to: 'Importar a:',
+        roster_import_current_age: 'Los jugadores se importaran al grupo de edad seleccionado actualmente.',
+        roster_import_autoroute: 'Se enviaran automaticamente a {count} grupo{suffix}: {groups}',
+        roster_import_unrecognized: 'Grupos no reconocidos (se omitiran): {groups}',
+        roster_import_players: 'Importar {count} jugadores',
+        roster_col_first: 'Nombre',
+        roster_col_last: 'Apellido',
+        roster_col_pos: 'Pos',
+        roster_col_team: 'Equipo',
+        roster_col_age_group: 'Grupo de edad',
+        roster_save_button: 'Guardar roster',
+        roster_sheet_card_title: 'Sincronizacion con Google Sheets',
+        roster_sheet_help: 'Pega el enlace de Google Sheets - la hoja debe estar compartida como Anyone with link can view. Columnas esperadas: Team  Cap #  First Name  Last Name',
+        roster_sheet_placeholder: 'https://docs.google.com/spreadsheets/d/...',
+        roster_sheet_sync_button: 'Sincronizar desde la hoja',
+        roster_sheet_save_url_button: 'Guardar URL',
+        roster_bulk_card_title: 'Importacion masiva',
+        roster_bulk_help: 'Pega desde Google Sheets / Excel o sube un CSV. Detecta columnas automaticamente por el encabezado.',
+        roster_bulk_paste_button: 'Pegar desde planilla',
+        roster_bulk_upload_csv: 'Subir CSV',
+        roster_bulk_placeholder: 'Pega aqui las filas de tu planilla...',
+        roster_bulk_example: 'ej.:  #  First  Last  Pos',
+        roster_bulk_example_row: '1  John  Smith  Attacker',
+        roster_bulk_parse_button: 'Analizar y vista previa',
+        roster_hint: 'El roster se guarda por separado - los nombres persisten entre torneos. Actualiza los gorros aqui cuando quieras; toca Save Roster al terminar.',
+        sheets_url_required: 'Ingresa primero una URL',
+        sheets_url_saved: 'URL guardada',
+        sheets_fetching: 'Cargando planilla...',
+        sheets_fetching_data: 'Cargando datos de la planilla...',
+        sheets_synced_multi: 'Se sincronizaron {count} jugadores ({labelA}: {totalA}, {labelB}: {totalB}) - guardando...',
+        sheets_synced_single: 'Se sincronizaron {count} jugadores - guardando...',
+        sheets_sync_retry: 'La sincronizacion salio bien pero el guardado fallo - toca Save Roster para reintentar',
+        sheets_saved_suffix: 'guardada',
+        njo_fetching: 'Cargando la hoja y detectando el formato NJO...',
+        publish_season_sync: 'Temporada sincronizada a todos los equipos HS - Desplegando...',
         library_name_prompt: 'Ingresa un nombre para este borrador de torneo:',
         library_saved: 'Se guardo "{name}" en Library',
         library_load_confirm: 'Cargar "{name}" en tu espacio de trabajo? Esto reemplazara tus cambios no guardados.',
@@ -4080,6 +4162,10 @@
         admins_name_prompt: "Definir le nom d'affichage pour cet admin :",
         admins_name_updated: "Nom de l'admin mis a jour",
         admins_role_updated: 'Role mis a jour vers {role}',
+        admins_role_admin: 'Admin',
+        admins_role_scorer: 'Scorer',
+        admins_name_button: 'Nom',
+        admins_remove_button: 'Supprimer',
         admins_enter_uid: 'Entrez un UID Google',
         admins_uid_exists: 'Cet UID est deja dans la liste',
         admins_added: 'Admin ajoute{name}',
@@ -4149,6 +4235,43 @@
         roster_saving: 'Enregistrement de leffectif...',
         roster_saved: 'Effectif enregistre - il sera inclus dans le prochain deploy',
         roster_save_failed: "Echec de l'enregistrement : {message}",
+        roster_preview_none: 'Aucun joueur trouve. Verifiez le format de vos donnees.',
+        roster_preview_title: 'Apercu ({count} joueurs trouves)',
+        roster_import_to: 'Importer vers :',
+        roster_import_current_age: "Les joueurs seront importes dans le groupe d'age actuellement selectionne.",
+        roster_import_autoroute: 'Routage automatique vers {count} groupe{suffix} : {groups}',
+        roster_import_unrecognized: 'Groupes non reconnus (ignores) : {groups}',
+        roster_import_players: 'Importer {count} joueurs',
+        roster_col_first: 'Prenom',
+        roster_col_last: 'Nom',
+        roster_col_pos: 'Poste',
+        roster_col_team: 'Equipe',
+        roster_col_age_group: "Groupe d'age",
+        roster_save_button: 'Enregistrer leffectif',
+        roster_sheet_card_title: 'Sync Google Sheets',
+        roster_sheet_help: "Collez le lien Google Sheets - la feuille doit etre partagee en mode Anyone with link can view. Colonnes attendues : Team  Cap #  First Name  Last Name",
+        roster_sheet_placeholder: 'https://docs.google.com/spreadsheets/d/...',
+        roster_sheet_sync_button: 'Sync depuis la feuille',
+        roster_sheet_save_url_button: 'Enregistrer lURL',
+        roster_bulk_card_title: 'Import en masse',
+        roster_bulk_help: 'Collez depuis Google Sheets / Excel ou importez un CSV. Les colonnes sont detectees automatiquement depuis la ligne den-tete.',
+        roster_bulk_paste_button: 'Coller depuis le tableur',
+        roster_bulk_upload_csv: 'Importer CSV',
+        roster_bulk_placeholder: 'Collez ici les lignes de votre tableur...',
+        roster_bulk_example: 'ex. :  #  First  Last  Pos',
+        roster_bulk_example_row: '1  John  Smith  Attacker',
+        roster_bulk_parse_button: 'Analyser et previsualiser',
+        roster_hint: "Leffectif est enregistre separement - les noms persistent entre les tournois. Mettez a jour les bonnets ici quand vous voulez ; touchez Save Roster quand c'est pret.",
+        sheets_url_required: 'Entrez dabord une URL',
+        sheets_url_saved: 'URL enregistree',
+        sheets_fetching: 'Recuperation du tableur...',
+        sheets_fetching_data: 'Recuperation des donnees du tableur...',
+        sheets_synced_multi: 'Synchronisation de {count} joueurs ({labelA} : {totalA}, {labelB} : {totalB}) - enregistrement...',
+        sheets_synced_single: 'Synchronisation de {count} joueurs - enregistrement...',
+        sheets_sync_retry: "La synchronisation a reussi mais l'enregistrement a echoue - touchez Save Roster pour reessayer",
+        sheets_saved_suffix: 'enregistre',
+        njo_fetching: 'Recuperation de la feuille et detection du format NJO...',
+        publish_season_sync: 'Saison synchronisee vers toutes les equipes HS - Deploy...',
         library_name_prompt: 'Entrez un nom pour ce brouillon de tournoi :',
         library_saved: '"{name}" enregistre dans la bibliotheque',
         library_load_confirm: 'Charger "{name}" dans votre espace de travail ? Cela remplacera vos modifications non enregistrees.',
@@ -5656,7 +5779,7 @@
       if (!m) { if (statusEl) statusEl.textContent = 'Invalid Google Sheets URL.'; return; }
       const sheetId = m[1];
 
-      if (statusEl) statusEl.innerHTML = '<span style="color:var(--royal)">⏳ Fetching sheet data…</span>';
+      if (statusEl) statusEl.innerHTML = `<span style="color:var(--royal)">⏳ ${esc(adminT('sheets_fetching_data'))}</span>`;
       try {
         // Fetch as CSV via Google Sheets export
         const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
@@ -5827,53 +5950,51 @@
 
     function renderRosterTab() {
       const savedSheetUrl = localStorage.getItem('ebadmin-sheets-url') || '';
-      const saveBtn = `<button class="save-btn" style="width:100%;margin-top:10px" onclick="saveRoster()">💾 Save Roster</button>`;
+      const saveBtn = `<button class="save-btn" style="width:100%;margin-top:10px" onclick="saveRoster()">💾 ${esc(adminT('roster_save_button'))}</button>`;
       const sheetCard = `
     <div class="card" style="margin-top:8px">
-      <div class="card-header">📊 Google Sheets Sync</div>
+      <div class="card-header">📊 ${esc(adminT('roster_sheet_card_title'))}</div>
       <div style="padding:10px 14px">
         <div style="font-size:0.78rem;color:var(--g400);margin-bottom:8px">
-          Paste your Google Sheet link — sheet must be shared as <em>Anyone with link can view</em>.<br>
-          Columns expected: <strong>Team&nbsp;&nbsp;Cap #&nbsp;&nbsp;First Name&nbsp;&nbsp;Last Name</strong>
+          ${esc(adminT('roster_sheet_help'))}
         </div>
         <input class="form-input" id="sheets-url" type="url"
                value="${esc(savedSheetUrl)}"
-               placeholder="https://docs.google.com/spreadsheets/d/…"
+               placeholder="${esc(adminT('roster_sheet_placeholder'))}"
                style="margin-bottom:8px;font-size:0.8rem"
                autocomplete="off" spellcheck="false">
         <div style="display:flex;gap:8px">
-          <button class="save-btn" style="flex:1" onclick="syncFromSheet()">🔄 Sync from Sheet</button>
-          <button class="save-btn" style="flex:0 0 auto;background:var(--g100);color:var(--g700)" onclick="saveSheetUrl()">💾 Save URL</button>
+          <button class="save-btn" style="flex:1" onclick="syncFromSheet()">🔄 ${esc(adminT('roster_sheet_sync_button'))}</button>
+          <button class="save-btn" style="flex:0 0 auto;background:var(--g100);color:var(--g700)" onclick="saveSheetUrl()">💾 ${esc(adminT('roster_sheet_save_url_button'))}</button>
         </div>
         <div id="sheets-status" style="font-size:0.8rem;margin-top:6px;color:var(--g400)"></div>
       </div>
     </div>`;
       const bulkImportCard = `
     <div class="card" style="margin-top:8px" id="bulk-import-card">
-      <div class="card-header">📋 Bulk Import</div>
+      <div class="card-header">📋 ${esc(adminT('roster_bulk_card_title'))}</div>
       <div style="padding:10px 14px">
         <div style="font-size:0.78rem;color:var(--g400);margin-bottom:8px">
-          Paste from Google Sheets / Excel or upload a CSV. Auto-detects columns by header row.
+          ${esc(adminT('roster_bulk_help'))}
         </div>
         <div style="display:flex;gap:8px;margin-bottom:8px">
-          <button class="save-btn" style="flex:1" onclick="toggleBulkPasteArea()">📋 Paste from Spreadsheet</button>
+          <button class="save-btn" style="flex:1" onclick="toggleBulkPasteArea()">📋 ${esc(adminT('roster_bulk_paste_button'))}</button>
           <label class="save-btn" style="flex:1;text-align:center;cursor:pointer;margin:0">
-            📁 Upload CSV
+            📁 ${esc(adminT('roster_bulk_upload_csv'))}
             <input type="file" accept=".csv,.tsv,.txt" onchange="bulkImportFile(event)" style="display:none">
           </label>
         </div>
         <div id="bulk-paste-area" style="display:none">
           <textarea id="bulk-paste-input" rows="6"
-            placeholder="Paste rows from your spreadsheet here…&#10;e.g.:  #  First  Last  Pos&#10;       1  John  Smith  Attacker"
+            placeholder="${esc(adminT('roster_bulk_placeholder'))}&#10;${esc(adminT('roster_bulk_example'))}&#10;${esc(adminT('roster_bulk_example_row'))}"
             style="width:100%;box-sizing:border-box;font-family:monospace;font-size:0.8rem;padding:8px;border:1px solid var(--g200);border-radius:6px;resize:vertical"></textarea>
-          <button class="save-btn" style="width:100%;margin-top:6px" onclick="parseBulkPaste()">🔍 Parse & Preview</button>
+          <button class="save-btn" style="width:100%;margin-top:6px" onclick="parseBulkPaste()">🔍 ${esc(adminT('roster_bulk_parse_button'))}</button>
         </div>
         <div id="bulk-preview" style="display:none;margin-top:8px"></div>
       </div>
     </div>`;
       const hint = `<div style="font-size:0.78rem;color:var(--g400);padding:8px 14px 0;text-align:center">
-    Roster is saved independently — names persist across tournaments.<br>
-    Update cap numbers here any time; tap <strong>💾 Save Roster</strong> when done.
+    ${esc(adminT('roster_hint'))}
   </div>`;
 
       if (isMultiTeamAdmin()) {
@@ -6089,7 +6210,7 @@
         }
         const arr = getRosterArray(teamKey);
         arr.splice(0, arr.length, ...players);
-        showStatus(`Loaded ${players.length} players — tap 💾 Save Roster to persist`, 'ok');
+        showStatus(adminFormat('roster_loaded', { count: players.length }), 'ok');
         renderTab();
       };
       reader.readAsText(file);
@@ -6203,7 +6324,7 @@
 
       if (!players.length) {
         el.style.display = '';
-        el.innerHTML = '<div style="color:var(--red);font-size:0.85rem;padding:8px">No players found. Check your data format.</div>';
+        el.innerHTML = `<div style="color:var(--red);font-size:0.85rem;padding:8px">${esc(adminT('roster_preview_none'))}</div>`;
         return;
       }
 
@@ -6212,16 +6333,16 @@
       const hasAgeGroup = players.some(p => p.ageGroup);
       const multi = isMultiTeamAdmin();
 
-      let html = `<div style="font-size:0.82rem;font-weight:700;color:var(--royal);margin-bottom:6px">Preview (${players.length} players found)</div>`;
+      let html = `<div style="font-size:0.82rem;font-weight:700;color:var(--royal);margin-bottom:6px">${esc(adminFormat('roster_preview_title', { count: players.length }))}</div>`;
       html += '<div style="overflow-x:auto;max-height:240px;overflow-y:auto;border:1px solid var(--g200);border-radius:6px">';
       html += '<table style="width:100%;border-collapse:collapse;font-size:0.78rem">';
       html += '<thead><tr style="background:var(--g50);position:sticky;top:0">';
       html += '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">#</th>';
-      html += '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">First</th>';
-      html += '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">Last</th>';
-      if (hasPos) html += '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">Pos</th>';
-      if (hasTeam && multi) html += '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">Team</th>';
-      if (hasAgeGroup) html += '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">Age Group</th>';
+      html += `<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">${esc(adminT('roster_col_first'))}</th>`;
+      html += `<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">${esc(adminT('roster_col_last'))}</th>`;
+      if (hasPos) html += `<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">${esc(adminT('roster_col_pos'))}</th>`;
+      if (hasTeam && multi) html += `<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">${esc(adminT('roster_col_team'))}</th>`;
+      if (hasAgeGroup) html += `<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200)">${esc(adminT('roster_col_age_group'))}</th>`;
       html += '</tr></thead><tbody>';
 
       for (const p of players) {
@@ -6241,7 +6362,7 @@
         const labelA = (S.tournament.teamLabels?.A) || 'Team A';
         const labelB = (S.tournament.teamLabels?.B) || 'Team B';
         html += `<div style="margin-top:8px;font-size:0.82rem">
-      <label style="font-weight:600;margin-right:8px">Import to:</label>
+      <label style="font-weight:600;margin-right:8px">${esc(adminT('roster_import_to'))}</label>
       <select id="bulk-import-team" style="padding:4px 10px;border:1px solid var(--g200);border-radius:4px;font-size:0.82rem">
         <option value="A">${esc(labelA)}</option>
         <option value="B">${esc(labelB)}</option>
@@ -6252,18 +6373,22 @@
 
       // Age group selector (only when no age group column and multiple groups could apply)
       if (!hasAgeGroup) {
-        html += `<div style="margin-top:6px;font-size:0.78rem;color:var(--g400)">Players will import to the currently selected age group.</div>`;
+        html += `<div style="margin-top:6px;font-size:0.78rem;color:var(--g400)">${esc(adminT('roster_import_current_age'))}</div>`;
       } else {
         const ageGroups = [...new Set(players.map(p => p.ageGroup).filter(Boolean))];
         const matched = ageGroups.map(ag => ({ original: ag, key: _resolveAgeGroupKey(ag) })).filter(m => m.key);
         const unmatched = ageGroups.filter(ag => !_resolveAgeGroupKey(ag));
-        html += `<div style="margin-top:6px;font-size:0.78rem;color:var(--green);font-weight:600">✓ Will auto-route to ${matched.length} age group${matched.length !== 1 ? 's' : ''}: ${matched.map(m => m.original).join(', ')}</div>`;
-        if (unmatched.length) html += `<div style="font-size:0.78rem;color:var(--amber)">⚠️ Unrecognized groups (will skip): ${unmatched.join(', ')}</div>`;
+        html += `<div style="margin-top:6px;font-size:0.78rem;color:var(--green);font-weight:600">✓ ${esc(adminFormat('roster_import_autoroute', {
+          count: matched.length,
+          suffix: matched.length !== 1 ? 's' : '',
+          groups: matched.map(m => m.original).join(', ')
+        }))}</div>`;
+        if (unmatched.length) html += `<div style="font-size:0.78rem;color:var(--amber)">⚠️ ${esc(adminFormat('roster_import_unrecognized', { groups: unmatched.join(', ') }))}</div>`;
       }
 
       html += `<div style="display:flex;gap:8px;margin-top:8px">
-    <button class="save-btn" style="flex:1;background:var(--green);border-color:var(--green)" onclick="_confirmBulkImport()">✓ Import ${players.length} Players</button>
-    <button class="save-btn" style="flex:0 0 auto;background:var(--g100);color:var(--g700)" onclick="document.getElementById('bulk-preview').style.display='none'">Cancel</button>
+    <button class="save-btn" style="flex:1;background:var(--green);border-color:var(--green)" onclick="_confirmBulkImport()">✓ ${esc(adminFormat('roster_import_players', { count: players.length }))}</button>
+    <button class="save-btn" style="flex:0 0 auto;background:var(--g100);color:var(--g700)" onclick="document.getElementById('bulk-preview').style.display='none'">${esc(adminT('template_cancel'))}</button>
   </div>`;
 
       // Stash parsed players for confirm
@@ -6402,9 +6527,9 @@
     // Save the sheet URL to localStorage so it persists
     function saveSheetUrl() {
       const url = document.getElementById('sheets-url')?.value.trim();
-      if (!url) { document.getElementById('sheets-status').textContent = '⚠️ Enter a URL first'; return; }
+      if (!url) { document.getElementById('sheets-status').textContent = `⚠️ ${adminT('sheets_url_required')}`; return; }
       localStorage.setItem('ebadmin-sheets-url', url);
-      document.getElementById('sheets-status').textContent = '✅ URL saved';
+      document.getElementById('sheets-status').textContent = `✅ ${adminT('sheets_url_saved')}`;
     }
 
     // Resolve a sheet Team column value to 'A' or 'B'.
@@ -6430,13 +6555,13 @@
     // Fetch the Google Sheet via worker, parse it, replace the roster, then auto-save
     async function syncFromSheet() {
       const url = document.getElementById('sheets-url')?.value.trim();
-      if (!url) { document.getElementById('sheets-status').textContent = '⚠️ Enter a Google Sheets URL first'; return; }
+      if (!url) { document.getElementById('sheets-status').textContent = `⚠️ ${adminT('sheets_url_required')}`; return; }
 
       // Save the URL for next time
       localStorage.setItem('ebadmin-sheets-url', url);
 
       const statusEl = document.getElementById('sheets-status');
-      statusEl.textContent = '⏳ Fetching sheet…';
+      statusEl.textContent = `⏳ ${adminT('sheets_fetching')}`;
 
       try {
         const res = await api('POST', '/admin/sheets-sync', { url });
@@ -6458,17 +6583,23 @@
           const totalA = S.roster.A.length, totalB = S.roster.B.length;
           const labelA = (S.tournament.teamLabels && S.tournament.teamLabels.A) || 'A';
           const labelB = (S.tournament.teamLabels && S.tournament.teamLabels.B) || 'B';
-          statusEl.textContent = `✅ Synced ${totalA + totalB} players (${labelA}: ${totalA}, ${labelB}: ${totalB}) — saving…`;
+          statusEl.textContent = `✅ ${adminFormat('sheets_synced_multi', {
+            count: totalA + totalB,
+            labelA,
+            totalA,
+            labelB,
+            totalB
+          })}`;
         } else {
           // Single-team: ignore team column
           S.roster = players.map(p => ({ cap: p.cap, first: p.first, last: p.last }));
-          statusEl.textContent = `✅ Synced ${players.length} players — saving…`;
+          statusEl.textContent = `✅ ${adminFormat('sheets_synced_single', { count: players.length })}`;
         }
 
         // Auto-save to KV
         const saveRes = await api('PUT', '/admin/roster', { roster: S.roster });
-        if (!saveRes.ok) throw new Error('Sync succeeded but save failed — tap 💾 Save Roster to retry');
-        statusEl.textContent = statusEl.textContent.replace('— saving…', '— saved ✓');
+        if (!saveRes.ok) throw new Error(adminT('sheets_sync_retry'));
+        statusEl.textContent = `${statusEl.textContent.replace(/\s*-\s*saving\.\.\.$/, '').replace(/\s*-\s*guardando\.\.\.$/, '').replace(/\s*-\s*enregistrement\.\.\.$/, '')} - ${adminT('sheets_saved_suffix')}`;
         renderTab();
       } catch (e) {
         statusEl.textContent = '❌ ' + e.message;
@@ -7142,12 +7273,12 @@
           <code style="font-size:0.65rem;color:var(--g400);overflow:hidden;text-overflow:ellipsis;display:block">${esc(a.uid)}</code>
         </div>
         <select onchange="changeAdminRole('${esc(a.uid)}', this.value)" style="font-size:0.72rem;padding:3px 6px;border:1px solid var(--g200);border-radius:6px;background:${role === 'scorer' ? '#fef3c7' : '#ecfdf5'};font-weight:700;color:${role === 'scorer' ? '#92400e' : '#065f46'}">
-          <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
-          <option value="scorer" ${role === 'scorer' ? 'selected' : ''}>Scorer</option>
+          <option value="admin" ${role === 'admin' ? 'selected' : ''}>${esc(adminT('admins_role_admin'))}</option>
+          <option value="scorer" ${role === 'scorer' ? 'selected' : ''}>${esc(adminT('admins_role_scorer'))}</option>
         </select>
-        <button class="save-btn" style="font-size:0.68rem;padding:3px 8px" onclick="editAdminName('${esc(a.uid)}')">✏️ Name</button>
+        <button class="save-btn" style="font-size:0.68rem;padding:3px 8px" onclick="editAdminName('${esc(a.uid)}')">✏️ ${esc(adminT('admins_name_button'))}</button>
         <button class="save-btn" style="font-size:0.68rem;padding:3px 8px;background:var(--red-lt);color:var(--red);border-color:var(--red)"
-                onclick="removeClubAdminUid('${esc(a.uid)}')">Remove</button>
+                onclick="removeClubAdminUid('${esc(a.uid)}')">${esc(adminT('admins_remove_button'))}</button>
       </div>`;
         }).join('');
       } catch (e) {
@@ -9352,7 +9483,7 @@
       // Use gid from URL if present, otherwise default to known NJO master tab GID
       var gidM = url.match(/[#?&]gid=(\d+)/);
       S.njo.masterGid = gidM ? gidM[1] : '1188696082';
-      if (err) { err.style.color='var(--g400)'; err.textContent='⏳ Fetching sheet and detecting NJO format…'; }
+      if (err) { err.style.color='var(--g400)'; err.textContent=`⏳ ${adminT('njo_fetching')}`; }
       try {
         var csvUrl = 'https://docs.google.com/spreadsheets/d/'+S.njo.sheetId+'/gviz/tq?tqx=out:csv&gid='+S.njo.masterGid;
         var resp = await fetch(csvUrl);
@@ -10065,7 +10196,7 @@
               console.warn(`[HS sync] failed for ${otherTeam}:`, e.message);
             }
           }
-          showStatus('Season synced to all HS teams · Deploying…', 'info');
+          showStatus(adminT('publish_season_sync'), 'info');
         }
 
         showStatus('Publishing live…', 'info');
