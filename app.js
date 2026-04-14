@@ -131,7 +131,100 @@ const APP_I18N = {
     help_history_title: 'History Tab',
     help_scores_title: 'Scores Tab — Live Scores & Box Scores',
     help_live_scoring_title: 'Live Scoring — Scorer Controls',
-    help_box_score_title: 'Live Scoring and Box Score'
+    help_box_score_title: 'Live Scoring and Box Score',
+    scorer_controls: 'Scoring Controls',
+    scorer_open: 'Open Scorer',
+    scorer_team_label: 'Team',
+    scorer_opp_label: 'Opp',
+    scorer_undo: 'Undo',
+    scorer_share_box_score: 'Share',
+    scorer_shootout_mode: 'SHOOTOUT MODE',
+    scorer_shootout_hint: 'Each goal = +0.1 · Track who shoots!',
+    scorer_goal: '+ Goal',
+    scorer_opp_goal: '+ Opp Goal',
+    scorer_team_so_goal: 'Team SO Goal',
+    scorer_opp_so_goal: 'Opp SO Goal',
+    scorer_team_so_miss: 'Team SO Miss',
+    scorer_opp_so_miss: 'Opp SO Miss',
+    scorer_assist: 'Assist',
+    scorer_steal: 'Steal',
+    scorer_sprint_won: 'Sprint Won',
+    scorer_field_block: 'Field Block',
+    scorer_attempt: 'Attempt',
+    scorer_excl: 'Excl',
+    scorer_earned_excl: 'Earned Excl',
+    scorer_opp_steal: 'Opp Steal',
+    scorer_opp_attempt: 'Opp Attempt',
+    scorer_opp_excl: 'Opp Excl',
+    scorer_5m: '5m',
+    scorer_5m_attempt: '5m Attempt',
+    scorer_opp_5m: 'Opp 5m',
+    scorer_opp_5m_attempt: 'Opp 5m Attempt',
+    scorer_gk_save: 'GK Save',
+    scorer_pause: 'Pause',
+    scorer_start: 'Start',
+    scorer_resume: 'Resume',
+    scorer_reset: 'Reset',
+    scorer_halftime_break: 'Halftime break',
+    scorer_quarter_break: 'Quarter break',
+    scorer_next_quarter_ready: 'next quarter ready',
+    event_goal: 'GOAL',
+    event_goal_6v5: 'GOAL (6v5)',
+    event_goal_5m: 'GOAL (5m)',
+    event_shot_attempt: 'SHOT ATTEMPT',
+    event_attempt_5m: 'ATTEMPT (5m)',
+    event_so_goal: 'SO GOAL',
+    event_so_miss: 'SO MISS',
+    event_assist: 'ASSIST',
+    event_steal: 'STEAL',
+    event_steal_fbu: 'STEAL (FBU)',
+    event_sprint_won: 'SPRINT WON',
+    event_opp_sprint_won: 'OPP SPRINT WON',
+    event_opp_steal: 'OPP STEAL',
+    event_excl: 'EXCL',
+    event_brutal: 'BRUTAL',
+    event_timeout: 'TIMEOUT',
+    event_opp_timeout: 'OPP T/O',
+    event_save: 'SAVE',
+    event_field_block: 'FIELD BLOCK',
+    event_team_fallback: 'Team',
+    event_opp_fallback: 'Opp',
+    boxscore_goalkeeper: 'Goalkeeper',
+    boxscore_player: 'Player',
+    boxscore_total: 'Total',
+    boxscore_team_timeouts: 'Team Timeouts: {count}',
+    boxscore_shot_attempts: 'Shot Attempts',
+    boxscore_5m_goals: '5m Penalty Goals',
+    boxscore_5m_attempts: '5m Penalty Attempts',
+    boxscore_so_goals: 'Shootout Goals',
+    boxscore_so_misses: 'Shootout Misses',
+    boxscore_sprints_won: 'Sprints Won',
+    boxscore_forced_ball_under: 'Forced Ball Under',
+    boxscore_field_blocks: 'Field Blocks',
+    boxscore_earned_exclusions: 'Earned Exclusions',
+    roster_title: 'Roster',
+    roster_manage_players_desc: 'Manage players for live scoring. Cap numbers appear on goal/assist chips.',
+    roster_download_all_stats: 'Download All Player Stats',
+    roster_season_stats: 'Season Stats',
+    roster_no_players_yet: 'No players yet.',
+    roster_add_player: 'Add Player',
+    roster_save_roster: 'Save Roster',
+    playerstats_empty: 'No box scores recorded yet.<br>Use live scoring during a game to start tracking stats.',
+    playerstats_download_aria: 'Download stats for {name}',
+    playerstats_games_count: '{count} game(s)',
+    season_stats_title: 'Season Player Stats',
+    season_stats_loading: 'Loading season stats…',
+    season_stats_empty: 'No archived stats yet.<br>Stats aggregate from archived tournaments with player data.',
+    season_stats_failed: 'Failed to load: {message}',
+    live_follow_not_started: 'Game has not started yet — check back when it begins!',
+    live_follow_over: 'Game is already over.',
+    live_follow_android: 'Following Live! Check your status bar for score updates.',
+    live_update_plugin_missing: 'Live Update plugin not available.',
+    live_follow_native_only: 'Follow Live is available in the iOS and Android apps.',
+    live_activity_plugin_missing: 'Live Activity plugin not installed/registered',
+    live_follow_stopped: 'Stopped following live.',
+    live_follow_ios: 'Following Live! Updates appear on your lock screen.',
+    live_follow_unavailable: 'Live activities unavailable: {message}'
   },
   es: {
     club_picker_title: 'Bienvenido a Eggbeater',
@@ -209,7 +302,100 @@ const APP_I18N = {
     help_history_title: 'Pestaña Historial',
     help_scores_title: 'Pestaña Marcadores — Marcadores en vivo y box score',
     help_live_scoring_title: 'Marcación en vivo — Controles del anotador',
-    help_box_score_title: 'Marcador en vivo y box score'
+    help_box_score_title: 'Marcador en vivo y box score',
+    scorer_controls: 'Controles de anotación',
+    scorer_open: 'Abrir anotador',
+    scorer_team_label: 'Equipo',
+    scorer_opp_label: 'Rival',
+    scorer_undo: 'Deshacer',
+    scorer_share_box_score: 'Compartir',
+    scorer_shootout_mode: 'MODO PENALES',
+    scorer_shootout_hint: 'Cada gol = +0.1 · Marca quién tira',
+    scorer_goal: '+ Gol',
+    scorer_opp_goal: '+ Gol rival',
+    scorer_team_so_goal: 'Gol de penales',
+    scorer_opp_so_goal: 'Gol rival penales',
+    scorer_team_so_miss: 'Fallo en penales',
+    scorer_opp_so_miss: 'Fallo rival penales',
+    scorer_assist: 'Asistencia',
+    scorer_steal: 'Robo',
+    scorer_sprint_won: 'Sprint ganado',
+    scorer_field_block: 'Bloqueo de campo',
+    scorer_attempt: 'Intento',
+    scorer_excl: 'Exclusión',
+    scorer_earned_excl: 'Exclusión provocada',
+    scorer_opp_steal: 'Robo rival',
+    scorer_opp_attempt: 'Intento rival',
+    scorer_opp_excl: 'Exclusión rival',
+    scorer_5m: '5m',
+    scorer_5m_attempt: 'Intento 5m',
+    scorer_opp_5m: '5m rival',
+    scorer_opp_5m_attempt: 'Intento 5m rival',
+    scorer_gk_save: 'Atajada GK',
+    scorer_pause: 'Pausa',
+    scorer_start: 'Iniciar',
+    scorer_resume: 'Reanudar',
+    scorer_reset: 'Reiniciar',
+    scorer_halftime_break: 'Descanso',
+    scorer_quarter_break: 'Pausa entre cuartos',
+    scorer_next_quarter_ready: 'próximo cuarto listo',
+    event_goal: 'GOL',
+    event_goal_6v5: 'GOL (6v5)',
+    event_goal_5m: 'GOL (5m)',
+    event_shot_attempt: 'INTENTO',
+    event_attempt_5m: 'INTENTO (5m)',
+    event_so_goal: 'GOL DE PENALES',
+    event_so_miss: 'FALLO DE PENALES',
+    event_assist: 'ASISTENCIA',
+    event_steal: 'ROBO',
+    event_steal_fbu: 'ROBO (FBU)',
+    event_sprint_won: 'SPRINT GANADO',
+    event_opp_sprint_won: 'SPRINT RIVAL',
+    event_opp_steal: 'ROBO RIVAL',
+    event_excl: 'EXCL',
+    event_brutal: 'BRUTALIDAD',
+    event_timeout: 'TIEMPO FUERA',
+    event_opp_timeout: 'T/O RIVAL',
+    event_save: 'ATAJADA',
+    event_field_block: 'BLOQUEO DE CAMPO',
+    event_team_fallback: 'Equipo',
+    event_opp_fallback: 'Rival',
+    boxscore_goalkeeper: 'Portero',
+    boxscore_player: 'Jugador',
+    boxscore_total: 'Total',
+    boxscore_team_timeouts: 'Tiempos fuera del equipo: {count}',
+    boxscore_shot_attempts: 'Intentos de tiro',
+    boxscore_5m_goals: 'Goles de 5m',
+    boxscore_5m_attempts: 'Intentos de 5m',
+    boxscore_so_goals: 'Goles en penales',
+    boxscore_so_misses: 'Fallos en penales',
+    boxscore_sprints_won: 'Sprints ganados',
+    boxscore_forced_ball_under: 'Forced Ball Under',
+    boxscore_field_blocks: 'Bloqueos de campo',
+    boxscore_earned_exclusions: 'Exclusiones provocadas',
+    roster_title: 'Roster',
+    roster_manage_players_desc: 'Administra jugadoras para la anotación en vivo. Los números de gorro aparecen en las fichas de gol y asistencia.',
+    roster_download_all_stats: 'Descargar todas las estadísticas',
+    roster_season_stats: 'Estadísticas de temporada',
+    roster_no_players_yet: 'Todavía no hay jugadoras.',
+    roster_add_player: 'Agregar jugadora',
+    roster_save_roster: 'Guardar roster',
+    playerstats_empty: 'Todavía no hay box scores.<br>Usa la anotación en vivo durante un partido para comenzar a seguir estadísticas.',
+    playerstats_download_aria: 'Descargar estadísticas de {name}',
+    playerstats_games_count: '{count} juego(s)',
+    season_stats_title: 'Estadísticas de temporada',
+    season_stats_loading: 'Cargando estadísticas de temporada…',
+    season_stats_empty: 'Todavía no hay estadísticas archivadas.<br>Se agregan desde torneos archivados con datos de jugadoras.',
+    season_stats_failed: 'No se pudo cargar: {message}',
+    live_follow_not_started: 'El partido todavía no comienza — vuelve cuando empiece.',
+    live_follow_over: 'El partido ya terminó.',
+    live_follow_android: 'Siguiendo en vivo. Revisa la barra de estado para ver actualizaciones.',
+    live_update_plugin_missing: 'El plugin Live Update no está disponible.',
+    live_follow_native_only: 'Seguir en vivo está disponible en las apps de iOS y Android.',
+    live_activity_plugin_missing: 'El plugin Live Activity no está instalado/registrado',
+    live_follow_stopped: 'Se dejó de seguir en vivo.',
+    live_follow_ios: 'Siguiendo en vivo. Las actualizaciones aparecen en tu pantalla de bloqueo.',
+    live_follow_unavailable: 'Live Activities no disponibles: {message}'
   },
   fr: {
     club_picker_title: 'Bienvenue sur Eggbeater',
@@ -287,7 +473,100 @@ const APP_I18N = {
     help_history_title: 'Onglet Historique',
     help_scores_title: 'Onglet Scores — Scores en direct et box score',
     help_live_scoring_title: 'Score en direct — Commandes du marqueur',
-    help_box_score_title: 'Score en direct et box score'
+    help_box_score_title: 'Score en direct et box score',
+    scorer_controls: 'Commandes de score',
+    scorer_open: 'Ouvrir le marqueur',
+    scorer_team_label: 'Equipe',
+    scorer_opp_label: 'Adversaire',
+    scorer_undo: 'Annuler',
+    scorer_share_box_score: 'Partager',
+    scorer_shootout_mode: 'MODE TIRS AU BUT',
+    scorer_shootout_hint: 'Chaque but = +0.1 · Suivez les tireurs',
+    scorer_goal: '+ But',
+    scorer_opp_goal: '+ But adverse',
+    scorer_team_so_goal: 'But TAB équipe',
+    scorer_opp_so_goal: 'But TAB adverse',
+    scorer_team_so_miss: 'Raté TAB équipe',
+    scorer_opp_so_miss: 'Raté TAB adverse',
+    scorer_assist: 'Passe',
+    scorer_steal: 'Interception',
+    scorer_sprint_won: 'Sprint gagné',
+    scorer_field_block: 'Contre de champ',
+    scorer_attempt: 'Tentative',
+    scorer_excl: 'Excl',
+    scorer_earned_excl: 'Excl provoquée',
+    scorer_opp_steal: 'Interception adverse',
+    scorer_opp_attempt: 'Tentative adverse',
+    scorer_opp_excl: 'Excl adverse',
+    scorer_5m: '5m',
+    scorer_5m_attempt: 'Tentative 5m',
+    scorer_opp_5m: '5m adverse',
+    scorer_opp_5m_attempt: 'Tentative 5m adverse',
+    scorer_gk_save: 'Arrêt GK',
+    scorer_pause: 'Pause',
+    scorer_start: 'Demarrer',
+    scorer_resume: 'Reprendre',
+    scorer_reset: 'Reinitialiser',
+    scorer_halftime_break: 'Mi-temps',
+    scorer_quarter_break: 'Pause interquart',
+    scorer_next_quarter_ready: 'quart suivant prêt',
+    event_goal: 'BUT',
+    event_goal_6v5: 'BUT (6v5)',
+    event_goal_5m: 'BUT (5m)',
+    event_shot_attempt: 'TENTATIVE',
+    event_attempt_5m: 'TENTATIVE (5m)',
+    event_so_goal: 'BUT TAB',
+    event_so_miss: 'RATE TAB',
+    event_assist: 'PASSE',
+    event_steal: 'INTERCEPTION',
+    event_steal_fbu: 'INTERCEPTION (FBU)',
+    event_sprint_won: 'SPRINT GAGNÉ',
+    event_opp_sprint_won: 'SPRINT ADVERSE',
+    event_opp_steal: 'INTERCEPTION ADVERSE',
+    event_excl: 'EXCL',
+    event_brutal: 'BRUTALITE',
+    event_timeout: 'TEMPS MORT',
+    event_opp_timeout: 'TM ADVERSE',
+    event_save: 'ARRÊT',
+    event_field_block: 'CONTRE DE CHAMP',
+    event_team_fallback: 'Equipe',
+    event_opp_fallback: 'Adversaire',
+    boxscore_goalkeeper: 'Gardien',
+    boxscore_player: 'Joueur',
+    boxscore_total: 'Total',
+    boxscore_team_timeouts: 'Temps morts equipe : {count}',
+    boxscore_shot_attempts: 'Tentatives de tir',
+    boxscore_5m_goals: 'Buts de 5m',
+    boxscore_5m_attempts: 'Tentatives de 5m',
+    boxscore_so_goals: 'Buts TAB',
+    boxscore_so_misses: 'Ratés TAB',
+    boxscore_sprints_won: 'Sprints gagnés',
+    boxscore_forced_ball_under: 'Forced Ball Under',
+    boxscore_field_blocks: 'Contres de champ',
+    boxscore_earned_exclusions: 'Exclusions provoquées',
+    roster_title: 'Effectif',
+    roster_manage_players_desc: 'Gérez les joueurs pour le score en direct. Les bonnets apparaissent sur les puces but/passe.',
+    roster_download_all_stats: 'Télécharger toutes les stats',
+    roster_season_stats: 'Stats de saison',
+    roster_no_players_yet: 'Aucun joueur pour le moment.',
+    roster_add_player: 'Ajouter un joueur',
+    roster_save_roster: 'Enregistrer l effectif',
+    playerstats_empty: 'Aucun box score enregistré.<br>Utilisez le score en direct pendant un match pour commencer à suivre les stats.',
+    playerstats_download_aria: 'Télécharger les stats de {name}',
+    playerstats_games_count: '{count} match(es)',
+    season_stats_title: 'Stats des joueurs sur la saison',
+    season_stats_loading: 'Chargement des stats de saison…',
+    season_stats_empty: 'Pas encore de stats archivées.<br>Les stats s agrègent à partir des tournois archivés avec données joueur.',
+    season_stats_failed: 'Échec du chargement : {message}',
+    live_follow_not_started: 'Le match n a pas encore commencé — revenez quand il démarre.',
+    live_follow_over: 'Le match est déjà terminé.',
+    live_follow_android: 'Suivi en direct activé. Vérifiez votre barre d état pour les mises à jour.',
+    live_update_plugin_missing: 'Le plugin Live Update n est pas disponible.',
+    live_follow_native_only: 'Le suivi en direct est disponible dans les apps iOS et Android.',
+    live_activity_plugin_missing: 'Le plugin Live Activity n est pas installé/enregistré',
+    live_follow_stopped: 'Suivi en direct arrêté.',
+    live_follow_ios: 'Suivi en direct activé. Les mises à jour apparaissent sur votre écran verrouillé.',
+    live_follow_unavailable: 'Live Activities indisponibles : {message}'
   }
 };
 
@@ -2255,31 +2534,31 @@ function buildEventLog(events, currentPeriod = 0) {
   const WP_BALL = '<span class="wp-ball">🏐</span>';
   const TYPE_ICONS = { goal:WP_BALL, opp_goal:WP_BALL, goal_5m:WP_BALL, opp_goal_5m:WP_BALL, shot_miss:'❌', opp_shot_miss:'❌', miss_5m:'❌', opp_miss_5m:'❌', so_goal:WP_BALL, opp_so_goal:WP_BALL, so_miss:'❌', opp_so_miss:'❌', assist:'🤝', steal:'🧤', sprint_won:'⚡', opp_sprint_won:'⚡', exclusion:'❌', opp_exclusion:'❌', brutality:'🟥', timeout:'⏱', opp_timeout:'⏱', save:'🧤', block:'🧤' };
   const TYPE_LABEL = {
-    goal:          ev => ev.sixOnFive ? 'GOAL (6v5)' : 'GOAL',
-    opp_goal:      ()  => 'GOAL',
-    goal_5m:       ()  => 'GOAL (5m)',
-    opp_goal_5m:   ()  => 'GOAL (5m)',
-    shot_miss:     ()  => 'SHOT ATTEMPT',
-    opp_shot_miss: ()  => 'SHOT ATTEMPT',
-    miss_5m:       ()  => 'ATTEMPT (5m)',
-    opp_miss_5m:   ()  => 'ATTEMPT (5m)',
-    so_goal:       ()  => 'SO GOAL 🎯',
-    opp_so_goal:   ()  => 'SO GOAL 🎯',
-    so_miss:       ()  => 'SO MISS',
-    opp_so_miss:   ()  => 'SO MISS',
-    assist:        ()  => 'ASSIST',
-    steal:         ev  => ev.forcedBallUnder ? 'STEAL (FBU)' : 'STEAL',
-    sprint_won:    ()  => 'SPRINT WON',
-    opp_sprint_won:()  => 'OPP SPRINT WON',
-    opp_steal:     ()  => 'OPP STEAL',
-    exclusion:     ()  => 'EXCL',
-    opp_exclusion: ()  => 'EXCL',
-    brutality:     ()  => 'BRUTAL',
-    timeout:       ()  => 'TIMEOUT',
-    opp_timeout:   ()  => 'OPP T/O',
-    save:          ()  => 'SAVE',
-    block:         ()  => 'SAVE',
-    field_block:   ()  => 'FIELD BLOCK',
+    goal:          ev => ev.sixOnFive ? appT('event_goal_6v5') : appT('event_goal'),
+    opp_goal:      ()  => appT('event_goal'),
+    goal_5m:       ()  => appT('event_goal_5m'),
+    opp_goal_5m:   ()  => appT('event_goal_5m'),
+    shot_miss:     ()  => appT('event_shot_attempt'),
+    opp_shot_miss: ()  => appT('event_shot_attempt'),
+    miss_5m:       ()  => appT('event_attempt_5m'),
+    opp_miss_5m:   ()  => appT('event_attempt_5m'),
+    so_goal:       ()  => appT('event_so_goal'),
+    opp_so_goal:   ()  => appT('event_so_goal'),
+    so_miss:       ()  => appT('event_so_miss'),
+    opp_so_miss:   ()  => appT('event_so_miss'),
+    assist:        ()  => appT('event_assist'),
+    steal:         ev  => ev.forcedBallUnder ? appT('event_steal_fbu') : appT('event_steal'),
+    sprint_won:    ()  => appT('event_sprint_won'),
+    opp_sprint_won:()  => appT('event_opp_sprint_won'),
+    opp_steal:     ()  => appT('event_opp_steal'),
+    exclusion:     ()  => appT('event_excl'),
+    opp_exclusion: ()  => appT('event_excl'),
+    brutality:     ()  => appT('event_brutal'),
+    timeout:       ()  => appT('event_timeout'),
+    opp_timeout:   ()  => appT('event_opp_timeout'),
+    save:          ()  => appT('event_save'),
+    block:         ()  => appT('event_save'),
+    field_block:   ()  => appT('event_field_block'),
   };
 
   let html = '<div class="event-log">';
@@ -2300,7 +2579,7 @@ function buildEventLog(events, currentPeriod = 0) {
       const typeLabel = (TYPE_LABEL[ev.type] || (() => ev.type))(ev);
       const player    = ev.cap  ? `#${escHtml(ev.cap)} ${escHtml((ev.name||'').split(' ')[0])}`
                       : ev.name ? escHtml(ev.name)
-                      : isTeam  ? 'Team' : 'Opp';
+                      : isTeam  ? appT('event_team_fallback') : appT('event_opp_fallback');
       html += `<div class="event-row event-${isTeam?'team':'opp'}">
         <span class="event-clock">${escHtml(ev.clock||'—')}</span>
         <span class="event-icon">${icon}</span>
@@ -2396,15 +2675,15 @@ function buildBoxScoreHtml(events, oppName) {
   }).join('');
 
   const gkSection = gkPlayers.length ? `
-    <div class="bs-section-label">Goalkeeper</div>
+    <div class="bs-section-label">${escHtml(appT('boxscore_goalkeeper'))}</div>
     <div class="bs-header-row">
-      <span class="bs-player bs-col-hdr">Player</span>
+      <span class="bs-player bs-col-hdr">${escHtml(appT('boxscore_player'))}</span>
       <span class="bs-stat bs-col-hdr">Sv</span>
       <span class="bs-stat bs-col-hdr">Ex</span>
     </div>
     ${gkRows}` : '';
 
-  const toLine = teamTimeouts ? `<div class="bs-footer-line">Team Timeouts: ${teamTimeouts}</div>` : '';
+  const toLine = teamTimeouts ? `<div class="bs-footer-line">${escHtml(appT('boxscore_team_timeouts'))}: ${teamTimeouts}</div>` : '';
 
   const totalSM  = fieldPlayers.reduce((s,p) => s+(p.SM||0), 0);
   const totalG5  = fieldPlayers.reduce((s,p) => s+p.G5,  0);
@@ -2413,24 +2692,24 @@ function buildBoxScoreHtml(events, oppName) {
   const totalSOM = fieldPlayers.reduce((s,p) => s+p.SOM, 0);
   return `<div class="box-score">
     <div class="bs-header-row">
-      <span class="bs-player bs-col-hdr">Player</span>
+      <span class="bs-player bs-col-hdr">${escHtml(appT('boxscore_player'))}</span>
       <span class="bs-stat bs-col-hdr">G</span>
-      ${hasShotMiss ? `<span class="bs-stat bs-col-hdr" title="Shot Attempts">SA</span>` : ''}
-      ${has5m ? `<span class="bs-stat bs-col-hdr" title="5m Penalty Goals">5m✓</span>` : ''}
-      ${has5m ? `<span class="bs-stat bs-col-hdr" title="5m Penalty Attempts">5m?</span>` : ''}
-      ${hasSoGoals ? `<span class="bs-stat bs-col-hdr" title="Shootout Goals">SO✓</span>` : ''}
-      ${hasSoGoals ? `<span class="bs-stat bs-col-hdr" title="Shootout Misses">SO✗</span>` : ''}
+      ${hasShotMiss ? `<span class="bs-stat bs-col-hdr" title="${escHtml(appT('boxscore_shot_attempts'))}">SA</span>` : ''}
+      ${has5m ? `<span class="bs-stat bs-col-hdr" title="${escHtml(appT('boxscore_5m_goals'))}">5m✓</span>` : ''}
+      ${has5m ? `<span class="bs-stat bs-col-hdr" title="${escHtml(appT('boxscore_5m_attempts'))}">5m?</span>` : ''}
+      ${hasSoGoals ? `<span class="bs-stat bs-col-hdr" title="${escHtml(appT('boxscore_so_goals'))}">SO✓</span>` : ''}
+      ${hasSoGoals ? `<span class="bs-stat bs-col-hdr" title="${escHtml(appT('boxscore_so_misses'))}">SO✗</span>` : ''}
       <span class="bs-stat bs-col-hdr">A</span>
       <span class="bs-stat bs-col-hdr">S</span>
-      ${hasSprintWins ? `<span class="bs-stat bs-col-hdr" title="Sprints Won">SW</span>` : ''}
-      ${hasForcedBallUnder ? `<span class="bs-stat bs-col-hdr" title="Forced Ball Under">FBU</span>` : ''}
-      ${hasFieldBlocks ? `<span class="bs-stat bs-col-hdr" title="Field Blocks">FB</span>` : ''}
+      ${hasSprintWins ? `<span class="bs-stat bs-col-hdr" title="${escHtml(appT('boxscore_sprints_won'))}">SW</span>` : ''}
+      ${hasForcedBallUnder ? `<span class="bs-stat bs-col-hdr" title="${escHtml(appT('boxscore_forced_ball_under'))}">FBU</span>` : ''}
+      ${hasFieldBlocks ? `<span class="bs-stat bs-col-hdr" title="${escHtml(appT('boxscore_field_blocks'))}">FB</span>` : ''}
       <span class="bs-stat bs-col-hdr">Ex</span>
-      <span class="bs-stat bs-col-hdr" title="Earned Exclusions">EE</span>
+      <span class="bs-stat bs-col-hdr" title="${escHtml(appT('boxscore_earned_exclusions'))}">EE</span>
     </div>
     ${fieldRows}
     ${fieldPlayers.length ? `<div class="bs-row bs-total-row">
-      <span class="bs-player">Total</span>
+      <span class="bs-player">${escHtml(appT('boxscore_total'))}</span>
       <span class="bs-stat has-stat">${totalG}</span>
       ${hasShotMiss ? `<span class="bs-stat">${totalSM}</span>` : ''}
       ${has5m ? `<span class="bs-stat has-stat">${totalG5}</span>` : ''}
@@ -2919,18 +3198,18 @@ function renderRosterTab() {
   ${renderPlayerLookupCard()}
   <div class="card tab-card roster-main-card">
     <div class="history-header-row">
-      <h2>Roster</h2>
+      <h2>${escHtml(appT('roster_title'))}</h2>
       <span class="history-subtitle">${escHtml(_groupSectionLabelFor(getSelectedTeam(), null))}</span>
     </div>
-    <p class="step-desc">Manage players for live scoring. Cap numbers appear on goal/assist chips.</p>
-    <button class="pstats-export-btn" onclick="openPlayerStatsModal()">📊 Download All Player Stats</button>
-    <button class="pstats-export-btn" style="background:#eff6ff;color:#1e40af;border-color:#93c5fd" onclick="openSeasonStatsModal()">📊 Season Stats</button>
+    <p class="step-desc">${escHtml(appT('roster_manage_players_desc'))}</p>
+    <button class="pstats-export-btn" onclick="openPlayerStatsModal()">📊 ${escHtml(appT('roster_download_all_stats'))}</button>
+    <button class="pstats-export-btn" style="background:#eff6ff;color:#1e40af;border-color:#93c5fd" onclick="openSeasonStatsModal()">📊 ${escHtml(appT('roster_season_stats'))}</button>
     ${colHdr}
     <div id="roster-edit-list">
-      ${rows || '<p class="empty-msg" style="padding:10px 0">No players yet.</p>'}
+      ${rows || `<p class="empty-msg" style="padding:10px 0">${escHtml(appT('roster_no_players_yet'))}</p>`}
     </div>
-    <button class="btn btn-ghost" onclick="addRosterPlayer()" style="margin-top:10px">+ Add Player</button>
-    <button class="btn-save-roster" onclick="saveRosterFromUI()">💾 Save Roster</button>
+    <button class="btn btn-ghost" onclick="addRosterPlayer()" style="margin-top:10px">+ ${escHtml(appT('roster_add_player'))}</button>
+    <button class="btn-save-roster" onclick="saveRosterFromUI()">💾 ${escHtml(appT('roster_save_roster'))}</button>
   </div>`;
 }
 
@@ -6368,12 +6647,12 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       <div class="auto-clock-phase">${phaseLabel}</div>
       <div class="auto-clock-time" id="game-clock-${gid}">${fmtClock(timerSecsLeft)}</div>
       <div class="auto-clock-controls">
-        ${isBreakPhase ? `<span class="auto-clock-break-label">${s.timerPhase === 'halftime' ? 'Halftime break' : 'Quarter break'} — next quarter ready</span>` : `
+        ${isBreakPhase ? `<span class="auto-clock-break-label">${s.timerPhase === 'halftime' ? escHtml(appT('scorer_halftime_break')) : escHtml(appT('scorer_quarter_break'))} — ${escHtml(appT('scorer_next_quarter_ready'))}</span>` : `
           ${s.timerRunning
-            ? `<button class="auto-clock-btn auto-clock-pause" onclick="pauseGameTimer('${gid}')">⏸ Pause</button>`
-            : `<button class="auto-clock-btn auto-clock-resume" onclick="${s.gameState === 'pre' ? `startScoring('${gid}')` : `resumeGameTimer('${gid}')`}">▶ ${s.gameState === 'pre' ? 'Start' : 'Resume'}</button>`
+            ? `<button class="auto-clock-btn auto-clock-pause" onclick="pauseGameTimer('${gid}')">⏸ ${escHtml(appT('scorer_pause'))}</button>`
+            : `<button class="auto-clock-btn auto-clock-resume" onclick="${s.gameState === 'pre' ? `startScoring('${gid}')` : `resumeGameTimer('${gid}')`}">▶ ${escHtml(s.gameState === 'pre' ? appT('scorer_start') : appT('scorer_resume'))}</button>`
           }
-          <button class="auto-clock-btn auto-clock-reset" onclick="resetGameClock('${gid}')">↺ Reset</button>
+          <button class="auto-clock-btn auto-clock-reset" onclick="resetGameClock('${gid}')">↺ ${escHtml(appT('scorer_reset'))}</button>
         `}
       </div>
       ${cs.timeoutsPerTeam > 0 ? `
@@ -6405,14 +6684,14 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
   const scorerSection = `
     <details class="scorer-details" ${scorerShouldOpen ? 'open' : ''} ontoggle="_onScorerToggle(this,'${gid}')">
       <summary class="scorer-summary">
-        ${scorerShouldOpen ? '▼ Scoring Controls' : '▶ Open Scorer'}
+        ${scorerShouldOpen ? `▼ ${escHtml(appT('scorer_controls'))}` : `▶ ${escHtml(appT('scorer_open'))}`}
       </summary>
     <div class="scoring-section">
       <div class="gs-bar">${gsBar}</div>
       ${timingRow}
       <div class="live-scoreboard">
         <div class="ls-team">
-          <span class="ls-label">Team</span>
+          <span class="ls-label">${escHtml(appT('scorer_team_label'))}</span>
           <span class="ls-score ls-score-team">${Number.isInteger(s.team) ? s.team : s.team.toFixed(1)}</span>
         </div>
         <span class="ls-sep">—</span>
@@ -6422,46 +6701,46 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
         </div>
       </div>
       <div class="ls-actions-row">
-        <button class="ls-undo-btn" onclick="undoLastEvent('${gid}')">↩ Undo</button>
-        <button class="ls-share-btn" onclick="shareBoxScore('${gid}')">📤 ${appT('common_share')}</button>
+        <button class="ls-undo-btn" onclick="undoLastEvent('${gid}')">↩ ${escHtml(appT('scorer_undo'))}</button>
+        <button class="ls-share-btn" onclick="shareBoxScore('${gid}')">📤 ${escHtml(appT('scorer_share_box_score'))}</button>
       </div>
       ${s.gameState === 'shootout' ? `
       <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:6px 10px;margin-bottom:6px;text-align:center">
-        <span style="font-weight:700;color:#92400e">🎯 SHOOTOUT MODE</span>
-        <span style="color:#78350f;font-size:0.8rem;display:block;margin-top:2px">Each goal = +0.1 · Track who shoots!</span>
+        <span style="font-weight:700;color:#92400e">🎯 ${escHtml(appT('scorer_shootout_mode'))}</span>
+        <span style="color:#78350f;font-size:0.8rem;display:block;margin-top:2px">${escHtml(appT('scorer_shootout_hint'))}</span>
       </div>` : ''}
       <div class="score-btns-row">
-        <button class="score-btn score-btn-team" onclick="openEventPicker('${gid}','goal')">${s.gameState === 'shootout' ? '🎯 Team SO Goal' : '+ Goal'}</button>
-        <button class="score-btn score-btn-opp"  onclick="recordEventDirect('${gid}','opp_goal')">${s.gameState === 'shootout' ? '🎯 Opp SO Goal' : '+ Opp Goal'}</button>
+        <button class="score-btn score-btn-team" onclick="openEventPicker('${gid}','goal')">${s.gameState === 'shootout' ? `🎯 ${escHtml(appT('scorer_team_so_goal'))}` : `+ ${escHtml(appT('scorer_goal'))}`}</button>
+        <button class="score-btn score-btn-opp"  onclick="recordEventDirect('${gid}','opp_goal')">${s.gameState === 'shootout' ? `🎯 ${escHtml(appT('scorer_opp_so_goal'))}` : `+ ${escHtml(appT('scorer_opp_goal'))}`}</button>
       </div>
       ${s.gameState === 'shootout' ? `
       <div class="score-btns-row" style="margin-top:4px">
-        <button class="score-btn" style="background:#fff1f2;color:#be123c;border-color:#fda4af" onclick="openEventPicker('${gid}','so_miss')">❌ Team SO Miss</button>
-        <button class="score-btn" style="background:#fff1f2;color:#be123c;border-color:#fda4af" onclick="recordEventDirect('${gid}','opp_so_miss')">❌ Opp SO Miss</button>
+        <button class="score-btn" style="background:#fff1f2;color:#be123c;border-color:#fda4af" onclick="openEventPicker('${gid}','so_miss')">❌ ${escHtml(appT('scorer_team_so_miss'))}</button>
+        <button class="score-btn" style="background:#fff1f2;color:#be123c;border-color:#fda4af" onclick="recordEventDirect('${gid}','opp_so_miss')">❌ ${escHtml(appT('scorer_opp_so_miss'))}</button>
       </div>` : ''}
       <div class="stat-btns-row">
-        <button class="stat-btn stat-assist"       onclick="openEventPicker('${gid}','assist')">Assist</button>
-        <button class="stat-btn stat-steal"        onclick="openEventPicker('${gid}','steal')">Steal</button>
-        <button class="stat-btn stat-sprint"       onclick="openEventPicker('${gid}','sprint_won')">Sprint Won</button>
-        <button class="stat-btn stat-field-block"  onclick="openEventPicker('${gid}','field_block')">Field Block</button>
-        <button class="stat-btn stat-attempt"      onclick="openEventPicker('${gid}','shot_miss')">Attempt</button>
+        <button class="stat-btn stat-assist"       onclick="openEventPicker('${gid}','assist')">${escHtml(appT('scorer_assist'))}</button>
+        <button class="stat-btn stat-steal"        onclick="openEventPicker('${gid}','steal')">${escHtml(appT('scorer_steal'))}</button>
+        <button class="stat-btn stat-sprint"       onclick="openEventPicker('${gid}','sprint_won')">${escHtml(appT('scorer_sprint_won'))}</button>
+        <button class="stat-btn stat-field-block"  onclick="openEventPicker('${gid}','field_block')">${escHtml(appT('scorer_field_block'))}</button>
+        <button class="stat-btn stat-attempt"      onclick="openEventPicker('${gid}','shot_miss')">${escHtml(appT('scorer_attempt'))}</button>
       </div>
       <div class="stat-btns-row">
-        <button class="stat-btn stat-exclusion"    onclick="openEventPicker('${gid}','exclusion')">Excl</button>
-        <button class="stat-btn stat-earned-excl"  onclick="openEventPicker('${gid}','earned_excl')">Earned Excl</button>
-        <button class="stat-btn stat-opp-steal"    onclick="recordEventDirect('${gid}','opp_steal')">Opp Steal</button>
-        <button class="stat-btn stat-opp-attempt"  onclick="recordEventDirect('${gid}','opp_shot_miss')">Opp Attempt</button>
-        <button class="stat-btn stat-opp-excl"     onclick="recordEventDirect('${gid}','opp_exclusion')">Opp Excl</button>
+        <button class="stat-btn stat-exclusion"    onclick="openEventPicker('${gid}','exclusion')">${escHtml(appT('scorer_excl'))}</button>
+        <button class="stat-btn stat-earned-excl"  onclick="openEventPicker('${gid}','earned_excl')">${escHtml(appT('scorer_earned_excl'))}</button>
+        <button class="stat-btn stat-opp-steal"    onclick="recordEventDirect('${gid}','opp_steal')">${escHtml(appT('scorer_opp_steal'))}</button>
+        <button class="stat-btn stat-opp-attempt"  onclick="recordEventDirect('${gid}','opp_shot_miss')">${escHtml(appT('scorer_opp_attempt'))}</button>
+        <button class="stat-btn stat-opp-excl"     onclick="recordEventDirect('${gid}','opp_exclusion')">${escHtml(appT('scorer_opp_excl'))}</button>
       </div>
       ${s.gameState !== 'shootout' ? `
       <div class="stat-btns-row">
-        <button class="stat-btn stat-goal-5m"     onclick="openEventPicker('${gid}','goal_5m')">🎯 5m</button>
-        <button class="stat-btn stat-attempt-5m"  onclick="openEventPicker('${gid}','miss_5m')">❌ 5m Attempt</button>
-        <button class="stat-btn stat-goal-5m"     onclick="recordEventDirect('${gid}','opp_goal_5m')">🎯 Opp 5m</button>
-        <button class="stat-btn stat-attempt-5m"  onclick="recordEventDirect('${gid}','opp_miss_5m')">❌ Opp 5m Attempt</button>
+        <button class="stat-btn stat-goal-5m"     onclick="openEventPicker('${gid}','goal_5m')">🎯 ${escHtml(appT('scorer_5m'))}</button>
+        <button class="stat-btn stat-attempt-5m"  onclick="openEventPicker('${gid}','miss_5m')">❌ ${escHtml(appT('scorer_5m_attempt'))}</button>
+        <button class="stat-btn stat-goal-5m"     onclick="recordEventDirect('${gid}','opp_goal_5m')">🎯 ${escHtml(appT('scorer_opp_5m'))}</button>
+        <button class="stat-btn stat-attempt-5m"  onclick="recordEventDirect('${gid}','opp_miss_5m')">❌ ${escHtml(appT('scorer_opp_5m_attempt'))}</button>
       </div>` : ''}
       <div class="stat-btns-row">
-        <button class="stat-btn stat-save"  onclick="openEventPicker('${gid}','save')">🧤 GK Save</button>
+        <button class="stat-btn stat-save"  onclick="openEventPicker('${gid}','save')">🧤 ${escHtml(appT('scorer_gk_save'))}</button>
       </div>
       ${(cs.timeoutLengths||[]).map(m => {
         const teamUsed = (s.teamTimeoutsUsed||[]).includes(m);
@@ -6491,7 +6770,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       ${(s.team > 0 || s.opp > 0 || s.gameState !== 'pre') ? `
         <div class="live-scoreboard viewer-scoreboard">
           <div class="ls-team">
-            <span class="ls-label">Team</span>
+            <span class="ls-label">${escHtml(appT('scorer_team_label'))}</span>
             <span class="ls-score ls-score-team">${s.team}</span>
           </div>
           <span class="ls-sep">—</span>
@@ -9670,15 +9949,15 @@ function openPlayerStatsModal() {
   const listEl  = $('player-stats-list');
 
   if (!players.length) {
-    listEl.innerHTML = `<p class="pstats-empty">No box scores recorded yet.<br>Use live scoring during a game to start tracking stats.</p>`;
+    listEl.innerHTML = `<p class="pstats-empty">${appT('playerstats_empty')}</p>`;
   } else {
     listEl.innerHTML = players.map(p => {
       const displayName = escHtml(p.name || '?');
       const gkExtra     = p.Sv ? `&nbsp;&nbsp;Sv&nbsp;${p.Sv||0}` : '';
       const totals      = `<span class="pstats-totals">G&nbsp;${p.G}&nbsp;&nbsp;A&nbsp;${p.A}&nbsp;&nbsp;Ex&nbsp;${p.Excl}${gkExtra}</span>`;
-      const gamesStr    = `<span class="pstats-games">${p.gameCount} game${p.gameCount !== 1 ? 's' : ''}</span>`;
+      const gamesStr    = `<span class="pstats-games">${escHtml(appFormat('playerstats_games_count', { count: String(p.gameCount) }))}</span>`;
       const nameEncoded = encodeURIComponent(p.name || '');
-      return `<button class="pstats-player-btn" onclick="downloadPlayerStats('${nameEncoded}')" aria-label="Download stats for ${displayName}">
+      return `<button class="pstats-player-btn" onclick="downloadPlayerStats('${nameEncoded}')" aria-label="${escHtml(appFormat('playerstats_download_aria', { name: p.name || '?' }))}">
         <div class="pstats-player-left"><span class="pstats-name">${displayName}</span></div>
         <div class="pstats-player-right">${totals}${gamesStr}<span class="pstats-dl-icon" aria-hidden="true">⬇</span></div>
       </button>`;
@@ -9710,7 +9989,7 @@ async function openSeasonStatsModal() {
     modal.innerHTML = `
       <div class="modal-content" style="max-width:480px;width:100%;max-height:90vh;overflow-y:auto;border-radius:16px;padding:0">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px;border-bottom:1px solid var(--gray-200,#e5e7eb)">
-          <h2 style="margin:0;font-size:1.1rem">📊 Season Player Stats</h2>
+          <h2 style="margin:0;font-size:1.1rem">📊 ${escHtml(appT('season_stats_title'))}</h2>
           <button onclick="closeSeasonStatsModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--gray-500,#6b7280)">✕</button>
         </div>
         <div id="season-stats-body" style="padding:12px 16px"></div>
@@ -9721,7 +10000,7 @@ async function openSeasonStatsModal() {
 
   modal.classList.remove('hidden');
   const body = $('season-stats-body');
-  body.innerHTML = '<div style="text-align:center;color:var(--gray-500,#6b7280);padding:24px;font-size:0.85rem">Loading season stats…</div>';
+  body.innerHTML = `<div style="text-align:center;color:var(--gray-500,#6b7280);padding:24px;font-size:0.85rem">${escHtml(appT('season_stats_loading'))}</div>`;
 
   try {
     const clubId = localStorage.getItem('ebwp-club') || 'my-club';
@@ -9731,13 +10010,13 @@ async function openSeasonStatsModal() {
     _seasonStatsData = data.stats || [];
 
     if (!_seasonStatsData.length) {
-      body.innerHTML = '<div style="text-align:center;color:var(--gray-500,#6b7280);padding:24px;font-size:0.85rem">No archived stats yet.<br>Stats aggregate from archived tournaments with player data.</div>';
+      body.innerHTML = `<div style="text-align:center;color:var(--gray-500,#6b7280);padding:24px;font-size:0.85rem">${appT('season_stats_empty')}</div>`;
       return;
     }
 
     renderSeasonStatsTable();
   } catch (e) {
-    body.innerHTML = `<div style="color:#dc2626;padding:16px;font-size:0.85rem">Failed to load: ${escHtml(e.message)}</div>`;
+    body.innerHTML = `<div style="color:#dc2626;padding:16px;font-size:0.85rem">${escHtml(appFormat('season_stats_failed', { message: e.message }))}</div>`;
   }
 }
 
@@ -10915,31 +11194,31 @@ async function toggleLiveActivity(gameId) {
     const score = getLiveScore(gameId);
     const gs    = score?.gameState || 'pre';
     if (gs === 'pre') {
-      showToast("Game hasn't started yet — check back when it begins!", "info");
+      showToast(appT('live_follow_not_started'), "info");
       return;
     }
     if (gs === 'final') {
-      showToast("Game is already over.", "info");
+      showToast(appT('live_follow_over'), "info");
       return;
     }
     if (typeof EggbeaterLiveUpdate !== 'undefined') {
       EggbeaterLiveUpdate.sync(_gameRef(gameId), _buildLUScore(gameId));
-      showToast("Following Live! Check your status bar for score updates.", "ok");
+      showToast(appT('live_follow_android'), "ok");
     } else {
-      showToast("Live Update plugin not available.", "error");
+      showToast(appT('live_update_plugin_missing'), "error");
     }
     return;
   }
 
   // ── Web / non-native ──────────────────────────────────────────────────────
   if (!isNative || platform !== 'ios') {
-    showToast("Follow Live is available in the iOS and Android apps.");
+    showToast(appT('live_follow_native_only'));
     return;
   }
 
   const LiveActivity = Capacitor.Plugins.LiveActivity;
   if (!LiveActivity) {
-    showToast("Live Activity plugin not installed/registered", "error");
+    showToast(appT('live_activity_plugin_missing'), "error");
     return;
   }
 
@@ -10947,7 +11226,7 @@ async function toggleLiveActivity(gameId) {
   if (window._activeLA && window._activeLA.gameId === _gameRef(gameId)) {
     try { await LiveActivity.endActivity({}); } catch {}
     window._activeLA = null;
-    showToast("Stopped following live.", "info");
+    showToast(appT('live_follow_stopped'), "info");
     return;
   }
 
@@ -11007,9 +11286,9 @@ async function toggleLiveActivity(gameId) {
       }
     });
 
-    showToast("Following Live! Updates appear on your lock screen.", "ok");
+    showToast(appT('live_follow_ios'), "ok");
   } catch (e) {
-    showToast("Live activities unavailable: " + e.message, "error");
+    showToast(appFormat('live_follow_unavailable', { message: e.message }), "error");
     window._activeLA = null;
   }
 }
