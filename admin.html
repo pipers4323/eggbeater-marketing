@@ -13314,7 +13314,7 @@
         body: JSON.stringify({ valueInputOption: 'RAW', data: batchData }),
       });
 
-      if (btn) { btn.disabled = false; btn.textContent = 'ðŸ“Š ${adminT('addgames_export_sheets')}'; }
+      if (btn) { btn.disabled = false; btn.textContent = `📊 ${adminT('addgames_export_sheets')}`; }
       showStatus('âœ… Google Sheet created!', 'ok');
       window.open(sheet.spreadsheetUrl, '_blank');
     }
