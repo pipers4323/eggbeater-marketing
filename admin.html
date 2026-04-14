@@ -2080,18 +2080,20 @@
         <button id="switch-club-btn" onclick="switchClub()"
           style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px"
           title="Switch Club (SuperAdmin)">🔀 Switch Club</button>
-        <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">💾 Deploy</button>
+        <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">💾 Deploy Current Group</button>
       </div>
       <!-- Phase 3: Tournament selector -->
       <div class="admin-tourn-strip" id="admin-tourn-strip"></div>
-      <!-- Age group / team pill picker -->
+      <!-- Age group / team manager -->
       <div class="admin-team-pills" id="admin-team-pills"></div>
+      <div class="admin-team-manager hidden" id="admin-team-manager"></div>
       <style>
         .admin-team-pills {
           display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          padding: 8px 12px;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 10px 12px 6px;
         }
 
         .admin-pill {
@@ -2106,28 +2108,70 @@
           border: none;
         }
 
+        .admin-team-summary {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 1;
+        }
+
+        .admin-team-current {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: rgba(255,255,255,.18);
+          color: white;
+          font-weight: 800;
+          font-size: 0.84rem;
+          min-width: 0;
+        }
+
+        .admin-team-current-text {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .admin-team-count {
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: rgba(255,255,255,.78);
+          white-space: nowrap;
+        }
+
+        .admin-team-manage-btn {
+          flex: 0 0 auto;
+          padding: 8px 12px;
+          border-radius: 999px;
+          border: 1px solid rgba(255,255,255,.28);
+          background: rgba(255,255,255,.12);
+          color: white;
+          font-weight: 800;
+          font-size: 0.78rem;
+          cursor: pointer;
+        }
+
+        .admin-team-manager {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 8px;
+          padding: 0 12px 12px;
+        }
+
+        .admin-team-manager.hidden {
+          display: none;
+        }
+
         @media (min-width: 1024px) {
           .admin-team-pills {
-            padding: 12px 24px;
-            gap: 6px;
-            flex-wrap: nowrap;
-            width: 100%;
-            box-sizing: border-box;
-            overflow-x: auto;
-            /* Scroll as last resort if pills still can't fit */
+            padding: 12px 24px 8px;
           }
 
-          .admin-pill {
-            flex: 1 1 0;
-            /* Equal share of available width */
-            min-width: 80px;
-            /* Never collapse below readable size */
-            text-align: center;
-            padding: 6px 4px;
-            font-size: 0.78rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+          .admin-team-manager {
+            padding: 0 24px 14px;
           }
         }
       </style>
@@ -2375,6 +2419,7 @@
       dirPkgCode: '',     // share code used to import
       dirSelectedAg: -1,    // selected age group index from imported pkg
       dirSelectedTeam: '',  // selected team name within age group
+      adminTeamManagerOpen: false,
       teamStatuses: {},     // { 'teamKey': 'green'|'yellow'|'gray' } for status dots
       clubTier: 'free', // current subscription tier: 'free' | 'club' | 'tournament_host' | 'parent'
     };
@@ -3645,7 +3690,10 @@
     }
 
     const ADMIN_TEAMS_CLUB_YOUTH = [
+      { key: '10u-boys', label: '10u Boys' },
+      { key: '10u-girls', label: '10u Girls' },
       { key: '10u-coed', label: '10u Co-Ed' },
+      { key: '12u-coed', label: '12u Co-Ed' },
       { key: '12u-girls', label: '12u Girls' },
       { key: '12u-boys', label: '12u Boys' },
       { key: '14u-girls', label: '14u Girls' },
@@ -3686,9 +3734,44 @@
       return ADMIN_TEAMS_CLUB_YOUTH;
     }
 
+    function _deployTargetStorageKey() {
+      return `ebadmin-deploy-targets-${S._clubId || 'default'}-${S.clubType || 'club'}`;
+    }
+
+    function getTournamentShellTargetKeys() {
+      const validKeys = new Set(getAdminTeams().map(t => t.key));
+      try {
+        const saved = JSON.parse(localStorage.getItem(_deployTargetStorageKey()) || '[]');
+        const filtered = Array.isArray(saved) ? saved.filter(key => validKeys.has(key)) : [];
+        if (filtered.length) return filtered;
+      } catch { }
+      return validKeys.has(S.team) ? [S.team] : Array.from(validKeys).slice(0, 1);
+    }
+
+    function setTournamentShellTargetKeys(keys) {
+      const validKeys = new Set(getAdminTeams().map(t => t.key));
+      const next = Array.from(new Set((keys || []).filter(key => validKeys.has(key))));
+      localStorage.setItem(_deployTargetStorageKey(), JSON.stringify(next.length ? next : (validKeys.has(S.team) ? [S.team] : [])));
+      renderAdminTeamPills();
+      renderTab();
+    }
+
+    function toggleTournamentShellTarget(teamKey) {
+      const current = new Set(getTournamentShellTargetKeys());
+      if (current.has(teamKey)) current.delete(teamKey);
+      else current.add(teamKey);
+      setTournamentShellTargetKeys(Array.from(current));
+    }
+
+    function toggleAdminTeamManager() {
+      S.adminTeamManagerOpen = !S.adminTeamManagerOpen;
+      renderAdminTeamPills();
+    }
+
     function renderAdminTeamPills() {
       const container = document.getElementById('admin-team-pills');
-      if (!container) return;
+      const manager = document.getElementById('admin-team-manager');
+      if (!container || !manager) return;
       const teams = getAdminTeams();
       // If current team isn't in the list, switch to first valid team
       if (!teams.find(t => t.key === S.team)) {
@@ -3696,27 +3779,33 @@
         refreshAdminData();
       }
 
-      if (S.clubType === 'highschool') {
-        // HS: Two main pills (Boys/Girls) + Varsity/JV sub-selector
-        const gender = S.team.startsWith('boys') ? 'boys' : 'girls';
-        const level = S.team.includes('jv') ? 'jv' : 'varsity';
-        container.innerHTML = `
-      <div style="display:flex;gap:6px;flex:1">
-        <button class="admin-pill${gender === 'boys' ? ' active' : ''}" onclick="onHSGenderChange('boys')" style="flex:1">Boys</button>
-        <button class="admin-pill${gender === 'girls' ? ' active' : ''}" onclick="onHSGenderChange('girls')" style="flex:1">Girls</button>
+      const activeTeam = teams.find(t => t.key === S.team) || teams[0];
+      const selectedTargets = getTournamentShellTargetKeys();
+      container.innerHTML = `
+      <div class="admin-team-summary">
+        <div class="admin-team-current">
+          <span>${_statusDot(activeTeam.key)}</span>
+          <span class="admin-team-current-text">${esc(activeTeam.label)}</span>
+        </div>
+        <span class="admin-team-count">${teams.length} groups available</span>
       </div>
-      <div style="display:flex;gap:4px;margin-left:6px">
-        <button class="admin-pill hs-level${level === 'varsity' ? ' active' : ''}" onclick="onAdminTeamChange('${gender}-varsity')"
-                style="font-size:0.68rem;padding:4px 10px;border-radius:14px">${_statusDot(gender + '-varsity')}V</button>
-        <button class="admin-pill hs-level${level === 'jv' ? ' active' : ''}" onclick="onAdminTeamChange('${gender}-jv')"
-                style="font-size:0.68rem;padding:4px 10px;border-radius:14px">${_statusDot(gender + '-jv')}JV</button>
-      </div>`;
-      } else {
-        container.innerHTML = teams.map(t => {
-          const statusDot = _statusDot(t.key);
-          return `<button class="admin-pill${t.key === S.team ? ' active' : ''}" onclick="onAdminTeamChange('${t.key}')" style="position:relative">${statusDot}${esc(t.label)}</button>`;
-        }).join('');
-      }
+      <button class="admin-team-manage-btn" onclick="toggleAdminTeamManager()">${S.adminTeamManagerOpen ? 'Close groups' : 'Manage groups'}</button>`;
+
+      manager.className = S.adminTeamManagerOpen ? 'admin-team-manager' : 'admin-team-manager hidden';
+      manager.innerHTML = teams.map(t => {
+        const targetActive = selectedTargets.includes(t.key);
+        return `<button class="admin-pill${t.key === S.team ? ' active' : ''}"
+                         onclick="onAdminTeamChange('${t.key}')"
+                         style="display:flex;align-items:center;justify-content:space-between;gap:8px;position:relative">
+                  <span style="display:inline-flex;align-items:center;gap:6px;min-width:0">
+                    ${_statusDot(t.key)}
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.label)}</span>
+                  </span>
+                  <span onclick="event.stopPropagation();toggleTournamentShellTarget('${t.key}')"
+                        title="${targetActive ? 'Included in shared tournament deploy' : 'Exclude from shared tournament deploy'}"
+                        style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;font-size:0.72rem;font-weight:800;background:${targetActive ? 'var(--royal)' : 'rgba(37,99,235,.12)'};color:${targetActive ? 'white' : 'var(--royal)'}">${targetActive ? '✓' : '+'}</span>
+                </button>`;
+      }).join('');
     }
 
     function onHSGenderChange(gender) {
@@ -5781,8 +5870,8 @@
           : (isMastersOnlyClub()
             ? '🤽‍♀️ Teams: Masters Women and Masters Men only'
             : (isMastersEnabledForClub()
-              ? '🤽‍♀️ Teams: 10u Co-Ed through Masters Men/Women age groups'
-              : '🤽‍♀️ Teams: 10u Co-Ed through 18u Boys/Girls age groups'))}</div>
+              ? '🤽‍♀️ Teams: 10u Boys/Girls, 10u Co-Ed, 12u Co-Ed, youth groups, plus Masters Men/Women'
+              : '🤽‍♀️ Teams: 10u Boys/Girls, 10u Co-Ed, 12u Co-Ed through 18u Boys/Girls age groups'))}</div>
         </div>
         ${!isHS ? `
         <div class="info-field">
@@ -6013,6 +6102,8 @@
       const t = S.tournament;
       const isHS = S.clubType === 'highschool';
       const games = [...(t.games || [])].sort((a, b) => gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum));
+      const shellTargets = getTournamentShellTargetKeys();
+      const shellTargetLabels = shellTargets.map(key => getAdminTeams().find(team => team.key === key)?.label || key);
 
       const rows = games.map(g => {
         const capIcon = g.cap === 'Dark' ? '⚫' : '⚪';
@@ -6071,6 +6162,19 @@
     <details class="card collapsible-card" open>
       <summary class="card-header collapsible-header">⚙️ Game / Tournament Setup <span class="collapse-icon">▾</span></summary>
       <div class="info-form">
+        <div class="info-field" style="grid-column:1 / -1">
+          <div class="info-label">Deploy tournament info to teams</div>
+          <div style="padding:10px 12px;border:1px solid var(--g200);border-radius:10px;background:var(--g50)">
+            <div style="font-size:0.82rem;color:var(--g600);margin-bottom:8px">
+              Selected groups: <strong>${esc(shellTargetLabels.join(', ') || 'None')}</strong>
+            </div>
+            <div style="font-size:0.78rem;color:var(--g500);margin-bottom:10px">
+              Use <strong>Manage groups</strong> in the header to choose which age groups receive the shared tournament name, dates, venue, and general metadata. Games, clock settings, and bracket deployment stay scoped to the current age group.
+            </div>
+            <button class="add-btn" id="deploy-shell-btn" style="width:100%;justify-content:center;background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd"
+                    onclick="deployTournamentShellToTeams()">Deploy Tournament Info to Selected Groups</button>
+          </div>
+        </div>
         <div class="info-field"><div class="info-label">Club Name <span style="color:var(--g400);font-weight:400;text-transform:none">(shown before opponent)</span></div><input class="info-input" value="${esc(t.clubName || '')}" placeholder="e.g. Pacific Waves" oninput="S.tournament.clubName=this.value"><div class="info-hint">Leave blank to show "vs. [opponent]" without a club prefix.</div></div>
         <div class="info-field"><div class="info-label">Tournament ID</div><input class="info-input" id="ti-id" value="${esc(t.id || '')}" oninput="S.tournament.id=this.value"><div class="info-hint red">⚠ Changing ID archives the current tournament. Only change when starting a new tournament.</div></div>
         <div class="info-field"><div class="info-label">Name</div><input class="info-input" id="ti-name" value="${esc(t.name || '')}" oninput="S.tournament.name=this.value;updateAdminHeader()"></div>
@@ -9262,7 +9366,7 @@
         showStatus('❌ ' + e.message, 'err');
       } finally {
         btn.disabled = false;
-        btn.textContent = '💾 Deploy Live Workspace';
+        btn.textContent = '💾 Deploy Current Group';
       }
     }
 
@@ -9395,11 +9499,99 @@
 
     // ─── GLOBAL ACTIONS (all age groups at once) ──────────────────────────────────
 
-    const ALL_TEAM_KEYS = ['10u-coed', '12u-girls', '12u-boys', '14u-girls', '14u-boys', '16u-girls', '16u-boys', '18u-girls', '18u-boys', 'masters-women', 'masters-men'];
+    const ALL_TEAM_KEYS = ['10u-boys', '10u-girls', '10u-coed', '12u-coed', '12u-girls', '12u-boys', '14u-girls', '14u-boys', '16u-girls', '16u-boys', '18u-girls', '18u-boys', 'masters-women', 'masters-men'];
     const ALL_HS_TEAM_KEYS = ['boys-varsity', 'boys-jv', 'girls-varsity', 'girls-jv'];
 
     function getAllTeamKeys() {
       return getAdminTeams().map(t => t.key);
+    }
+
+    function buildTournamentShellPayload(sourceTournament, targetTournament) {
+      const source = sourceTournament || {};
+      const existing = targetTournament || {};
+      const next = { ...existing };
+      [
+        'id',
+        'name',
+        'subtitle',
+        'dates',
+        'location',
+        'address',
+        'pool',
+        'clubName',
+        'comingSoon',
+        'upcomingMode',
+        'stayTuned',
+        'singleTeam',
+        'enableCTeam',
+        'scoringPassword',
+        'directorCode',
+        'directorScoringPassword',
+      ].forEach(key => {
+        if (source[key] !== undefined) next[key] = source[key];
+      });
+      if (source.teamLabels) next.teamLabels = JSON.parse(JSON.stringify(source.teamLabels));
+      return next;
+    }
+
+    async function deployTournamentShellToTeams() {
+      const targetKeys = getTournamentShellTargetKeys();
+      if (!targetKeys.length) {
+        showStatus('Select at least one age group to receive tournament info.', 'err');
+        return;
+      }
+      const labels = targetKeys.map(key => getAdminTeams().find(t => t.key === key)?.label || key);
+      if (!confirm(`Deploy shared tournament info to ${labels.join(', ')}?\n\nThis copies the tournament name, dates, venue, and general metadata.\nGames, clock settings, bracket state, history, and roster stay scoped to each age group.`)) return;
+
+      const button = document.getElementById('deploy-shell-btn');
+      if (button) {
+        button.disabled = true;
+        button.textContent = 'Deploying…';
+      }
+
+      let updated = 0;
+      const failed = [];
+      try {
+        for (const key of targetKeys) {
+          showStatus(`Deploying tournament info to ${key} (${updated + 1}/${targetKeys.length})…`, 'info');
+          try {
+            const res = await api('GET', `/admin/data?team=${encodeURIComponent(key)}`);
+            if (!res.ok) throw new Error('fetch failed ' + res.status);
+            const data = await res.json();
+            const nextTournament = buildTournamentShellPayload(S.tournament, data.tournament);
+            const saveRes = await api('PUT', `/admin/data?team=${encodeURIComponent(key)}`, {
+              tournament: nextTournament,
+              history: data.history || [],
+            });
+            if (!saveRes.ok) throw new Error('save failed ' + saveRes.status);
+            try { await _pushToFirebaseMirror(key, nextTournament, data.history || []); } catch (e) { }
+            if (S.tournamentId && typeof fbSaveTournamentAgeGroup === 'function') {
+              await fbSaveTournamentAgeGroup(S.tournamentId, key, {
+                tournament: nextTournament,
+                history: data.history || [],
+                roster: data.roster || null,
+              });
+            }
+            const depRes = await api('POST', `/admin/deploy?team=${encodeURIComponent(key)}`);
+            if (!depRes.ok) throw new Error('deploy failed ' + depRes.status);
+            updated++;
+          } catch (err) {
+            console.warn('[deploy-shell] failed for', key, err.message);
+            failed.push(key);
+          }
+        }
+        const msg = failed.length
+          ? `Updated ${updated} group(s). Failed: ${failed.join(', ')}`
+          : `✅ Shared tournament info deployed to ${updated} group(s)`;
+        showStatus(msg, failed.length ? 'err' : 'ok');
+      } catch (e) {
+        showStatus('❌ ' + e.message, 'err');
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.textContent = 'Deploy Tournament Info to Selected Groups';
+        }
+      }
     }
 
     /**

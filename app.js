@@ -8022,7 +8022,10 @@ function _showPickerForSwitch() {
 // ─── TEAM / AGE-GROUP ─────────────────────────────────────────────────────────
 
 const TEAM_OPTIONS_CLUB_YOUTH = [
+  { key: '10u-boys',  label: '10u Boys' },
+  { key: '10u-girls', label: '10u Girls' },
   { key: '10u-coed',  label: '10u Co-Ed' },
+  { key: '12u-coed',  label: '12u Co-Ed' },
   { key: '12u-girls', label: '12u Girls' },
   { key: '12u-boys',  label: '12u Boys'  },
   { key: '14u-girls', label: '14u Girls' },
