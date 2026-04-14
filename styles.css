@@ -1310,6 +1310,323 @@ h2 {
 .cap-white { color: var(--gray-600); }
 .cap-dark  { color: var(--royal); font-weight: 600; }
 
+.scores-list-card {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+  outline: none;
+}
+
+.scores-list-card:hover,
+.scores-list-card:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(15,23,42,.08);
+  border-color: rgba(var(--royal-rgb), 0.28);
+}
+
+.scores-list-age-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--teal, #0891b2);
+  margin-bottom: 6px;
+}
+
+.scores-list-top,
+.scores-list-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.scores-list-top { margin-bottom: 8px; }
+.scores-list-vs {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--gray-900);
+}
+
+.scores-list-top-right,
+.scores-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.scores-list-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: var(--gray-600);
+  margin-bottom: 12px;
+}
+
+.scores-list-scoreline {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.scores-list-team {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gray-500);
+}
+
+.scores-list-team.opp { color: var(--gray-400); }
+
+.scores-list-score {
+  font-size: 1.45rem;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: var(--royal);
+}
+
+.scores-list-status {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--gray-500);
+}
+
+.scores-status-chip,
+.scores-list-game-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.scores-status-chip.live {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.scores-status-chip.final {
+  background: var(--gray-100);
+  color: var(--gray-600);
+}
+
+.scores-list-game-num {
+  background: var(--royal-subtle);
+  color: var(--royal);
+}
+
+.scores-detail-shell {
+  padding: 0 12px 20px;
+}
+
+.scores-detail-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 0 12px;
+}
+
+.scores-detail-back,
+.scores-detail-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.scores-detail-back {
+  border: 1px solid rgba(var(--royal-rgb), 0.18);
+  background: white;
+  color: var(--royal);
+  cursor: pointer;
+}
+
+.scores-detail-pill {
+  background: rgba(var(--royal-rgb), 0.1);
+  color: var(--royal);
+}
+
+.scores-detail-hero {
+  background: linear-gradient(135deg, var(--royal) 0%, var(--royal-dark) 100%);
+  color: white;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 16px 28px rgba(20,64,176,.24);
+}
+
+.scores-detail-hero-top,
+.scores-detail-scoreline,
+.scores-detail-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.scores-detail-hero-top { align-items: flex-start; margin-bottom: 14px; }
+
+.scores-detail-kicker {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.72);
+  margin-bottom: 4px;
+}
+
+.scores-detail-title {
+  font-size: 1.12rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.scores-detail-game-num {
+  background: rgba(255,255,255,0.14);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.scores-detail-scoreline .team {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.8);
+}
+
+.scores-detail-scoreline .score {
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.scores-detail-meta {
+  margin-top: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.82);
+}
+
+.scores-detail-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 14px 0 12px;
+}
+
+.scores-detail-tab {
+  border: 1px solid var(--gray-200);
+  background: white;
+  color: var(--gray-500);
+  border-radius: 12px;
+  padding: 11px 12px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.scores-detail-tab.active {
+  background: var(--royal);
+  border-color: var(--royal);
+  color: white;
+  box-shadow: 0 8px 18px rgba(20,64,176,.18);
+}
+
+.score-detail-summary-host .event-log {
+  display: none;
+}
+
+.score-detail-play.card.tab-card {
+  padding: 14px;
+}
+
+.score-detail-play .event-log {
+  margin-top: 0;
+}
+
+.score-detail-empty {
+  padding: 18px 12px;
+  text-align: center;
+  color: var(--gray-500);
+  font-size: 0.9rem;
+}
+
+[data-theme="dark"] .scores-list-card,
+.native-ios[data-theme="dark"] .scores-list-card,
+.native-android[data-theme="dark"] .scores-list-card {
+  background: #161b22;
+  border-color: #30363d;
+  box-shadow: 0 1px 4px rgba(0,0,0,.22);
+}
+
+[data-theme="dark"] .scores-list-vs,
+[data-theme="dark"] .scores-list-score,
+[data-theme="dark"] .scores-detail-back,
+[data-theme="dark"] .scores-detail-tab,
+[data-theme="dark"] .score-detail-empty {
+  color: #e6edf3;
+}
+
+[data-theme="dark"] .scores-list-meta,
+[data-theme="dark"] .scores-list-team,
+[data-theme="dark"] .scores-list-team.opp,
+[data-theme="dark"] .scores-list-status {
+  color: #9da7b3;
+}
+
+[data-theme="dark"] .scores-detail-back,
+[data-theme="dark"] .scores-detail-tab {
+  background: #161b22;
+  border-color: #30363d;
+}
+
+@media (max-width: 720px) {
+  .scores-list-top,
+  .scores-list-bottom,
+  .scores-detail-hero-top,
+  .scores-detail-scoreline {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .scores-list-top-right,
+  .scores-list-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .scores-detail-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .scores-detail-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 /* ── Result Buttons ──────────────────────────────────────────────────────── */
 .result-row {
   display: flex;

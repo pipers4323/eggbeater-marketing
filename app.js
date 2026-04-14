@@ -1987,6 +1987,8 @@ const state = {
   tscoreScores:     {},
   tscorePollTimer:  null,
   scorerDetailsOpen:{},
+  scoreDetail:      null,
+  scoreDetailTab:   'summary',
   roster:           [],     // [{ cap, first, last }] — editable via Roster tab
   currentTab:       'schedule',
   viewerMode:       true,       // true = viewing live scores without scorer login (default for parents)
@@ -5679,6 +5681,169 @@ function _resetTeamSelection() {
 
 // ─── RENDER: SCORES TAB ───────────────────────────────────────────────────────
 
+function _withScoreTournamentContext(groupKey, fn) {
+  const savedTournament = window.TOURNAMENT;
+  const savedHistory = window.HISTORY_SEED;
+  const savedActiveAgeGroup = _activeAgeGroup;
+  const cache = groupKey ? TEAM_CACHE[groupKey] : null;
+  if (cache) {
+    window.TOURNAMENT = cache.tournament;
+    window.HISTORY_SEED = cache.history || [];
+    _activeAgeGroup = groupKey;
+  }
+  try {
+    return fn(cache);
+  } finally {
+    if (cache) {
+      window.TOURNAMENT = savedTournament;
+      window.HISTORY_SEED = savedHistory;
+      _activeAgeGroup = savedActiveAgeGroup;
+    }
+  }
+}
+
+function openScoreDetail(gameId, groupKey = '', ageGroupLabel = '', viewerOnly = false) {
+  state.scoreDetail = { gameId, groupKey, ageGroupLabel, viewerOnly: !!viewerOnly };
+  state.scoreDetailTab = 'summary';
+  renderScoresTab();
+  requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+}
+
+function closeScoreDetail() {
+  state.scoreDetail = null;
+  state.scoreDetailTab = 'summary';
+  renderScoresTab();
+}
+
+function setScoreDetailTab(tab) {
+  state.scoreDetailTab = tab === 'play' ? 'play' : 'summary';
+  renderScoresTab();
+}
+
+function getScoreDetailContext() {
+  const detail = state.scoreDetail;
+  if (!detail?.gameId) return null;
+  return _withScoreTournamentContext(detail.groupKey || '', () => {
+    const games = Array.isArray(TOURNAMENT.games) ? TOURNAMENT.games : [];
+    const game = games.find(g => _gameRef(g) === detail.gameId);
+    if (!game) return null;
+    return {
+      ...detail,
+      game: detail.groupKey ? { ...game, _groupKey: detail.groupKey } : game
+    };
+  });
+}
+
+function buildScoresListCard(g, viewerOnly = false, ageGroupLabel = '') {
+  const gid = _gameRef(g);
+  const openArgs = `${JSON.stringify(gid)},${JSON.stringify(g._groupKey || '')},${JSON.stringify(ageGroupLabel || '')},${viewerOnly ? 'true' : 'false'}`;
+  const s = getLiveScore(g);
+  const hasScore = (s.team > 0 || s.opp > 0 || (s.gameState && s.gameState !== 'pre'));
+  const statusLabel = s.gameState === 'final'
+    ? 'Final'
+    : (PERIOD_LABELS[s.period] || (isGameLive(gid) ? 'Live' : 'Scheduled'));
+  const timeMeta = g.time && g.time !== 'TBD'
+    ? `${escHtml(g.time)}${(g.date || g.dateISO) ? ` · ${escHtml(g.date || formatDateGroupLabel(g.dateISO))}` : ''}`
+    : escHtml(g.date || (g.dateISO ? formatDateGroupLabel(g.dateISO) : 'Time TBD'));
+  const capIcon = g.cap === 'Dark' ? '🔵' : g.cap === 'White' ? '⚪' : '';
+  const locationHtml = TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : '';
+  const liveChip = isGameLive(gid) ? `<span class="scores-status-chip live">Live</span>` : '';
+  const finalChip = s.gameState === 'final' || _getResultForGame(g)
+    ? `<span class="scores-status-chip final">Final</span>` : '';
+  const followBtn = `<button class="follow-live-btn-sm" onclick="event.stopPropagation();toggleLiveActivity('${escHtml(gid)}')" title="${escHtml(appT('common_follow_live'))}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
+
+  return `
+    <div class="scores-list-card ${g.cap === 'Dark' ? 'cap-dark-bg' : g.cap === 'White' ? 'cap-white-bg' : ''}"
+         role="button"
+         tabindex="0"
+         onclick="openScoreDetail(${openArgs})"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openScoreDetail(${openArgs})}">
+      ${ageGroupLabel ? `<div class="scores-list-age-label">${escHtml(ageGroupLabel)}</div>` : ''}
+      <div class="scores-list-top">
+        <div class="scores-list-vs">vs ${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}</div>
+        <div class="scores-list-top-right">
+          ${liveChip}${finalChip}
+          ${g.gameNum ? `<span class="scores-list-game-num">${escHtml(g.gameNum)}</span>` : ''}
+        </div>
+      </div>
+      <div class="scores-list-meta">
+        <span>🕐 ${timeMeta}</span>
+        ${g.pool ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}${capIcon ? ` · ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (capIcon ? `<span>${capIcon} ${escHtml(g.cap)} Caps</span>` : '')}
+        ${locationHtml}
+      </div>
+      <div class="scores-list-bottom">
+        <div class="scores-list-scoreline">
+          <span class="scores-list-team">${escHtml(TOURNAMENT.clubName || 'Team')}</span>
+          <span class="scores-list-score">${hasScore ? `${s.team} - ${s.opp}` : '—'}</span>
+          <span class="scores-list-team opp">${escHtml(normalizeOpponentName(g.opponent || 'Opp'))}</span>
+        </div>
+        <div class="scores-list-actions">
+          <span class="scores-list-status">${escHtml(statusLabel)}</span>
+          ${followBtn}
+        </div>
+      </div>
+    </div>`;
+}
+
+function buildScoreDetailPlayByPlay(g) {
+  const s = getLiveScore(g);
+  const events = s.events || [];
+  const hasEvents = events.some(e => e.type !== 'game_state');
+  return `
+    <div class="score-detail-play card tab-card">
+      ${hasEvents
+        ? buildEventLog(events, s.period)
+        : `<div class="score-detail-empty">No play-by-play events yet.</div>`}
+    </div>`;
+}
+
+function buildScoreDetailView(ctx) {
+  return _withScoreTournamentContext(ctx.groupKey || '', () => {
+    const { game, viewerOnly, ageGroupLabel } = ctx;
+    const s = getLiveScore(game);
+    const scoreLabel = (s.team > 0 || s.opp > 0 || (s.gameState && s.gameState !== 'pre'))
+      ? `${s.team} - ${s.opp}`
+      : '—';
+    const stateLabel = s.gameState === 'final'
+      ? 'Final'
+      : (PERIOD_LABELS[s.period] || (isGameLive(_gameRef(game)) ? 'Live' : 'Scheduled'));
+    return `
+      <div class="scores-detail-shell">
+        <div class="scores-detail-topbar">
+          <button class="scores-detail-back" onclick="closeScoreDetail()">← Back to Scores</button>
+          ${ageGroupLabel ? `<span class="scores-detail-pill">${escHtml(ageGroupLabel)}</span>` : ''}
+        </div>
+        <div class="scores-detail-hero">
+          <div class="scores-detail-hero-top">
+            <div>
+              <div class="scores-detail-kicker">${escHtml(TOURNAMENT.name || 'Game Details')}</div>
+              <div class="scores-detail-title">${escHtml(TOURNAMENT.clubName || 'Team')} vs ${escHtml(normalizeOpponentName(game.opponent || 'TBD'))}</div>
+            </div>
+            ${game.gameNum ? `<div class="scores-detail-game-num">${escHtml(game.gameNum)}</div>` : ''}
+          </div>
+          <div class="scores-detail-scoreline">
+            <span class="team">${escHtml(TOURNAMENT.clubName || 'Team')}</span>
+            <span class="score">${scoreLabel}</span>
+            <span class="team">${escHtml(normalizeOpponentName(game.opponent || 'Opp'))}</span>
+          </div>
+          <div class="scores-detail-meta">
+            <span>${escHtml(stateLabel)}</span>
+            <span>🕐 ${escHtml(game.time || 'TBD')}${(game.date || game.dateISO) ? ` · ${escHtml(game.date || formatDateGroupLabel(game.dateISO))}` : ''}</span>
+            ${game.pool ? `<span>${swimmerEmoji()} ${escHtml(game.pool)}</span>` : ''}
+            ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
+          </div>
+        </div>
+        <div class="scores-detail-tabs">
+          <button class="scores-detail-tab ${state.scoreDetailTab !== 'play' ? 'active' : ''}" onclick="setScoreDetailTab('summary')">Summary</button>
+          <button class="scores-detail-tab ${state.scoreDetailTab === 'play' ? 'active' : ''}" onclick="setScoreDetailTab('play')">Play-by-Play</button>
+        </div>
+        ${state.scoreDetailTab === 'play'
+          ? buildScoreDetailPlayByPlay(game)
+          : `<div class="score-detail-summary-host">${buildGameCard(game, viewerOnly, true, ageGroupLabel)}</div>`}
+      </div>`;
+  });
+}
+
 function renderScoresTab() {
   const el = $('view-scores');
   if (!el) return;
@@ -5697,6 +5862,14 @@ function renderScoresTab() {
     }
     dirHtml = buildDirScoreSection(dirPkg, dirGames);
   }
+
+  const detailCtx = getScoreDetailContext();
+  if (state.scoreDetail && detailCtx) {
+    _setLiveBanner(isGameLive(detailCtx.gameId));
+    el.innerHTML = dirHtml + buildScoreDetailView(detailCtx);
+    return;
+  }
+  if (state.scoreDetail && !detailCtx) state.scoreDetail = null;
 
   // Multi-slot: show read-only scores per (ageGroup × letter) slot
   const scoreSlots = getExpandedTeamSlots();
@@ -5769,8 +5942,7 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
       for (const dk of dateOrder) {
         html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dk))}</div>`;
         html += `<div class="games-section">`;
-        // viewerOnly = scorerLocked: when scorer is unlocked, games are tappable/scoreable
-        for (const g of byDate[dk]) html += buildGameCard(g, scorerLocked, false, slotLabel);
+        for (const g of byDate[dk]) html += buildScoresListCard(g, scorerLocked, slotLabel);
         html += `</div>`;
       }
       _activeAgeGroup = null;
@@ -5812,7 +5984,7 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
       }
       for (const dateKey of dateOrder) {
         cardsHtml += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dateKey))}</div><div class="games-section">`;
-        for (const g of byDate[dateKey]) cardsHtml += buildGameCard(g, true, false);
+        for (const g of byDate[dateKey]) cardsHtml += buildScoresListCard(g, true);
         cardsHtml += `</div>`;
       }
     }
@@ -5893,7 +6065,7 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
   for (const dateKey of dateOrder) {
     html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dateKey))}</div>`;
     html += `<div class="games-section">`;
-    for (const g of byDate[dateKey]) html += buildGameCard(g, false, false);
+    for (const g of byDate[dateKey]) html += buildScoresListCard(g, false);
     html += `</div>`;
   }
 
@@ -7002,8 +7174,12 @@ function renderGamesList() {
   );
 
   if (!upcomingGames.length) {
-    listEl.innerHTML = (_isTournamentPastWindow() && !TOURNAMENT.upcomingMode && !TOURNAMENT.comingSoon)
-      ? _renderTournamentCompleteCard()
+    const tournamentPast = _isTournamentPastWindow() && !TOURNAMENT.upcomingMode && !TOURNAMENT.comingSoon;
+    const allDone = games.length > 0 && games.every(g => _getResultForGame(g));
+    // The schedule header already renders the completion state in the blue Next Game slot.
+    // Keep the list body empty here so we do not show a second duplicate completion card.
+    listEl.innerHTML = (tournamentPast || allDone)
+      ? ''
       : '<p class="empty-msg" style="padding:24px 18px;">All games complete — check the History tab for results.</p>';
     return;
   }
