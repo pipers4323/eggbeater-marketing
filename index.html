@@ -354,6 +354,25 @@
     </div>
   </div>
 
+  <!-- Team picker modal (bottom sheet for age-group selection) -->
+  <div id="team-picker-modal" class="roster-modal hidden" role="dialog" aria-modal="true" aria-label="Select age groups">
+    <div class="roster-modal-backdrop" onclick="closeTeamPickerModal()"></div>
+    <div class="roster-modal-sheet">
+      <div class="roster-modal-header">
+        <span class="roster-modal-title">Select Age Groups</span>
+        <button class="roster-modal-close" onclick="closeTeamPickerModal()" aria-label="Close">✕</button>
+      </div>
+      <div class="team-picker-modal-body">
+        <div class="team-picker-modal-actions">
+          <button class="team-picker-modal-action" onclick="selectAllTeamPickerOptions()">Select all</button>
+          <button class="team-picker-modal-action" onclick="clearTeamPickerOptions()">Clear</button>
+        </div>
+        <div id="team-picker-modal-list" class="team-picker-modal-list"></div>
+        <button id="team-picker-modal-done" class="scoring-pw-btn" onclick="applyTeamPickerSelection()">Done</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Scorer password modal (bottom sheet) -->
   <div id="scoring-pw-modal" class="roster-modal hidden" role="dialog" aria-modal="true" aria-label="Scorer login">
     <div class="roster-modal-backdrop" onclick="closeScoringPasswordModal()"></div>

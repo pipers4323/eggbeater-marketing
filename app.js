@@ -1055,6 +1055,7 @@ let _renderSuffix    = '';
 let _inMultiRender   = false;   // prevents recursive multi→single→multi dispatch
 let _activeAgeGroup  = null;    // which age group is currently being rendered (for per-group A/B)
 let _activeTeamLetters = null;  // when set, overrides getActiveTeams() during per-letter rendering
+let _pendingTeamPickerKeys = [];
 // _historyOverride bypasses localStorage during multi-team history rendering
   let _historyOverride = null;
 
@@ -5556,25 +5557,107 @@ function renderHeader() {
   syncHeaderHeight();
 }
 
-/** Render a compact team badge in the header that opens Settings when tapped */
+function _teamPickerDisplayLabels(teamKeys) {
+  return (teamKeys || []).map(k => {
+    const opt = TEAM_OPTIONS.find(t => t.key === k);
+    return opt ? opt.label : k.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  });
+}
+
+function renderTeamPickerModal() {
+  const listEl = $('team-picker-modal-list');
+  const doneBtn = $('team-picker-modal-done');
+  if (!listEl || !doneBtn) return;
+  const active = new Set(_pendingTeamPickerKeys);
+  const labels = _teamPickerDisplayLabels(_pendingTeamPickerKeys);
+  listEl.innerHTML = TEAM_OPTIONS.map(opt => {
+    const on = active.has(opt.key);
+    return `<button class="team-picker-modal-row${on ? ' active' : ''}" onclick="toggleTeamPickerOption('${escHtml(opt.key)}')">
+      <span class="team-picker-modal-check">✓</span>
+      <span class="team-picker-modal-copy">
+        <span class="team-picker-modal-titleline">${escHtml(opt.label)}</span>
+        <span class="team-picker-modal-subline">${on ? 'Selected' : 'Tap to include'}</span>
+      </span>
+    </button>`;
+  }).join('');
+  doneBtn.disabled = _pendingTeamPickerKeys.length === 0;
+  doneBtn.textContent = labels.length ? `Done (${labels.length})` : 'Select at least one';
+}
+
+function openTeamPickerModal() {
+  _pendingTeamPickerKeys = [...getSelectedTeams()];
+  renderTeamPickerModal();
+  const modal = $('team-picker-modal');
+  if (modal) modal.classList.remove('hidden');
+  _openModal('team-picker-modal');
+}
+
+function closeTeamPickerModal() {
+  const modal = $('team-picker-modal');
+  if (modal) modal.classList.add('hidden');
+  _closeModal('team-picker-modal');
+}
+
+function toggleTeamPickerOption(teamKey) {
+  const current = new Set(_pendingTeamPickerKeys);
+  if (current.has(teamKey)) current.delete(teamKey);
+  else current.add(teamKey);
+  const order = TEAM_OPTIONS.map(t => t.key);
+  _pendingTeamPickerKeys = Array.from(current).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  renderTeamPickerModal();
+}
+
+function selectAllTeamPickerOptions() {
+  _pendingTeamPickerKeys = TEAM_OPTIONS.map(t => t.key);
+  renderTeamPickerModal();
+}
+
+function clearTeamPickerOptions() {
+  _pendingTeamPickerKeys = [];
+  renderTeamPickerModal();
+}
+
+async function applySelectedTeamsAndRefresh(nextTeams) {
+  const teams = Array.from(new Set((nextTeams || []).filter(Boolean)));
+  if (!teams.length) return;
+  setSelectedTeams(teams);
+  const missing = teams.filter(k => !TEAM_CACHE[k]);
+  if (missing.length) await Promise.all(missing.map(k => loadTeamData(k)));
+  _auditMultiTeamIntegrity();
+  checkTournamentChange();
+  seedHistory();
+  renderTeamPicker();
+  renderHeader();
+  renderScheduleTab();
+  renderPossibleTab();
+  renderHistoryTab();
+  renderRosterTab();
+  await _syncWidgetsAll();
+  await syncSheetConfigToServiceWorker();
+  if (typeof fbListenToTournament === 'function') {
+    teams.forEach(k => fbListenToTournament(k));
+  }
+}
+
+async function applyTeamPickerSelection() {
+  if (!_pendingTeamPickerKeys.length) return;
+  closeTeamPickerModal();
+  await applySelectedTeamsAndRefresh(_pendingTeamPickerKeys);
+}
+
+/** Render a compact team badge in the header that opens the age-group picker when tapped */
 function renderTeamPicker() {
   const el = $('team-picker');
   if (!el) return;
 
   const selectedTeams = getSelectedTeams();
-  const isHS = localStorage.getItem('ebwp-club-type') === 'highschool';
-
-  // Build label for current team(s)
-  const labels = selectedTeams.map(k => {
-    const opt = TEAM_OPTIONS.find(t => t.key === k);
-    if (opt) return opt.label;
-    return k.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-  });
-  const displayLabel = labels.join(', ') || 'Select Team';
+  const labels = _teamPickerDisplayLabels(selectedTeams);
+  const visible = labels.slice(0, 2).map(label => `<span class="header-team-chip">${escHtml(label)}</span>`).join('');
+  const more = labels.length > 2 ? `<span class="header-team-chip header-team-chip-more">+${labels.length - 2}</span>` : '';
 
   el.innerHTML = `
-    <button class="header-team-badge" onclick="moreNavigate('settings')" title="Change team">
-      <span class="header-team-label">${escHtml(displayLabel)}</span>
+    <button class="header-team-badge" onclick="openTeamPickerModal()" title="Change age groups">
+      <span class="header-team-badge-chips">${visible || '<span class="header-team-chip">Select Team</span>'}${more}</span>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
   `;
