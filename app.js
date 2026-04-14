@@ -9462,7 +9462,7 @@ async function subscribeToPush() {
   try {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted' && _isNativePlatform()) {
-      showToast('Notifications blocked â€” opening device settings');
+      showToast('Notifications blocked — opening device settings');
       openNativeNotificationSettings();
       return;
     }
