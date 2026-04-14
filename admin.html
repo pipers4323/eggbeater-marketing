@@ -3539,6 +3539,121 @@
         <li><strong>Delete:</strong> permanently removes a tournament from the cloud.</li>
         <li>When you select a tournament, the admin loads that tournament's cloud data and you deploy updates back into that same record.</li>
       </ul>`,
+        auth_accepting_invite: 'Accepting invite...',
+        auth_invite_accepted: 'Invite accepted!',
+        auth_loading_data: 'Loading data...',
+        auth_enter_email_first: 'Enter your email first',
+        auth_email_link_unavailable: 'Email link auth is not available',
+        auth_magic_link_sent: 'Magic link sent to {email}',
+        auth_confirm_email_prompt: 'Confirm the email address you used for the sign-in link:',
+        auth_email_required: 'Email is required to finish the sign-in link',
+        auth_signing_in: 'Signing in...',
+        auth_wrong_password: 'Wrong password',
+        auth_logout_confirm: 'Log out of the admin panel?',
+        auth_logged_out: 'Logged out',
+        generic_working: 'Working...',
+        generic_deploying: 'Deploying...',
+        generic_failed_prefix: 'Failed',
+        admins_load_failed: 'Failed to load admins: {message}',
+        admins_name_prompt: 'Set display name for this admin:',
+        admins_name_updated: 'Admin name updated',
+        admins_role_updated: 'Role updated to {role}',
+        admins_enter_uid: 'Enter a Google UID',
+        admins_uid_exists: 'UID already in admin list',
+        admins_added: 'Admin added{name}',
+        admins_remove_confirm: 'Remove this admin?\n\n{label}',
+        admins_removed: 'Admin removed',
+        admins_bootstrap_needed: 'Sign in with Google or a magic link first to bootstrap the admin list',
+        admins_bootstrap_done: 'You are now the first admin for this club!',
+        invites_generated: 'Invite link generated{email}',
+        invites_copied_clipboard: 'Link copied to clipboard!',
+        invites_copied: 'Link copied!',
+        invites_none: 'No pending invites.',
+        invites_no_email: 'No email',
+        invites_created_expires: 'Created {created} · Expires {expires}',
+        invites_revoke: 'Revoke',
+        invites_revoke_confirm: 'Revoke this invite?',
+        invites_revoked: 'Invite revoked',
+        invites_load_failed: 'Failed to load invites.',
+        export_no_games: 'No games to export',
+        export_games_done: 'Exported {count} games to {filename}',
+        export_no_players: 'No players to export',
+        export_players_done: 'Exported {count} players to {filename}',
+        clone_loading: 'Cloning tournament...',
+        clone_done: 'Cloned "{name}" - edit name, dates, and times, then Save and Deploy.',
+        clone_failed: 'Clone failed: {message}',
+        template_name_prompt: 'Template name:',
+        template_desc_prompt: 'Description (optional):',
+        template_load_title: 'Load Template',
+        template_load_body: 'Select a template to pre-populate this tournament.',
+        template_builtin_heading: 'BUILT-IN',
+        template_custom_heading: 'YOUR TEMPLATES',
+        template_cancel: 'Cancel',
+        template_saved: 'Template "{name}" saved!',
+        template_save_failed: 'Template save failed: {message}',
+        template_replace_confirm: 'This will replace all current games. Continue?',
+        template_applied: 'Template applied - edit opponents and details',
+        paste_none: 'Paste some schedule data first',
+        paste_imported: 'Imported {count} games',
+        standings_no_games: 'No games to compute standings from',
+        bracket_need_two: 'Need at least 2 teams with results to seed bracket',
+        bracket_seeded: 'Bracket seeded with {count} matchups. Save and Deploy to publish.',
+        undeploy_confirm: 'Undeploy Live Schedule for {team}?\n\nThis will:\n  • Clear all games from the live app\n  • Set app back to Upcoming mode\n\nYour saved drafts and age group configurations will remain safe.',
+        undeploy_working: 'Undeploying...',
+        undeploy_done: 'Live schedule undeployed!',
+        clear_confirm: 'Clear ALL data for {team}?\n\nThis will permanently delete:\n  • Tournament schedule and games\n  • Tournament history\n  • Roster\n\nClub: {club}\n\nThis cannot be undone. Continue?',
+        clear_double_confirm: 'Are you sure? Confirm clearing {team} data.',
+        clear_working: 'Clearing data...',
+        clear_done: 'All {team} data cleared',
+        clear_failed: 'Clear failed: {message}',
+        autodetect_found: 'Auto-detected teams for {count} game(s)',
+        autodetect_none: 'No team labels found in game data - enter opponents like "Team A vs Lamorinda"',
+        delete_game_confirm: 'Delete this game?',
+        csv_no_games: 'No games found in CSV. Check format: Date, Time, Opponent, Location, Cap Color',
+        upcoming_confirm: 'Set app to Upcoming Tournament mode?\n\nYour games stay saved here - the app will show the coming soon message until you tap Go Live. Roster and History are unaffected.',
+        upcoming_saving: 'Saving upcoming mode...',
+        deploy_working: 'Deploying...',
+        upcoming_done: 'Upcoming Mode active - games preserved. Tap Go Live to show them in the app.',
+        go_live_confirm: 'Go Live - make all saved games visible in the app now?',
+        go_live_working: 'Going live...',
+        go_live_done: 'Live! All saved games are now visible in the app.',
+        upcoming_info_saving: 'Saving upcoming info...',
+        upcoming_info_done: 'Upcoming info saved and deployed!',
+        roster_remove_confirm: 'Remove this player?',
+        roster_loaded: 'Loaded {count} players - tap Save Roster to persist',
+        roster_parse_none: 'Nothing to parse - paste your spreadsheet data first',
+        roster_imported_groups: 'Imported {count} players across {groups} age groups{skipped}',
+        roster_no_data: 'No roster to save',
+        roster_saving: 'Saving roster...',
+        roster_saved: 'Roster saved - will be included in next deploy',
+        roster_save_failed: 'Save failed: {message}',
+        library_name_prompt: 'Enter a name for this tournament draft:',
+        library_saved: 'Saved "{name}" to Library!',
+        library_load_confirm: 'Load "{name}" into your workspace? This will replace your current unsaved edits.',
+        library_loaded: 'Loaded "{name}" into workspace.',
+        library_delete_confirm: 'Permanently delete "{name}" from your library? This cannot be undone.',
+        library_deleting: 'Deleting draft...',
+        library_deleted: 'Deleted "{name}"',
+        library_deploy_confirm: 'Deploy "{name}" to Live? This will overwrite the currently live tournament and roster.',
+        library_saving_roster: 'Saving draft roster...',
+        workspace_clear_confirm: 'Clear all games and rosters in your current workspace to start fresh?\n\n(This will NOT delete your saved drafts or the live tournament)',
+        workspace_cleared: 'Workspace cleared. Start adding games!',
+        shell_select_groups: 'Select at least one age group to receive tournament info.',
+        shell_confirm: 'Deploy shared tournament info to {labels}?\n\nThis copies the tournament name, dates, venue, and general metadata.\nGames, clock settings, bracket state, history, and roster stay scoped to each age group.',
+        shell_deploying: 'Deploying tournament info to {key} ({index}/{total})...',
+        shell_done: 'Shared tournament info deployed to {count} group(s)',
+        shell_partial: 'Updated {count} group(s). Failed: {failed}',
+        deploy_all_confirm: 'Deploy {label} live now?\n\nGroups with tournament data will be published.\nEmpty groups will show a Stay Tuned message.',
+        deploy_all_checking: 'Checking {key} ({index}/{total})...',
+        deploy_all_deploying: 'Deploying {key} (has data)...',
+        deploy_all_stay_tuned: 'Setting {key} to Stay Tuned...',
+        deploy_all_done: 'Deployed: {deployed} with data, {placeholders} with Stay Tuned',
+        set_all_upcoming_confirm: 'Set ALL age groups to Upcoming Mode?\n\nThe app will show a coming soon message for every age group. All saved games and rosters stay intact - use Go Live on each team to bring them back one by one, or Deploy All to push everything live at once.',
+        set_all_upcoming_team: 'Setting upcoming mode: {key} ({index}/{total})...',
+        set_all_upcoming_partial: '{done} teams set to upcoming, {failedCount} failed ({failed}) - deploy manually',
+        set_all_upcoming_deploying: 'Deploying all age groups in upcoming mode...',
+        set_all_upcoming_done: 'All {count} age groups set to Upcoming Mode and deployed!',
+        set_all_upcoming_deploy_failed: 'Upcoming mode saved for all teams - but deploy failed: {message}',
       },
       es: {
         dashboard_title: 'Panel Super Admin',
@@ -3685,6 +3800,121 @@
         <li><strong>Eliminar:</strong> borra un torneo permanentemente de la nube.</li>
         <li>Al seleccionar un torneo, el panel carga sus datos en la nube y tus deploys vuelven a ese mismo registro.</li>
       </ul>`,
+        auth_accepting_invite: 'Aceptando invitacion...',
+        auth_invite_accepted: 'Invitacion aceptada',
+        auth_loading_data: 'Cargando datos...',
+        auth_enter_email_first: 'Ingresa tu correo primero',
+        auth_email_link_unavailable: 'El acceso por enlace de correo no esta disponible',
+        auth_magic_link_sent: 'Enlace magico enviado a {email}',
+        auth_confirm_email_prompt: 'Confirma el correo que usaste para el enlace de acceso:',
+        auth_email_required: 'Se requiere correo para completar el acceso',
+        auth_signing_in: 'Iniciando sesion...',
+        auth_wrong_password: 'Contrasena incorrecta',
+        auth_logout_confirm: 'Cerrar sesion del panel admin?',
+        auth_logged_out: 'Sesion cerrada',
+        generic_working: 'Procesando...',
+        generic_deploying: 'Desplegando...',
+        generic_failed_prefix: 'Fallo',
+        admins_load_failed: 'No se pudieron cargar los admins: {message}',
+        admins_name_prompt: 'Define el nombre visible para este admin:',
+        admins_name_updated: 'Nombre del admin actualizado',
+        admins_role_updated: 'Rol actualizado a {role}',
+        admins_enter_uid: 'Ingresa un UID de Google',
+        admins_uid_exists: 'Ese UID ya existe en la lista',
+        admins_added: 'Admin agregado{name}',
+        admins_remove_confirm: 'Eliminar este admin?\n\n{label}',
+        admins_removed: 'Admin eliminado',
+        admins_bootstrap_needed: 'Primero inicia sesion con Google o enlace magico para crear la lista inicial de admins',
+        admins_bootstrap_done: 'Ahora eres el primer admin de este club',
+        invites_generated: 'Enlace de invitacion generado{email}',
+        invites_copied_clipboard: 'Enlace copiado al portapapeles',
+        invites_copied: 'Enlace copiado',
+        invites_none: 'No hay invitaciones pendientes.',
+        invites_no_email: 'Sin correo',
+        invites_created_expires: 'Creada {created} · Expira {expires}',
+        invites_revoke: 'Revocar',
+        invites_revoke_confirm: 'Revocar esta invitacion?',
+        invites_revoked: 'Invitacion revocada',
+        invites_load_failed: 'No se pudieron cargar las invitaciones.',
+        export_no_games: 'No hay partidos para exportar',
+        export_games_done: 'Se exportaron {count} partidos a {filename}',
+        export_no_players: 'No hay jugadores para exportar',
+        export_players_done: 'Se exportaron {count} jugadores a {filename}',
+        clone_loading: 'Clonando torneo...',
+        clone_done: 'Se clono "{name}" - edita nombre, fechas y horas, luego guarda y despliega.',
+        clone_failed: 'Fallo al clonar: {message}',
+        template_name_prompt: 'Nombre de la plantilla:',
+        template_desc_prompt: 'Descripcion (opcional):',
+        template_load_title: 'Cargar plantilla',
+        template_load_body: 'Selecciona una plantilla para precargar este torneo.',
+        template_builtin_heading: 'INCLUIDAS',
+        template_custom_heading: 'TUS PLANTILLAS',
+        template_cancel: 'Cancelar',
+        template_saved: 'Plantilla "{name}" guardada',
+        template_save_failed: 'No se pudo guardar la plantilla: {message}',
+        template_replace_confirm: 'Esto reemplazara todos los partidos actuales. Continuar?',
+        template_applied: 'Plantilla aplicada - edita rivales y detalles',
+        paste_none: 'Primero pega datos del calendario',
+        paste_imported: 'Se importaron {count} partidos',
+        standings_no_games: 'No hay partidos para calcular posiciones',
+        bracket_need_two: 'Se necesitan al menos 2 equipos con resultados para sembrar el cuadro',
+        bracket_seeded: 'Cuadro sembrado con {count} cruces. Guarda y despliega para publicar.',
+        undeploy_confirm: 'Quitar el calendario en vivo para {team}?\n\nEsto hara lo siguiente:\n  • Quitara todos los partidos de la app en vivo\n  • Pondra la app en modo Upcoming\n\nTus borradores y configuraciones quedaran seguros.',
+        undeploy_working: 'Quitando despliegue...',
+        undeploy_done: 'Calendario en vivo quitado',
+        clear_confirm: 'Borrar TODOS los datos de {team}?\n\nEsto eliminara permanentemente:\n  • Calendario y partidos del torneo\n  • Historial del torneo\n  • Roster\n\nClub: {club}\n\nNo se puede deshacer. Continuar?',
+        clear_double_confirm: 'Seguro? Confirma el borrado de los datos de {team}.',
+        clear_working: 'Borrando datos...',
+        clear_done: 'Se borraron todos los datos de {team}',
+        clear_failed: 'Fallo al borrar: {message}',
+        autodetect_found: 'Se detectaron equipos automaticamente en {count} partido(s)',
+        autodetect_none: 'No se encontraron etiquetas de equipo - ingresa rivales como "Team A vs Lamorinda"',
+        delete_game_confirm: 'Eliminar este partido?',
+        csv_no_games: 'No se encontraron partidos en el CSV. Revisa el formato: Date, Time, Opponent, Location, Cap Color',
+        upcoming_confirm: 'Poner la app en modo Upcoming Tournament?\n\nTus partidos quedan guardados aqui - la app mostrara coming soon hasta que toques Go Live. Roster e History no se ven afectados.',
+        upcoming_saving: 'Guardando modo upcoming...',
+        deploy_working: 'Desplegando...',
+        upcoming_done: 'Upcoming Mode activo - partidos preservados. Toca Go Live para mostrarlos en la app.',
+        go_live_confirm: 'Go Live - hacer visibles todos los partidos guardados ahora?',
+        go_live_working: 'Publicando en vivo...',
+        go_live_done: 'En vivo. Todos los partidos guardados ya son visibles en la app.',
+        upcoming_info_saving: 'Guardando informacion upcoming...',
+        upcoming_info_done: 'Informacion upcoming guardada y desplegada',
+        roster_remove_confirm: 'Quitar este jugador?',
+        roster_loaded: 'Se cargaron {count} jugadores - toca Save Roster para guardar',
+        roster_parse_none: 'No hay nada para analizar - pega primero los datos de la planilla',
+        roster_imported_groups: 'Se importaron {count} jugadores en {groups} grupos de edad{skipped}',
+        roster_no_data: 'No hay roster para guardar',
+        roster_saving: 'Guardando roster...',
+        roster_saved: 'Roster guardado - se incluira en el siguiente deploy',
+        roster_save_failed: 'Fallo al guardar: {message}',
+        library_name_prompt: 'Ingresa un nombre para este borrador de torneo:',
+        library_saved: 'Se guardo "{name}" en Library',
+        library_load_confirm: 'Cargar "{name}" en tu espacio de trabajo? Esto reemplazara tus cambios no guardados.',
+        library_loaded: 'Se cargo "{name}" en el espacio de trabajo.',
+        library_delete_confirm: 'Eliminar permanentemente "{name}" de tu library? No se puede deshacer.',
+        library_deleting: 'Eliminando borrador...',
+        library_deleted: 'Se elimino "{name}"',
+        library_deploy_confirm: 'Desplegar "{name}" a Live? Esto sobrescribira el torneo y roster en vivo.',
+        library_saving_roster: 'Guardando roster del borrador...',
+        workspace_clear_confirm: 'Borrar todos los partidos y rosters en tu espacio actual para empezar de nuevo?\n\n(Esto NO eliminara tus borradores guardados ni el torneo en vivo)',
+        workspace_cleared: 'Espacio limpiado. Empieza a agregar partidos.',
+        shell_select_groups: 'Selecciona al menos un grupo de edad para recibir la info del torneo.',
+        shell_confirm: 'Desplegar la informacion compartida del torneo a {labels}?\n\nEsto copia nombre, fechas, sede y metadatos generales.\nPartidos, reloj, cuadro, historial y roster siguen separados por grupo de edad.',
+        shell_deploying: 'Desplegando informacion del torneo a {key} ({index}/{total})...',
+        shell_done: 'Informacion compartida desplegada a {count} grupo(s)',
+        shell_partial: 'Se actualizaron {count} grupo(s). Fallaron: {failed}',
+        deploy_all_confirm: 'Desplegar {label} en vivo ahora?\n\nLos grupos con datos del torneo se publicaran.\nLos grupos vacios mostraran Stay Tuned.',
+        deploy_all_checking: 'Revisando {key} ({index}/{total})...',
+        deploy_all_deploying: 'Desplegando {key} (con datos)...',
+        deploy_all_stay_tuned: 'Poniendo {key} en Stay Tuned...',
+        deploy_all_done: 'Desplegados: {deployed} con datos, {placeholders} con Stay Tuned',
+        set_all_upcoming_confirm: 'Poner TODOS los grupos de edad en Upcoming Mode?\n\nLa app mostrara un mensaje coming soon para cada grupo. Todos los partidos y rosters guardados se conservan - usa Go Live en cada equipo para traerlos de vuelta uno por uno, o Deploy All para publicar todo a la vez.',
+        set_all_upcoming_team: 'Poniendo upcoming mode: {key} ({index}/{total})...',
+        set_all_upcoming_partial: '{done} equipos puestos en upcoming, {failedCount} fallaron ({failed}) - despliega manualmente',
+        set_all_upcoming_deploying: 'Desplegando todos los grupos en upcoming mode...',
+        set_all_upcoming_done: 'Todos los {count} grupos quedaron en Upcoming Mode y fueron desplegados',
+        set_all_upcoming_deploy_failed: 'Upcoming mode guardado para todos los equipos - pero el deploy fallo: {message}',
       },
       fr: {
         dashboard_title: 'Tableau Super Admin',
@@ -3831,6 +4061,121 @@
         <li><strong>Supprimer :</strong> retire definitivement un tournoi du cloud.</li>
         <li>Quand vous selectionnez un tournoi, l'admin charge ses donnees cloud et vos deploys retournent dans ce meme dossier.</li>
       </ul>`,
+        auth_accepting_invite: "Acceptation de l'invitation...",
+        auth_invite_accepted: 'Invitation acceptee',
+        auth_loading_data: 'Chargement des donnees...',
+        auth_enter_email_first: 'Entrez votre e-mail',
+        auth_email_link_unavailable: "L'authentification par lien e-mail n'est pas disponible",
+        auth_magic_link_sent: 'Lien magique envoye a {email}',
+        auth_confirm_email_prompt: "Confirmez l'adresse e-mail utilisee pour le lien de connexion :",
+        auth_email_required: "L'e-mail est requis pour terminer la connexion",
+        auth_signing_in: 'Connexion...',
+        auth_wrong_password: 'Mot de passe incorrect',
+        auth_logout_confirm: 'Se deconnecter du panneau admin ?',
+        auth_logged_out: 'Deconnecte',
+        generic_working: 'Traitement...',
+        generic_deploying: 'Deploy...',
+        generic_failed_prefix: 'Echec',
+        admins_load_failed: 'Impossible de charger les admins : {message}',
+        admins_name_prompt: "Definir le nom d'affichage pour cet admin :",
+        admins_name_updated: "Nom de l'admin mis a jour",
+        admins_role_updated: 'Role mis a jour vers {role}',
+        admins_enter_uid: 'Entrez un UID Google',
+        admins_uid_exists: 'Cet UID est deja dans la liste',
+        admins_added: 'Admin ajoute{name}',
+        admins_remove_confirm: 'Supprimer cet admin ?\n\n{label}',
+        admins_removed: 'Admin supprime',
+        admins_bootstrap_needed: 'Connectez-vous avec Google ou un lien magique pour initialiser la liste admin',
+        admins_bootstrap_done: 'Vous etes maintenant le premier admin de ce club',
+        invites_generated: 'Lien dinvitation genere{email}',
+        invites_copied_clipboard: 'Lien copie dans le presse-papiers',
+        invites_copied: 'Lien copie',
+        invites_none: 'Aucune invitation en attente.',
+        invites_no_email: 'Sans e-mail',
+        invites_created_expires: 'Creee {created} · Expire {expires}',
+        invites_revoke: 'Revoquer',
+        invites_revoke_confirm: 'Revoquer cette invitation ?',
+        invites_revoked: 'Invitation revoquee',
+        invites_load_failed: 'Impossible de charger les invitations.',
+        export_no_games: 'Aucun match a exporter',
+        export_games_done: '{count} matchs exportes vers {filename}',
+        export_no_players: 'Aucun joueur a exporter',
+        export_players_done: '{count} joueurs exportes vers {filename}',
+        clone_loading: 'Clonage du tournoi...',
+        clone_done: 'Tournoi "{name}" clone - modifiez le nom, les dates et les heures, puis Enregistrer et Deploy.',
+        clone_failed: 'Echec du clonage : {message}',
+        template_name_prompt: 'Nom du modele :',
+        template_desc_prompt: 'Description (optionnelle) :',
+        template_load_title: 'Charger un modele',
+        template_load_body: 'Selectionnez un modele pour pre-remplir ce tournoi.',
+        template_builtin_heading: 'INTEGRES',
+        template_custom_heading: 'VOS MODELES',
+        template_cancel: 'Annuler',
+        template_saved: 'Modele "{name}" enregistre',
+        template_save_failed: "Echec de l'enregistrement du modele : {message}",
+        template_replace_confirm: 'Ceci remplacera tous les matchs actuels. Continuer ?',
+        template_applied: 'Modele applique - modifiez adversaires et details',
+        paste_none: 'Collez dabord des donnees de calendrier',
+        paste_imported: '{count} matchs importes',
+        standings_no_games: 'Aucun match pour calculer le classement',
+        bracket_need_two: 'Il faut au moins 2 equipes avec des resultats pour creer le tableau',
+        bracket_seeded: 'Tableau genere avec {count} affiches. Enregistrez et Deploy pour publier.',
+        undeploy_confirm: 'Retirer le calendrier en direct pour {team} ?\n\nCela va :\n  • Effacer tous les matchs de l application live\n  • Remettre l application en mode Upcoming\n\nVos brouillons et configurations de groupe resteront sauvegardes.',
+        undeploy_working: 'Retrait du deploy...',
+        undeploy_done: 'Calendrier live retire',
+        clear_confirm: 'Effacer TOUTES les donnees pour {team} ?\n\nCela supprimera definitivement :\n  • Calendrier et matchs du tournoi\n  • Historique du tournoi\n  • Effectif\n\nClub : {club}\n\nAction irreversible. Continuer ?',
+        clear_double_confirm: 'Etes-vous sur ? Confirmez leffacement des donnees de {team}.',
+        clear_working: 'Effacement des donnees...',
+        clear_done: 'Toutes les donnees de {team} ont ete effacees',
+        clear_failed: 'Echec de leffacement : {message}',
+        autodetect_found: 'Equipes detectees automatiquement pour {count} match(s)',
+        autodetect_none: 'Aucune etiquette equipe detectee - entrez des adversaires comme "Team A vs Lamorinda"',
+        delete_game_confirm: 'Supprimer ce match ?',
+        csv_no_games: 'Aucun match trouve dans le CSV. Verifiez le format : Date, Time, Opponent, Location, Cap Color',
+        upcoming_confirm: 'Passer l application en mode Upcoming Tournament ?\n\nVos matchs restent enregistres ici - l application affichera coming soon jusqu a Go Live. Effectif et Historique restent inchanges.',
+        upcoming_saving: 'Enregistrement du mode upcoming...',
+        deploy_working: 'Deploy en cours...',
+        upcoming_done: 'Upcoming Mode actif - matchs preserves. Touchez Go Live pour les afficher dans l application.',
+        go_live_confirm: 'Go Live - rendre tous les matchs enregistres visibles maintenant ?',
+        go_live_working: 'Passage en direct...',
+        go_live_done: 'En direct. Tous les matchs enregistres sont maintenant visibles dans l application.',
+        upcoming_info_saving: 'Enregistrement des infos upcoming...',
+        upcoming_info_done: 'Infos upcoming enregistrees et deployees',
+        roster_remove_confirm: 'Retirer ce joueur ?',
+        roster_loaded: '{count} joueurs charges - touchez Save Roster pour enregistrer',
+        roster_parse_none: 'Rien a analyser - collez dabord les donnees du tableur',
+        roster_imported_groups: '{count} joueurs importes dans {groups} groupes dage{skipped}',
+        roster_no_data: 'Aucun effectif a enregistrer',
+        roster_saving: 'Enregistrement de leffectif...',
+        roster_saved: 'Effectif enregistre - il sera inclus dans le prochain deploy',
+        roster_save_failed: "Echec de l'enregistrement : {message}",
+        library_name_prompt: 'Entrez un nom pour ce brouillon de tournoi :',
+        library_saved: '"{name}" enregistre dans la bibliotheque',
+        library_load_confirm: 'Charger "{name}" dans votre espace de travail ? Cela remplacera vos modifications non enregistrees.',
+        library_loaded: '"{name}" charge dans lespace de travail.',
+        library_delete_confirm: 'Supprimer definitivement "{name}" de votre bibliotheque ? Action irreversible.',
+        library_deleting: 'Suppression du brouillon...',
+        library_deleted: '"{name}" supprime',
+        library_deploy_confirm: 'Deploy "{name}" en Live ? Cela remplacera le tournoi et leffectif actuellement en ligne.',
+        library_saving_roster: 'Enregistrement de leffectif du brouillon...',
+        workspace_clear_confirm: 'Effacer tous les matchs et effectifs de votre espace actuel pour repartir a zero ?\n\n(Cela ne supprimera PAS vos brouillons enregistres ni le tournoi en direct)',
+        workspace_cleared: 'Espace reinitialise. Commencez a ajouter des matchs.',
+        shell_select_groups: 'Selectionnez au moins un groupe dage pour recevoir les infos du tournoi.',
+        shell_confirm: 'Deploy les informations partagees du tournoi vers {labels} ?\n\nCela copie le nom, les dates, le lieu et les metadonnees generales.\nMatchs, horloge, tableau, historique et effectif restent limites a chaque groupe dage.',
+        shell_deploying: 'Deploy des infos de tournoi vers {key} ({index}/{total})...',
+        shell_done: 'Informations partagees deployees vers {count} groupe(s)',
+        shell_partial: '{count} groupe(s) mis a jour. Echecs : {failed}',
+        deploy_all_confirm: 'Deploy {label} en direct maintenant ?\n\nLes groupes avec des donnees de tournoi seront publies.\nLes groupes vides afficheront Stay Tuned.',
+        deploy_all_checking: 'Verification de {key} ({index}/{total})...',
+        deploy_all_deploying: 'Deploy de {key} (avec donnees)...',
+        deploy_all_stay_tuned: 'Passage de {key} en Stay Tuned...',
+        deploy_all_done: 'Deploye : {deployed} avec donnees, {placeholders} avec Stay Tuned',
+        set_all_upcoming_confirm: 'Mettre TOUS les groupes dage en Upcoming Mode ?\n\nL application affichera un message coming soon pour chaque groupe. Tous les matchs et effectifs enregistres restent en place - utilisez Go Live sur chaque equipe pour les remettre une par une, ou Deploy All pour tout publier en une fois.',
+        set_all_upcoming_team: 'Activation du mode upcoming : {key} ({index}/{total})...',
+        set_all_upcoming_partial: '{done} equipes en upcoming, {failedCount} echecs ({failed}) - deploy manuel requis',
+        set_all_upcoming_deploying: 'Deploy de tous les groupes en upcoming mode...',
+        set_all_upcoming_done: 'Les {count} groupes dage sont passes en Upcoming Mode et ont ete deployes',
+        set_all_upcoming_deploy_failed: 'Upcoming mode enregistre pour toutes les equipes - mais le deploy a echoue : {message}',
       }
     };
 
@@ -4728,9 +5073,9 @@
     ];
 
     async function saveAsTemplate() {
-      const name = prompt('Template name:');
+      const name = prompt(adminT('template_name_prompt'));
       if (!name) return;
-      const desc = prompt('Description (optional):', '') || '';
+      const desc = prompt(adminT('template_desc_prompt'), '') || '';
       // Strip scores, dates, times from current games
       const cleanGames = (S.tournament.games || []).map(g => ({
         opponent: g.opponent || '', pool: g.pool || '', cap: g.cap || '',
@@ -4740,9 +5085,9 @@
       try {
         const res = await api('POST', '/admin/templates', { name, description: desc, template });
         if (!res.ok) throw new Error('Save failed');
-        showStatus(`✅ Template "${name}" saved!`, 'ok');
+        showStatus(adminFormat('template_saved', { name }), 'ok');
       } catch (e) {
-        showStatus('Failed: ' + e.message, 'err');
+        showStatus(adminFormat('template_save_failed', { message: e.message }), 'err');
       }
     }
 
@@ -4763,9 +5108,9 @@
         modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
       }
       let html = '<div style="background:white;border-radius:12px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto;padding:20px">';
-      html += '<h3 style="margin:0 0 8px;font-size:1.1rem">📐 Load Template</h3>';
-      html += '<p style="margin:0 0 12px;font-size:0.82rem;color:#64748b">Select a template to pre-populate this tournament.</p>';
-      html += '<div style="font-size:0.72rem;font-weight:700;color:#1e40af;margin-bottom:6px">BUILT-IN</div>';
+      html += `<h3 style="margin:0 0 8px;font-size:1.1rem">📐 ${esc(adminT('template_load_title'))}</h3>`;
+      html += `<p style="margin:0 0 12px;font-size:0.82rem;color:#64748b">${esc(adminT('template_load_body'))}</p>`;
+      html += `<div style="font-size:0.72rem;font-weight:700;color:#1e40af;margin-bottom:6px">${esc(adminT('template_builtin_heading'))}</div>`;
       for (const t of all.filter(t => t.isBuiltin)) {
         html += `<button style="display:block;width:100%;text-align:left;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:6px;background:white;cursor:pointer;font-size:0.85rem" onclick="applyTemplate(${JSON.stringify(t.template).replace(/"/g, '&quot;')})">
       <div style="font-weight:700">${esc(t.name)}</div>
@@ -4774,7 +5119,7 @@
       }
       const customEntries = all.filter(t => !t.isBuiltin);
       if (customEntries.length) {
-        html += '<div style="font-size:0.72rem;font-weight:700;color:#059669;margin:10px 0 6px">YOUR TEMPLATES</div>';
+        html += `<div style="font-size:0.72rem;font-weight:700;color:#059669;margin:10px 0 6px">${esc(adminT('template_custom_heading'))}</div>`;
         for (const t of customEntries) {
           html += `<button style="display:block;width:100%;text-align:left;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:6px;background:white;cursor:pointer;font-size:0.85rem" onclick="applyTemplate(${JSON.stringify(t.template).replace(/"/g, '&quot;')})">
         <div style="font-weight:700">${esc(t.name)}</div>
@@ -4782,20 +5127,20 @@
       </button>`;
         }
       }
-      html += '<button style="margin-top:8px;width:100%;padding:8px;border:1px solid #d1d5db;border-radius:8px;background:#f9fafb;cursor:pointer;font-size:0.82rem;color:#6b7280" onclick="this.closest(\'#template-modal\').remove()">Cancel</button>';
+      html += `<button style="margin-top:8px;width:100%;padding:8px;border:1px solid #d1d5db;border-radius:8px;background:#f9fafb;cursor:pointer;font-size:0.82rem;color:#6b7280" onclick="this.closest('#template-modal').remove()">${esc(adminT('template_cancel'))}</button>`;
       html += '</div>';
       modal.innerHTML = html;
     }
 
     function applyTemplate(tmpl) {
-      if (!confirm('This will replace all current games. Continue?')) return;
+      if (!confirm(adminT('template_replace_confirm'))) return;
       const modal = document.getElementById('template-modal');
       if (modal) modal.remove();
       S.tournament.games = (tmpl.games || []).map((g, i) => ({
         id: 'g' + (i + 1), ...g, date: '', time: g.time || '', us: '', them: '', score: '',
       }));
       if (tmpl.bracket) S.tournament.bracket = tmpl.bracket;
-      showStatus('✅ Template applied — edit opponents and details', 'ok');
+      showStatus(adminT('template_applied'), 'ok');
       renderTab();
     }
 
@@ -5991,7 +6336,11 @@
         }
 
         window._bulkParsedPlayers = null;
-        showStatus(`Imported ${totalImported} players across ${Object.keys(grouped).length} age groups${skipped ? ` (${skipped} skipped)` : ''}`, 'ok');
+        showStatus(adminFormat('roster_imported_groups', {
+          count: totalImported,
+          groups: Object.keys(grouped).length,
+          skipped: skipped ? ` (${skipped} skipped)` : ''
+        }), 'ok');
         renderTab();
         return;
       }
@@ -6016,7 +6365,7 @@
       }
 
       window._bulkParsedPlayers = null;
-      showStatus(`Imported ${players.length} players — tap 💾 Save Roster to persist`, 'ok');
+      showStatus(adminFormat('roster_loaded', { count: players.length }), 'ok');
       renderTab();
     }
 
@@ -6127,14 +6476,14 @@
     }
 
     async function saveRoster() {
-      if (!S.roster) { showStatus('⚠️ No roster to save', 'err'); return; }
-      showStatus('Saving roster…', 'info');
+      if (!S.roster) { showStatus(adminT('roster_no_data'), 'err'); return; }
+      showStatus(adminT('roster_saving'), 'info');
       try {
         const res = await api('PUT', '/admin/roster', { roster: S.roster });
         if (!res.ok) throw new Error('Worker returned ' + res.status);
-        showStatus('✅ Roster saved — will be included in next deploy', 'ok');
+        showStatus(adminT('roster_saved'), 'ok');
       } catch (e) {
-        showStatus('❌ Save failed: ' + e.message, 'err');
+        showStatus(adminFormat('roster_save_failed', { message: e.message }), 'err');
       }
     }
 
@@ -6780,7 +7129,7 @@
         const admins = data.admins || [];
         _cachedAdmins = admins;
         if (!admins.length) {
-          list.innerHTML = '<div style="font-size:0.82rem;color:var(--g400)">No admin list configured yet. Click "Bootstrap" below to register yourself.</div>';
+          list.innerHTML = `<div style="font-size:0.82rem;color:var(--g400)">${esc(adminT('admins_bootstrap_needed'))}</div>`;
           return;
         }
         list.innerHTML = admins.map(a => {
@@ -6802,13 +7151,13 @@
       </div>`;
         }).join('');
       } catch (e) {
-        showStatus('Failed to load admins: ' + e.message, 'err');
+        showStatus(adminFormat('admins_load_failed', { message: e.message }), 'err');
       }
     }
 
     async function editAdminName(uid) {
       const admin = _cachedAdmins.find(a => a.uid === uid);
-      const newName = prompt('Set display name for this admin:', admin?.name || '');
+      const newName = prompt(adminT('admins_name_prompt'), admin?.name || '');
       if (newName === null) return; // cancelled
       try {
         const updatedAdmins = _cachedAdmins.map(a => {
@@ -6817,10 +7166,10 @@
         });
         const putRes = await api('PUT', '/admin/club-admins', { adminUIDs: updatedAdmins });
         if (!putRes.ok) throw new Error('Failed to save');
-        showStatus('✓ Admin name updated', 'ok');
+        showStatus(adminT('admins_name_updated'), 'ok');
         loadClubAdmins();
       } catch (e) {
-        showStatus('❌ ' + e.message, 'err');
+        showStatus(`${adminT('generic_failed_prefix')}: ${e.message}`, 'err');
       }
     }
 
@@ -6832,10 +7181,10 @@
         });
         const putRes = await api('PUT', '/admin/club-admins', { adminUIDs: updatedAdmins });
         if (!putRes.ok) throw new Error('Failed to save');
-        showStatus(`✓ Role updated to ${newRole}`, 'ok');
+        showStatus(adminFormat('admins_role_updated', { role: newRole }), 'ok');
         loadClubAdmins();
       } catch (e) {
-        showStatus('❌ ' + e.message, 'err');
+        showStatus(`${adminT('generic_failed_prefix')}: ${e.message}`, 'err');
       }
     }
 
@@ -6844,45 +7193,45 @@
       const nameInput = document.getElementById('new-admin-name');
       const uid = (uidInput?.value || '').trim();
       const name = (nameInput?.value || '').trim();
-      if (!uid) { showStatus('Enter a Google UID', 'err'); return; }
+      if (!uid) { showStatus(adminT('admins_enter_uid'), 'err'); return; }
       try {
         const getRes = await api('GET', '/admin/club-admins');
         if (!getRes.ok) throw new Error('Failed to fetch current admins');
         const data = await getRes.json();
         const admins = data.admins || [];
-        if (admins.some(a => a.uid === uid)) { showStatus('UID already in admin list', 'info'); return; }
+        if (admins.some(a => a.uid === uid)) { showStatus(adminT('admins_uid_exists'), 'info'); return; }
         admins.push({ uid, name: name, email: '' });
         const putRes = await api('PUT', '/admin/club-admins', { adminUIDs: admins });
         if (!putRes.ok) throw new Error('Failed to save');
         if (typeof fbAddClubAdmin === 'function') await fbAddClubAdmin(typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club', uid);
         uidInput.value = '';
         nameInput.value = '';
-        showStatus('✓ Admin added' + (name ? ': ' + name : ''), 'ok');
+        showStatus(adminFormat('admins_added', { name: name ? `: ${name}` : '' }), 'ok');
         loadClubAdmins();
       } catch (e) {
-        showStatus('❌ ' + e.message, 'err');
+        showStatus(`${adminT('generic_failed_prefix')}: ${e.message}`, 'err');
       }
     }
 
     async function removeClubAdminUid(uid) {
       const admin = _cachedAdmins.find(a => a.uid === uid);
       const label = admin?.name ? `${admin.name} (${uid})` : uid;
-      if (!confirm('Remove this admin?\n\n' + label)) return;
+      if (!confirm(adminFormat('admins_remove_confirm', { label }))) return;
       try {
         const admins = _cachedAdmins.filter(a => a.uid !== uid);
         const putRes = await api('PUT', '/admin/club-admins', { adminUIDs: admins });
         if (!putRes.ok) throw new Error('Failed to save');
         if (typeof fbRemoveClubAdmin === 'function') await fbRemoveClubAdmin(typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club', uid);
-        showStatus('✓ Admin removed', 'ok');
+        showStatus(adminT('admins_removed'), 'ok');
         loadClubAdmins();
       } catch (e) {
-        showStatus('❌ ' + e.message, 'err');
+        showStatus(`${adminT('generic_failed_prefix')}: ${e.message}`, 'err');
       }
     }
 
     async function initClubAdminList() {
       if (!isFirebaseAdminMode()) {
-        showStatus('Sign in with Google or a magic link first to bootstrap the admin list', 'err');
+        showStatus(adminT('admins_bootstrap_needed'), 'err');
         return;
       }
       try {
@@ -6894,10 +7243,10 @@
         if (user && typeof fbEnsureClub === 'function') {
           await fbEnsureClub(S.tournament?.clubName || 'My Club', user.uid);
         }
-        showStatus('✓ You are now the first admin for this club!', 'ok');
+        showStatus(adminT('admins_bootstrap_done'), 'ok');
         loadClubAdmins();
       } catch (e) {
-        showStatus('❌ ' + e.message, 'err');
+        showStatus(`${adminT('generic_failed_prefix')}: ${e.message}`, 'err');
       }
     }
 
@@ -6916,10 +7265,10 @@
         output.style.display = 'block';
         value.value = link;
         if (emailInput) emailInput.value = '';
-        showStatus('✓ Invite link generated' + (email ? ' for ' + email : ''), 'ok');
+        showStatus(adminFormat('invites_generated', { email: email ? ` for ${email}` : '' }), 'ok');
         loadPendingInvites();
       } catch (e) {
-        showStatus('❌ ' + e.message, 'err');
+        showStatus(`${adminT('generic_failed_prefix')}: ${e.message}`, 'err');
       }
     }
 
@@ -6927,11 +7276,11 @@
       const input = document.getElementById('invite-link-value');
       if (!input) return;
       navigator.clipboard.writeText(input.value).then(() => {
-        showStatus('✓ Link copied to clipboard!', 'ok');
+        showStatus(adminT('invites_copied_clipboard'), 'ok');
       }).catch(() => {
         input.select();
         document.execCommand('copy');
-        showStatus('✓ Link copied!', 'ok');
+        showStatus(adminT('invites_copied'), 'ok');
       });
     }
 
@@ -6944,7 +7293,7 @@
         const data = await res.json();
         const invites = data.invites || [];
         if (!invites.length) {
-          el.innerHTML = '<div style="color:var(--g400)">No pending invites.</div>';
+          el.innerHTML = `<div style="color:var(--g400)">${esc(adminT('invites_none'))}</div>`;
           return;
         }
         el.innerHTML = invites.map(inv => {
@@ -6953,27 +7302,27 @@
           return `
         <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--g100)">
           <div style="flex:1;min-width:0">
-            <div style="font-size:0.82rem;font-weight:600">${esc(inv.email || 'No email')}</div>
-            <div style="font-size:0.68rem;color:var(--g400)">Created ${created} · Expires ${expires}</div>
+            <div style="font-size:0.82rem;font-weight:600">${esc(inv.email || adminT('invites_no_email'))}</div>
+            <div style="font-size:0.68rem;color:var(--g400)">${esc(adminFormat('invites_created_expires', { created, expires }))}</div>
           </div>
           <button class="save-btn" style="font-size:0.68rem;padding:3px 8px;background:var(--red-lt);color:var(--red)"
-                  onclick="revokeInvite('${esc(inv.token)}')">Revoke</button>
+                  onclick="revokeInvite('${esc(inv.token)}')">${esc(adminT('invites_revoke'))}</button>
         </div>`;
         }).join('');
       } catch (e) {
-        el.innerHTML = '<div style="color:var(--red)">Failed to load invites.</div>';
+        el.innerHTML = `<div style="color:var(--red)">${esc(adminT('invites_load_failed'))}</div>`;
       }
     }
 
     async function revokeInvite(token) {
-      if (!confirm('Revoke this invite?')) return;
+      if (!confirm(adminT('invites_revoke_confirm'))) return;
       try {
         const res = await api('DELETE', '/admin/invite?token=' + encodeURIComponent(token));
         if (!res.ok) throw new Error('Failed: ' + res.status);
-        showStatus('✓ Invite revoked', 'ok');
+        showStatus(adminT('invites_revoked'), 'ok');
         loadPendingInvites();
       } catch (e) {
-        showStatus('❌ ' + e.message, 'err');
+        showStatus(`${adminT('generic_failed_prefix')}: ${e.message}`, 'err');
       }
     }
 
@@ -9744,7 +10093,7 @@
     }
 
     async function saveToLibrary() {
-      const name = prompt('Enter a name for this tournament draft:', S.tournament.name || 'New Draft');
+      const name = prompt(adminT('library_name_prompt'), S.tournament.name || 'New Draft');
       if (!name) return;
 
       const draftId = S.activeDraftId || 'draft_' + Date.now().toString(36);
@@ -9767,7 +10116,7 @@
       }
 
       await saveSavedTournaments();
-      showStatus(`✅ Saved "${name}" to Library!`, 'ok');
+      showStatus(adminFormat('library_saved', { name }), 'ok');
       renderTab();
     }
 
@@ -9776,7 +10125,7 @@
       const draft = S.savedTournaments.find(d => d.id === draftId);
       if (!draft) return;
 
-      if (!confirm(`Load "${draft.name}" into your workspace? This will replace your current unsaved edits.`)) return;
+      if (!confirm(adminFormat('library_load_confirm', { name: draft.name }))) return;
 
       S.tournament = JSON.parse(JSON.stringify(draft.tournament));
       if (draft.roster) {
@@ -9784,7 +10133,7 @@
       }
       S.activeDraftId = draft.id;
 
-      showStatus(`📂 Loaded "${draft.name}" into workspace.`, 'info');
+      showStatus(adminFormat('library_loaded', { name: draft.name }), 'info');
       renderTab();
     }
 
@@ -9793,18 +10142,18 @@
       const draft = S.savedTournaments.find(d => d.id === draftId);
       if (!draft) return;
 
-      if (!confirm(`Permanently delete "${draft.name}" from your library? This cannot be undone.`)) return;
+      if (!confirm(adminFormat('library_delete_confirm', { name: draft.name }))) return;
 
-      showStatus('Deleting draft…', 'info');
+      showStatus(adminT('library_deleting'), 'info');
       S.savedTournaments = S.savedTournaments.filter(d => d.id !== draftId);
       if (S.activeDraftId === draftId) S.activeDraftId = null;
 
       try {
         await saveSavedTournaments();
-        showStatus(`🗑 Deleted "${draft.name}"`, 'ok');
+        showStatus(adminFormat('library_deleted', { name: draft.name }), 'ok');
         renderTab();
       } catch (e) {
-        showStatus('❌ Delete failed: ' + e.message, 'err');
+        showStatus(`${adminT('generic_failed_prefix')}: ${e.message}`, 'err');
       }
     }
 
@@ -9813,7 +10162,7 @@
       const draft = S.savedTournaments.find(d => d.id === draftId);
       if (!draft) return;
 
-      if (!confirm(`Deploy "${draft.name}" to Live? This will overwrite the currently live tournament and roster.`)) return;
+      if (!confirm(adminFormat('library_deploy_confirm', { name: draft.name }))) return;
 
       // Load into workspace
       S.tournament = JSON.parse(JSON.stringify(draft.tournament));
@@ -9824,12 +10173,12 @@
 
       // Save draft roster to KV
       if (draft.roster) {
-        showStatus('Saving draft roster…', 'info');
+        showStatus(adminT('library_saving_roster'), 'info');
         try {
           const rosterRes = await api('PUT', '/admin/roster', { roster: S.roster });
           if (!rosterRes.ok) throw new Error('Failed to save roster');
         } catch (e) {
-          showStatus('❌ ' + e.message, 'err');
+          showStatus(`${adminT('generic_failed_prefix')}: ${e.message}`, 'err');
           return;
         }
       }
@@ -9839,7 +10188,7 @@
     }
 
     function resetWorkspace() {
-      if (!confirm('Clear all games and rosters in your current workspace to start fresh?\n\n(This will NOT delete your saved drafts or the live tournament)')) return;
+      if (!confirm(adminT('workspace_clear_confirm'))) return;
 
       // Keep core metadata but clear games/roster
       const clubId = S.tournament?.clubId || '';
@@ -9857,7 +10206,7 @@
       S.roster = null;
       S.activeDraftId = null;
 
-      showStatus('✨ Workspace cleared. Start adding games!', 'ok');
+      showStatus(adminT('workspace_cleared'), 'ok');
       renderTab();
     }
 
@@ -9901,23 +10250,23 @@
     async function deployTournamentShellToTeams() {
       const targetKeys = getTournamentShellTargetKeys();
       if (!targetKeys.length) {
-        showStatus('Select at least one age group to receive tournament info.', 'err');
+        showStatus(adminT('shell_select_groups'), 'err');
         return;
       }
       const labels = targetKeys.map(key => getAdminTeams().find(t => t.key === key)?.label || key);
-      if (!confirm(`Deploy shared tournament info to ${labels.join(', ')}?\n\nThis copies the tournament name, dates, venue, and general metadata.\nGames, clock settings, bracket state, history, and roster stay scoped to each age group.`)) return;
+      if (!confirm(adminFormat('shell_confirm', { labels: labels.join(', ') }))) return;
 
       const button = document.getElementById('deploy-shell-btn');
       if (button) {
         button.disabled = true;
-        button.textContent = 'Deploying…';
+        button.textContent = adminT('generic_deploying');
       }
 
       let updated = 0;
       const failed = [];
       try {
         for (const key of targetKeys) {
-          showStatus(`Deploying tournament info to ${key} (${updated + 1}/${targetKeys.length})…`, 'info');
+          showStatus(adminFormat('shell_deploying', { key, index: updated + 1, total: targetKeys.length }), 'info');
           try {
             const res = await api('GET', `/admin/data?team=${encodeURIComponent(key)}`);
             if (!res.ok) throw new Error('fetch failed ' + res.status);
@@ -9945,11 +10294,11 @@
           }
         }
         const msg = failed.length
-          ? `Updated ${updated} group(s). Failed: ${failed.join(', ')}`
-          : `✅ Shared tournament info deployed to ${updated} group(s)`;
+          ? adminFormat('shell_partial', { count: updated, failed: failed.join(', ') })
+          : adminFormat('shell_done', { count: updated });
         showStatus(msg, failed.length ? 'err' : 'ok');
       } catch (e) {
-        showStatus('❌ ' + e.message, 'err');
+        showStatus(`${adminT('generic_failed_prefix')}: ${e.message}`, 'err');
       } finally {
         if (button) {
           button.disabled = false;
@@ -9965,10 +10314,10 @@
     async function deployAll() {
       const teamKeys = getAllTeamKeys();
       const label = S.clubType === 'highschool' ? 'all groups' : 'ALL age groups';
-      if (!confirm(`Deploy ${label} live now?\n\nGroups with tournament data will be published.\nEmpty groups will show a "Stay Tuned" message.`)) return;
+      if (!confirm(adminFormat('deploy_all_confirm', { label }))) return;
       const btn = document.getElementById('deploy-all-btn');
       btn.disabled = true;
-      btn.textContent = '⏳ Deploying…';
+      btn.textContent = adminT('generic_deploying');
 
       const stayTunedTournament = {
         id: 'stay-tuned',
@@ -9992,7 +10341,7 @@
 
       try {
         for (const key of teamKeys) {
-          showStatus(`Checking ${key} (${deployed + placeholders + 1}/${teamKeys.length})…`, 'info');
+          showStatus(adminFormat('deploy_all_checking', { key, index: deployed + placeholders + 1, total: teamKeys.length }), 'info');
 
           // Fetch data for this age group
           const origTeam = S.team;
@@ -10015,7 +10364,7 @@
 
           if (hasData) {
             // Real data — save as-is and deploy
-            showStatus(`Deploying ${key} (has data)…`, 'info');
+            showStatus(adminFormat('deploy_all_deploying', { key }), 'info');
             S.team = key;
             try { await _pushToFirebaseMirror(key, tournament, history); } catch(e){}
             const depRes = await api('POST', '/admin/deploy');
@@ -10024,7 +10373,7 @@
             deployed++;
           } else {
             // No data — save "Stay Tuned" placeholder and deploy
-            showStatus(`Setting ${key} to "Stay Tuned"…`, 'info');
+            showStatus(adminFormat('deploy_all_stay_tuned', { key }), 'info');
             S.team = key;
             const saveRes = await api('PUT', '/admin/data', {
               tournament: stayTunedTournament,
@@ -10043,12 +10392,12 @@
         S.team = savedTeam;
         await refreshAdminData();
 
-        const msg = `✅ Deployed: ${deployed} with data, ${placeholders} with "Stay Tuned"` +
+        const msg = adminFormat('deploy_all_done', { deployed, placeholders }) +
           (failed.length ? ` · ❌ ${failed.length} failed: ${failed.join(', ')}` : '');
         showStatus(msg, failed.length ? 'err' : 'ok');
       } catch (e) {
         S.team = savedTeam;
-        showStatus('❌ ' + e.message, 'err');
+        showStatus(`${adminT('generic_failed_prefix')}: ${e.message}`, 'err');
       } finally {
         btn.disabled = false;
         btn.textContent = '🌐 Deploy All';
@@ -10061,23 +10410,19 @@
      * shows "coming soon" until you tap Go Live on each team.
      */
     async function setAllUpcomingMode() {
-      if (!confirm(
-        'Set ALL age groups to Upcoming Mode?\n\n' +
-        'The app will show a "coming soon" message for every age group. ' +
-        'All saved games and rosters stay intact — use "🟢 Go Live" on each team to bring them back one by one, or Deploy All to push everything live at once.'
-      )) return;
+      if (!confirm(adminT('set_all_upcoming_confirm'))) return;
 
       const upBtn = document.getElementById('upcoming-all-btn');
       const depBtn = document.getElementById('deploy-all-btn');
       upBtn.disabled = true;
       depBtn.disabled = true;
-      upBtn.textContent = '⏳ Working…';
+      upBtn.textContent = adminT('generic_working');
 
       let done = 0, failed = [];
 
       const teamKeys = getAllTeamKeys();
       for (const key of teamKeys) {
-        showStatus(`Setting upcoming mode: ${key} (${done + 1}/${teamKeys.length})…`, 'info');
+        showStatus(adminFormat('set_all_upcoming_team', { key, index: done + 1, total: teamKeys.length }), 'info');
         try {
           const res = await api('GET', `/admin/data?team=${encodeURIComponent(key)}`);
           if (!res.ok) throw new Error('fetch failed ' + res.status);
@@ -10103,7 +10448,11 @@
       await refreshAdminData().catch(() => { });
 
       if (failed.length) {
-        showStatus(`⚠️ ${done} teams set to upcoming, ${failed.length} failed (${failed.join(', ')}) — deploy manually`, 'err');
+        showStatus(adminFormat('set_all_upcoming_partial', {
+          done,
+          failedCount: failed.length,
+          failed: failed.join(', ')
+        }), 'err');
         upBtn.disabled = false;
         depBtn.disabled = false;
         upBtn.textContent = '📅 Set All → Upcoming';
@@ -10111,13 +10460,13 @@
       }
 
       // Single deploy covers everything
-      showStatus('Deploying all age groups in upcoming mode…', 'info');
+      showStatus(adminT('set_all_upcoming_deploying'), 'info');
       try {
         const depRes = await api('POST', `/admin/deploy?team=${encodeURIComponent(S.team)}`);
         if (!depRes.ok) throw new Error('deploy failed ' + depRes.status);
-        showStatus(`✅ All ${teamKeys.length} age groups set to Upcoming Mode and deployed!`, 'ok');
+        showStatus(adminFormat('set_all_upcoming_done', { count: teamKeys.length }), 'ok');
       } catch (e) {
-        showStatus('⚠️ Upcoming mode saved for all teams — but deploy failed: ' + e.message, 'err');
+        showStatus(adminFormat('set_all_upcoming_deploy_failed', { message: e.message }), 'err');
       } finally {
         upBtn.disabled = false;
         depBtn.disabled = false;
