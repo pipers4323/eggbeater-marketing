@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -1941,6 +1941,205 @@
       font-size: 0.82rem;
     }
   </style>
+<!-- Adding Spanish and French translations -->
+<script>
+  const translations = {
+    en: {
+      'Eggbeater': 'Eggbeater',
+      'Tournament Management': 'Tournament Management',
+      'Sign in with Google': 'Sign in with Google',
+      'Email me a sign-in link': 'Email me a sign-in link',
+      'SuperAdmin Password': 'SuperAdmin Password',
+      'Remember password on this device': 'Remember password on this device',
+      'New admin? Read the Getting Started Guide →': 'New admin? Read the Getting Started Guide →',
+      'or': 'or',
+      'legacy fallback': 'legacy fallback',
+      'Use Google if you want. Use a magic link if you do not.': 'Use Google if you want. Use a magic link if you do not.',
+      'Super Admin Dashboard': 'Super Admin Dashboard',
+      'Select a club to manage': 'Select a club to manage',
+      'Lang': 'Lang',
+      'Logout': 'Logout',
+      'Loading clubs…': 'Loading clubs…',
+      '⚙️ Platform Admin': '⚙️ Platform Admin',
+      '➕ Add New Club': '➕ Add New Club',
+      'Club ID (e.g. bay-area-aquatics)': 'Club ID (e.g. bay-area-aquatics)',
+      'Display Name': 'Display Name',
+      'Create Club': 'Create Club',
+      'Sign In as SuperAdmin': 'Sign In as SuperAdmin',
+      'Signing in…': 'Signing in…',
+      'Sending…': 'Sending…',
+      'Finishing sign-in…': 'Finishing sign-in…',
+      'Accepting invite…': 'Accepting invite…',
+      'Loading data…': 'Loading data…',
+      'Magic link sent to': 'Magic link sent to',
+      '📊 Platform Overview': '📊 Platform Overview',
+      'Loading…': 'Loading…',
+      'All groups:': 'All groups:',
+      '📅 Set All → Upcoming': '📅 Set All → Upcoming',
+      '🌐 Deploy All': '🌐 Deploy All',
+      '💾 Deploy Current Group': '💾 Deploy Current Group',
+      '🔀 Switch Club': '🔀 Switch Club',
+      'Switch Club (SuperAdmin)': 'Switch Club (SuperAdmin)',
+      'Schedule': 'Schedule',
+      'Roster': 'Roster',
+      'Add Games': 'Add Games',
+      'More': 'More',
+      'Club Info': 'Club Info',
+      'Raw JSON': 'Raw JSON',
+      'Team Communication': 'Team Communication',
+      'Director Package': 'Director Package',
+      'Archive': 'Archive',
+      'History': 'History',
+      'Settings': 'Settings',
+      'Help': 'Help',
+      'brought to you by': 'brought to you by',
+      'Admin': 'Admin',
+      'eggbeater': 'eggbeater',
+      'Club ID must start with a letter, 3-40 chars, only lowercase letters/numbers/hyphens': 'Club ID must start with a letter, 3-40 chars, only lowercase letters/numbers/hyphens',
+      'Error loading clubs': 'Error loading clubs',
+      'Enter a club ID (letters, numbers, hyphens only)': 'Enter a club ID (letters, numbers, hyphens only)',
+      'Enter a display name': 'Enter a display name',
+      'Club created': 'Club created',
+      'Error creating club': 'Error creating club',
+      'No clubs found.': 'No clubs found.',
+      'Delete club confirmation': 'Delete club "{name}"?\n\nThis will permanently remove all club data including tournaments, rosters, and admin lists.\n\nThis cannot be undone!',
+      'Club deleted': 'Club "{name}" has been deleted.'
+      , 'Error deleting club': 'Error deleting club'
+    },
+    es: {
+      'Eggbeater': 'Eggbeater',
+      'Tournament Management': 'Gestión de Torneos',
+      'Sign in with Google': 'Iniciar sesión con Google',
+      'Email me a sign-in link': 'Envíame un enlace de inicio de sesión',
+      'SuperAdmin Password': 'Contraseña de SuperAdmin',
+      'Remember password on this device': 'Recordar contraseña en este dispositivo',
+      'New admin? Read the Getting Started Guide →': '¿Nuevo administrador? Lea la Guía de inicio →',
+      'or': 'o',
+      'legacy fallback': 'alternativa heredada',
+      'Use Google if you want. Use a magic link if you do not.': 'Use Google si lo desea. Use un enlace mágico si no.',
+      'Super Admin Dashboard': 'Panel de Superadministrador',
+      'Select a club to manage': 'Seleccione un club para administrar',
+      'Lang': 'Idioma',
+      'Logout': 'Cerrar sesión',
+      'Loading clubs…': 'Cargando clubes…',
+      '⚙️ Platform Admin': '⚙️ Administrador de la plataforma',
+      '➕ Add New Club': '➕ Agregar nuevo club',
+      'Club ID (e.g. bay-area-aquatics)': 'ID del club (p. ej. bay-area-aquatics)',
+      'Display Name': 'Nombre para mostrar',
+      'Create Club': 'Crear club',
+      'Sign In as SuperAdmin': 'Iniciar sesión como SuperAdmin',
+      'Signing in…': 'Iniciando sesión…',
+      'Sending…': 'Enviando…',
+      'Finishing sign-in…': 'Finalizando inicio de sesión…',
+      'Accepting invite…': 'Aceptando invitación…',
+      'Loading data…': 'Cargando datos…',
+      'Magic link sent to': 'Enlace mágico enviado a',
+      '📊 Platform Overview': '📊 Resumen de la plataforma',
+      'Loading…': 'Cargando…',
+      'All groups:': 'Todos los grupos:',
+      '📅 Set All → Upcoming': '📅 Marcar todos → Próximos',
+      '🌐 Deploy All': '🌐 Desplegar todo',
+      '💾 Deploy Current Group': '💾 Desplegar grupo actual',
+      '🔀 Switch Club': '🔀 Cambiar de club',
+      'Switch Club (SuperAdmin)': 'Cambiar de club (SuperAdmin)',
+      'Schedule': 'Calendario',
+      'Roster': 'Plantilla',
+      'Add Games': 'Agregar partidos',
+      'More': 'Más',
+      'Club Info': 'Información del club',
+      'Raw JSON': 'JSON sin procesar',
+      'Team Communication': 'Comunicación del equipo',
+      'Director Package': 'Paquete del director',
+      'Archive': 'Archivo',
+      'History': 'Historial',
+      'Settings': 'Ajustes',
+      'Help': 'Ayuda',
+      'brought to you by': 'presentado por',
+      'Admin': 'Admin',
+      'eggbeater': 'eggbeater'
+    , 'Error deleting club': 'Error al eliminar el club'
+    ,
+      'Club ID must start with a letter, 3-40 chars, only lowercase letters/numbers/hyphens': 'El ID del club debe comenzar con una letra, 3-40 caracteres, solo letras minúsculas/números/guiones',
+      'Error loading clubs': 'Error al cargar clubes',
+      'Enter a club ID (letters, numbers, hyphens only)': 'Ingresa un ID de club (letras, números y guiones)',
+      'Enter a display name': 'Ingresa un nombre para mostrar',
+      'Club created': 'Club creado',
+      'Error creating club': 'Error al crear el club',
+      'No clubs found.': 'No se encontraron clubes.',
+      'Delete club confirmation': 'Eliminar club "{name}"?\n\nEsto eliminará permanentemente todos los datos del club, incluyendo torneos, plantillas y listas de administradores.\n\n¡Esta acción no se puede deshacer!',
+      'Club deleted': 'El club "{name}" ha sido eliminado.'
+    },
+    fr: {
+      'Eggbeater': 'Eggbeater',
+      'Tournament Management': 'Gestion des Tournois',
+      'Sign in with Google': 'Se connecter avec Google',
+      'Email me a sign-in link': 'Envoyez-moi un lien de connexion',
+      'SuperAdmin Password': 'Mot de passe SuperAdmin',
+      'Remember password on this device': 'Se souvenir du mot de passe sur cet appareil',
+      'New admin? Read the Getting Started Guide →': 'Nouvel administrateur ? Lisez le guide de démarrage →',
+      'or': 'ou',
+      'legacy fallback': 'solution de secours',
+      'Use Google if you want. Use a magic link if you do not.': 'Utilisez Google si vous le souhaitez. Utilisez un lien magique sinon.',
+      'Super Admin Dashboard': 'Tableau de bord Super Admin',
+      'Select a club to manage': 'Sélectionnez un club à gérer',
+      'Lang': 'Lang',
+      'Logout': 'Se déconnecter',
+      'Loading clubs…': 'Chargement des clubs…',
+      '⚙️ Platform Admin': '⚙️ Admin plateforme',
+      '➕ Add New Club': '➕ Ajouter un club',
+      'Club ID (e.g. bay-area-aquatics)': 'ID du club (p.ex. bay-area-aquatics)',
+      'Display Name': 'Nom affiché',
+      'Create Club': 'Créer le club',
+      'Sign In as SuperAdmin': 'Se connecter en tant que SuperAdmin',
+      'Signing in…': 'Connexion en cours…',
+      'Sending…': 'Envoi…',
+      'Finishing sign-in…': 'Finalisation de la connexion…',
+      'Accepting invite…': "Acceptation de l'invitation…",
+      'Loading data…': 'Chargement des données…',
+      'Magic link sent to': 'Lien magique envoyé à',
+      '📊 Platform Overview': '📊 Aperçu de la plateforme',
+      'Loading…': 'Chargement…',
+      'All groups:': 'Tous les groupes :',
+      '📅 Set All → Upcoming': '📅 Tout définir → À venir',
+      '🌐 Deploy All': '🌐 Déployer tout',
+      '💾 Deploy Current Group': '💾 Déployer le groupe actuel',
+      '🔀 Switch Club': '🔀 Changer de club',
+      'Switch Club (SuperAdmin)': 'Changer de club (SuperAdmin)',
+      'Schedule': 'Calendrier',
+      'Roster': 'Effectif',
+      'Add Games': 'Ajouter des matchs',
+      'More': 'Plus',
+      'Club Info': 'Infos du club',
+      'Raw JSON': 'JSON brut',
+      'Team Communication': 'Communication équipe',
+      'Director Package': 'Pack directeur',
+      'Archive': 'Archive',
+      'History': 'Historique',
+      'Settings': 'Paramètres',
+      'Help': 'Aide',
+      'brought to you by': 'présenté par',
+      'Admin': 'Admin',
+      'eggbeater': 'eggbeater'
+    , 'Error deleting club': "Erreur lors de la suppression du club"
+    ,
+      'Club ID must start with a letter, 3-40 chars, only lowercase letters/numbers/hyphens': "L'ID du club doit commencer par une lettre, 3-40 caractères, uniquement lettres minuscules/chiffres/tirets",
+      'Error loading clubs': 'Erreur lors du chargement des clubs',
+      'Enter a club ID (letters, numbers, hyphens only)': 'Saisissez un ID de club (lettres, chiffres et tirets)',
+      'Enter a display name': 'Saisissez un nom affiché',
+      'Club created': 'Club créé',
+      'Error creating club': 'Erreur lors de la création du club',
+      'No clubs found.': 'Aucun club trouvé.',
+      'Delete club confirmation': 'Supprimer le club "{name}" ?\n\nCela supprimera définitivement toutes les données du club, y compris les tournois, les effectifs et les listes d\'administrateurs.\n\nCette action est irréversible !',
+      'Club deleted': 'Le club "{name}" a été supprimé.'
+    }
+  };
+  window.translations = translations;
+
+  function t(key) {
+    const lang = document.documentElement.lang || 'en';
+    return translations[lang]?.[key] || key;
+  }
+</script>
 </head>
 
 <body>
@@ -1951,7 +2150,7 @@
       <img src="logo_large.svg" alt="Eggbeater" class="login-logo-img">
     </div>
     <div class="login-body">
-      <div class="login-title">Tournament Management</div>
+      <div class="login-title">{{ t('Tournament Management') }}</div>
       <div class="login-card">
         <!-- Primary: Google Sign-In (Firebase Auth) -->
         <button class="login-btn login-btn-google" onclick="doGoogleLogin()" id="google-login-btn">
@@ -1965,28 +2164,27 @@
             <path fill="#EA4335"
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
           </svg>
-          Sign in with Google
+          {{ t('Sign in with Google') }}
         </button>
-        <div class="login-divider"><span>or</span></div>
-        <input type="email" id="email-link-input" placeholder="Work email for magic link"
+        <div class="login-divider"><span>{{ t('or') }}</span></div>
+        <input type="email" id="email-link-input" placeholder="{{ t('Work email for magic link') }}"
           onkeydown="if(event.key==='Enter') sendMagicLinkLogin()">
-        <button class="login-btn" style="background:var(--green)" onclick="sendMagicLinkLogin()" id="magic-link-btn">Email me a sign-in link</button>
-        <div style="font-size:0.76rem;color:var(--g400);line-height:1.45;text-align:center">Use Google if you want. Use a magic link if you do not.</div>
-        <div class="login-divider"><span>legacy fallback</span></div>
+        <button class="login-btn" style="background:var(--green)" onclick="sendMagicLinkLogin()" id="magic-link-btn">{{ t('Email me a sign-in link') }}</button>
+        <div style="font-size:0.76rem;color:var(--g400);line-height:1.45;text-align:center">{{ t('Use Google if you want. Use a magic link if you do not.') }}</div>
+        <div class="login-divider"><span>{{ t('legacy fallback') }}</span></div>
         <!-- Fallback: password login (legacy / during migration) -->
-        <input type="password" id="pw-input" placeholder="SuperAdmin Password"
+        <input type="password" id="pw-input" placeholder="{{ t('SuperAdmin Password') }}"
           onkeydown="if(event.key==='Enter') doLogin()">
-        <button class="login-btn login-btn-pw" onclick="doLogin()">Sign In as SuperAdmin</button>
+        <button class="login-btn login-btn-pw" onclick="doLogin()">{{ t('Sign In as SuperAdmin') }}</button>
         <label
           style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--g400);margin-top:4px;cursor:pointer">
           <input type="checkbox" id="remember-pw" style="cursor:pointer">
-          Remember password on this device
+          {{ t('Remember password on this device') }}
         </label>
         <div id="login-error"></div>
       </div>
       <a href="admin-guide.html" target="_blank"
-        style="display:block;text-align:center;margin-top:16px;font-size:0.82rem;color:var(--royal);text-decoration:none;font-weight:600">New
-        admin? Read the Getting Started Guide &rarr;</a>
+        style="display:block;text-align:center;margin-top:16px;font-size:0.82rem;color:var(--royal);text-decoration:none;font-weight:600">{{ t('New admin? Read the Getting Started Guide →') }}</a>
     </div>
   </div>
 
@@ -1998,11 +2196,11 @@
         <img src="logo_large.svg" alt="Eggbeater Water Polo" class="admin-logo-img">
       </div>
       <div class="admin-header-bar">
-        <span id="dashboard-header-title" class="admin-header-title">Super Admin Dashboard</span>
-        <span id="dashboard-header-sub" class="admin-header-sub">Select a club to manage</span>
+        <span id="dashboard-header-title" class="admin-header-title">{{ t('Super Admin Dashboard') }}</span>
+        <span id="dashboard-header-sub" class="admin-header-sub">{{ t('Select a club to manage') }}</span>
         <div class="admin-header-spacer"></div>
         <div class="admin-lang-wrap">
-          <label class="admin-lang-label" for="dashboard-lang-picker">Lang</label>
+          <label class="admin-lang-label" for="dashboard-lang-picker">{{ t('Lang') }}</label>
           <select id="dashboard-lang-picker" class="admin-lang-select" onchange="setAdminLang(this.value)" aria-label="Select admin language">
             <option value="en">EN</option>
             <option value="es">ES</option>
@@ -2011,38 +2209,38 @@
         </div>
         <button class="save-btn"
           style="background:var(--red);color:white;border-color:var(--red);padding:4px 14px;font-size:0.78rem"
-          onclick="doLogout()">🚪 Logout</button>
+          onclick="doLogout()">🚪 {{ t('Logout') }}</button>
       </div>
     </header>
     <div style="max-width:1100px;margin:0 auto;padding:24px 20px 40px">
       <div id="club-dashboard-list"
         style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:28px">
-        <div style="text-align:center;color:var(--g400);padding:20px;grid-column:1/-1">Loading clubs…</div>
+        <div style="text-align:center;color:var(--g400);padding:20px;grid-column:1/-1">{{ t('Loading clubs…') }}</div>
       </div>
 
       <!-- Platform Admin Actions -->
       <div style="border-top:2px solid var(--g200);padding-top:20px">
-        <div style="font-size:0.95rem;font-weight:700;color:var(--royal);margin-bottom:12px">⚙️ Platform Admin</div>
+        <div style="font-size:0.95rem;font-weight:700;color:var(--royal);margin-bottom:12px">{{ t('⚙️ Platform Admin') }}</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
           <!-- Add New Club -->
           <div style="background:white;border:1px solid var(--g200);border-radius:var(--radius);padding:14px 16px">
-            <div style="font-size:0.85rem;font-weight:600;margin-bottom:8px">➕ Add New Club</div>
+            <div style="font-size:0.85rem;font-weight:600;margin-bottom:8px">{{ t('➕ Add New Club') }}</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <input id="new-club-id" class="info-input" style="flex:1 1 120px;margin:0;font-size:0.82rem"
-                placeholder="Club ID (e.g. bay-area-aquatics)">
-              <input id="new-club-name" class="info-input" style="flex:1 1 160px;margin:0;font-size:0.82rem"
-                placeholder="Display Name">
-            </div>
-            <button class="save-btn"
-              style="width:100%;margin-top:8px;background:var(--royal);color:white;border-color:var(--royal)"
-              onclick="createNewClub()">Create Club</button>
+                    placeholder="{{ t('Club ID (e.g. bay-area-aquatics)') }}">
+                  <input id="new-club-name" class="info-input" style="flex:1 1 160px;margin:0;font-size:0.82rem"
+                    placeholder="{{ t('Display Name') }}">
+                </div>
+                <button class="save-btn"
+                  style="width:100%;margin-top:8px;background:var(--royal);color:white;border-color:var(--royal)"
+                  onclick="createNewClub()">{{ t('Create Club') }}</button>
           </div>
 
           <!-- Platform Stats -->
           <div id="platform-stats"
             style="background:white;border:1px solid var(--g200);border-radius:var(--radius);padding:14px 16px">
-            <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px">📊 Platform Overview</div>
-            <div id="platform-stats-body" style="font-size:0.82rem;color:var(--g400)">Loading…</div>
+            <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px">{{ t('📊 Platform Overview') }}</div>
+            <div id="platform-stats-body" style="font-size:0.82rem;color:var(--g400)">{{ t('Loading…') }}</div>
           </div>
         </div>
       </div>
@@ -2063,14 +2261,14 @@
       </div>
       <!-- "Brought to you by eggbeater" — full-bleed bar, only shown when club has a custom logo -->
       <div class="eggbeater-poweredby-bar admin-poweredby-bar hidden">
-        <span>brought to you by</span>
-        <img src="logo_large.svg" class="eggbeater-inline-logo" alt="eggbeater">
+        <span>{{ t('brought to you by') }}</span>
+        <img src="logo_large.svg" class="eggbeater-inline-logo" alt="{{ t('eggbeater') }}">
       </div>
       <div class="admin-header-bar">
-        <span id="admin-header-title" class="admin-header-title">Admin</span>
-        <span id="header-sub" class="admin-header-sub">Loading…</span>
+        <span id="admin-header-title" class="admin-header-title">{{ t('Admin') }}</span>
+        <span id="header-sub" class="admin-header-sub">{{ t('Loading…') }}</span>
         <div class="admin-lang-wrap">
-          <label class="admin-lang-label" for="admin-header-lang-picker">Lang</label>
+          <label class="admin-lang-label" for="admin-header-lang-picker">{{ t('Lang') }}</label>
           <select id="admin-header-lang-picker" class="admin-lang-select" onchange="setAdminLang(this.value)" aria-label="Select admin language">
             <option value="en">EN</option>
             <option value="es">ES</option>
@@ -2079,8 +2277,8 @@
         </div>
         <button id="switch-club-btn" onclick="switchClub()"
           style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px"
-          title="Switch Club (SuperAdmin)">🔀 Switch Club</button>
-        <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">💾 Deploy Current Group</button>
+          title="{{ t('Switch Club (SuperAdmin)') }}">{{ t('🔀 Switch Club') }}</button>
+        <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">{{ t('💾 Deploy Current Group') }}</button>
       </div>
       <!-- Phase 3: Tournament selector -->
       <div class="admin-tourn-strip" id="admin-tourn-strip"></div>
@@ -2177,10 +2375,9 @@
       </style>
       <!-- Global actions row — operates across all age groups at once -->
       <div class="admin-global-bar">
-        <span class="admin-global-label">All groups:</span>
-        <button class="global-btn global-btn-upcoming" id="upcoming-all-btn" onclick="setAllUpcomingMode()">📅 Set All →
-          Upcoming</button>
-        <button class="global-btn global-btn-deploy" id="deploy-all-btn" onclick="deployAll()">🌐 Deploy All</button>
+        <span class="admin-global-label">{{ t('All groups:') }}</span>
+        <button class="global-btn global-btn-upcoming" id="upcoming-all-btn" onclick="setAllUpcomingMode()">{{ t('📅 Set All → Upcoming') }}</button>
+        <button class="global-btn global-btn-deploy" id="deploy-all-btn" onclick="deployAll()">{{ t('🌐 Deploy All') }}</button>
       </div>
     </header>
 
@@ -2192,7 +2389,7 @@
           <line x1="8" y1="2" x2="8" y2="6" />
           <line x1="16" y1="2" x2="16" y2="6" />
         </svg>
-        <span id="admin-tab-schedule">Schedule</span>
+        <span id="admin-tab-schedule">{{ t('Schedule') }}</span>
       </button>
       <button class="tab-btn" data-tab="roster" onclick="switchTab('roster')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -2201,7 +2398,7 @@
           <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
           <path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
-        <span id="admin-tab-roster">Roster</span>
+        <span id="admin-tab-roster">{{ t('Roster') }}</span>
       </button>
       <button class="tab-btn" data-tab="addgames" onclick="switchTab('addgames')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -2209,7 +2406,7 @@
           <line x1="12" y1="8" x2="12" y2="16" />
           <line x1="8" y1="12" x2="16" y2="12" />
         </svg>
-        <span id="admin-tab-addgames">Add Games</span>
+        <span id="admin-tab-addgames">{{ t('Add Games') }}</span>
       </button>
       <button class="tab-btn" data-tab="more" onclick="toggleAdminMore()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -2217,7 +2414,7 @@
           <line x1="3" y1="12" x2="21" y2="12" />
           <line x1="3" y1="18" x2="21" y2="18" />
         </svg>
-        <span id="admin-tab-more">More</span>
+        <span id="admin-tab-more">{{ t('More') }}</span>
       </button>
       <!-- Desktop-only sidebar items (hidden on mobile via CSS) -->
       <div class="admin-desktop-divider"></div>
@@ -2227,13 +2424,13 @@
           <path d="M5 21V7l7-4 7 4v14" />
           <path d="M9 21v-6h6v6" />
         </svg>
-        <span id="admin-tab-clubinfo">Club Info</span>
+        <span id="admin-tab-clubinfo">{{ t('Club Info') }}</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="teamcomm" onclick="switchTab('teamcomm')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
-        <span id="admin-tab-teamcomm">Team Comm</span><span class="tab-crown" style="display:none"> 👑</span>
+        <span id="admin-tab-teamcomm">{{ t('Team Comm') }}</span><span class="tab-crown" style="display:none"> 👑</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="director" onclick="switchTab('director')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2243,7 +2440,7 @@
           <line x1="8" y1="21" x2="16" y2="21" />
           <line x1="12" y1="17" x2="12" y2="21" />
         </svg>
-        <span id="admin-tab-director">Director</span><span class="tab-crown" style="display:none"> 👑</span>
+        <span id="admin-tab-director">{{ t('Director') }}</span><span class="tab-crown" style="display:none"> 👑</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="archive" onclick="switchTab('archive')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2251,14 +2448,14 @@
           <path d="M1 3h22v5H1z" />
           <path d="M10 12h4" />
         </svg>
-        <span id="admin-tab-archive">Archive</span>
+        <span id="admin-tab-archive">{{ t('Archive') }}</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="history" onclick="switchTab('history')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 8v4l3 3" />
           <circle cx="12" cy="12" r="10" />
         </svg>
-        <span id="admin-tab-history">History</span><span class="tab-crown" style="display:none"> 👑</span>
+        <span id="admin-tab-history">{{ t('History') }}</span><span class="tab-crown" style="display:none"> 👑</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="settings" onclick="switchTab('settings')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2266,7 +2463,7 @@
           <path
             d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
-        <span id="admin-tab-settings">Settings</span>
+        <span id="admin-tab-settings">{{ t('Settings') }}</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="help" onclick="switchTab('help')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2274,7 +2471,7 @@
           <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
           <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
-        <span id="admin-tab-help">Help</span>
+        <span id="admin-tab-help">{{ t('Help') }}</span>
       </button>
     </nav>
 
@@ -2290,7 +2487,7 @@
               <path d="M5 21V7l7-4 7 4v14" />
               <path d="M9 21v-6h6v6" />
             </svg>
-            <span>Club Info</span>
+            <span>{{ t('Club Info') }}</span>
             <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
@@ -2301,7 +2498,7 @@
               <polyline points="16 18 22 12 16 6" />
               <polyline points="8 6 2 12 8 18" />
             </svg>
-            <span>Raw JSON</span>
+            <span>{{ t('Raw JSON') }}</span>
             <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
@@ -2311,7 +2508,7 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
-            <span>Team Communication<span class="tab-crown" style="display:none"> 👑</span></span>
+            <span>{{ t('Team Communication') }}<span class="tab-crown" style="display:none"> 👑</span></span>
             <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
@@ -2325,7 +2522,7 @@
               <line x1="8" y1="21" x2="16" y2="21" />
               <line x1="12" y1="17" x2="12" y2="21" />
             </svg>
-            <span>Director Package<span class="tab-crown" style="display:none"> 👑</span></span>
+            <span>{{ t('Director Package') }}<span class="tab-crown" style="display:none"> 👑</span></span>
             <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
@@ -2338,7 +2535,7 @@
               <path d="M1 3h22v5H1z" />
               <path d="M10 12h4" />
             </svg>
-            <span>Archive</span>
+            <span>{{ t('Archive') }}</span>
             <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
@@ -2349,7 +2546,7 @@
               <path d="M12 8v4l3 3" />
               <circle cx="12" cy="12" r="10" />
             </svg>
-            <span>History<span class="tab-crown" style="display:none"> 👑</span></span>
+            <span>{{ t('History') }}<span class="tab-crown" style="display:none"> 👑</span></span>
             <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
@@ -2361,7 +2558,7 @@
               <path
                 d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
-            <span>Settings</span>
+            <span>{{ t('Settings') }}</span>
             <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
@@ -2373,7 +2570,7 @@
               <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
               <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
-            <span>Help</span>
+            <span>{{ t('Help') }}</span>
             <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
@@ -2433,14 +2630,14 @@
 
     function _resetGoogleBtn() {
       const btn = document.getElementById('google-login-btn');
-      if (btn) { btn.disabled = false; btn.innerHTML = GOOGLE_SVG + ' Sign in with Google'; }
+      if (btn) { btn.disabled = false; btn.innerHTML = GOOGLE_SVG + ' ' + t('Sign in with Google'); }
     }
 
     function _setMagicBtnState(loading, label) {
       const btn = document.getElementById('magic-link-btn');
       if (!btn) return;
       btn.disabled = !!loading;
-      btn.textContent = label || (loading ? 'Sending…' : 'Email me a sign-in link');
+      btn.textContent = label || (loading ? t('Sending…') : t('Email me a sign-in link'));
     }
 
     function _normalizeAdminEmail(email) {
@@ -2551,7 +2748,7 @@
       setLoginErr('');
       const btn = document.getElementById('google-login-btn');
       btn.disabled = true;
-      btn.textContent = 'Signing in…';
+      btn.textContent = t('Signing in…');
       try {
         // Sign in with Firebase Google Auth (skip popup if already signed in)
         if (typeof fbSignIn !== 'function') throw new Error('Firebase not loaded');
@@ -2578,7 +2775,7 @@
         let inviteClubId = null;
         if (urlParams.has('invite')) {
           const inviteToken = urlParams.get('invite');
-          showStatus('Accepting invite…', 'info');
+          showStatus(t('Accepting invite…'), 'info');
           try {
             const invRes = await fetch(WORKER + '/admin/invite/accept?token=' + encodeURIComponent(inviteToken), {
               headers: { 'Authorization': 'Bearer ' + S.idToken },
@@ -2628,7 +2825,7 @@
         rcLoginForClub(savedClubId);
 
         // Load admin data from Worker using the Firebase token
-        showStatus('Loading data…', 'info');
+        showStatus(t('Loading data…'), 'info');
         const res = await api('GET', '/admin/data');
         if (res.status === 401 || res.status === 403) {
           S.idToken = null; S.authMode = ''; // clear so password login works as fallback
@@ -2666,12 +2863,12 @@
         setLoginErr('Enter your email first');
         return;
       }
-      _setMagicBtnState(true, 'Sending…');
+      _setMagicBtnState(true, t('Sending…'));
       try {
         if (typeof fbSendEmailSignInLink !== 'function') throw new Error('Email link auth is not available');
         await fbSendEmailSignInLink(email, _buildAdminReturnUrl());
         if (input) input.value = email;
-        showStatus(`Magic link sent to ${email}`, 'ok');
+        showStatus(t('Magic link sent to') + ' ' + email, 'ok');
       } catch (e) {
         setLoginErr(e.message || 'Could not send sign-in link');
       } finally {
@@ -2682,7 +2879,7 @@
     async function completeMagicLinkLogin() {
       if (typeof fbIsEmailLink !== 'function' || !fbIsEmailLink(window.location.href)) return false;
       setLoginErr('');
-      _setMagicBtnState(true, 'Finishing sign-in…');
+      _setMagicBtnState(true, t('Finishing sign-in…'));
       try {
         let email = _normalizeAdminEmail(localStorage.getItem(MAGIC_LINK_STORAGE_KEY));
         if (!email) {
@@ -2745,7 +2942,7 @@
     // ─── LOGOUT & CLUB SWITCHING ────────────────────────────────────────────────
 
     async function doLogout() {
-      if (!confirm('Log out of the admin panel?')) return;
+      if (!confirm(adminT('auth_logout_confirm'))) return;
       try { if (typeof fbSignOut === 'function') await fbSignOut(); } catch (e) { }
       S.idToken = '';
       S.pw = '';
@@ -2758,7 +2955,7 @@
       document.getElementById('club-dashboard').style.display = 'none';
       document.getElementById('login-screen').style.display = '';
       _resetGoogleBtn();
-      showStatus('Logged out', 'info');
+      showStatus(adminT('auth_logged_out'), 'info');
     }
 
     async function switchClub() {
@@ -2777,7 +2974,7 @@
       showStatus('');
 
       const listEl = document.getElementById('club-dashboard-list');
-      listEl.innerHTML = '<div style="text-align:center;color:var(--g400);padding:20px">Loading clubs…</div>';
+      listEl.innerHTML = `<div style="text-align:center;color:var(--g400);padding:20px">${t('Loading clubs…')}</div>`;
 
       try {
         const res = await fetch(WORKER + '/clubs');
@@ -2786,7 +2983,7 @@
         const clubs = data.clubs || [];
 
         if (!clubs.length) {
-          listEl.innerHTML = '<div style="text-align:center;color:var(--g400);padding:20px">No clubs found.</div>';
+          listEl.innerHTML = `<div style="text-align:center;color:var(--g400);padding:20px">${t('No clubs found.')}</div>`;
           return;
         }
 
@@ -2870,7 +3067,7 @@
         </div>`;
         }
       } catch (e) {
-        listEl.innerHTML = '<div style="text-align:center;color:var(--red);padding:20px">Error loading clubs: ' + esc(e.message) + '</div>';
+        listEl.innerHTML = `<div style="text-align:center;color:var(--red);padding:20px">${t('Error loading clubs')}: ${esc(e.message)}</div>`;
       }
     }
 
@@ -2880,7 +3077,7 @@
       // Reset branding state so the new club's branding loads fresh
       S._branding = null;
       document.getElementById('club-dashboard').style.display = 'none';
-      showStatus('Loading ' + clubId + '…', 'info');
+      showStatus(t('Loading…') + ' ' + clubId, 'info');
       try {
         const res = await api('GET', '/admin/data');
         if (!res.ok) throw new Error('Worker returned ' + res.status);
@@ -2904,9 +3101,9 @@
       const nameInput = document.getElementById('new-club-name');
       const clubId = (idInput?.value || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
       const clubName = (nameInput?.value || '').trim();
-      if (!clubId) { alert('Enter a club ID (letters, numbers, hyphens only)'); return; }
-      if (!clubName) { alert('Enter a display name'); return; }
-      if (!/^[a-z][a-z0-9-]{2,39}$/.test(clubId)) { alert('Club ID must start with a letter, 3-40 chars, only lowercase letters/numbers/hyphens'); return; }
+      if (!clubId) { alert(t('Enter a club ID (letters, numbers, hyphens only)')); return; }
+      if (!clubName) { alert(t('Enter a display name')); return; }
+      if (!/^[a-z][a-z0-9-]{2,39}$/.test(clubId)) { alert(t('Club ID must start with a letter, 3-40 chars, only lowercase letters/numbers/hyphens')); return; }
 
       try {
         // Build auth headers — prefer Firebase (so UID gets added as admin), fall back to password
@@ -2947,16 +3144,16 @@
 
         idInput.value = '';
         nameInput.value = '';
-        alert('Club "' + clubName + '" created! You can now manage it from the dashboard.');
+        alert(t('Club created') + ' "' + clubName + '"');
         showClubDashboard(); // refresh the list
       } catch (e) {
-        alert('Error creating club: ' + e.message);
+        alert(t('Error creating club') + ': ' + e.message);
       }
     }
 
     async function deleteClub(clubId, clubName) {
-      if (!confirm('Delete club "' + (clubName || clubId) + '"?\n\nThis will permanently remove all club data including tournaments, rosters, and admin lists.\n\nThis cannot be undone!')) return;
-      if (!confirm('Are you REALLY sure you want to delete "' + (clubName || clubId) + '"?')) return;
+      if (!confirm(adminT('settings_delete_club') + ' "' + (clubName || clubId) + '"?\n\n' + adminT('settings_delete_desc'))) return;
+      if (!confirm(adminT('settings_delete_club') + ' "' + (clubName || clubId) + '"?')) return;
       try {
         const headers = {};
         // Send both — password auth bypasses club-level admin checks (super admin)
@@ -2970,10 +3167,10 @@
           const errText = await res.text().catch(() => '');
           throw new Error(errText || 'Delete failed: ' + res.status);
         }
-        alert('Club "' + (clubName || clubId) + '" has been deleted.');
+        alert(t('Club deleted').replace('{name}', (clubName || clubId)));
         showClubDashboard();
       } catch (e) {
-        alert('Error deleting club: ' + e.message);
+        alert(t('Error deleting club') + ': ' + e.message);
       }
     }
 
@@ -5266,7 +5463,7 @@
 
       const filename = `${clubId}-${S.team}-results.csv`;
       _downloadCSV(filename, rows.join('\n'));
-      showStatus(`Exported ${games.length} games to ${filename}`, 'ok');
+      showStatus(adminFormat('export_games_done', { count: String(games.length), filename }), 'ok');
     }
 
     function exportRosterCSV() {
@@ -5300,7 +5497,7 @@
 
       const filename = `${clubId}-${S.team}-roster.csv`;
       _downloadCSV(filename, rows.join('\n'));
-      showStatus(`Exported ${allPlayers.length} players to ${filename}`, 'ok');
+      showStatus(adminFormat('export_players_done', { count: String(allPlayers.length), filename }), 'ok');
     }
 
     // ── Clone from Archive ────────────────────────────────────────────────────────
@@ -14442,6 +14639,56 @@
     document.getElementById('email-link-input').focus();
   </script>
 
+  <script>
+    (function(){
+      const tplAttr = /\{\{\s*t\('([^']+)'\)\s*\}\}/g;
+      function getLang(){ return document.documentElement.lang || 'en'; }
+      function resolveKey(key){ return (window.translations && window.translations[getLang()] && window.translations[getLang()][key]) || key; }
+
+      function applyTranslations(){
+        // Attributes
+        document.querySelectorAll('*').forEach(el=>{
+          if(!el.attributes) return;
+          Array.from(el.attributes).forEach(attr=>{
+            if(!attr.value) return;
+            if(tplAttr.test(attr.value)){
+              attr.value = attr.value.replace(tplAttr, (_,k)=>resolveKey(k));
+              el.setAttribute(attr.name, attr.value);
+            }
+            tplAttr.lastIndex = 0;
+          });
+        });
+
+        // Text nodes
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+        const nodes = [];
+        while(walker.nextNode()) nodes.push(walker.currentNode);
+        nodes.forEach(n=>{
+          if(!n.nodeValue) return;
+          if(n.nodeValue.indexOf('{{') === -1) return;
+          n.nodeValue = n.nodeValue.replace(tplAttr, (_,k)=>resolveKey(k));
+          tplAttr.lastIndex = 0;
+        });
+      }
+
+      // wire language selectors
+      function initLangPickers(){
+        document.querySelectorAll('.admin-lang-select').forEach(sel=>{
+          // set initial select value from doc lang
+          if(!sel.value) sel.value = getLang();
+          sel.addEventListener('change', e=>{
+            document.documentElement.lang = e.target.value;
+            applyTranslations();
+          });
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', ()=>{
+        initLangPickers();
+        applyTranslations();
+      });
+    })();
+  </script>
 
   <!-- Google Maps Places API for venue autocomplete -->
   <script>function onGoogleMapsLoad() { if (typeof initPlacesAutocomplete === 'function' && document.getElementById('info-venue-input')) initPlacesAutocomplete(); }</script>
