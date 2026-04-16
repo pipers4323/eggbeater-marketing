@@ -11628,7 +11628,15 @@
 
     function guessSeasonFromDate(dateStr, clubType) {
       if (!dateStr) return '';
-      const d = new Date(dateStr);
+      // Date ranges like "January 31 – February 1, 2026" — extract first month + year
+      const monMatch = dateStr.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*/i);
+      const yrMatch  = dateStr.match(/\b(20\d{2})\b/);
+      let d;
+      if (monMatch && yrMatch) {
+        d = new Date(`${monMatch[0]} 1, ${yrMatch[1]}`);
+      } else {
+        d = new Date(dateStr);
+      }
       if (isNaN(d)) return '';
       const mon = d.getMonth(); // 0-indexed
       const yr = d.getFullYear();
@@ -11951,10 +11959,17 @@
       const now = new Date();
       const yr = now.getFullYear();
       const opts = [];
-      // Generate last 5 years of seasons
+      const isHS = S.clubType === 'highschool';
+      // Generate options for last 5 years + 1 ahead (newest first)
       for (let y = yr + 1; y >= yr - 5; y--) {
-        opts.push(`<option value="Spring ${y}">Spring ${y}</option>`);
-        opts.push(`<option value="Fall ${y}">Fall ${y}</option>`);
+        if (isHS) {
+          opts.push(`<option value="Fall ${y}">Fall ${y}</option>`);
+        } else {
+          opts.push(`<option value="Summer ${y}">Summer ${y}</option>`);
+          opts.push(`<option value="Spring ${y}">Spring ${y}</option>`);
+          opts.push(`<option value="Winter ${y}/${y + 1}">Winter ${y}/${y + 1}</option>`);
+          opts.push(`<option value="Fall ${y}">Fall ${y}</option>`);
+        }
       }
       return opts.join('');
     }
@@ -14835,7 +14850,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="firebase.js?v=238"></script>
+<script src="firebase.js?v=239"></script>
   <script>
     // Initialize Firebase in admin context
     if (typeof fbInit === 'function') fbInit();
