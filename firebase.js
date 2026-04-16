@@ -644,13 +644,30 @@ function fbListenToTournament(teamKey) {
       const data = snap.data();
       if (!data || !data.tournament) return;
 
-      // Reject snapshots written by a different club.
+      // Reject snapshots from the wrong club.
       // The flat `tournaments/{teamKey}` collection is shared across all clubs —
       // without this guard another club's 14u-girls deploy silently overwrites ours.
-      if (data.clubId && _fbClubId && data.clubId !== _fbClubId) {
-        console.info('[firebase] Ignoring Firestore snapshot for', teamKey,
-          '— belongs to club', data.clubId, 'not', _fbClubId);
-        return;
+      //
+      // Two-layer defence:
+      //   Layer 1 — explicit mismatch: data has a clubId but it's the wrong one. Always reject.
+      //   Layer 2 — no clubId + KV has games: the document was written by old admin code that
+      //             didn't stamp clubId yet. If we already have KV-loaded games for this slot,
+      //             the KV data is authoritative — reject anything untagged to prevent any
+      //             club's old-code deploy from overwriting our correctly-fetched data.
+      if (_fbClubId) {
+        const kvGames = (typeof TEAM_CACHE !== 'undefined' && TEAM_CACHE[teamKey])
+          ? (TEAM_CACHE[teamKey].tournament?.games || [])
+          : [];
+        if (data.clubId && data.clubId !== _fbClubId) {
+          console.info('[firebase] Ignoring Firestore snapshot for', teamKey,
+            '— explicit clubId mismatch:', data.clubId, '≠', _fbClubId);
+          return;
+        }
+        if (!data.clubId && kvGames.length > 0) {
+          console.info('[firebase] Ignoring untagged Firestore snapshot for', teamKey,
+            '— KV has', kvGames.length, 'games; treating KV as authoritative');
+          return;
+        }
       }
 
       // Never let Firestore overwrite a KV-deployed Stay Tuned placeholder
