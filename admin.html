@@ -11704,18 +11704,43 @@
           const wStr = ties ? `${wins}-${losses}-${ties}` : `${wins}-${losses}`;
 
           // Map archive games to lightweight history game rows
-          const historyGames = games.map(g => ({
-            id: g.id || ('g-' + Math.random().toString(36).slice(2, 8)),
-            opponent: g.opponent || g.oppLabel || 'Opponent',
-            result: archiveResultForGame(g) || g.result || '',
-            score: (g.teamScore != null && g.oppScore != null) ? `${g.teamScore}-${g.oppScore}` : (typeof g.score === 'string' ? g.score : ''),
-            teamScore: g.teamScore ?? null,
-            oppScore: g.oppScore ?? null,
-            date: g.date || '',
-            time: g.time || '',
-            liveScore: g.liveScore || null,
-            bracketPoints: g.bracketPoints ?? null,
-          }));
+          const historyGames = games.map(g => {
+            // Resolve score string from best available source:
+            // 1. teamScore/oppScore (synced from director or live)
+            // 2. liveScore.team/opp (direct from live scoring state)
+            // 3. liveScore events recomputed
+            // 4. g.score string from import
+            const ls = g.liveScore || {};
+            const lsEvts = Array.isArray(ls.events) ? ls.events : [];
+            const lsRecomp = lsEvts.length ? (() => {
+              let t = 0, o = 0;
+              for (const e of lsEvts) {
+                if (e.type === 'goal' || e.type === 'goal_5m') t++;
+                if (e.type === 'opp_goal' || e.type === 'opp_goal_5m') o++;
+              }
+              return { team: t, opp: o };
+            })() : null;
+            const scoreStr =
+              (g.teamScore != null && g.oppScore != null)
+                ? `${g.teamScore}-${g.oppScore}`
+              : (lsRecomp && (lsRecomp.team > 0 || lsRecomp.opp > 0))
+                ? `${lsRecomp.team}-${lsRecomp.opp}`
+              : (typeof ls.team === 'number' && typeof ls.opp === 'number' && (ls.team > 0 || ls.opp > 0))
+                ? `${ls.team}-${ls.opp}`
+              : (typeof g.score === 'string' ? g.score : '');
+            return {
+              id: g.id || ('g-' + Math.random().toString(36).slice(2, 8)),
+              opponent: g.opponent || g.oppLabel || 'Opponent',
+              result: archiveResultForGame(g) || g.result || '',
+              score: scoreStr,
+              teamScore: g.teamScore ?? null,
+              oppScore: g.oppScore ?? null,
+              date: g.date || '',
+              time: g.time || '',
+              liveScore: g.liveScore || null,
+              bracketPoints: g.bracketPoints ?? null,
+            };
+          });
 
           // Compute total bracket points from game results
           const pointMap = { W: 4, SW: 3, SL: 2, L: 1, F: 0 };
@@ -14850,7 +14875,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="firebase.js?v=240"></script>
+<script src="firebase.js?v=241"></script>
   <script>
     // Initialize Firebase in admin context
     if (typeof fbInit === 'function') fbInit();

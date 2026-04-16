@@ -7720,9 +7720,14 @@ function buildHistoryCard(t, options = {}) {
     // Director-scored games: liveScore has .team/.opp but no goal events
     const lsDirectScore = (!hasMeaningfulLiveScore && typeof ls.team === 'number' && typeof ls.opp === 'number' && (ls.team > 0 || ls.opp > 0))
       ? `${ls.team}-${ls.opp}` : '';
+    // Old history entries may have score stored as a liveScore object — extract team/opp
+    const scoreObj = (!hasMeaningfulLiveScore && g.score && typeof g.score === 'object')
+      ? (typeof g.score.team === 'number' && typeof g.score.opp === 'number' && (g.score.team > 0 || g.score.opp > 0)
+          ? `${g.score.team}-${g.score.opp}` : '')
+      : '';
     const scoreLabel = hasMeaningfulLiveScore
       ? `${recomputed.team ?? 0}-${recomputed.opp ?? 0}`
-      : (syncedScore || lsDirectScore || (typeof g.score === 'string' ? g.score : '') || (typeof g.time === 'string' ? g.time : '') || '');
+      : (syncedScore || lsDirectScore || scoreObj || (typeof g.score === 'string' ? g.score : '') || (typeof g.time === 'string' ? g.time : '') || '');
 
     // Goal scorer chips
     const teamGoals   = nonState.filter(ev => ev.type === 'goal');
