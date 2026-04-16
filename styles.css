@@ -572,6 +572,11 @@ body {
   padding-inline: 2px;
 }
 .team-picker-modal-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
   padding: 14px 16px 18px;
 }
 .team-picker-modal-actions {
@@ -593,7 +598,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: min(52vh, 420px);
+  flex: 1;
+  min-height: 0;
+  max-height: none;
   overflow-y: auto;
   margin-bottom: 14px;
 }
@@ -1162,6 +1169,15 @@ h2 {
 @media (max-width: 1022px) {
   .scores-slot-label { color: white; }
   .scores-slot-header { border-top-color: rgba(255,255,255,.15); }
+}
+/* Light mode: keep header labels readable (not white-on-white) */
+@media (max-width: 1022px) {
+  html[data-theme="light"] .scores-slot-label { color: var(--royal); }
+  html[data-theme="light"] .scores-slot-header { border-top-color: rgba(0,40,104,.15); }
+}
+@media (max-width: 1022px) and (prefers-color-scheme: light) {
+  html:not([data-theme="dark"]) .scores-slot-label { color: var(--royal); }
+  html:not([data-theme="dark"]) .scores-slot-header { border-top-color: rgba(0,40,104,.15); }
 }
 
 .scores-slot-header.slot-header-in-card .scores-slot-label,
@@ -4383,6 +4399,7 @@ body.modal-open { overflow: hidden; }
 
 .scoring-pw-btn {
   width: 100%;
+  flex-shrink: 0;
   padding: 13px;
   border-radius: 10px;
   border: none;

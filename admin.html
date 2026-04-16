@@ -8678,16 +8678,14 @@
         + '<div id="bs-s1" style="display:'+(step===1?'block':'none')+'">'
         + '<div class="info-label" style="margin-bottom:4px">Paste your Google Sheets URL</div>'
         + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">The sheet must be publicly viewable (Share &rarr; Anyone with the link).</div>'
-        + '<input class="info-input" id="bs-url" type="url" value="'+esc(bs.sheetUrl||'')+'" placeholder="https://docs.google.com/spreadsheets/d/\u2026" autocomplete="off" spellcheck="false" style="margin-bottom:8px" onkeydown="if(event.key===\'Enter\')bsStep1Next()">'
-        + '<button class="save-btn" style="width:100%" onclick="bsStep1Next()">Next &rarr;</button>'
-    + '<div id="bs-s1-err" style="font-size:.8rem;color:#dc2626;margin-top:6px;min-height:1em"></div>'
-    // Colour-coded age groups option
-    + '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--g100)">'
+        + '<input class="info-input" id="bs-url" type="url" value="'+esc(bs.sheetUrl||'')+'" placeholder="https://docs.google.com/spreadsheets/d/\u2026" autocomplete="off" spellcheck="false" style="margin-bottom:12px" onkeydown="if(event.key===\'Enter\')bsStep1Next()">'
+    // Colour-coded age groups option — shown BEFORE Next so it's always visible
+    + '<div style="margin-bottom:12px;padding:10px 12px;background:var(--g50);border-radius:8px;border:1px solid var(--g200)">'
     + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--g700)">'
     + '<input type="checkbox" id="bs-cc-chk" '+(bs.colorCoded?'checked':'')+' onchange="bsToggleColorCoded(this.checked)" style="width:15px;height:15px;accent-color:var(--royal);flex-shrink:0">'
     + 'Age groups separated by row colour'
     + '</label>'
-    + '<div id="bs-cc-fields" style="display:'+(bs.colorCoded?'block':'none')+';margin-top:8px;padding:10px;background:var(--g50);border-radius:8px;border:1px solid var(--g200)">'
+    + '<div id="bs-cc-fields" style="display:'+(bs.colorCoded?'block':'none')+';margin-top:8px">'
     + '<div style="font-size:.78rem;color:var(--g500);margin-bottom:6px">Which cells show the age group colour key? e.g. <code style="background:white;padding:1px 4px;border-radius:3px;border:1px solid var(--g200)">A18, B18</code></div>'
     + '<div style="display:flex;gap:6px;margin-bottom:6px">'
     + '<input class="info-input" id="bs-cc-cells" value="'+esc(bs.legendCells||'')+'" placeholder="A18, B18" style="flex:1;font-family:monospace;font-size:.84rem" onkeydown="if(event.key===\'Enter\')bsDetectAgeGroups()">'
@@ -8702,6 +8700,8 @@
     + '</div>'
     + '</div>'
     + '</div>'
+        + '<button class="save-btn" style="width:100%" onclick="bsStep1Next()">Next &rarr;</button>'
+    + '<div id="bs-s1-err" style="font-size:.8rem;color:#dc2626;margin-top:6px;min-height:1em"></div>'
     + '</div>'
     // Step 2
         + '<div id="bs-s2" style="display:'+(step===2?'block':'none')+'">'
@@ -15112,7 +15112,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="firebase.js?v=244"></script>
+<script src="firebase.js?v=245"></script>
   <script>
     // Initialize Firebase in admin context
     if (typeof fbInit === 'function') fbInit();
