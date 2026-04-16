@@ -7717,9 +7717,12 @@ function buildHistoryCard(t, options = {}) {
       (recomputed.team ?? 0) !== 0 ||
       (recomputed.opp ?? 0) !== 0
     ));
+    // Director-scored games: liveScore has .team/.opp but no goal events
+    const lsDirectScore = (!hasMeaningfulLiveScore && typeof ls.team === 'number' && typeof ls.opp === 'number' && (ls.team > 0 || ls.opp > 0))
+      ? `${ls.team}-${ls.opp}` : '';
     const scoreLabel = hasMeaningfulLiveScore
       ? `${recomputed.team ?? 0}-${recomputed.opp ?? 0}`
-      : (syncedScore || g.score || g.time || '');
+      : (syncedScore || lsDirectScore || (typeof g.score === 'string' ? g.score : '') || (typeof g.time === 'string' ? g.time : '') || '');
 
     // Goal scorer chips
     const teamGoals   = nonState.filter(ev => ev.type === 'goal');
@@ -7952,7 +7955,30 @@ function renderHistoryTab() {
       return '';
     })();
 
-    standingsEl.innerHTML = `
+    // ── League summary cards (Futures + BAWL) ──────────────────────────────
+    const _leagueDefs = [
+      { key: 'futures', label: 'Kap 7 Futures League', filter: e => /futures|kap.?7/i.test((e.name || '') + (e.id || '')) },
+      { key: 'bawl',    label: 'Bay Area WP League',   filter: e => /bay area|bawl/i.test((e.name || '') + (e.id || '')) },
+    ];
+    const _leagueCards = _leagueDefs.map(def => {
+      const le = history.filter(def.filter);
+      if (!le.length) return '';
+      const lPts = le.reduce((s, h) => s + (h.totalPoints || 0), 0);
+      const lW   = le.reduce((s, h) => s + (h.wins || 0), 0);
+      const lL   = le.reduce((s, h) => s + (h.losses || 0), 0);
+      const lT   = le.reduce((s, h) => s + (h.ties || 0), 0);
+      const lRec = lT ? `${lW}W–${lL}L–${lT}T` : `${lW}W–${lL}L`;
+      return `<div class="card tab-card" style="flex:1;padding:14px 16px;margin-bottom:0">
+        <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--gray-500);margin-bottom:4px">${escHtml(def.label)}</div>
+        <div style="font-size:1.5rem;font-weight:900;color:var(--royal);line-height:1.1">${lPts} pts</div>
+        <div style="font-size:0.75rem;color:var(--gray-500);margin-top:3px">${lRec} · ${le.length} event${le.length !== 1 ? 's' : ''}</div>
+      </div>`;
+    }).filter(Boolean);
+    const _leagueHtml = _leagueCards.length
+      ? `<div style="display:flex;gap:10px;margin-bottom:14px">${_leagueCards.join('')}</div>`
+      : '';
+
+    standingsEl.innerHTML = _leagueHtml + `
       <div class="card tab-card season-record-card" style="padding:18px 20px;margin-bottom:16px">
         <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
           <div style="flex:1">

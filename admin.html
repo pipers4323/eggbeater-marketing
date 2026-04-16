@@ -11708,7 +11708,7 @@
             id: g.id || ('g-' + Math.random().toString(36).slice(2, 8)),
             opponent: g.opponent || g.oppLabel || 'Opponent',
             result: archiveResultForGame(g) || g.result || '',
-            score: (g.teamScore != null && g.oppScore != null) ? `${g.teamScore}-${g.oppScore}` : (g.score || ''),
+            score: (g.teamScore != null && g.oppScore != null) ? `${g.teamScore}-${g.oppScore}` : (typeof g.score === 'string' ? g.score : ''),
             teamScore: g.teamScore ?? null,
             oppScore: g.oppScore ?? null,
             date: g.date || '',
@@ -14850,7 +14850,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="firebase.js?v=239"></script>
+<script src="firebase.js?v=240"></script>
   <script>
     // Initialize Firebase in admin context
     if (typeof fbInit === 'function') fbInit();
