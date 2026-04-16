@@ -11655,6 +11655,25 @@
       return `Summer ${yr}`; // May–Jul
     }
 
+    // ── Clear all history then rebuild from Archive ───────────────────────────────
+    async function clearAndRebuildHistory() {
+      const btn = document.getElementById('clear-rebuild-hist-btn');
+      const statusEl = document.getElementById('rebuild-hist-status');
+      if (!confirm(`Clear ALL history for ${S.team} and rebuild fresh from archive?\n\nThis cannot be undone.`)) return;
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Clearing…'; }
+      if (statusEl) statusEl.textContent = '';
+      try {
+        S.history = [];
+        await saveHistory();
+        if (statusEl) statusEl.innerHTML = '<span style="color:var(--g400)">History cleared — rebuilding…</span>';
+        await rebuildHistoryFromArchive();
+      } catch (e) {
+        if (statusEl) statusEl.innerHTML = `<span style="color:var(--red)">Error: ${escAttr(e.message)}</span>`;
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '🗑️ Clear & Rebuild'; }
+      }
+    }
+
     // ── Rebuild history from Archive ──────────────────────────────────────────────
     // Converts every archived tournament for the current team into a history entry
     // and merges it into S.history, then saves.  Existing entries with matching IDs
@@ -11808,6 +11827,8 @@
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           <button id="rebuild-hist-btn" class="save-btn" onclick="rebuildHistoryFromArchive()"
                   style="background:var(--royal)">🔄 Rebuild from Archive</button>
+          <button id="clear-rebuild-hist-btn" class="save-btn" onclick="clearAndRebuildHistory()"
+                  style="background:var(--red)">🗑️ Clear &amp; Rebuild</button>
           <span id="rebuild-hist-status" style="font-size:0.82rem"></span>
         </div>
       </div>
@@ -14875,7 +14896,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="firebase.js?v=241"></script>
+<script src="firebase.js?v=242"></script>
   <script>
     // Initialize Firebase in admin context
     if (typeof fbInit === 'function') fbInit();
