@@ -4851,9 +4851,8 @@
       if (S.currentTab === 'help') el.innerHTML = renderHelpTab();
       if (S.currentTab === 'director') {
         if (!tierHasFeature('tournament_host')) { el.innerHTML = renderTieredNudge('director'); return; }
-        // Firebase-authenticated admins are auto-unlocked — the password gate only applies
-        // to legacy password-based login where identity cannot be confirmed another way.
-        if (S.idToken) S.directorUnlocked = true;
+        // Any authenticated admin (Firebase or standard password) is auto-unlocked.
+        if (S.idToken || S.pw) S.directorUnlocked = true;
         if (!S.directorUnlocked) { el.innerHTML = renderDirectorLoginGate(); return; }
         el.innerHTML = renderDirectorTab(); setTimeout(() => { initDirectorPlaces(); (S.director?.ageGroups || []).forEach((_, ai) => renderDirToLengthInputs(ai)); }, 0);
       }
@@ -9617,6 +9616,170 @@
       bsStep(1);
       const urlInput = document.getElementById('bs-url');
       if (urlInput) urlInput.value = saved;
+    }
+
+    // ─── Director tab bracket import ─────────────────────────────────────────────
+
+    function dirBsParseAllCourses(allRows) {
+      // Same as bsParseCourseSched but returns ALL games without team-name filtering
+      let headerRow = -1;
+      for (let ri = 0; ri < Math.min(allRows.length, 35); ri++) {
+        const lower = allRows[ri].map(c => (c||'').toLowerCase().trim());
+        if ((lower[0]==='time'||lower[1]==='time slot') && lower.filter(c=>c.includes('white')).length >= 1) {
+          headerRow = ri; break;
+        }
+      }
+      if (headerRow < 0) throw new Error('Could not find schedule grid — expected a row with "Time" and "White Team" columns');
+      const hRow = allRows[headerRow];
+      const crRow = headerRow > 0 ? allRows[headerRow - 1] : null;
+      const courses = [];
+      if (crRow) {
+        for (let ci = 0; ci < crRow.length; ci++) {
+          const txt = (crRow[ci]||'').trim();
+          if (/course\s*\d+|court\s*\d+|pool\s*\d+/i.test(txt)) {
+            const m = txt.match(/\d+/);
+            courses.push({ num: m ? parseInt(m[0],10) : courses.length+1, startCol: ci });
+          }
+        }
+      }
+      if (!courses.length) {
+        for (let ci = 0; ci < hRow.length; ci++) {
+          if ((hRow[ci]||'').toLowerCase().trim().includes('white')) {
+            courses.push({ num: courses.length+1, startCol: ci });
+          }
+        }
+      }
+      if (!courses.length) throw new Error('Could not detect course/court columns');
+      for (const course of courses) {
+        let whiteCol = course.startCol, darkCol = course.startCol+2, divCol = course.startCol+4;
+        for (let ci = course.startCol; ci < Math.min(course.startCol+7, hRow.length); ci++) {
+          const lc = (hRow[ci]||'').toLowerCase().trim();
+          if (lc.includes('white')) whiteCol = ci;
+          else if (lc.includes('dark')||lc.includes('navy')) darkCol = ci;
+          else if (lc.includes('div')||lc==='gender'||lc==='group') divCol = ci;
+        }
+        course.whiteCol = whiteCol; course.darkCol = darkCol; course.divCol = divCol;
+      }
+      let timeCol = 0, slotCol = 1;
+      for (let ci = 0; ci < Math.min(hRow.length,5); ci++) {
+        const lc = (hRow[ci]||'').toLowerCase().trim();
+        if (lc==='time') timeCol = ci;
+        if (lc.includes('slot')||lc==='time slot') slotCol = ci;
+      }
+      let dateStr = '';
+      for (let ri = Math.max(0,headerRow-5); ri < headerRow; ri++) {
+        const joined = allRows[ri].join(' ');
+        if (!dateStr && /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i.test(joined)) {
+          for (const cell of allRows[ri]) {
+            const c = (cell||'').trim();
+            if (c && /\d/.test(c) && /[a-zA-Z]/.test(c) && c.length > 4) { dateStr = c; break; }
+          }
+        }
+      }
+      const dateISO = parseDateToISO(dateStr) || '';
+      const dateDisplay = dateISO ? isoToDate(dateISO) : dateStr;
+      const games = [];
+      for (let ri = headerRow+1; ri < allRows.length; ri++) {
+        const row = allRows[ri];
+        const timeVal = (row[timeCol]||'').trim();
+        const slotVal = (row[slotCol]||'').trim();
+        const slotNum = parseInt(slotVal,10) || (ri-headerRow);
+        if (!timeVal && !slotVal) continue;
+        let timeFormatted = timeVal;
+        if (timeVal && !/am|pm/i.test(timeVal)) {
+          const hm = timeVal.match(/^(\d{1,2}):/);
+          if (hm) { const h = parseInt(hm[1],10); timeFormatted = timeVal+(h>=7&&h<=11?' AM':' PM'); }
+        }
+        for (const crs of courses) {
+          const white = (row[crs.whiteCol]||'').trim();
+          const dark  = (row[crs.darkCol] ||'').trim();
+          const div   = (row[crs.divCol]  ||'').trim();
+          if (!white && !dark) continue;
+          const gameId = 'G'+crs.num+slotNum;
+          games.push({
+            id: 'g'+(Date.now()+games.length).toString(36),
+            gameNum: gameId,
+            homeTeam: white || 'TBD',
+            awayTeam: dark  || 'TBD',
+            time: timeFormatted,
+            dateISO,
+            date: dateDisplay,
+            location: 'Course '+crs.num,
+            pool: 'Course '+crs.num,
+            division: div,
+          });
+        }
+      }
+      return games;
+    }
+
+    async function dirBsImportSheet(btn) {
+      const url = (document.getElementById('dir-bs-url')?.value || '').trim();
+      const status = document.getElementById('dir-bs-status');
+      const preview = document.getElementById('dir-bs-preview');
+      const deployBtn = document.getElementById('dir-bs-deploy');
+      if (!url) { if (status) { status.style.color='#dc2626'; status.textContent='⚠️ Enter a Google Sheets URL first'; } return; }
+      const sheetId = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1];
+      if (!sheetId) { if (status) { status.style.color='#dc2626'; status.textContent='❌ Could not find a sheet ID — paste the full Google Sheets URL'; } return; }
+      const courseFormat = document.getElementById('dir-bs-cf')?.checked;
+      if (status) { status.style.color='var(--g400)'; status.textContent='⏳ Fetching sheet…'; }
+      if (preview) { preview.style.display='none'; preview.innerHTML=''; }
+      if (deployBtn) deployBtn.style.display='none';
+      if (btn) btn.disabled = true;
+      try {
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/'+sheetId+'/gviz/tq?tqx=out:csv';
+        const resp = await fetch(csvUrl);
+        if (!resp.ok) throw new Error('HTTP '+resp.status+' — make sure the sheet is "Anyone with the link can view"');
+        const text = await resp.text();
+        const allRows = parseCSV(text);
+        let games;
+        if (courseFormat) {
+          games = dirBsParseAllCourses(allRows);
+        } else {
+          throw new Error('Standard (pool-bracket) format not yet supported in Director import — enable "Court/course schedule format" or use the Bracket Wizard in the Add Games tab');
+        }
+        if (!games.length) throw new Error('No games found — check the sheet format or enable "Court/course schedule format"');
+        S._dirBsGames = games;
+        S._dirBsSheetUrl = url;
+        if (status) { status.style.color='#059669'; status.textContent='✅ Found '+games.length+' game(s) — review below, then deploy'; }
+        if (preview) {
+          preview.style.display='';
+          preview.innerHTML = games.map(g => `<div style="padding:3px 0;border-bottom:1px solid var(--g100)"><b>${esc(g.gameNum)}</b> · ${esc(g.time||'')} · ${esc(g.date||'')} · <span style="color:var(--royal)">${esc(g.homeTeam||'')}</span> vs <span style="color:var(--royal)">${esc(g.awayTeam||'')}</span> [${esc(g.location||'')}]</div>`).join('');
+        }
+        if (deployBtn) deployBtn.style.display='';
+      } catch(e) {
+        if (status) { status.style.color='#dc2626'; status.textContent='❌ '+e.message; }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function dirBsDeploy(btn) {
+      const status = document.getElementById('dir-bs-status');
+      const games = S._dirBsGames;
+      if (!games?.length) { if (status) { status.style.color='#dc2626'; status.textContent='⚠️ No games to deploy — scan a sheet first'; } return; }
+      if (btn) btn.disabled = true;
+      if (status) { status.style.color='var(--g400)'; status.textContent='⏳ Deploying…'; }
+      try {
+        const existingByNum = {};
+        for (const g of (S.tournament.games || [])) existingByNum[g.gameNum] = g;
+        const merged = games.map(g => ({ ...g, id: existingByNum[g.gameNum]?.id || g.id }));
+        merged.sort((a,b) => (a.gameNum||'').localeCompare(b.gameNum||'', undefined, {numeric:true}));
+        S.tournament.games = merged;
+        delete S.tournament.upcomingMode;
+        delete S.tournament.comingSoon;
+        S.tournament.sheetSync = { sheetUrl: S._dirBsSheetUrl, courseFormat: true, lastSync: new Date().toISOString() };
+        const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+        if (!saveRes.ok) throw new Error('Save failed — try again');
+        await _pushToFirebaseMirror(S.team, S.tournament, S.history || []);
+        if (status) { status.style.color='#059669'; status.textContent='✅ '+merged.length+' game(s) imported and live!'; }
+        const deployBtn = document.getElementById('dir-bs-deploy');
+        if (deployBtn) deployBtn.style.display='none';
+      } catch(e) {
+        if (status) { status.style.color='#dc2626'; status.textContent='❌ '+e.message; }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
     }
 
     function _sheetIdFromUrl(url) {
@@ -15097,6 +15260,19 @@
                      value="${esc(ag.timeoutsPerTeam ?? 2)}"
                      oninput="S.director.ageGroups[${ai}].timeoutsPerTeam=+this.value;saveDirectorLocally();renderDirToLengthInputs(${ai})">
             </div>
+            <div class="info-field" style="grid-column:1/-1">
+              <div class="info-label" style="margin-bottom:5px">Period Mode</div>
+              <div style="display:flex;gap:6px">
+                <button onclick="S.director.ageGroups[${ai}].periodMode='quarters';saveDirectorLocally();document.getElementById('dir-half-len-${ai}').style.display='none'" style="flex:1;padding:6px 10px;border-radius:6px;border:2px solid ${ (ag.periodMode||'quarters')==='quarters' ? 'var(--royal)' : 'var(--g200)'};background:${ (ag.periodMode||'quarters')==='quarters' ? 'var(--royal)' : 'white'};color:${ (ag.periodMode||'quarters')==='quarters' ? 'white' : 'var(--g600)'};font-size:.82rem;font-weight:600;cursor:pointer">Quarters</button>
+                <button onclick="S.director.ageGroups[${ai}].periodMode='halves';saveDirectorLocally();document.getElementById('dir-half-len-${ai}').style.display=''" style="flex:1;padding:6px 10px;border-radius:6px;border:2px solid ${ (ag.periodMode)==='halves' ? 'var(--royal)' : 'var(--g200)'};background:${ (ag.periodMode)==='halves' ? 'var(--royal)' : 'white'};color:${ (ag.periodMode)==='halves' ? 'white' : 'var(--g600)'};font-size:.82rem;font-weight:600;cursor:pointer">Halves</button>
+              </div>
+            </div>
+            <div class="info-field" id="dir-half-len-${ai}" style="${ag.periodMode==='halves' ? '' : 'display:none'}">
+              <div class="info-label">Half Length (min)</div>
+              <input class="info-input" type="number" min="1" max="30" step="0.5"
+                     value="${esc(ag.halfMins ?? 18)}"
+                     oninput="S.director.ageGroups[${ai}].halfMins=+this.value;saveDirectorLocally()">
+            </div>
           </div>
           <div id="dir-to-lengths-${ai}"></div>
         </div>
@@ -15169,8 +15345,40 @@
       </div>
     </div>`;
 
+      const dirBsAgeGroupOpts = d.ageGroups.map((ag, i) => `<option value="${i}">${esc(ag.name || ('Age Group '+(i+1)))}</option>`).join('');
+
+      const dirBsCard = `
+    <div class="card">
+      <div class="card-header">📋 Schedule Sheet Import</div>
+      <div style="padding:10px 14px 14px">
+        <div class="info-hint" style="margin-bottom:10px">Import all games from a Google Sheet directly into your tournament schedule. Sheet must be publicly viewable.</div>
+        <div class="info-field" style="margin-bottom:8px">
+          <div class="info-label">Google Sheets URL</div>
+          <input class="info-input" id="dir-bs-url" type="url" autocomplete="off" spellcheck="false"
+                 placeholder="https://docs.google.com/spreadsheets/d/…"
+                 value="${esc(S.tournament?.sheetSync?.sheetUrl||'')}">
+        </div>
+        ${d.ageGroups.length > 1 ? `<div class="info-field" style="margin-bottom:8px">
+          <div class="info-label">Import into Age Group</div>
+          <select class="info-input" id="dir-bs-ag">${dirBsAgeGroupOpts}</select>
+        </div>` : `<input type="hidden" id="dir-bs-ag" value="0">`}
+        <div style="margin-bottom:10px;padding:8px 10px;background:var(--g50);border-radius:7px;border:1px solid var(--g200)">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--g700)">
+            <input type="checkbox" id="dir-bs-cf" style="width:15px;height:15px;accent-color:var(--royal);flex-shrink:0">
+            Court/course schedule format
+          </label>
+          <div style="font-size:.73rem;color:var(--g500);margin-top:3px;padding-left:23px">Time slots in rows, courts/courses across columns (like the 10u schedule sheet).</div>
+        </div>
+        <button class="save-btn" style="width:100%;margin-bottom:8px" onclick="dirBsImportSheet(this)">📥 Scan &amp; Preview Games</button>
+        <div id="dir-bs-status" style="font-size:.82rem;min-height:1.2em;margin-bottom:6px"></div>
+        <div id="dir-bs-preview" style="max-height:200px;overflow-y:auto;font-size:.78rem;border:1px solid var(--g100);border-radius:6px;padding:4px 8px;display:none;margin-bottom:8px"></div>
+        <button class="save-btn" id="dir-bs-deploy" style="width:100%;background:var(--royal);color:white;display:none" onclick="dirBsDeploy(this)">🚀 Deploy All Games to App</button>
+      </div>
+    </div>`;
+
       return `
     ${tournamentInfoCard}
+    ${dirBsCard}
     <div class="card">
       <div class="card-header">🏆 Tournament Director — Age Groups &amp; Divisions</div>
       <div style="padding:6px 14px 12px">
