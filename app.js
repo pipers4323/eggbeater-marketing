@@ -2293,7 +2293,7 @@ function _announceScore(gameId) {
   const game = _findGameByRef(gameId);
   const home = TOURNAMENT.clubName || 'Us';
   const away = game?.opponent || 'Opponent';
-  const qtr  = s.period ? ` — Quarter ${s.period}` : '';
+  const qtr  = s.period ? ' — ' + _getPeriodLabel(s.period, gameId) : '';
   const clk  = s.clock  ? ` ${s.clock}` : '';
   announcer.textContent = `${home} ${s.team ?? 0}, ${away} ${s.opp ?? 0}${qtr}${clk}.`;
 }
@@ -2855,6 +2855,11 @@ function _setLiveScore(gameId, score) {
 const PERIOD_FOR_STATE = { start: 0, q1: 1, q2: 2, half: 2, q3: 3, q4: 4, ot: 5, final: 4, shootout: 6 };
 const TIMER_PHASE_FOR_STATE = { q1: 'q1', q2: 'q2', half: 'halftime', q3: 'q3', q4: 'q4' };
 const PERIOD_LABELS    = { 0: 'Pre-Game', 1: 'Q1', 2: 'Q2', 3: 'Q3', 4: 'Q4', 5: 'OT', 6: 'Shootout' };
+const HALF_PERIOD_LABELS = { 0: 'Pre-Game', 1: 'H1', 2: 'Half', 3: 'H2', 5: 'OT', 6: 'Shootout' };
+function _getPeriodLabel(period, gameOrRef) {
+  const cs = getClockSettings(gameOrRef);
+  return ((cs.periodMode === 'halves' ? HALF_PERIOD_LABELS : PERIOD_LABELS)[period]) || `P${period}`;
+}
 
 // Log a game-state transition (Start, Q1, Q2, Half, Q3, Q4, OT, Final)
 function setGameState(gameId, gstate) {
@@ -3059,7 +3064,7 @@ function undoLastGoal(gameId) { undoLastEvent(gameId); }
 // ─── BOX SCORE RENDERING ──────────────────────────────────────────────────────
 
 // Build the event log HTML, grouped by period
-function buildEventLog(events, currentPeriod = 0) {
+function buildEventLog(events, currentPeriod = 0, gameId = null) {
   const nonState = events.filter(e => e.type !== 'game_state');
   if (!nonState.length) return '';
 
@@ -3106,7 +3111,7 @@ function buildEventLog(events, currentPeriod = 0) {
   const currentP = currentPeriod;
 
   for (const [period, evs] of sortedPeriods) {
-    const label = PERIOD_LABELS[parseInt(period)] || `P${period}`;
+    const label = _getPeriodLabel(parseInt(period), gameId);
     const pKey  = `${currentP}_p${period}`; // Unique key to check manual toggle
     const manuallyOpened = state.logQuartersOpened && state.logQuartersOpened[pKey];
     const isOpen = parseInt(period) === currentP || sortedPeriods.length === 1 || manuallyOpened;
@@ -3586,7 +3591,7 @@ function buildBoxScoreText(gameId) {
     statusLine = `${label}: ${scoreStr}`;
   } else {
     // In-progress quarter/OT — show current period + score
-    const periodLabel = PERIOD_LABELS[s.period] || `P${s.period}`;
+    const periodLabel = _getPeriodLabel(s.period, gameId);
     statusLine = `${periodLabel}: ${scoreStr}`;
   }
 
@@ -4098,6 +4103,8 @@ function _getScopedClockSettings(gameOrRef = null) {
     halftimeMins: cs.halftimeMins ?? 5,
     timeoutsPerTeam: cs.timeoutsPerTeam ?? 2,
     timeoutLengths: Array.isArray(cs.timeoutLengths) && cs.timeoutLengths.length ? cs.timeoutLengths : [1, 0.5],
+    periodMode: cs.periodMode || 'quarters',
+    halfMins: cs.halfMins ?? 18,
   };
 }
 
@@ -4113,6 +4120,8 @@ function getClockSettings(gameOrRef = null) {
     timeoutLengths: useLiveTiming && Array.isArray(gameScore?.timeoutLengths) && gameScore.timeoutLengths.length
       ? gameScore.timeoutLengths
       : [...base.timeoutLengths],
+    periodMode: base.periodMode,
+    halfMins: useLiveTiming ? (gameScore?.halfMinsPerHalf ?? base.halfMins) : base.halfMins,
   };
 }
 
@@ -4191,31 +4200,38 @@ function _tickAllClocks() {
 }
 
 const _PHASE_SEQ = ['q1','break12','q2','halftime','q3','break34','q4','done'];
+const _PHASE_SEQ_HALVES = ['h1','halftime','h2','done'];
+
+function _getPhaseSeq(cs) {
+  return (cs && cs.periodMode === 'halves') ? _PHASE_SEQ_HALVES : _PHASE_SEQ;
+}
 
 function _phaseSeconds(phase, cs) {
   if (phase === 'break12' || phase === 'break34') return (cs.breakMins || 2) * 60;
   if (phase === 'halftime') return (cs.halftimeMins || 5) * 60;
+  if (phase === 'h1' || phase === 'h2') return (cs.halfMins || 18) * 60;
   return (cs.quarterMins || 7) * 60;
 }
 
-function _nextPhase(phase) {
-  const i = _PHASE_SEQ.indexOf(phase);
-  return i >= 0 && i < _PHASE_SEQ.length - 1 ? _PHASE_SEQ[i + 1] : 'done';
+function _nextPhase(phase, cs) {
+  const seq = _getPhaseSeq(cs);
+  const i = seq.indexOf(phase);
+  return i >= 0 && i < seq.length - 1 ? seq[i + 1] : 'done';
 }
 
 function _phaseGameState(phase) {
-  return { q1:'q1', q2:'q2', halftime:'half', q3:'q3', q4:'q4' }[phase] || null;
+  return { q1:'q1', q2:'q2', halftime:'half', q3:'q3', q4:'q4', h1:'q1', h2:'q3' }[phase] || null;
 }
 
 function _phaseLabel(phase) {
-  return { q1:'Q1', break12:'Quarter Break', q2:'Q2', halftime:'Half Time', q3:'Q3', break34:'Quarter Break', q4:'Q4', done:'Final' }[phase] || phase?.toUpperCase() || '';
+  return { q1:'Q1', break12:'Quarter Break', q2:'Q2', halftime:'Half Time', q3:'Q3', break34:'Quarter Break', q4:'Q4', done:'Final', h1:'H1', h2:'H2' }[phase] || phase?.toUpperCase() || '';
 }
 
 function _handleClockExpired(gameId) {
   const s = getLiveScore(gameId);
   const cs = getClockSettings(gameId);
   const cur  = s.timerPhase || 'q1';
-  const next = _nextPhase(cur);
+  const next = _nextPhase(cur, cs);
 
   s.timerRunning     = false;
   s.timerStartedAt   = null;
@@ -4244,7 +4260,7 @@ function _handleClockExpired(gameId) {
     const gs = _phaseGameState(next);
     if (gs) setGameState(gameId, gs);
     else { renderGamesList(); renderNextGameCard(); if (state.currentTab === 'scores') renderScoresTab(); }
-    showToast(next === 'halftime' ? '⏸ Halftime!' : '⏸ Quarter break');
+    showToast(next === 'halftime' ? '⏸ Halftime!' : (next === 'h1' || next === 'h2' ? '⏸ Half break' : '⏸ Quarter break'));
   } else {
     // New quarter — advance state, wait for scorer to tap ▶
     _setLiveScore(gameId, s);
@@ -4264,6 +4280,7 @@ function startScoring(gameId) {
   s.halfMins = cs.halftimeMins;
   s.timeoutsPerTeam = cs.timeoutsPerTeam;
   s.timeoutLengths = [...(cs.timeoutLengths || [])];
+  s.halfMinsPerHalf = cs.halfMins;
   s.timingLocked = true;
 
   // Determine which quarter we're starting
@@ -4271,7 +4288,8 @@ function startScoring(gameId) {
   const isNewGame = !s.timerPhase || s.gameState === 'pre';
 
   if (isNewGame) {
-    s.timerPhase = 'q1';
+    const csForStart = getClockSettings(gameId);
+    s.timerPhase = csForStart.periodMode === 'halves' ? 'h1' : 'q1';
     s.teamTimeoutsLeft = cs.timeoutsPerTeam;
     s.oppTimeoutsLeft  = cs.timeoutsPerTeam;
     s.teamTimeoutIdx   = 0;
@@ -5796,7 +5814,7 @@ function buildScoreDetailPlayByPlay(g) {
   return `
     <div class="score-detail-play card tab-card">
       ${hasEvents
-        ? buildEventLog(events, s.period)
+        ? buildEventLog(events, s.period, g)
         : `<div class="score-detail-empty">No play-by-play events yet.</div>`}
     </div>`;
 }
@@ -7309,8 +7327,19 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
   })() : '';
   const events = s.events || [];
 
+  // Auto-clock display (replaces manual clock entry row)
+  const cs = getClockSettings(gid);
+
   // Game state bar
-  const GS_OPTS = [
+  const _isHalves = cs.periodMode === 'halves';
+  const GS_OPTS = _isHalves ? [
+    { key:'start',    label:'▶ Start'  },
+    { key:'q1',       label:'H1'       },
+    { key:'half',     label:'½ Time'   },
+    { key:'q3',       label:'H2'       },
+    { key:'shootout', label:'🎯 SO'    },
+    { key:'final',    label:'🏁 End'   },
+  ] : [
     { key:'start',    label:'▶ Start'  },
     { key:'q1',       label:'Q1'       },
     { key:'q2',       label:'Q2'       },
@@ -7337,9 +7366,6 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
     }
     return `<button class="gs-btn${active}" onclick="${handler}">${o.label}</button>`;
   }).join('');
-
-  // Auto-clock display (replaces manual clock entry row)
-  const cs = getClockSettings(gid);
   const timerSecsLeft = (() => {
     if (s.timerRunning && s.timerStartedAt) {
       const elapsed = (Date.now() - s.timerStartedAt) / 1000;
@@ -7384,7 +7410,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
     </div>`;
 
   // Event log + box score
-  const eventLogHtml = buildEventLog(events, s.period);
+  const eventLogHtml = buildEventLog(events, s.period, gid);
   const boxScoreHtml = buildBoxScoreHtml(events, normalizeOpponentName(g.opponent || 'Opp'));
   const hasEvents    = events.filter(e=>e.type!=='game_state').length > 0;
 

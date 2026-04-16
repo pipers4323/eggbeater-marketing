@@ -7483,6 +7483,17 @@
       <summary class="card-header collapsible-header">⏱ ${esc(adminT('addgames_clock_settings'))} <span class="collapse-icon">▾</span></summary>
       <div class="info-form">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div class="info-field" style="grid-column:1 / -1">
+  <div class="info-label">Period Mode</div>
+  <div style="display:flex;gap:6px">
+    <button id="pm-qtrs-btn" class="save-btn" style="flex:1;font-size:.82rem;padding:7px;background:${((t.clockSettings||{}).periodMode||'quarters')==='quarters'?'var(--royal)':'var(--g100)'};color:${((t.clockSettings||{}).periodMode||'quarters')==='quarters'?'white':'var(--g600)'}" onclick="(S.tournament.clockSettings=S.tournament.clockSettings||{}).periodMode='quarters';document.getElementById('pm-qtrs-btn').style.background='var(--royal)';document.getElementById('pm-qtrs-btn').style.color='white';document.getElementById('pm-halv-btn').style.background='var(--g100)';document.getElementById('pm-halv-btn').style.color='var(--g600)';document.getElementById('pm-half-len').style.display='none'">⊞ Quarters</button>
+    <button id="pm-halv-btn" class="save-btn" style="flex:1;font-size:.82rem;padding:7px;background:${((t.clockSettings||{}).periodMode||'quarters')==='halves'?'var(--royal)':'var(--g100)'};color:${((t.clockSettings||{}).periodMode||'quarters')==='halves'?'white':'var(--g600)'}" onclick="(S.tournament.clockSettings=S.tournament.clockSettings||{}).periodMode='halves';document.getElementById('pm-halv-btn').style.background='var(--royal)';document.getElementById('pm-halv-btn').style.color='white';document.getElementById('pm-qtrs-btn').style.background='var(--g100)';document.getElementById('pm-qtrs-btn').style.color='var(--g600)';document.getElementById('pm-half-len').style.display='block'">⊟ Halves</button>
+  </div>
+</div>
+<div class="info-field" id="pm-half-len" style="display:${((t.clockSettings||{}).periodMode||'quarters')==='halves'?'block':'none'}">
+  <div class="info-label">Half Length (mins)</div>
+  <input class="info-input" type="number" min="5" max="30" step="0.5" value="${esc((t.clockSettings||{}).halfMins??18)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).halfMins=+this.value">
+</div>
           <div class="info-field"><div class="info-label">${adminT('addgames_quarter_length')}</div><input class="info-input" type="number" min="1" max="20" step="0.5" value="${esc((t.clockSettings || {}).quarterMins ?? 7)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).quarterMins=+this.value"></div>
           <div class="info-field"><div class="info-label">${adminT('addgames_quarter_break')}</div><input class="info-input" type="number" min="0" max="10" step="0.5" value="${esc((t.clockSettings || {}).breakMins ?? 2)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).breakMins=+this.value"></div>
           <div class="info-field"><div class="info-label">${adminT('addgames_halftime')}</div><input class="info-input" type="number" min="1" max="20" step="0.5" value="${esc((t.clockSettings || {}).halftimeMins ?? 5)}" oninput="(S.tournament.clockSettings=S.tournament.clockSettings||{}).halftimeMins=+this.value"></div>
@@ -8700,6 +8711,13 @@
     + '</div>'
     + '</div>'
     + '</div>'
+    + '<div style="margin-bottom:12px;padding:10px 12px;background:var(--g50);border-radius:8px;border:1px solid var(--g200)">'
+    + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--g700)">'
+    + '<input type="checkbox" id="bs-cf-chk" '+(bs.courseFormat?'checked':'')+' onchange="bsToggleCourseFormat(this.checked)" style="width:15px;height:15px;accent-color:var(--royal);flex-shrink:0">'
+    + 'Court/course schedule format'
+    + '</label>'
+    + '<div style="font-size:.74rem;color:var(--g500);margin-top:4px;padding-left:23px">Time slots in rows, courts/courses across columns. Skips pool step — go straight to team name.</div>'
+    + '</div>'
         + '<button class="save-btn" style="width:100%" onclick="bsStep1Next()">Next &rarr;</button>'
     + '<div id="bs-s1-err" style="font-size:.8rem;color:#dc2626;margin-top:6px;min-height:1em"></div>'
     + '</div>'
@@ -8812,7 +8830,12 @@
       S.bsync.sheetId = m[1];
       localStorage.setItem('ebadmin-bsync-url', url);
       if (err) err.textContent = '';
-      bsStep(2);
+      if (S.bsync.courseFormat) { bsStep(3); } else { bsStep(2); }
+    }
+
+    function bsToggleCourseFormat(val) {
+      if (!S.bsync) return;
+      S.bsync.courseFormat = !!val;
     }
 
     // ── Colour-coded age group helpers ────────────────────────────────────────────
@@ -8935,6 +8958,13 @@
       if (!name) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter your team name'; } return; }
       if (!S.bsync?.pools) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Go back and fetch pools first'; } return; }
       S.bsync.teamName = name;
+
+      if (S.bsync.courseFormat) {
+        if (status) { status.style.color='#059669'; status.textContent=`✅ Got it — scanning for "${name}"…`; }
+        setTimeout(bsScanGames, 400);
+        return;
+      }
+
       // Refresh pool preview with highlight
       const poolsEl = document.getElementById('bs-s3-pools');
       if (poolsEl) poolsEl.innerHTML = bsRenderPoolPreview(S.bsync.pools, name);
@@ -8993,6 +9023,131 @@
       bsStep(5);
     }
 
+    function bsParseCourseSched(allRows, teamNameLower) {
+      // Find the header row: has "Time" in col 0 AND multiple "White Team" or "White" entries
+      let headerRow = -1;
+      for (let ri = 0; ri < Math.min(allRows.length, 35); ri++) {
+        const lower = allRows[ri].map(function(c){ return (c||'').toLowerCase().trim(); });
+        if ((lower[0]==='time'||lower[1]==='time slot') && lower.filter(function(c){return c.includes('white');}).length >= 1) {
+          headerRow = ri;
+          break;
+        }
+      }
+      if (headerRow < 0) throw new Error('Could not find schedule grid — expected a row starting with "Time" and containing "White Team" columns');
+
+      const hRow = allRows[headerRow];
+      const crRow = headerRow > 0 ? allRows[headerRow - 1] : null;
+
+      // Detect course/court blocks from the row above headers
+      const courses = [];
+      if (crRow) {
+        for (let ci = 0; ci < crRow.length; ci++) {
+          const txt = (crRow[ci]||'').trim();
+          if (/course\s*\d+|court\s*\d+|pool\s*\d+/i.test(txt)) {
+            const m = txt.match(/\d+/);
+            courses.push({ num: m ? parseInt(m[0],10) : courses.length+1, startCol: ci });
+          }
+        }
+      }
+      // Fallback: find all "White Team" columns from the header row itself
+      if (!courses.length) {
+        for (let ci = 0; ci < hRow.length; ci++) {
+          if ((hRow[ci]||'').toLowerCase().trim().includes('white')) {
+            courses.push({ num: courses.length+1, startCol: ci });
+          }
+        }
+      }
+      if (!courses.length) throw new Error('Could not detect course/court column blocks — expected "Course 1", "Course 2"… in a row above the header');
+
+      // For each course block, find white/dark/division column offsets from the header row
+      for (var ci2=0; ci2<courses.length; ci2++) {
+        var course = courses[ci2];
+        var sc = course.startCol;
+        var whiteCol = sc, darkCol = sc+2, divCol = sc+4;
+        for (var ci3=sc; ci3<Math.min(sc+7, hRow.length); ci3++) {
+          var lc = (hRow[ci3]||'').toLowerCase().trim();
+          if (lc.includes('white'))                            whiteCol = ci3;
+          else if (lc.includes('dark')||lc.includes('navy'))  darkCol  = ci3;
+          else if (lc.includes('div')||lc==='gender'||lc==='group') divCol = ci3;
+        }
+        course.whiteCol = whiteCol;
+        course.darkCol  = darkCol;
+        course.divCol   = divCol;
+      }
+
+      // Time and time-slot columns (usually 0 and 1)
+      var timeCol = 0, slotCol = 1;
+      for (var ci4=0; ci4<Math.min(hRow.length,5); ci4++) {
+        var lc2 = (hRow[ci4]||'').toLowerCase().trim();
+        if (lc2==='time') timeCol = ci4;
+        if (lc2.includes('slot')||lc2==='time slot') slotCol = ci4;
+      }
+
+      // Find date from rows above headerRow
+      var dateStr = '', locationStr = '';
+      for (var ri2=Math.max(0,headerRow-5); ri2<headerRow; ri2++) {
+        var joined = allRows[ri2].join(' ');
+        if (!dateStr && /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i.test(joined)) {
+          for (var ci5=0; ci5<allRows[ri2].length; ci5++) {
+            var cell = (allRows[ri2][ci5]||'').trim();
+            if (cell && /\d/.test(cell) && /[a-zA-Z]/.test(cell) && cell.length > 4) { dateStr = cell; break; }
+          }
+        }
+        if (!locationStr) {
+          for (var ci6=0; ci6<allRows[ri2].length; ci6++) {
+            var cell2 = (allRows[ri2][ci6]||'').trim();
+            if (cell2.length > 20 && /\d/.test(cell2) && /[a-z]/i.test(cell2)) { locationStr = cell2; }
+          }
+        }
+      }
+      var dateISO = parseDateToISO(dateStr) || '';
+      var dateDisplay = dateISO ? isoToDate(dateISO) : dateStr;
+
+      var games = [];
+      for (var ri3=headerRow+1; ri3<allRows.length; ri3++) {
+        var row = allRows[ri3];
+        var timeVal = (row[timeCol]||'').trim();
+        var slotVal = (row[slotCol]||'').trim();
+        var slotNum = parseInt(slotVal,10) || (ri3-headerRow);
+        if (!timeVal && !slotVal) continue;
+        // Format time
+        var timeFormatted = timeVal;
+        if (timeVal && !/am|pm/i.test(timeVal)) {
+          var hm = timeVal.match(/^(\d{1,2}):/);
+          if (hm) { var h2=parseInt(hm[1],10); timeFormatted=timeVal+(h2>=7&&h2<=11?' AM':' PM'); }
+        }
+        for (var ci7=0; ci7<courses.length; ci7++) {
+          var crs = courses[ci7];
+          var white = (row[crs.whiteCol]||'').trim();
+          var dark  = (row[crs.darkCol] ||'').trim();
+          var div   = (row[crs.divCol]  ||'').trim();
+          if (!white && !dark) continue;
+          var isWhite = white.toLowerCase().includes(teamNameLower);
+          var isDark  = dark.toLowerCase().includes(teamNameLower);
+          if (!isWhite && !isDark) continue;
+          var gameId = 'G'+crs.num+slotNum;
+          var opponentRaw = isWhite ? dark : white;
+          var opponent = opponentRaw
+            .replace(/^W\s+G(\d)(\d+)$/i, function(_,c,s2){return 'Winner of G'+c+s2;})
+            .replace(/^L\s+G(\d)(\d+)$/i, function(_,c,s2){return 'Loser of G'+c+s2;})
+            || 'TBD';
+          games.push({
+            id: 'g'+(Date.now()+games.length).toString(36),
+            gameNum: gameId,
+            opponent: opponent,
+            time: timeFormatted,
+            dateISO: dateISO,
+            date: dateDisplay,
+            location: locationStr || ('Course '+crs.num),
+            pool: 'Course '+crs.num,
+            cap: isDark ? 'Dark' : 'White',
+            division: div,
+          });
+        }
+      }
+      return games;
+    }
+
     async function bsScanGames() {
       const status4 = document.getElementById('bs-s4-status');
       const preview = document.getElementById('bs-games-preview');
@@ -9006,6 +9161,33 @@
         const text = await resp.text();
         const allRows = parseCSV(text);
         const teamNameLower = (S.bsync.teamName || '').toLowerCase();
+
+        // ── Course/court schedule format — bypass standard column detection ──
+        if (S.bsync.courseFormat) {
+          const games = bsParseCourseSched(allRows, teamNameLower);
+          if (!games.length) {
+            if (status4) { status4.style.color='#dc2626'; status4.textContent=`⚠️ No games found for "${S.bsync.teamName}" — check the team name matches the sheet exactly`; }
+            const nextBtn = document.getElementById('bs-s4-next');
+            if (nextBtn) nextBtn.disabled = true;
+            return;
+          }
+          S.bsync.games = games;
+          if (status4) { status4.style.color='#059669'; status4.textContent='\u2705 Found '+games.length+' game(s) \u2014 review below'; }
+          const nextBtn2 = document.getElementById('bs-s4-next');
+          if (nextBtn2) nextBtn2.disabled = false;
+          if (preview) {
+            preview.innerHTML = games.map(function(g) {
+              return '<div style="padding:5px 0;border-bottom:1px solid var(--g100);display:flex;gap:8px;align-items:center">'
+                +'<span style="font-size:.72rem;color:var(--g400);min-width:40px;font-weight:600">'+esc(g.gameNum)+'</span>'
+                +'<span style="flex:1;font-weight:600;font-size:.82rem">vs '+esc(g.opponent)+'</span>'
+                +(g.division?'<span style="font-size:.7rem;color:var(--g400);padding:1px 5px;background:var(--g100);border-radius:3px">'+esc(g.division)+'</span>':'')
+                +'<span style="font-size:.72rem;color:var(--g400)">'+(g.time?esc(g.time):'')+'</span>'
+                +'<span style="font-size:.7rem;background:'+(g.cap==='Dark'?'#1f2937':'var(--g100)')+';color:'+(g.cap==='Dark'?'white':'var(--g600)')+';padding:1px 5px;border-radius:3px;min-width:36px;text-align:center">'+(g.cap==='Dark'?'⚫ Dark':'⚪ White')+'</span>'
+                +'</div>';
+            }).join('')+'<div style="padding-top:6px;font-size:.75rem;color:var(--g400)">'+games.length+' game(s) found. Continue to set bracket options.</div>';
+          }
+          return; // Skip rest of bsScanGames
+        }
 
         // ── Auto-detect column structure from first header row containing "white" + "dark" ──
         let dateCol=0, locationCol=1, timeCol=2, whiteCol=3, darkCol=5, gameNumCol=-1, poolCol=-1;
@@ -15112,7 +15294,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="firebase.js?v=245"></script>
+<script src="firebase.js?v=246"></script>
   <script>
     // Initialize Firebase in admin context
     if (typeof fbInit === 'function') fbInit();
