@@ -572,12 +572,11 @@ body {
   padding-inline: 2px;
 }
 .team-picker-modal-body {
-  display: flex;
-  flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
-  padding: 14px 16px 18px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 16px 0;
 }
 .team-picker-modal-actions {
   display: flex;
@@ -598,11 +597,12 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  flex: 1;
-  min-height: 0;
-  max-height: none;
-  overflow-y: auto;
-  margin-bottom: 14px;
+  padding-bottom: 14px;
+}
+.team-picker-modal-done-wrap {
+  flex-shrink: 0;
+  padding: 12px 16px 18px;
+  border-top: 1px solid var(--gray-100);
 }
 .team-picker-modal-row {
   display: flex;
