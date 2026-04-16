@@ -11637,12 +11637,138 @@
       return `Spring ${yr}`;
     }
 
+    // ── Rebuild history from Archive ──────────────────────────────────────────────
+    // Converts every archived tournament for the current team into a history entry
+    // and merges it into S.history, then saves.  Existing entries with matching IDs
+    // are kept as-is (archive data wins only for new entries) so manual edits survive.
+    async function rebuildHistoryFromArchive() {
+      const btn = document.getElementById('rebuild-hist-btn');
+      const statusEl = document.getElementById('rebuild-hist-status');
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading archive…'; }
+      if (statusEl) statusEl.textContent = '';
+      try {
+        const archiveRes = await api('GET', `/admin/archive?team=${encodeURIComponent(S.team)}`);
+        if (!archiveRes.ok) throw new Error('Archive fetch failed: ' + archiveRes.status);
+        const archiveData = await archiveRes.json();
+        const archives = archiveData.archives || [];
+        if (!archives.length) {
+          if (statusEl) statusEl.innerHTML = '<span style="color:var(--amber)">⚠️ No archived tournaments found for this age group.</span>';
+          if (btn) { btn.disabled = false; btn.textContent = '🔄 Rebuild from Archive'; }
+          return;
+        }
+
+        if (btn) btn.textContent = `⏳ Processing ${archives.length} tournament(s)…`;
+
+        // Load full detail for every archive entry
+        const details = await Promise.all(archives.map(async archive => {
+          try {
+            const res = await api('GET', `/admin/archive-detail?tournId=${encodeURIComponent(archive.id)}&team=${encodeURIComponent(S.team)}`);
+            if (!res.ok) return archive;
+            const d = await res.json();
+            return { ...archive, ...d };
+          } catch { return archive; }
+        }));
+
+        // Build a set of existing history IDs so we can merge without duplicating
+        const existingIds = new Set((S.history || []).map(h => String(h.id)));
+
+        let added = 0, skipped = 0;
+        const newEntries = [];
+
+        for (const detail of details) {
+          const tournament = detail.tournament || detail.snapshot?.tournament || {};
+          const games = Array.isArray(tournament.games) ? tournament.games : [];
+          if (!games.length && !tournament.name) { skipped++; continue; }
+
+          // Derive W/L/T from game results
+          const rec = deriveArchiveRecord(games, detail.record || {});
+          const { wins = 0, losses = 0, ties = 0 } = rec;
+          const wStr = ties ? `${wins}-${losses}-${ties}` : `${wins}-${losses}`;
+
+          // Map archive games to lightweight history game rows
+          const historyGames = games.map(g => ({
+            id: g.id || ('g-' + Math.random().toString(36).slice(2, 8)),
+            opponent: g.opponent || g.oppLabel || 'Opponent',
+            result: archiveResultForGame(g) || g.result || '',
+            score: (g.teamScore != null && g.oppScore != null) ? `${g.teamScore}-${g.oppScore}` : (g.score || ''),
+            teamScore: g.teamScore ?? null,
+            oppScore: g.oppScore ?? null,
+            date: g.date || '',
+            time: g.time || '',
+            liveScore: g.liveScore || null,
+            bracketPoints: g.bracketPoints ?? null,
+          }));
+
+          // Compute total bracket points from game results
+          const pointMap = { W: 4, SW: 3, SL: 2, L: 1, F: 0 };
+          const totalPoints = historyGames.reduce((sum, g) => {
+            const bp = g.bracketPoints;
+            if (bp != null) return sum + Number(bp);
+            // Fall back to standard points based on result
+            return sum + (pointMap[String(g.result).toUpperCase()] ?? 0);
+          }, 0);
+
+          const entryId = detail.id || tournament.id || ('arch-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6));
+
+          if (existingIds.has(String(entryId))) { skipped++; continue; }
+
+          const entry = {
+            id: entryId,
+            name: tournament.name || detail.name || 'Tournament',
+            dates: tournament.dates || detail.dates || '',
+            location: tournament.location || detail.location || '',
+            season: guessSeasonFromDate(tournament.dates || detail.dates || ''),
+            placement: detail.placement || tournament.placement || '',
+            wins,
+            losses,
+            ties,
+            totalPoints,
+            record: wStr,
+            notes: detail.notes || '',
+            games: historyGames,
+            playerStats: detail.playerStats || detail.roster?.playerStats || {},
+            archivedAt: detail.archivedAt || new Date().toISOString(),
+          };
+
+          newEntries.push(entry);
+          existingIds.add(String(entryId));
+          added++;
+        }
+
+        // Merge: prepend new entries before existing, then sort newest-first by archivedAt
+        S.history = [...newEntries, ...(S.history || [])];
+        S.history.sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt));
+
+        await saveHistory();
+        if (statusEl) statusEl.innerHTML = `<span style="color:var(--green)">✅ Restored ${added} tournament(s) from archive${skipped ? ` · ${skipped} already present or empty` : ''}. History saved.</span>`;
+      } catch (e) {
+        if (statusEl) statusEl.innerHTML = `<span style="color:var(--red)">❌ ${esc(e.message)}</span>`;
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '🔄 Rebuild from Archive'; }
+      }
+    }
+
     function renderHistoryAdminTab() {
       if (!tierHasFeature('season_stats')) return renderTieredNudge('history');
       const teamObj = getAdminTeams().find(t => t.key === S.team);
       const teamLabel = teamObj ? teamObj.label : S.team;
       const isHS = S.clubType === 'highschool';
-      let html = '';
+      let html = `
+    <div class="card" style="margin-bottom:10px;border-color:var(--royal-light);background:var(--royal-subtle)">
+      <div class="card-header" style="color:var(--royal)">🔄 Restore History from Archive — ${esc(teamLabel)}</div>
+      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">
+          Pulls every archived tournament for this age group and rebuilds the history parents see.
+          Existing entries are preserved; only missing ones are added.
+          Use this after a deploy accidentally cleared the history.
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button id="rebuild-hist-btn" class="save-btn" onclick="rebuildHistoryFromArchive()"
+                  style="background:var(--royal)">🔄 Rebuild from Archive</button>
+          <span id="rebuild-hist-status" style="font-size:0.82rem"></span>
+        </div>
+      </div>
+    </div>`;
 
       // ── MaxPreps Import for HS clubs ──
       if (isHS) {
