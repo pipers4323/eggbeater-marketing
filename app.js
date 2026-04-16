@@ -7960,18 +7960,50 @@ function renderHistoryTab() {
       { key: 'futures', label: 'Kap 7 Futures League', filter: e => /futures|kap.?7/i.test((e.name || '') + (e.id || '')) },
       { key: 'bawl',    label: 'Bay Area WP League',   filter: e => /bay area|bawl/i.test((e.name || '') + (e.id || '')) },
     ];
+    // Group history entries by sub-team label (same logic as TOURNEY_GROUPS detail sections)
+    const _leagueTeamKey = e => {
+      const sub = e.subtitle || '';
+      return e.team || (/Team B/i.test(sub) ? 'Team B' : /Team A/i.test(sub) ? 'Team A' : '');
+    };
     const _leagueCards = _leagueDefs.map(def => {
       const le = history.filter(def.filter);
       if (!le.length) return '';
-      const lPts = le.reduce((s, h) => s + (h.totalPoints || 0), 0);
-      const lW   = le.reduce((s, h) => s + (h.wins || 0), 0);
-      const lL   = le.reduce((s, h) => s + (h.losses || 0), 0);
-      const lT   = le.reduce((s, h) => s + (h.ties || 0), 0);
-      const lRec = lT ? `${lW}W–${lL}L–${lT}T` : `${lW}W–${lL}L`;
+
+      // Group by sub-team
+      const byTeam = {};
+      le.forEach(e => {
+        const k = _leagueTeamKey(e) || 'All';
+        if (!byTeam[k]) byTeam[k] = [];
+        byTeam[k].push(e);
+      });
+      const teamKeys = Object.keys(byTeam).sort((a, b) => {
+        const order = ['Team', 'Team A', 'Team A1', 'Team A2', 'Team B', 'A', 'A1', 'A2', 'B', 'All', 'Other'];
+        return (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99);
+      });
+      const multiTeam = teamKeys.length > 1;
+
+      const rows = teamKeys.map(tk => {
+        const te = byTeam[tk];
+        const tPts = te.reduce((s, h) => s + (h.totalPoints || 0), 0);
+        const tW   = te.reduce((s, h) => s + (h.wins   || 0), 0);
+        const tL   = te.reduce((s, h) => s + (h.losses || 0), 0);
+        const tT   = te.reduce((s, h) => s + (h.ties   || 0), 0);
+        const tRec = tT ? `${tW}W–${tL}L–${tT}T` : `${tW}W–${tL}L`;
+        if (multiTeam) {
+          return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-top:1px solid var(--g100)">
+            <span style="flex:1;font-size:0.78rem;font-weight:700;color:var(--text)">${escHtml(tk)}</span>
+            <span style="font-size:0.72rem;color:var(--gray-500)">${tRec}</span>
+            <span style="font-size:0.85rem;font-weight:800;color:var(--royal);min-width:42px;text-align:right">${tPts} pts</span>
+          </div>`;
+        }
+        // Single team — show totals inline under label
+        return `<div style="font-size:1.4rem;font-weight:900;color:var(--royal);line-height:1.1;margin-top:2px">${tPts} pts</div>
+          <div style="font-size:0.72rem;color:var(--gray-500);margin-top:3px">${tRec} · ${te.length} event${te.length !== 1 ? 's' : ''}</div>`;
+      }).join('');
+
       return `<div class="card tab-card" style="flex:1;padding:14px 16px;margin-bottom:0">
-        <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--gray-500);margin-bottom:4px">${escHtml(def.label)}</div>
-        <div style="font-size:1.5rem;font-weight:900;color:var(--royal);line-height:1.1">${lPts} pts</div>
-        <div style="font-size:0.75rem;color:var(--gray-500);margin-top:3px">${lRec} · ${le.length} event${le.length !== 1 ? 's' : ''}</div>
+        <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--gray-500);margin-bottom:${multiTeam ? 2 : 4}px">${escHtml(def.label)}</div>
+        ${rows}
       </div>`;
     }).filter(Boolean);
     const _leagueHtml = _leagueCards.length
