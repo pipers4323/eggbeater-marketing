@@ -11655,6 +11655,218 @@
       return `Summer ${yr}`; // May–Jul
     }
 
+    // ── Seed history from legacy 680-waterpolo HISTORY_SEED ──────────────────────
+    async function seedLegacyHistory() {
+      const btn = document.getElementById('seed-legacy-hist-btn');
+      const statusEl = document.getElementById('rebuild-hist-status');
+      if (!confirm('Import pre-existing 680 Drivers game history from the legacy app?\n\nExisting entries with the same ID will be skipped.')) return;
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Importing…'; }
+      if (statusEl) statusEl.textContent = '';
+      try {
+        // Parse a score string like "16–4" or "7–7 SO" into { team, opp }
+        const parseScore = s => {
+          if (!s || typeof s !== 'string') return { team: null, opp: null };
+          const m = s.match(/^(\d+)[–\-](\d+)/);
+          return m ? { team: parseInt(m[1], 10), opp: parseInt(m[2], 10) } : { team: null, opp: null };
+        };
+
+        const LEGACY_SEED = [
+          // ── Kap 7 Futures Day 2 · Mar 7, 2026 · Archie Williams HS ────────────
+          { id:'kap7-futures-day2-2026-680a', name:'2026 Kap 7 Futures Water Polo League presented by BIWPA',
+            subtitle:'680 A · Day 2', team:'680 A', dates:'March 7, 2026', location:'Archie Williams HS', pool:'Pool G',
+            wins:2, losses:0, record:'2-0', totalPoints:8,
+            games:[
+              { id:'f2d2-g7',  gameNum:'G7',  opponent:'SHARKS', score:'16–4', result:'W', points:4 },
+              { id:'f2d2-g15', gameNum:'G15', opponent:'SHAQ',   score:'15–8', result:'W', points:4 },
+            ] },
+          { id:'kap7-futures-day2-2026-680b', name:'2026 Kap 7 Futures Water Polo League presented by BIWPA',
+            subtitle:'680 B · Day 2', team:'680 B', dates:'March 7, 2026', location:'Archie Williams HS', pool:'Pool K',
+            wins:1, losses:1, record:'1-1', totalPoints:5,
+            games:[
+              { id:'f2d2-g9',  gameNum:'G9',  opponent:'ARWPC',  score:'13–3', result:'W', points:4 },
+              { id:'f2d2-g13', gameNum:'G13', opponent:'LAMO B', score:'4–8',  result:'L', points:1 },
+            ] },
+          // ── Kap 7 Futures Day 1 · Jan 10, 2026 · Campolindo HS ───────────────
+          { id:'kap7-futures-day1-2026-680a', name:'2026 Kap 7 Futures Water Polo League presented by BIWPA',
+            subtitle:'680 A · Day 1', team:'680 A', dates:'January 10, 2026', location:'Campolindo HS', pool:'Pool C',
+            wins:1, losses:1, record:'1-1', totalPoints:5,
+            games:[
+              { id:'kap7-d1-g1', gameNum:'G1', opponent:'Santa Cruz', score:'7–9', result:'L', points:1 },
+              { id:'kap7-d1-g7', gameNum:'G7', opponent:'SJX',        score:'9–6', result:'W', points:4 },
+            ] },
+          { id:'kap7-futures-day1-2026-680b', name:'2026 Kap 7 Futures Water Polo League presented by BIWPA',
+            subtitle:'680 B · Day 1', team:'680 B', dates:'January 10, 2026', location:'Campolindo HS', pool:'Pool D',
+            wins:1, losses:1, record:'1-1', totalPoints:5,
+            games:[
+              { id:'kap7-d1-g2', gameNum:'G2', opponent:'Big Valley',    score:'18–3', result:'W', points:4 },
+              { id:'kap7-d1-g8', gameNum:'G8', opponent:'Arroyo Grande', score:'4–13', result:'L', points:1 },
+            ] },
+          // ── 14U SoCal International Tournament · Jan 31–Feb 1, 2026 ──────────
+          { id:'socal-intl-2026-680', name:'14U SoCal International Tournament',
+            subtitle:'680 · 4th Seed', team:'680', dates:'January 31 – February 1, 2026',
+            location:'El Modena HS Aquatic Center, Orange, CA', pool:'4th Seed · 2–2',
+            wins:2, losses:2, record:'2-2',
+            games:[
+              { id:'socal-g2', gameNum:'Game 2', opponent:'Commerce',        score:'6–7',    result:'L' },
+              { id:'socal-g5', gameNum:'Game 5', opponent:'Rose Bowl',       score:'10–8',   result:'W' },
+              { id:'socal-g6', gameNum:'Game 6', opponent:'CHAWP',           score:'4–12',   result:'L' },
+              { id:'socal-g8', gameNum:'Game 8', opponent:'San Jose Express',score:'3–3 SO', result:'W' },
+            ] },
+          // ── 2025 Evan Cousineau Memorial Cup · Oct 4–5, 2025 ─────────────────
+          { id:'ec-cup-2025-680a', name:'2025 Evan Cousineau Memorial Cup',
+            subtitle:'680 A · Platinum Division', team:'680 A', dates:'October 4–5, 2025',
+            location:'Tustin HS, Tustin, CA', pool:'Pool A · 4th Place',
+            wins:1, losses:3, record:'1-3',
+            games:[
+              { id:'ec-cup-g04', gameNum:'14Gpt04', opponent:'CDM Pink (A)',   score:'3–7',  result:'L' },
+              { id:'ec-cup-g07', gameNum:'14Gpt07', opponent:'Shore Aquatics', score:'6–4',  result:'W' },
+              { id:'ec-cup-g12', gameNum:'14Gpt12', opponent:'Laguna Beach',   score:'5–9',  result:'L' },
+              { id:'ec-cup-g14', gameNum:'14Gpt14', opponent:'Del Mar Blue',   score:'3–10', result:'L' },
+            ] },
+          // ── Pacific Zone Champs Cup Qualification · Sep 28, 2025 ─────────────
+          { id:'pac-zone-champs-cup-2025-680', name:'Pacific Zone 8th Grade & Under Girls Champions Cup Qualification Tournament',
+            subtitle:'680 · Qualification', team:'680', dates:'September 28, 2025',
+            location:'Las Lomas HS, Walnut Creek, CA', pool:'Pool A',
+            wins:1, losses:1, record:'1-1',
+            games:[
+              { id:'pac-zone-g1', gameNum:'G1', opponent:'Stanford',   score:'10–8', result:'W' },
+              { id:'pac-zone-g3', gameNum:'G3', opponent:'Santa Cruz', score:'7–12', result:'L' },
+            ] },
+          // ── BAWL Fall 2025–2026 Day 2 · Oct 19, 2025 ─────────────────────────
+          { id:'bawl-fall-day2-2025-680a', name:'Bay Area Water Polo League Fall 2025–2026',
+            subtitle:'680 A · Day 2', team:'680 A', dates:'October 19, 2025',
+            location:'Woodside HS', pool:'Platinum',
+            wins:0, losses:2, record:'0-2', totalPoints:1,
+            games:[
+              { id:'bawl-fall-d2-a-g1', gameNum:'G14PA202', opponent:'Santa Cruz A', score:'7–7 SO', result:'SL', points:1 },
+              { id:'bawl-fall-d2-a-g2', gameNum:'G14PA203', opponent:'Stanford A',   score:'6–11',   result:'L',  points:0 },
+            ] },
+          { id:'bawl-fall-day2-2025-680b', name:'Bay Area Water Polo League Fall 2025–2026',
+            subtitle:'680 B · Day 2', team:'680 B', dates:'October 19, 2025',
+            location:'VCHS', pool:'Gold',
+            wins:1, losses:1, record:'1-1', totalPoints:3,
+            games:[
+              { id:'bawl-fall-d2-b-g1', gameNum:'G14GA209', opponent:'NorCal Black', score:'8–7',  result:'W', points:3 },
+              { id:'bawl-fall-d2-b-g2', gameNum:'G14GA204', opponent:'Diablo B',     score:'4–11', result:'L', points:0 },
+            ] },
+          // ── BAWL Winter 2025–2026 Day 3 · Jan 18, 2026 · VCHS ────────────────
+          { id:'bawl-day3-2026-680a1', name:'Bay Area Water Polo League Winter 2025–2026',
+            subtitle:'680 A1 · Day 3', team:'680 A', dates:'January 18, 2026',
+            location:'VCHS', pool:'Platinum',
+            wins:0, losses:2, record:'0-2', totalPoints:0,
+            games:[
+              { id:'bawl-d3-a1-g1', gameNum:'G14P303', opponent:'SJX Blue',   score:'3–8',  result:'L', points:0 },
+              { id:'bawl-d3-a1-g2', gameNum:'G14P305', opponent:'Santa Cruz', score:'8–18', result:'L', points:0 },
+            ] },
+          { id:'bawl-day3-2026-680b', name:'Bay Area Water Polo League Winter 2025–2026',
+            subtitle:'680 B · Day 3', team:'680 B', dates:'January 18, 2026',
+            location:'VCHS', pool:'Gold',
+            wins:1, losses:1, record:'1-1', totalPoints:3,
+            games:[
+              { id:'bawl-d3-b-g1', gameNum:'G14G303', opponent:'Big Valley',  score:'6–1', result:'W', points:3 },
+              { id:'bawl-d3-b-g2', gameNum:'G14G305', opponent:'Stanford B',  score:'4–7', result:'L', points:0 },
+            ] },
+          // ── BAWL Winter 2025–2026 Day 2 · Dec 13, 2025 · Woodside HS ─────────
+          { id:'bawl-day2-2025-680a1', name:'Bay Area Water Polo League Winter 2025–2026',
+            subtitle:'680 A1 · Day 2', team:'680 A', dates:'December 13, 2025',
+            location:'Woodside HS', pool:'Platinum',
+            wins:2, losses:0, record:'2-0', totalPoints:6,
+            games:[
+              { id:'bawl-d2-a1-g1', gameNum:'G14P203', opponent:'Stanford A', score:'5–4', result:'W', points:3 },
+              { id:'bawl-d2-a1-g2', gameNum:'G14P205', opponent:'SJX Blue',   score:'9–5', result:'W', points:3 },
+            ] },
+          { id:'bawl-day2-2025-680a2', name:'Bay Area Water Polo League Winter 2025–2026',
+            subtitle:'680 A2 · Day 2', team:'680 A', dates:'December 13, 2025',
+            location:'Woodside HS', pool:'Platinum',
+            wins:1, losses:1, record:'1-1', totalPoints:3,
+            games:[
+              { id:'bawl-d2-a2-g1', gameNum:'G14P202', opponent:'SJX Blue',   score:'12–3', result:'W', points:3 },
+              { id:'bawl-d2-a2-g2', gameNum:'G14P204', opponent:'Santa Cruz', score:'6–10', result:'L', points:0 },
+            ] },
+          // ── BAWL Winter 2025–2026 Day 1 · Dec 7, 2025 · Los Altos HS ─────────
+          { id:'bawl-day1-2025-680a1', name:'Bay Area Water Polo League Winter 2025–2026',
+            subtitle:'680 A1 · Day 1', team:'680 A', dates:'December 7, 2025',
+            location:'Los Altos HS', pool:'Platinum',
+            wins:1, losses:1, record:'1-1', totalPoints:3,
+            games:[
+              { id:'bawl-d1-a1-g1', gameNum:'G14P102', opponent:'Santa Cruz', score:'9–4', result:'W', points:3 },
+              { id:'bawl-d1-a1-g2', gameNum:'G14P103', opponent:'SJX Blue',   score:'6–7', result:'L', points:0 },
+            ] },
+          { id:'bawl-day1-2025-680a2', name:'Bay Area Water Polo League Winter 2025–2026',
+            subtitle:'680 A2 · Day 1', team:'680 A', dates:'December 7, 2025',
+            location:'Los Altos HS', pool:'Platinum',
+            wins:0, losses:2, record:'0-2', totalPoints:0,
+            games:[
+              { id:'bawl-d1-a2-g1', gameNum:'G14P101', opponent:'Stanford A', score:'3–5', result:'L', points:0 },
+              { id:'bawl-d1-a2-g2', gameNum:'G14P105', opponent:'SJX Blue',   score:'5–9', result:'L', points:0 },
+            ] },
+          { id:'bawl-day1-2025-680b', name:'Bay Area Water Polo League Winter 2025–2026',
+            subtitle:'680 B · Day 1', team:'680 B', dates:'December 7, 2025',
+            location:'Los Altos HS', pool:'Gold',
+            wins:2, losses:0, record:'2-0', totalPoints:6,
+            games:[
+              { id:'bawl-d1-b-g1', gameNum:'G14G102', opponent:'SJX Gold',  score:'7–2',  result:'W', points:3 },
+              { id:'bawl-d1-b-g2', gameNum:'G14G103', opponent:'SJX White', score:'10–0', result:'W', points:3 },
+            ] },
+        ];
+
+        const existingIds = new Set((S.history || []).map(h => String(h.id)));
+        let added = 0, skipped = 0;
+        const newEntries = [];
+
+        for (const seed of LEGACY_SEED) {
+          if (existingIds.has(String(seed.id))) { skipped++; continue; }
+
+          const histGames = (seed.games || []).map(g => {
+            const { team: ts, opp: os } = parseScore(g.score);
+            return {
+              id: g.id || ('lg-' + Math.random().toString(36).slice(2, 8)),
+              opponent: g.opponent || 'Opponent',
+              result: g.result || '',
+              score: g.score || '',
+              teamScore: ts,
+              oppScore: os,
+              date: '',
+              time: '',
+              liveScore: null,
+              bracketPoints: g.points != null ? g.points : null,
+            };
+          });
+
+          newEntries.push({
+            id: seed.id,
+            name: seed.name || 'Tournament',
+            dates: seed.dates || '',
+            location: seed.location || '',
+            season: guessSeasonFromDate(seed.dates || '', S.clubType),
+            placement: seed.pool || '',
+            wins: seed.wins || 0,
+            losses: seed.losses || 0,
+            ties: seed.ties || 0,
+            totalPoints: seed.totalPoints != null ? seed.totalPoints : null,
+            record: seed.record || `${seed.wins||0}-${seed.losses||0}`,
+            notes: '',
+            team: seed.team || '',
+            subtitle: seed.subtitle || '',
+            games: histGames,
+            playerStats: {},
+            archivedAt: new Date(seed.dates || Date.now()).toISOString(),
+          });
+          existingIds.add(String(seed.id));
+          added++;
+        }
+
+        S.history = [...newEntries, ...(S.history || [])];
+        S.history.sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt));
+        await saveHistory();
+        if (statusEl) statusEl.innerHTML = `<span style="color:var(--green)">✅ Seeded ${added} legacy tournament(s)${skipped ? ` · ${skipped} already present` : ''}.</span>`;
+      } catch (e) {
+        if (statusEl) statusEl.innerHTML = `<span style="color:var(--red)">❌ ${esc(e.message)}</span>`;
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '📥 Seed Legacy Data'; }
+      }
+    }
+
     // ── Clear all history then rebuild from Archive ───────────────────────────────
     async function clearAndRebuildHistory() {
       const btn = document.getElementById('clear-rebuild-hist-btn');
@@ -11787,6 +11999,8 @@
             totalPoints,
             record: wStr,
             notes: detail.notes || '',
+            team: tournament.team || tournament.subtitle || detail.team || '',
+            subtitle: tournament.subtitle || detail.subtitle || '',
             games: historyGames,
             playerStats: detail.playerStats || detail.roster?.playerStats || {},
             archivedAt: detail.archivedAt || new Date().toISOString(),
@@ -11829,6 +12043,8 @@
                   style="background:var(--royal)">🔄 Rebuild from Archive</button>
           <button id="clear-rebuild-hist-btn" class="save-btn" onclick="clearAndRebuildHistory()"
                   style="background:var(--red)">🗑️ Clear &amp; Rebuild</button>
+          <button id="seed-legacy-hist-btn" class="save-btn" onclick="seedLegacyHistory()"
+                  style="background:var(--g500)">📥 Seed Legacy Data</button>
           <span id="rebuild-hist-status" style="font-size:0.82rem"></span>
         </div>
       </div>
@@ -14896,7 +15112,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="firebase.js?v=242"></script>
+<script src="firebase.js?v=243"></script>
   <script>
     // Initialize Firebase in admin context
     if (typeof fbInit === 'function') fbInit();

@@ -7966,10 +7966,7 @@ function renderHistoryTab() {
       { key: 'bawl',    label: 'Bay Area WP League',   filter: e => /bay area|bawl/i.test((e.name || '') + (e.id || '')) },
     ];
     // Group history entries by sub-team label (same logic as TOURNEY_GROUPS detail sections)
-    const _leagueTeamKey = e => {
-      const sub = e.subtitle || '';
-      return e.team || (/Team B/i.test(sub) ? 'Team B' : /Team A/i.test(sub) ? 'Team A' : '');
-    };
+    const _leagueTeamKey = e => e.team || e.subtitle || '';
     const _leagueCards = _leagueDefs.map(def => {
       const le = history.filter(def.filter);
       if (!le.length) return '';
