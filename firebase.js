@@ -644,6 +644,15 @@ function fbListenToTournament(teamKey) {
       const data = snap.data();
       if (!data || !data.tournament) return;
 
+      // Reject snapshots written by a different club.
+      // The flat `tournaments/{teamKey}` collection is shared across all clubs —
+      // without this guard another club's 14u-girls deploy silently overwrites ours.
+      if (data.clubId && _fbClubId && data.clubId !== _fbClubId) {
+        console.info('[firebase] Ignoring Firestore snapshot for', teamKey,
+          '— belongs to club', data.clubId, 'not', _fbClubId);
+        return;
+      }
+
       // Never let Firestore overwrite a KV-deployed Stay Tuned placeholder
       if (typeof TEAM_CACHE !== 'undefined' && TEAM_CACHE[teamKey] &&
           TEAM_CACHE[teamKey].tournament && TEAM_CACHE[teamKey].tournament.stayTuned) {
@@ -735,6 +744,7 @@ async function fbSaveTournamentMirror(teamKey, payload) {
       tournament: payload.tournament,
       history:    payload.history || [],
       savedAt:    new Date().toISOString(),
+      clubId:     _fbClubId || null,   // scope writes so the listener can reject cross-club snapshots
     });
     return true;
   } catch (e) {
