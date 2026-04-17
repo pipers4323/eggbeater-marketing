@@ -6028,7 +6028,7 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
         for (const g of byDate[dk]) {
           html += slotCanScore
             ? buildGameCard(g, false, true, slotLabel)
-            : buildScoresListCard(g, true, slotLabel);
+            : buildGameCard(g, true, true, slotLabel);
         }
         html += `</div>`;
       }
