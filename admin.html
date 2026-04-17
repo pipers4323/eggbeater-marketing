@@ -9829,7 +9829,7 @@
           <div style="margin-bottom:10px">
             <div class="info-label" style="margin-bottom:6px">Which team(s) are you? <span style="font-weight:400;color:var(--g400);font-size:.78rem">Tap to select — tap again to deselect. Select multiple for A/B teams.</span></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-              ${(di.teamNames||[]).map(n => { const sel=(di.selectedTeams||[]).includes(n); return `<button onclick="dirImportPickTeam(${JSON.stringify(n)})" style="padding:5px 14px;border-radius:20px;border:2px solid ${sel?'var(--royal)':'var(--g200)'};background:${sel?'var(--royal)':'white'};color:${sel?'white':'var(--g600)'};font-size:.82rem;font-weight:600;cursor:pointer">${esc(n)}</button>`; }).join('')}
+              ${(di.teamNames||[]).map(n => { const sel=(di.selectedTeams||[]).includes(n); return `<button onclick="dirImportPickTeam(${esc(JSON.stringify(n))})" style="padding:5px 14px;border-radius:20px;border:2px solid ${sel?'var(--royal)':'var(--g200)'};background:${sel?'var(--royal)':'white'};color:${sel?'white':'var(--g600)'};font-size:.82rem;font-weight:600;cursor:pointer">${esc(n)}</button>`; }).join('')}
             </div>
           </div>` : ''}
           ${hasGames ? `
