@@ -5322,16 +5322,16 @@ function renderSettingsTab() {
       <div class="settings-section-title">${appT('settings_subscription')}</div>
       ${(state.parentTier || localStorage.getItem('ebwp-parent-tier') || 'free') === 'parent' ? `
         <div class="settings-item" style="cursor:default">
-          <span style="background:#16a34a;color:white;padding:2px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;flex-shrink:0">Parent ✓</span>
+          <span style="background:#16a34a;color:white;padding:2px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;flex-shrink:0">Spectator ✓</span>
           <div class="settings-item-text">
-            <div class="settings-item-label">Parent Monthly — Active</div>
+            <div class="settings-item-label">Spectator Monthly — Active</div>
             <div class="settings-item-value">Stats history · Bracket · Live Follow · $4.99/mo</div>
           </div>
         </div>` : `
         <div class="settings-item" onclick="showParentUpgradeSheet()">
           <span class="settings-item-icon">👑</span>
           <div class="settings-item-text">
-            <div class="settings-item-label" style="color:#16a34a">Upgrade to Parent Monthly</div>
+            <div class="settings-item-label" style="color:#16a34a">Upgrade to Spectator Monthly</div>
             <div class="settings-item-value">Stats · Bracket · Live Follow · $4.99/mo</div>
           </div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
@@ -9053,7 +9053,7 @@ const WORKER = PUSH_SERVER_URL;
 // Set to true when ready to enforce parent subscriptions in production.
 const ENFORCE_PARENT_TIERS = false;
 
-// Features gated behind Parent Monthly ($4.99/mo)
+// Features gated behind Spectator Monthly ($4.99/mo)
 const PARENT_FEATURES = ['parent_stats', 'bracket_view'];
 
 function parentHasFeature(feature) {
@@ -9081,12 +9081,12 @@ function updateParentCrowns() {
 function renderParentNudge(tabKey) {
   const nudges = {
     history: {
-      icon: '📊', title: 'Player Stats & History', tier: 'Parent Monthly',
+      icon: '📊', title: 'Player Stats & History', tier: 'Spectator Monthly',
       price: '$4.99/mo · Cancel anytime',
       items: ['Season stats across all tournaments', 'Player progress & goal tracking', 'Win/loss record & standings history', 'Full tournament archive'],
     },
     possible: {
-      icon: '🏆', title: 'Tournament Bracket View', tier: 'Parent Monthly',
+      icon: '🏆', title: 'Tournament Bracket View', tier: 'Spectator Monthly',
       price: '$4.99/mo · Cancel anytime',
       items: ['Full bracket with live results', 'Pool play standings & seedings', 'Advancement tracking round-by-round', 'Shareable bracket link'],
     },
@@ -9101,12 +9101,12 @@ function renderParentNudge(tabKey) {
         ${n.items.map(i => `<li style="padding:6px 0;font-size:0.9rem;color:var(--gray-700);display:flex;gap:8px;align-items:flex-start"><span style="color:#16a34a;font-weight:700;flex-shrink:0">✓</span>${i}</li>`).join('')}
       </ul>
       <div style="font-size:0.85rem;color:var(--gray-500);margin-bottom:16px">${n.price}</div>
-      <button onclick="showParentUpgradeSheet()" style="background:#16a34a;color:white;border:none;border-radius:10px;padding:14px 28px;font-size:1rem;font-weight:700;cursor:pointer;width:100%">Upgrade to Parent 👑</button>
+      <button onclick="showParentUpgradeSheet()" style="background:#16a34a;color:white;border:none;border-radius:10px;padding:14px 28px;font-size:1rem;font-weight:700;cursor:pointer;width:100%">Upgrade to Spectator 👑</button>
     </div>`;
 }
 
 function showParentUpgradeSheet() {
-  alert('Parent Monthly — $4.99/mo\n\nUnlocks: Player Stats History, Tournament Bracket, Live Follow\n\nBilling is not enabled in this beta build yet.\nEmail hello@eggbeater.app if you want Parent access turned on for testing.');
+  alert('Spectator Monthly — $4.99/mo\n\nUnlocks: Player Stats History, Tournament Bracket, Live Follow\n\nBilling is not enabled in this beta build yet.\nEmail hello@eggbeater.app if you want Spectator access turned on for testing.');
 }
 
 // Phase 3: Club ID detection — URL param > localStorage > tournament data > default

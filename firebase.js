@@ -474,7 +474,7 @@ async function _onFbAuthChange(user) {
 /**
  * Phase B — RevenueCat parent subscription check.
  * Configures the SDK, logs in as the Firebase UID, then checks entitlements.
- * Sets state.parentTier = 'parent' and re-renders settings if entitled.
+ * Sets state.parentTier = 'parent' and re-renders settings if entitled to Spectator Monthly.
  * Silent no-op on web or when plugin is unavailable.
  */
 async function _checkSpectatorSubscription(uid) {

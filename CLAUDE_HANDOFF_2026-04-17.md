@@ -1,3 +1,10 @@
+## 2026-04-17 Follow-up Update
+
+- Product-facing billing rename is now patched locally: `Parent Monthly` -> `Spectator Monthly` in `about.html`, `app.js`, `terms.html`, and `privacy.html`.
+- Internal entitlement/storage names are intentionally unchanged for compatibility: `state.parentTier`, `ebwp-parent-tier`, `ENFORCE_PARENT_TIERS`, `PARENT_FEATURES`, and `showParentUpgradeSheet()` still need a future migration plan before renaming.
+- Domain check is complete: `https://eggbeater.app/` and `https://eggbeater.app/scorer-one-page-guide.html` both `307` to `https://www.eggbeater.app/...`, and `www` serves `200 OK`. No redirect/alias fix is needed right now.
+- Hydres hosted director-package follow-up remains closed/deferred unless they explicitly ask for it later.
+
 ## 2026-04-17 Late Update
 
 - `eggbeater-marketing` `main` is now at `b8d3c79` (`assets: add 680 groupme bot avatar`).
@@ -13,9 +20,9 @@
 ### Open items after rollout prep
 
 1. **Hydres director package:** closed for now. Hydres test club is live and usable; the separate 12-team hosted tournament/director artifact is intentionally deferred unless requested later.
-2. **Billing/product rename:** move `Parent Monthly` to `Spectator Monthly` and update product-facing billing copy, including `about.html`.
-3. **Internal cleanup plan:** visible `parent` copy is already renamed, but deeper internal `parent*` identifiers/storage keys were intentionally left alone. Future work needs a compatibility plan before renaming persisted keys or entitlement names.
-4. **Domain check:** confirm `www.eggbeater.app` behavior later and decide whether to add an explicit redirect/alias to apex if needed.
+2. **Billing/product rename:** product-facing copy is now moving to `Spectator Monthly`; remaining work is only the internal entitlement/storage migration if that rename should propagate deeper.
+3. **Internal cleanup plan:** visible `parent` copy is already renamed, but deeper internal `parent*` identifiers/storage keys were intentionally left alone. Future work needs a compatibility plan before renaming persisted keys or entitlement names (`state.parentTier`, `ebwp-parent-tier`, feature flags, and related helper names).
+4. **Domain check:** completed. Apex currently redirects to `www`, and `www` serves successfully. No action needed unless that behavior changes.
 5. **Post-weekend triage:** review smoke test feedback and classify into blocker / important / later before broader beta expansion.
 
 ### Build / rollout state
@@ -62,7 +69,7 @@
    - light-mode Schedule / Bracket / History / Roster section headers
    - spectator copy/guide entry points
 3. Separate product decision still open:
-   - whether `Parent Monthly` should also be renamed, or left as-is for billing/entitlement stability
+   - whether the internal entitlement/storage model should also move from `parent*` naming to `spectator*`, with a compatibility migration for saved/local state
 
 ---
 # Eggbeater Water Polo — Claude Handoff Doc
