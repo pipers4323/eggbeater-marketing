@@ -9669,7 +9669,6 @@
           }
         }
       }
-      console.log('[dirBs] headerRow:', headerRow, '| crRow:', JSON.stringify(crRow), '| detected courses (pre-colscan):', JSON.stringify(courses));
       if (!courses.length) throw new Error('Could not detect course/court columns');
       for (let ci2 = 0; ci2 < courses.length; ci2++) {
         const course = courses[ci2];
@@ -9686,7 +9685,6 @@
         }
         if (divCol < 0) divCol = course.startCol + 4; // fallback
         course.whiteCol = whiteCol; course.darkCol = darkCol; course.divCol = divCol;
-        console.log('[dirBs] course', course.num, '→ whiteCol:', whiteCol, 'darkCol:', darkCol, 'divCol:', divCol, '| headers:', hRow[whiteCol], '/', hRow[darkCol]);
       }
       let timeCol = 0, slotCol = 1;
       for (let ci = 0; ci < Math.min(hRow.length, 5); ci++) {
@@ -9985,7 +9983,6 @@
       if (idx >= 0) sel.splice(idx, 1); else sel.push(teamName);
       S.dirImport.selectedTeams = sel;
 
-      console.log('[dirImport] teamName:', JSON.stringify(teamName), '| ag:', JSON.stringify(ag), '| sched length:', sched.length, '| sel:', sel);
 
       // Build gameNum → raw game lookup
       const byNum = {};
@@ -10002,7 +9999,6 @@
           const isTeam1 = (g.team1Name||'').toLowerCase() === tl;
           const isTeam2 = (g.team2Name||'').toLowerCase() === tl;
           if (!isTeam1 && !isTeam2) continue;
-          console.log('[dirImport] direct match:', g.gameNum, g.team1Name, 'vs', g.team2Name);
           if (g.gameNum) reachableNums.add(g.gameNum);
           const key = g.gameNum || g.id || (g.time + g.team1Name + g.team2Name);
           if (seen.has(key)) continue;
@@ -10024,10 +10020,6 @@
       }
 
       // Bracket path traversal: expand reachableNums by following W G# / L G# references
-      console.log('[dirImport] reachableNums after direct:', [...reachableNums]);
-      // Sample a few bracket-style entries so we can verify _parseBracketRef works
-      const bracketSample = sched.filter(g => _parseBracketRef(g.team1Name) || _parseBracketRef(g.team2Name)).slice(0, 5);
-      console.log('[dirImport] bracket-style games sample:', bracketSample.map(g => g.gameNum + ': ' + g.team1Name + ' vs ' + g.team2Name));
       let changed = true;
       while (changed) {
         changed = false;
@@ -10036,7 +10028,6 @@
           const ref1 = _parseBracketRef(g.team1Name);
           const ref2 = _parseBracketRef(g.team2Name);
           if ((ref1 && reachableNums.has(ref1.num)) || (ref2 && reachableNums.has(ref2.num))) {
-            console.log('[dirImport] bracket hit:', g.gameNum, '←', g.team1Name, 'vs', g.team2Name);
             reachableNums.add(g.gameNum);
             changed = true;
             const key = g.gameNum;
@@ -10059,7 +10050,6 @@
       }
 
       filtered.sort((a, b) => (a.dateISO||a.date||'').localeCompare(b.dateISO||b.date||'') || _dirParseTime(a.time) - _dirParseTime(b.time));
-      console.log('[dirImport] FINAL: total filtered:', filtered.length, '| bracket:', filtered.filter(g=>g.isBracket).length, '| reachableNums:', [...reachableNums]);
       S.dirImport.filteredGames = filtered;
       const card = document.getElementById('dir-import-card');
       if (card) { card.outerHTML = dirImportWizardHtml(); document.getElementById('dir-import-card').open = true; }
