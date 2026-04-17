@@ -7470,9 +7470,12 @@ html.native-android .roster-view-card .scores-slot-header.slot-header-in-card .s
   opacity: 1 !important;
 }
 
-/* Light mode: section header labels must be navy on history/roster/follow-player tabs */
-html.native-ios[data-theme="light"] .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
-html.native-android[data-theme="light"] .scores-slot-header:not(.slot-header-in-card) .scores-slot-label {
+/* Light mode: in-card section header labels (roster-view-card, history, possible tab) must be navy.
+   Non-in-card headers (schedule, scores) sit on the dark outer shell and should stay white. */
+html.native-ios[data-theme="light"] .scores-slot-header.slot-header-in-card .scores-slot-label,
+html.native-android[data-theme="light"] .scores-slot-header.slot-header-in-card .scores-slot-label,
+html.native-ios[data-theme="light"] .roster-view-card .scores-slot-label,
+html.native-android[data-theme="light"] .roster-view-card .scores-slot-label {
   color: #002868 !important;
   opacity: 1 !important;
 }
