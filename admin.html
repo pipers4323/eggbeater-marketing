@@ -9658,9 +9658,14 @@
         }
       }
       if (!courses.length) {
+        // Only accept a "white" column as a course start if it's ≥5 cols away from the
+        // last accepted one — filters out dark sub-columns and gap columns that also
+        // contain "white" within the same course block.
+        let lastWhiteCol = -99;
         for (let ci = 0; ci < hRow.length; ci++) {
-          if ((hRow[ci] || '').toLowerCase().trim().includes('white')) {
+          if ((hRow[ci] || '').toLowerCase().trim().includes('white') && ci - lastWhiteCol >= 5) {
             courses.push({ num: courses.length + 1, startCol: ci });
+            lastWhiteCol = ci;
           }
         }
       }
