@@ -5822,7 +5822,10 @@ function buildScoresListCard(g, viewerOnly = false, ageGroupLabel = '') {
   const liveChip = isGameLive(gid) ? `<span class="scores-status-chip live">Live</span>` : '';
   const finalChip = s.gameState === 'final' || _getResultForGame(g)
     ? `<span class="scores-status-chip final">Final</span>` : '';
-  const followBtn = `<button class="follow-live-btn-sm" onclick="event.stopPropagation();toggleLiveActivity('${escHtml(gid)}')" title="${escHtml(appT('common_follow_live'))}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
+  const canScore = !TOURNAMENT.scoringPassword || isScorerUnlockedForTournament(TOURNAMENT);
+  const actionBtn = (!viewerOnly && canScore)
+    ? `<button class="follow-live-btn-sm" onclick="event.stopPropagation();openScoreDetail(${openArgs})" title="${escHtml(appT('scorer_open'))}">✏️ ${escHtml(appT('scorer_open'))}</button>`
+    : `<button class="follow-live-btn-sm" onclick="event.stopPropagation();toggleLiveActivity('${escHtml(gid)}')" title="${escHtml(appT('common_follow_live'))}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
 
   return `
     <div class="scores-list-card ${g.cap === 'Dark' ? 'cap-dark-bg' : g.cap === 'White' ? 'cap-white-bg' : ''}"
@@ -5851,7 +5854,7 @@ function buildScoresListCard(g, viewerOnly = false, ageGroupLabel = '') {
         </div>
         <div class="scores-list-actions">
           <span class="scores-list-status">${escHtml(statusLabel)}</span>
-          ${followBtn}
+          ${actionBtn}
         </div>
       </div>
     </div>`;
