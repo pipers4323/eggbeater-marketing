@@ -9648,12 +9648,13 @@
       if (crRow) {
         for (let ci = 0; ci < crRow.length; ci++) {
           const txt = (crRow[ci] || '').trim();
-          if (/\b(course|court|pool)\b/i.test(txt)) {
-            const digitM = txt.match(/\d+/);
-            const wordM = txt.toLowerCase().match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\b/);
-            const num = digitM ? parseInt(digitM[0], 10) : (wordM ? _wordNum[wordM[1]] : courses.length + 1);
-            courses.push({ num, startCol: ci });
-          }
+          if (!/\b(course|court|pool)\b/i.test(txt)) continue;
+          const digitM = txt.match(/\d+/);
+          const wordM = txt.toLowerCase().match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\b/);
+          // Only add if we can identify a specific number — skip generic labels like "Pool Play"
+          if (!digitM && !wordM) continue;
+          const num = digitM ? parseInt(digitM[0], 10) : _wordNum[wordM[1]];
+          courses.push({ num, startCol: ci });
         }
       }
       if (!courses.length) {
@@ -9663,6 +9664,7 @@
           }
         }
       }
+      console.log('[dirBs] headerRow:', headerRow, '| crRow:', JSON.stringify(crRow), '| detected courses:', JSON.stringify(courses));
       if (!courses.length) throw new Error('Could not detect course/court columns');
       for (let ci2 = 0; ci2 < courses.length; ci2++) {
         const course = courses[ci2];
