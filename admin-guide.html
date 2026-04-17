@@ -554,7 +554,8 @@ kbd {
     <h3>Adding Games</h3>
     <p>Go to the <strong>Games</strong> tab to build your tournament schedule. You have several options:</p>
     <ul>
-      <li><strong>📊 Bracket Sheet Sync</strong> &mdash; <em>Recommended for tournaments.</em> Connect directly to the tournament director's Google Sheet and pull your schedule automatically. See below for a full walkthrough.</li>
+      <li><strong>🏟️ Hosted Tournament / Tournament Director</strong> &mdash; <em>Recommended for tournaments.</em> Import the hosted tournament package from the director or use T-Score when the event provides it. This is the cleanest path for bracketed events, rebracketing, and shared tournament data.</li>
+      <li><strong>📊 Bracket Sheet Sync</strong> &mdash; Use this when the tournament is sharing a Google Sheet instead of a hosted package. See below for the full walkthrough.</li>
       <li><strong>Tournament Library</strong> &mdash; Save your current "Workspace" (games and roster) as a named draft. You can build these in advance and load them when needed.</li>
       <li><strong>+ Add Game</strong> &mdash; Add games manually with opponent, time, location, pool, and cap color.</li>
       <li><strong>Start Fresh</strong> &mdash; Use the "✨ Start Fresh" button to clear your current workspace games and roster without affecting your saved drafts or the live site.</li>
@@ -564,8 +565,15 @@ kbd {
   </div>
 
   <div class="card">
-    <h3>📊 Bracket Sheet Sync — Step by Step</h3>
-    <p>If the tournament director shares a Google Sheet with the bracket, you can pull your team's schedule directly from it &mdash; no copy-pasting required. The app re-checks the sheet on a schedule and updates your games automatically if anything changes.</p>
+    <h3>🏟️ Hosted Tournament First, Bracket Sheet Sync When Needed</h3>
+    <p>For most tournaments, start with the hosted tournament flow: the tournament director publishes the event package and team admins import it with the share code. Use Bracket Sheet Sync when the event is only sharing a Google Sheet and not a hosted package.</p>
+
+    <div class="callout callout-tip" style="margin:14px 0 10px">
+      <div class="callout-icon">🏆</div>
+      <p><strong>Current recommended tournament flow:</strong> Ask the tournament director for the hosted tournament package or T-Score share code first. That path carries the full tournament structure more cleanly, especially for divisions, crossover games, and rebracketing. Use Bracket Sheet Sync as the fallback when the event is only distributing a Google Sheet.</p>
+    </div>
+
+    <p>If you do receive a Google Sheet from the tournament director, you can still pull your team's schedule directly from it &mdash; no copy-pasting required. The app re-checks the sheet on a schedule and updates your games automatically if anything changes.</p>
 
     <div class="callout callout-tip" style="margin:14px 0 10px">
       <div class="callout-icon">💡</div>
@@ -958,7 +966,7 @@ kbd {
     <div class="feature-card">
       <div class="fc-icon">&#x1f3c6;</div>
       <h4>Tournament Host</h4>
-      <p>Build tournament bracket sheets with seeding grids, divisions, and game formats. Share with tournament directors via a 6-character code.</p>
+      <p>Build or import hosted tournament packages with seeding grids, divisions, and game formats. Tournament directors publish the event, and team admins import it with the 6-character code.</p>
     </div>
     <div class="feature-card">
       <div class="fc-icon">&#x1f4ca;</div>
