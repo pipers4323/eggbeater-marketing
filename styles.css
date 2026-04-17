@@ -615,6 +615,11 @@ body {
   gap: 8px;
   padding-bottom: 14px;
 }
+.team-picker-modal-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 .team-picker-modal-row {
   display: flex;
   align-items: center;
@@ -630,6 +635,9 @@ body {
 .team-picker-modal-row.active {
   border-color: rgba(var(--royal-rgb), 0.35);
   background: var(--royal-light);
+}
+.team-picker-modal-item.active .team-picker-modal-team-row {
+  padding: 0 10px 2px 36px;
 }
 .team-picker-modal-check {
   width: 22px;
@@ -652,7 +660,9 @@ body {
 }
 .team-picker-modal-copy {
   min-width: 0;
+  flex: 1;
 }
+.team-picker-modal-copy.has-team-choices { display: flex; flex-direction: column; }
 .team-picker-modal-titleline {
   font-size: 0.92rem;
   font-weight: 800;
@@ -662,6 +672,27 @@ body {
   font-size: 0.75rem;
   color: var(--gray-400);
   margin-top: 2px;
+}
+.team-picker-modal-team-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.team-picker-modal-team-btn {
+  border: 1px solid rgba(var(--royal-rgb), 0.18);
+  background: rgba(var(--royal-rgb), 0.06);
+  color: var(--royal);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.team-picker-modal-team-btn.active {
+  background: var(--royal);
+  border-color: var(--royal);
+  color: white;
 }
 /* ── Follow Live Buttons ────────────────────────────────────────────────── */
 .follow-live-btn {

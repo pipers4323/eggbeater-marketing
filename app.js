@@ -1435,12 +1435,8 @@ function isMultiTeam() {
 function getActiveTeams() {
   if (!isMultiTeam()) return null;
   if (_activeTeamLetters) return _activeTeamLetters;  // per-letter rendering override
-  const valid = TOURNAMENT.enableCTeam
-    ? ['A', 'B', 'C']
-    : (Array.isArray(TOURNAMENT.teams) && TOURNAMENT.teams.length > 1 ? TOURNAMENT.teams : ['A', 'B']);
   const groupKey = _activeAgeGroup || getSelectedTeam();
-  const saved = getTeamLettersForGroup(groupKey).filter(l => valid.includes(l));
-  return saved.length ? saved : [valid[0]];
+  return getEffectiveTeamLettersForGroup(groupKey);
 }
 /** Returns the primary selected letter (first of the set). Used for single-letter contexts. */
 function getActiveTeam() {
@@ -1473,6 +1469,49 @@ function getTeamLettersForGroup(groupKey) {
 function getTeamLetterForGroup(groupKey) {
   return getTeamLettersForGroup(groupKey)[0] ?? null;
 }
+function getTournamentForGroup(groupKey) {
+  if (!groupKey) return TOURNAMENT || null;
+  return TEAM_CACHE[groupKey]?.tournament || ((_activeAgeGroup || getSelectedTeam()) === groupKey ? TOURNAMENT : null);
+}
+function inferTeamLettersFromTournament(tournament) {
+  if (!tournament) return [];
+  const letters = new Set();
+  const addLetter = (value) => {
+    const normalized = String(value || '').trim().toUpperCase();
+    if (['A', 'B', 'C'].includes(normalized)) letters.add(normalized);
+  };
+  if (tournament.enableCTeam) ['A', 'B', 'C'].forEach(addLetter);
+  if (Array.isArray(tournament.teams)) tournament.teams.forEach(addLetter);
+  Object.keys(tournament.teamLabels || {}).forEach(addLetter);
+  if (tournament.roster && !Array.isArray(tournament.roster) && typeof tournament.roster === 'object') {
+    Object.keys(tournament.roster).forEach(addLetter);
+  }
+  if (Array.isArray(tournament.games)) {
+    tournament.games.forEach(g => addLetter(g?.team));
+  }
+  const paths = tournament.bracket?.paths;
+  if (paths && !Array.isArray(paths) && typeof paths === 'object') {
+    Object.keys(paths).forEach(addLetter);
+  }
+  return ['A', 'B', 'C'].filter(letter => letters.has(letter));
+}
+function getValidTeamLettersForGroup(groupKey) {
+  const tournament = getTournamentForGroup(groupKey);
+  if (!tournament) return [];
+  const inferred = inferTeamLettersFromTournament(tournament);
+  if (inferred.length > 1) return inferred;
+  if (tournament.singleTeam === true) return [];
+  if (tournament.enableCTeam) return ['A', 'B', 'C'];
+  if (Array.isArray(tournament.teams) && tournament.teams.length > 1) return [...tournament.teams];
+  return inferred;
+}
+function getEffectiveTeamLettersForGroup(groupKey, customMap = null) {
+  const validTeams = getValidTeamLettersForGroup(groupKey);
+  if (!validTeams.length) return [];
+  const raw = customMap ? customMap[groupKey] : getTeamLettersForGroup(groupKey);
+  const selected = Array.isArray(raw) ? raw.filter(l => validTeams.includes(l)) : [];
+  return selected.length ? selected : [validTeams[0]];
+}
 function setTeamLettersForGroup(groupKey, letters) {
   try {
     const map = JSON.parse(localStorage.getItem('ebwp-team-letters') || '{}');
@@ -1480,19 +1519,14 @@ function setTeamLettersForGroup(groupKey, letters) {
     localStorage.setItem('ebwp-team-letters', JSON.stringify(map));
   } catch {}
 }
-/** Toggles one letter in/out of the selected set for a group. At least one always stays selected. */
-function toggleTeamLetterForGroup(groupKey, letter, validTeams) {
-  const current = getTeamLettersForGroup(groupKey);
-  const effective = current.filter(l => validTeams.includes(l));
-  const base = effective.length ? effective : [validTeams[0]];
-  if (base.includes(letter)) {
-    if (base.length === 1) return; // must keep at least one
-    setTeamLettersForGroup(groupKey, base.filter(l => l !== letter));
-  } else {
-    setTeamLettersForGroup(groupKey, [...base, letter]);
-  }
+function chooseTeamLettersForGroup(groupKey, value, validTeams = null) {
+  const allowed = Array.isArray(validTeams) && validTeams.length ? validTeams : getValidTeamLettersForGroup(groupKey);
+  if (!allowed.length) return;
+  const next = value === 'ALL' ? [...allowed] : [value].filter(l => allowed.includes(l));
+  if (!next.length) return;
+  setTeamLettersForGroup(groupKey, next);
 }
-
+/** Toggles one letter in/out of the selected set for a group. At least one always stays selected. */
 // Returns the roster array for the currently selected team(s) (merged when both A+B selected)
 function getTournamentRoster() {
   const r = TOURNAMENT.roster;
@@ -1572,12 +1606,10 @@ function getTournamentBracketPaths() {
 
 function switchTeam(letter, groupKey) {
   if (!groupKey) groupKey = _activeAgeGroup || getSelectedTeam();
-  const validTeams = TOURNAMENT.enableCTeam
-    ? ['A', 'B', 'C']
-    : (Array.isArray(TOURNAMENT.teams) && TOURNAMENT.teams.length ? TOURNAMENT.teams : ['A', 'B']);
-  if (!validTeams.includes(letter)) return;
-  toggleTeamLetterForGroup(groupKey, letter, validTeams);
-  const first = getTeamLettersForGroup(groupKey)[0];
+  const validTeams = getValidTeamLettersForGroup(groupKey);
+  if (!validTeams.length) return;
+  chooseTeamLettersForGroup(groupKey, letter, validTeams);
+  const first = getEffectiveTeamLettersForGroup(groupKey)[0];
   if (first) localStorage.setItem('ebwp-selected-team', first); // legacy compat
   _historyTeamFilter = '';   // clear stale opponent search when team changes
   state.roster = loadRoster(getSelectedTeam());
@@ -1588,6 +1620,7 @@ function switchTeam(letter, groupKey) {
   renderPossibleTab();
   renderHistoryTab();
   renderRosterTab();
+  if (state.currentTab === 'settings') _renderSettingsTeamPicker();
   updateParentCrowns();
 }
 
@@ -2037,6 +2070,7 @@ let _inMultiRender   = false;   // prevents recursive multi→single→multi dis
 let _activeAgeGroup  = null;    // which age group is currently being rendered (for per-group A/B)
 let _activeTeamLetters = null;  // when set, overrides getActiveTeams() during per-letter rendering
 let _pendingTeamPickerKeys = [];
+let _pendingTeamPickerLetters = {};
 // _historyOverride bypasses localStorage during multi-team history rendering
   let _historyOverride = null;
 
@@ -5615,23 +5649,22 @@ function _renderSettingsTeamPicker() {
       const starBtn = `<span class="${starCls}" onclick="event.stopPropagation();toggleFavGroup('${escHtml(opt.key)}');_renderSettingsTeamPicker();renderHeader()">${starIcon}</span>`;
 
       // Check if this age group has a multi-team tournament
-      const cache = TEAM_CACHE[opt.key];
-      const isMulti = cache && cache.tournament && cache.tournament.singleTeam !== true;
+      const tournament = TEAM_CACHE[opt.key]?.tournament || null;
+      const validTeams = getValidTeamLettersForGroup(opt.key);
+      const isMulti = tournament && validTeams.length > 1;
 
       if (active && isMulti) {
-        // Show compound pill with team letter sub-buttons
-        const validTeams = cache.tournament.enableCTeam ? ['A','B','C'] :
-          (Array.isArray(cache.tournament.teams) && cache.tournament.teams.length
-            ? cache.tournament.teams : ['A','B']);
-        const selectedLetters = getTeamLettersForGroup(opt.key).filter(l => validTeams.includes(l));
-        const effective = selectedLetters.length ? selectedLetters : [validTeams[0]];
-
-        const subBtns = validTeams.map(letter => {
-          const lbl = cache.tournament.teamLabels?.[letter] || `Team ${letter}`;
-          const isOn = effective.includes(letter);
-          const subCls = isOn ? 'age-sub-btn age-sub-active' : 'age-sub-btn';
-          return `<button class="${subCls}" onclick="event.stopPropagation();switchTeam('${letter}','${escHtml(opt.key)}');_renderSettingsTeamPicker()">${escHtml(lbl)}</button>`;
-        }).join('');
+        const effective = getEffectiveTeamLettersForGroup(opt.key);
+        const allOn = effective.length === validTeams.length;
+        const subBtns = [
+          `<button class="${allOn ? 'age-sub-btn age-sub-active' : 'age-sub-btn'}" onclick="event.stopPropagation();switchTeam('ALL','${escHtml(opt.key)}');_renderSettingsTeamPicker();renderHeader()">All</button>`,
+          ...validTeams.map(letter => {
+            const lbl = tournament.teamLabels?.[letter] || `Team ${letter}`;
+            const isOn = effective.length === 1 && effective[0] === letter;
+            const subCls = isOn ? 'age-sub-btn age-sub-active' : 'age-sub-btn';
+            return `<button class="${subCls}" onclick="event.stopPropagation();switchTeam('${letter}','${escHtml(opt.key)}');_renderSettingsTeamPicker();renderHeader()">${escHtml(lbl)}</button>`;
+          })
+        ].join('');
 
         html += `<div class="age-pill age-pill-active age-pill-compound">
           <button class="age-pill-label" style="padding:6px 10px;font-weight:700;background:none;border:none;color:inherit;cursor:pointer" onclick="event.stopPropagation();onAgeGroupToggle('${escHtml(opt.key)}');_renderSettingsTeamPicker();renderHeader()">${starBtn}${escHtml(opt.label)}</button>
@@ -6777,20 +6810,45 @@ function renderTeamPickerModal() {
   const labels = _teamPickerDisplayLabels(_pendingTeamPickerKeys);
   listEl.innerHTML = TEAM_OPTIONS.map(opt => {
     const on = active.has(opt.key);
-    return `<button class="team-picker-modal-row${on ? ' active' : ''}" onclick="toggleTeamPickerOption('${escHtml(opt.key)}')">
-      <span class="team-picker-modal-check">✓</span>
-      <span class="team-picker-modal-copy">
-        <span class="team-picker-modal-titleline">${escHtml(opt.label)}</span>
-        <span class="team-picker-modal-subline">${on ? appT('team_picker_selected') : appT('team_picker_tap_include')}</span>
-      </span>
-    </button>`;
+    const validTeams = getValidTeamLettersForGroup(opt.key);
+    const showTeamChoices = on && validTeams.length > 1;
+    const tournament = getTournamentForGroup(opt.key);
+    const effective = getEffectiveTeamLettersForGroup(opt.key, _pendingTeamPickerLetters);
+    const allOn = showTeamChoices && effective.length === validTeams.length;
+    const teamChoices = showTeamChoices ? `
+      <div class="team-picker-modal-team-row">
+        <button class="${allOn ? 'team-picker-modal-team-btn active' : 'team-picker-modal-team-btn'}" onclick="event.stopPropagation();setPendingTeamPickerLetters('${escHtml(opt.key)}','ALL')">All</button>
+        ${validTeams.map(letter => {
+          const label = tournament?.teamLabels?.[letter] || `Team ${letter}`;
+          const activeLetter = effective.length === 1 && effective[0] === letter;
+          return `<button class="${activeLetter ? 'team-picker-modal-team-btn active' : 'team-picker-modal-team-btn'}" onclick="event.stopPropagation();setPendingTeamPickerLetters('${escHtml(opt.key)}','${letter}')">${escHtml(label)}</button>`;
+        }).join('')}
+      </div>` : '';
+    return `<div class="team-picker-modal-item${on ? ' active' : ''}">
+      <button class="team-picker-modal-row${on ? ' active' : ''}" onclick="toggleTeamPickerOption('${escHtml(opt.key)}')">
+        <span class="team-picker-modal-check">✓</span>
+        <span class="team-picker-modal-copy${showTeamChoices ? ' has-team-choices' : ''}">
+          <span class="team-picker-modal-titleline">${escHtml(opt.label)}</span>
+          <span class="team-picker-modal-subline">${on ? appT('team_picker_selected') : appT('team_picker_tap_include')}</span>
+        </span>
+      </button>
+      ${teamChoices}
+    </div>`;
   }).join('');
   doneBtn.disabled = _pendingTeamPickerKeys.length === 0;
   doneBtn.textContent = labels.length ? appFormat('team_picker_done_count', { count: String(labels.length) }) : appT('team_picker_select_one');
 }
 
-function openTeamPickerModal() {
+async function openTeamPickerModal() {
   _pendingTeamPickerKeys = [...getSelectedTeams()];
+  const missing = _pendingTeamPickerKeys.filter(key => !getTournamentForGroup(key));
+  if (missing.length) {
+    await Promise.all(missing.map(key => loadTeamData(key)));
+  }
+  _pendingTeamPickerLetters = {};
+  _pendingTeamPickerKeys.forEach(key => {
+    _pendingTeamPickerLetters[key] = getEffectiveTeamLettersForGroup(key);
+  });
   renderTeamPickerModal();
   const modal = $('team-picker-modal');
   if (modal) modal.classList.remove('hidden');
@@ -6803,10 +6861,16 @@ function closeTeamPickerModal() {
   _closeModal('team-picker-modal');
 }
 
-function toggleTeamPickerOption(teamKey) {
+async function toggleTeamPickerOption(teamKey) {
   const current = new Set(_pendingTeamPickerKeys);
-  if (current.has(teamKey)) current.delete(teamKey);
-  else current.add(teamKey);
+  if (current.has(teamKey)) {
+    current.delete(teamKey);
+    delete _pendingTeamPickerLetters[teamKey];
+  } else {
+    current.add(teamKey);
+    if (!TEAM_CACHE[teamKey]) await loadTeamData(teamKey);
+    _pendingTeamPickerLetters[teamKey] = getEffectiveTeamLettersForGroup(teamKey);
+  }
   const order = TEAM_OPTIONS.map(t => t.key);
   _pendingTeamPickerKeys = Array.from(current).sort((a, b) => order.indexOf(a) - order.indexOf(b));
   renderTeamPickerModal();
@@ -6814,11 +6878,23 @@ function toggleTeamPickerOption(teamKey) {
 
 function selectAllTeamPickerOptions() {
   _pendingTeamPickerKeys = TEAM_OPTIONS.map(t => t.key);
+  _pendingTeamPickerLetters = {};
+  _pendingTeamPickerKeys.forEach(key => {
+    _pendingTeamPickerLetters[key] = getEffectiveTeamLettersForGroup(key);
+  });
   renderTeamPickerModal();
 }
 
 function clearTeamPickerOptions() {
   _pendingTeamPickerKeys = [];
+  _pendingTeamPickerLetters = {};
+  renderTeamPickerModal();
+}
+
+function setPendingTeamPickerLetters(groupKey, value) {
+  const validTeams = getValidTeamLettersForGroup(groupKey);
+  if (!validTeams.length) return;
+  _pendingTeamPickerLetters[groupKey] = value === 'ALL' ? [...validTeams] : [value].filter(l => validTeams.includes(l));
   renderTeamPickerModal();
 }
 
@@ -6826,6 +6902,10 @@ async function applySelectedTeamsAndRefresh(nextTeams) {
   const teams = Array.from(new Set((nextTeams || []).filter(Boolean)));
   if (!teams.length) return;
   setSelectedTeams(teams);
+  teams.forEach(key => {
+    const chosenLetters = _pendingTeamPickerLetters[key];
+    if (Array.isArray(chosenLetters) && chosenLetters.length) setTeamLettersForGroup(key, chosenLetters);
+  });
   const missing = teams.filter(k => !TEAM_CACHE[k]);
   if (missing.length) await Promise.all(missing.map(k => loadTeamData(k)));
   _auditMultiTeamIntegrity();
@@ -6837,6 +6917,7 @@ async function applySelectedTeamsAndRefresh(nextTeams) {
   renderPossibleTab();
   renderHistoryTab();
   renderRosterTab();
+  if (state.currentTab === 'settings') _renderSettingsTeamPicker();
   await _syncWidgetsAll();
   await syncSheetConfigToServiceWorker();
   if (typeof fbListenToTournament === 'function') {
@@ -6848,6 +6929,7 @@ async function applyTeamPickerSelection() {
   if (!_pendingTeamPickerKeys.length) return;
   closeTeamPickerModal();
   await applySelectedTeamsAndRefresh(_pendingTeamPickerKeys);
+  _pendingTeamPickerLetters = {};
 }
 
 /** Render a compact team badge in the header that opens the age-group picker when tapped */
@@ -6925,15 +7007,12 @@ function getExpandedTeamSlots() {
   const slots = [];
   for (const groupKey of getSelectedTeams()) {
     const cache = TEAM_CACHE[groupKey];
-    const isMulti = cache && cache.tournament.singleTeam !== true;
+    const validTeams = getValidTeamLettersForGroup(groupKey);
+    const isMulti = cache && validTeams.length > 1;
     if (!isMulti) {
       slots.push({ groupKey, letter: null, suffix: groupKey });
     } else {
-      const valid = cache.tournament.enableCTeam ? ['A','B','C'] :
-        (Array.isArray(cache.tournament.teams) && cache.tournament.teams.length
-          ? cache.tournament.teams : ['A','B']);
-      const selected = getTeamLettersForGroup(groupKey).filter(l => valid.includes(l));
-      const effective = selected.length ? selected : [valid[0]];
+      const effective = getEffectiveTeamLettersForGroup(groupKey);
       for (const letter of effective) {
         slots.push({ groupKey, letter, suffix: `${groupKey}-${letter}` });
       }
@@ -6947,7 +7026,7 @@ function _groupSectionLabelFor(groupKey, letter) {
   const base = TEAM_OPTIONS.find(t => t.key === groupKey)?.label || groupKey;
   if (!letter) return base;
   const cache = TEAM_CACHE[groupKey];
-  if (!cache || cache.tournament.singleTeam === true) return base;
+  if (!cache || getValidTeamLettersForGroup(groupKey).length <= 1) return base;
   const teamLabel = cache.tournament.teamLabels?.[letter];
   return teamLabel ? `${base} · ${teamLabel}` : `${base} · Team ${letter}`;
 }
@@ -6957,7 +7036,7 @@ function _groupSectionLabel(groupKey) {
   if (_activeTeamLetters?.length === 1) return _groupSectionLabelFor(groupKey, _activeTeamLetters[0]);
   const base  = TEAM_OPTIONS.find(t => t.key === groupKey)?.label || groupKey;
   const cache = TEAM_CACHE[groupKey];
-  if (!cache || cache.tournament.singleTeam === true) return base;
+  if (!cache || getValidTeamLettersForGroup(groupKey).length <= 1) return base;
   const letters    = getTeamLettersForGroup(groupKey);
   const teamLabels = letters.map(l => cache.tournament.teamLabels?.[l]).filter(Boolean);
   return teamLabels.length ? `${base} · ${teamLabels.join(' & ')}` : base;
@@ -9738,6 +9817,7 @@ async function onAgeGroupToggle(teamKey) {
   renderPossibleTab();
   renderHistoryTab();
   renderRosterTab();
+  if (state.currentTab === 'settings') _renderSettingsTeamPicker();
   await _syncWidgetsAll();
   await syncSheetConfigToServiceWorker();
   // Phase 2: sync Firestore listeners to match current team selection
