@@ -10046,7 +10046,7 @@
                 id: g.id || ('g' + Date.now() + Math.random().toString(36).slice(2)),
                 gameNum: g.gameNum || '',
                 myTeam: sel[0] || '',
-                opponent: (g.team2Name||'TBD'),
+                opponent: (g.team1Name||'?') + ' vs ' + (g.team2Name||'?'),
                 cap: '?',
                 time: g.time || '', date: g.date || '', dateISO: g.dateISO || '',
                 location: g.location || '', pool: g.location || '', division: g.division || '',
@@ -10084,8 +10084,7 @@
       try {
         const existingByNum = {};
         for (const g of (S.tournament.games || [])) existingByNum[g.gameNum] = g;
-        // Only import confirmed direct games — bracket possibles are for reference only
-        const merged = games.filter(g => !g.isBracket).map(g => ({ ...g, id: existingByNum[g.gameNum]?.id || g.id }));
+        const merged = games.map(g => ({ ...g, id: existingByNum[g.gameNum]?.id || g.id }));
         merged.sort((a, b) => (a.dateISO||a.date||'').localeCompare(b.dateISO||b.date||'') || (a.time||'').localeCompare(b.time||''));
         S.tournament.games = merged;
         S.tournament.dirImportCode = S.dirImport.code;
