@@ -12627,8 +12627,13 @@
         updated = prevSeedCount;
         S.history = [...seedEntries, ...nonSeed];
         S.history.sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt));
-        await saveHistory();
-        if (statusEl) statusEl.innerHTML = `<span style="color:var(--green)">✅ Seeded ${added} new + ${updated} updated legacy tournament(s).</span>`;
+        // Save directly (bypass saveHistory() which calls renderTab() and wipes statusEl)
+        const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+        if (!saveRes.ok) throw new Error('Save failed');
+        renderTab();
+        // statusEl is gone after renderTab — re-query it
+        const statusEl2 = document.getElementById('rebuild-hist-status');
+        if (statusEl2) statusEl2.innerHTML = `<span style="color:var(--green)">✅ Seeded ${added} new + ${updated} updated legacy tournament(s).</span>`;
       } catch (e) {
         if (statusEl) statusEl.innerHTML = `<span style="color:var(--red)">❌ ${esc(e.message)}</span>`;
       } finally {
