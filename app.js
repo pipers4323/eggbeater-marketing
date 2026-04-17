@@ -2040,7 +2040,8 @@ const state = {
   roster:           [],     // [{ cap, first, last }] — editable via Roster tab
   currentTab:       'schedule',
   viewerMode:       true,       // true = viewing live scores without scorer login (default for spectators)
-  parentTier:       null,       // null = not yet checked, 'free' | 'parent' once resolved
+  spectatorTier:    null,       // canonical in-memory tier name going forward
+  parentTier:       null,       // legacy mirror kept for compatibility during migration
   undoToast:        null,
   integrityWarnings: [],
 
@@ -5225,7 +5226,7 @@ function renderSettingsTab() {
   // Silently re-check RC entitlement every time the Settings tab opens.
   // This catches cases where logIn() hadn't completed yet on the first load.
   // Pass the best available email so RC can match the dashboard grant.
-  if (user && (state.parentTier || localStorage.getItem('ebwp-parent-tier') || 'free') !== 'parent') {
+  if (user && getResolvedSpectatorTier() !== 'parent') {
     if (typeof _checkSpectatorSubscription === 'function') {
       const rcId = user.email || localStorage.getItem('ebwp-auth-email') || user.uid;
       _checkSpectatorSubscription(rcId);
@@ -5320,7 +5321,7 @@ function renderSettingsTab() {
 
     <div class="settings-section">
       <div class="settings-section-title">${appT('settings_subscription')}</div>
-      ${(state.parentTier || localStorage.getItem('ebwp-parent-tier') || 'free') === 'parent' ? `
+      ${getResolvedSpectatorTier() === 'parent' ? `
         <div class="settings-item" style="cursor:default">
           <span style="background:#16a34a;color:white;padding:2px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;flex-shrink:0">Spectator ✓</span>
           <div class="settings-item-text">
@@ -5328,7 +5329,7 @@ function renderSettingsTab() {
             <div class="settings-item-value">Stats history · Bracket · Live Follow · $4.99/mo</div>
           </div>
         </div>` : `
-        <div class="settings-item" onclick="showParentUpgradeSheet()">
+        <div class="settings-item" onclick="showSpectatorUpgradeSheet()">
           <span class="settings-item-icon">👑</span>
           <div class="settings-item-text">
             <div class="settings-item-label" style="color:#16a34a">Upgrade to Spectator Monthly</div>
@@ -7735,7 +7736,7 @@ function bracketLocationDisplay(stepLocation) {
 }
 
 function renderPossibleTab() {
-  if (!parentHasFeature('bracket_view')) {
+  if (!spectatorHasFeature('bracket_view')) {
     const viewEl = document.getElementById('view-possible');
     if (viewEl) viewEl.innerHTML = renderParentNudge('possible');
     return;
@@ -8047,7 +8048,7 @@ function _renderPossibleMulti(slots) {
 }
 
 function renderHistoryTab() {
-  if (!parentHasFeature('parent_stats')) {
+  if (!spectatorHasFeature('parent_stats')) {
     const viewEl = document.getElementById('view-history');
     if (viewEl) viewEl.innerHTML = renderParentNudge('history');
     return;
@@ -9049,36 +9050,48 @@ function init() {
 const PUSH_SERVER_URL = 'https://ebwp-push.sarah-new.workers.dev';
 const WORKER = PUSH_SERVER_URL;
 
-// ── Parent tier ───────────────────────────────────────────────────────────────
-// Set to true when ready to enforce parent subscriptions in production.
-const ENFORCE_PARENT_TIERS = false;
+// ── Spectator tier ────────────────────────────────────────────────────────────
+// Set to true when ready to enforce spectator subscriptions in production.
+const ENFORCE_SPECTATOR_TIERS = false;
+const ENFORCE_PARENT_TIERS = ENFORCE_SPECTATOR_TIERS; // legacy alias during migration
 
 // Features gated behind Spectator Monthly ($4.99/mo)
-const PARENT_FEATURES = ['parent_stats', 'bracket_view'];
+const SPECTATOR_FEATURES = ['parent_stats', 'bracket_view'];
+const PARENT_FEATURES = SPECTATOR_FEATURES; // legacy alias during migration
 
-function parentHasFeature(feature) {
-  if (!ENFORCE_PARENT_TIERS) return true;
-  return parentHasFeatureByTier(feature);
+function getStoredSpectatorTier() {
+  return localStorage.getItem('ebwp-spectator-tier')
+    || localStorage.getItem('ebwp-parent-tier')
+    || 'free';
 }
 
-// Always checks real tier — ignores ENFORCE_PARENT_TIERS. Used for crown badges.
-function parentHasFeatureByTier(feature) {
-  const tier = (state.parentTier || localStorage.getItem('ebwp-parent-tier') || 'free');
+function getResolvedSpectatorTier() {
+  return state.spectatorTier || state.parentTier || getStoredSpectatorTier();
+}
+
+function spectatorHasFeature(feature) {
+  if (!ENFORCE_SPECTATOR_TIERS) return true;
+  return spectatorHasFeatureByTier(feature);
+}
+
+// Always checks real tier — ignores ENFORCE_SPECTATOR_TIERS. Used for crown badges.
+function spectatorHasFeatureByTier(feature) {
+  const tier = getResolvedSpectatorTier();
   if (tier === 'parent') return true;
   return false;
 }
 
-function updateParentCrowns() {
+function updateSpectatorCrowns() {
   const gates = { history: 'parent_stats', possible: 'bracket_view' };
   Object.entries(gates).forEach(([tab, feature]) => {
-    const locked = !parentHasFeatureByTier(feature);
+    const locked = !spectatorHasFeatureByTier(feature);
     document.querySelectorAll(`[data-parent-tab="${tab}"] .nav-crown`).forEach(el => {
       el.style.display = locked ? '' : 'none';
     });
   });
 }
 
-function renderParentNudge(tabKey) {
+function renderSpectatorNudge(tabKey) {
   const nudges = {
     history: {
       icon: '📊', title: 'Player Stats & History', tier: 'Spectator Monthly',
@@ -9101,13 +9114,20 @@ function renderParentNudge(tabKey) {
         ${n.items.map(i => `<li style="padding:6px 0;font-size:0.9rem;color:var(--gray-700);display:flex;gap:8px;align-items:flex-start"><span style="color:#16a34a;font-weight:700;flex-shrink:0">✓</span>${i}</li>`).join('')}
       </ul>
       <div style="font-size:0.85rem;color:var(--gray-500);margin-bottom:16px">${n.price}</div>
-      <button onclick="showParentUpgradeSheet()" style="background:#16a34a;color:white;border:none;border-radius:10px;padding:14px 28px;font-size:1rem;font-weight:700;cursor:pointer;width:100%">Upgrade to Spectator 👑</button>
+      <button onclick="showSpectatorUpgradeSheet()" style="background:#16a34a;color:white;border:none;border-radius:10px;padding:14px 28px;font-size:1rem;font-weight:700;cursor:pointer;width:100%">Upgrade to Spectator 👑</button>
     </div>`;
 }
 
-function showParentUpgradeSheet() {
+function showSpectatorUpgradeSheet() {
   alert('Spectator Monthly — $4.99/mo\n\nUnlocks: Player Stats History, Tournament Bracket, Live Follow\n\nBilling is not enabled in this beta build yet.\nEmail hello@eggbeater.app if you want Spectator access turned on for testing.');
 }
+
+// Legacy aliases kept during the parent* -> spectator* migration.
+const parentHasFeature = spectatorHasFeature;
+const parentHasFeatureByTier = spectatorHasFeatureByTier;
+const updateParentCrowns = updateSpectatorCrowns;
+const renderParentNudge = renderSpectatorNudge;
+const showParentUpgradeSheet = showSpectatorUpgradeSheet;
 
 // Phase 3: Club ID detection — URL param > localStorage > tournament data > default
 function getAppClubId() {

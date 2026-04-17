@@ -466,15 +466,15 @@ async function _onFbAuthChange(user) {
     if (typeof showToast === 'function') showToast('☁️ Preferences synced across devices');
     // Silently refresh calendar token on page reload if a calendar was previously connected
     _fbTrySilentCalendarRefresh();
-    // Phase B: check RevenueCat for active parent_monthly entitlement
+    // Phase B: check RevenueCat for active spectator entitlement
     _checkSpectatorSubscription(user.uid);
   }
 }
 
 /**
- * Phase B — RevenueCat parent subscription check.
+ * Phase B — RevenueCat spectator subscription check.
  * Configures the SDK, logs in as the Firebase UID, then checks entitlements.
- * Sets state.parentTier = 'parent' and re-renders settings if entitled to Spectator Monthly.
+ * Sets both the new spectator tier and the legacy parent tier mirrors during migration.
  * Silent no-op on web or when plugin is unavailable.
  */
 async function _checkSpectatorSubscription(uid) {
@@ -498,12 +498,18 @@ async function _checkSpectatorSubscription(uid) {
     const loginResult = await Purchases.logIn({ appUserID: rcUserId });
     const customerInfo = loginResult?.customerInfo;
     const active = customerInfo?.entitlements?.active || {};
-    // RC entitlement identifiers are case-sensitive; check both 'parent' and 'Parent'
-    // to guard against dashboard capitalization differences.
+    // During migration, accept both legacy parent_* and spectator_* entitlement ids.
     const entitled = Object.keys(active).some(k =>
-      k.toLowerCase() === 'parent' || k.toLowerCase() === 'parent_monthly'
+      k.toLowerCase() === 'parent'
+      || k.toLowerCase() === 'parent_monthly'
+      || k.toLowerCase() === 'spectator'
+      || k.toLowerCase() === 'spectator_monthly'
     );
-    if (typeof state !== 'undefined') state.parentTier = entitled ? 'parent' : 'free';
+    if (typeof state !== 'undefined') {
+      state.spectatorTier = entitled ? 'parent' : 'free';
+      state.parentTier = entitled ? 'parent' : 'free';
+    }
+    localStorage.setItem('ebwp-spectator-tier', entitled ? 'parent' : 'free');
     localStorage.setItem('ebwp-parent-tier', entitled ? 'parent' : 'free');
     if (typeof renderSettingsTab === 'function') renderSettingsTab();
     console.info('[RevenueCat] entitlement check done — entitled:', entitled, 'active keys:', Object.keys(active));
