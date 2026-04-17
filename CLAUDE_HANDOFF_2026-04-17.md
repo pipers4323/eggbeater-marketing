@@ -1,7 +1,7 @@
 ## 2026-04-17 Follow-up Update
 
 - Product-facing billing rename is now patched locally: `Parent Monthly` -> `Spectator Monthly` in `about.html`, `app.js`, `terms.html`, and `privacy.html`.
-- Internal migration is now in phase 2: the app dual-reads `ebwp-spectator-tier` and `ebwp-parent-tier`, dual-writes both keys, uses spectator-named helpers/call sites by default, and keeps legacy aliases in place only for compatibility.
+- Internal migration is now in phase 3A: the app treats `spectator` as the canonical paid tier, dual-reads `ebwp-spectator-tier` and `ebwp-parent-tier`, dual-writes both keys, accepts both legacy and new entitlement ids, and keeps legacy aliases in place only for compatibility.
 - Domain check is complete: `https://eggbeater.app/` and `https://eggbeater.app/scorer-one-page-guide.html` both `307` to `https://www.eggbeater.app/...`, and `www` serves `200 OK`. No redirect/alias fix is needed right now.
 - Hydres hosted director-package follow-up remains closed/deferred unless they explicitly ask for it later.
 
@@ -21,7 +21,7 @@
 
 1. **Hydres director package:** closed for now. Hydres test club is live and usable; the separate 12-team hosted tournament/director artifact is intentionally deferred unless requested later.
 2. **Billing/product rename:** product-facing copy is now moving to `Spectator Monthly`; remaining work is only the internal entitlement/storage migration if that rename should propagate deeper.
-3. **Internal cleanup plan:** migration is partially started. New spectator-named helpers/state exist and most low-risk call sites are switched over, but legacy compatibility mirrors still remain (`state.parentTier`, `ebwp-parent-tier`, `ENFORCE_PARENT_TIERS`, `PARENT_FEATURES`, legacy feature ids like `parent_stats`, tier value `parent`, and old aliases such as `showParentUpgradeSheet()`).
+3. **Internal cleanup plan:** migration is partially started. Canonical paid tier is now `spectator`, but legacy compatibility mirrors still remain (`state.parentTier`, `ebwp-parent-tier`, `ENFORCE_PARENT_TIERS`, `PARENT_FEATURES`, legacy feature ids like `parent_stats`, legacy tier value `parent`, and old aliases such as `showParentUpgradeSheet()`).
 4. **Domain check:** completed. Apex currently redirects to `www`, and `www` serves successfully. No action needed unless that behavior changes.
 5. **Post-weekend triage:** review smoke test feedback and classify into blocker / important / later before broader beta expansion.
 

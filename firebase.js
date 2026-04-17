@@ -506,10 +506,10 @@ async function _checkSpectatorSubscription(uid) {
       || k.toLowerCase() === 'spectator_monthly'
     );
     if (typeof state !== 'undefined') {
-      state.spectatorTier = entitled ? 'parent' : 'free';
+      state.spectatorTier = entitled ? 'spectator' : 'free';
       state.parentTier = entitled ? 'parent' : 'free';
     }
-    localStorage.setItem('ebwp-spectator-tier', entitled ? 'parent' : 'free');
+    localStorage.setItem('ebwp-spectator-tier', entitled ? 'spectator' : 'free');
     localStorage.setItem('ebwp-parent-tier', entitled ? 'parent' : 'free');
     if (typeof renderSettingsTab === 'function') renderSettingsTab();
     console.info('[RevenueCat] entitlement check done — entitled:', entitled, 'active keys:', Object.keys(active));

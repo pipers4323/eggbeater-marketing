@@ -2627,7 +2627,7 @@
       dirSelectedTeam: '',  // selected team name within age group
       adminTeamManagerOpen: false,
       teamStatuses: {},     // { 'teamKey': 'green'|'yellow'|'gray' } for status dots
-      clubTier: 'free', // current subscription tier: 'free' | 'club' | 'tournament_host' | 'parent' (legacy spectator tier id)
+      clubTier: 'free', // current subscription tier: 'free' | 'club' | 'tournament_host' | 'spectator' (legacy 'parent' still accepted)
     };
 
     // ─── LOGIN ────────────────────────────────────────────────────────────────────
@@ -3228,8 +3228,8 @@
     /** Shared post-login setup — called by both doLogin() and doGoogleLogin(). */
     // ─── SUBSCRIPTION TIER (Phase C) ─────────────────────────────────────────────
 
-    const TIER_LABELS = { free: 'Free', club: 'Club', tournament_host: 'Tournament Host', parent: 'Spectator' };
-    const TIER_COLORS = { free: '#6b7280', club: '#2563eb', tournament_host: '#7c3aed', parent: '#059669' };
+    const TIER_LABELS = { free: 'Free', club: 'Club', tournament_host: 'Tournament Host', spectator: 'Spectator', parent: 'Spectator' };
+    const TIER_COLORS = { free: '#6b7280', club: '#2563eb', tournament_host: '#7c3aed', spectator: '#059669', parent: '#059669' };
 
     /**
      * Fetch the club's current subscription tier from the worker and store in S.clubTier.
@@ -3264,8 +3264,14 @@
     // Like tierHasFeature() but always checks real tier — ignores ENFORCE_TIERS flag.
     // Used for crown badges so they reflect actual club tier regardless of testing mode.
     function tierHasFeatureByTier(feature) {
-      const tier = S.clubTier || 'free';
-      const tiers = { free: [], parent: ['parent_stats'], club: ['push_notify', 'live_scoring', 'season_stats', 'multi_team'], tournament_host: ['push_notify', 'live_scoring', 'season_stats', 'multi_team', 'tournament_host'] };
+      const tier = (S.clubTier === 'parent' ? 'spectator' : (S.clubTier || 'free'));
+      const tiers = {
+        free: [],
+        spectator: ['parent_stats'],
+        parent: ['parent_stats'], // legacy tier key
+        club: ['push_notify', 'live_scoring', 'season_stats', 'multi_team'],
+        tournament_host: ['push_notify', 'live_scoring', 'season_stats', 'multi_team', 'tournament_host']
+      };
       return (tiers[tier] || []).includes(feature);
     }
 

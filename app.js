@@ -5226,7 +5226,7 @@ function renderSettingsTab() {
   // Silently re-check RC entitlement every time the Settings tab opens.
   // This catches cases where logIn() hadn't completed yet on the first load.
   // Pass the best available email so RC can match the dashboard grant.
-  if (user && getResolvedSpectatorTier() !== 'parent') {
+  if (user && getResolvedSpectatorTier() !== 'spectator') {
     if (typeof _checkSpectatorSubscription === 'function') {
       const rcId = user.email || localStorage.getItem('ebwp-auth-email') || user.uid;
       _checkSpectatorSubscription(rcId);
@@ -5321,7 +5321,7 @@ function renderSettingsTab() {
 
     <div class="settings-section">
       <div class="settings-section-title">${appT('settings_subscription')}</div>
-      ${getResolvedSpectatorTier() === 'parent' ? `
+      ${getResolvedSpectatorTier() === 'spectator' ? `
         <div class="settings-item" style="cursor:default">
           <span style="background:#16a34a;color:white;padding:2px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;flex-shrink:0">Spectator ✓</span>
           <div class="settings-item-text">
@@ -9060,13 +9060,20 @@ const SPECTATOR_FEATURES = ['parent_stats', 'bracket_view'];
 const PARENT_FEATURES = SPECTATOR_FEATURES; // legacy alias during migration
 
 function getStoredSpectatorTier() {
-  return localStorage.getItem('ebwp-spectator-tier')
+  return normalizeSpectatorTier(
+    localStorage.getItem('ebwp-spectator-tier')
     || localStorage.getItem('ebwp-parent-tier')
-    || 'free';
+    || 'free'
+  );
+}
+
+function normalizeSpectatorTier(tier) {
+  if (tier === 'spectator' || tier === 'parent') return 'spectator';
+  return 'free';
 }
 
 function getResolvedSpectatorTier() {
-  return state.spectatorTier || state.parentTier || getStoredSpectatorTier();
+  return normalizeSpectatorTier(state.spectatorTier || state.parentTier || getStoredSpectatorTier());
 }
 
 function spectatorHasFeature(feature) {
@@ -9077,7 +9084,7 @@ function spectatorHasFeature(feature) {
 // Always checks real tier — ignores ENFORCE_SPECTATOR_TIERS. Used for crown badges.
 function spectatorHasFeatureByTier(feature) {
   const tier = getResolvedSpectatorTier();
-  if (tier === 'parent') return true;
+  if (tier === 'spectator') return true;
   return false;
 }
 
