@@ -9664,9 +9664,13 @@
         }
       }
       if (!courses.length) throw new Error('Could not detect course/court columns');
-      for (const course of courses) {
+      for (let ci2 = 0; ci2 < courses.length; ci2++) {
+        const course = courses[ci2];
+        // Stop at the next course's start column (or +7, whichever is sooner) to avoid stealing columns
+        const nextStart = courses[ci2 + 1]?.startCol ?? hRow.length;
+        const scanEnd = Math.min(course.startCol + 7, nextStart, hRow.length);
         let whiteCol = course.startCol, darkCol = course.startCol + 2, divCol = course.startCol + 4;
-        for (let ci = course.startCol; ci < Math.min(course.startCol + 7, hRow.length); ci++) {
+        for (let ci = course.startCol; ci < scanEnd; ci++) {
           const lc = (hRow[ci] || '').toLowerCase().trim();
           if (lc.includes('white')) whiteCol = ci;
           else if (lc.includes('dark') || lc.includes('navy')) darkCol = ci;
