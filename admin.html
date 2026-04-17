@@ -10058,8 +10058,7 @@
         }
       }
 
-      const _parseTime = t => { if (!t) return 0; const m = t.match(/(\d+):(\d+)\s*(AM|PM)/i); if (!m) return 0; let h = parseInt(m[1]); const mn = parseInt(m[2]); const pm = m[3].toUpperCase() === 'PM'; if (pm && h !== 12) h += 12; if (!pm && h === 12) h = 0; return h * 60 + mn; };
-      filtered.sort((a, b) => (a.dateISO||a.date||'').localeCompare(b.dateISO||b.date||'') || _parseTime(a.time) - _parseTime(b.time));
+      filtered.sort((a, b) => (a.dateISO||a.date||'').localeCompare(b.dateISO||b.date||'') || _dirParseTime(a.time) - _dirParseTime(b.time));
       console.log('[dirImport] FINAL: total filtered:', filtered.length, '| bracket:', filtered.filter(g=>g.isBracket).length, '| reachableNums:', [...reachableNums]);
       S.dirImport.filteredGames = filtered;
       const card = document.getElementById('dir-import-card');
@@ -10074,6 +10073,15 @@
       if (card) { card.outerHTML = dirImportWizardHtml(); document.getElementById('dir-import-card').open = true; }
     }
 
+    function _dirParseTime(t) {
+      if (!t) return 0;
+      const m = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!m) return 0;
+      let h = parseInt(m[1]); const mn = parseInt(m[2]); const pm = m[3].toUpperCase() === 'PM';
+      if (pm && h !== 12) h += 12; if (!pm && h === 12) h = 0;
+      return h * 60 + mn;
+    }
+
     async function dirImportApply(btn) {
       const games = S.dirImport?.filteredGames;
       const pkg   = S.dirImport?.pkg;
@@ -10084,17 +10092,72 @@
       try {
         const existingByNum = {};
         for (const g of (S.tournament.games || [])) existingByNum[g.gameNum] = g;
-        const merged = games.map(g => ({ ...g, id: existingByNum[g.gameNum]?.id || g.id }));
-        merged.sort((a, b) => (a.dateISO||a.date||'').localeCompare(b.dateISO||b.date||'') || (a.time||'').localeCompare(b.time||''));
+
+        // Split: confirmed direct games → schedule, bracket possibles → bracket paths
+        const directGames  = games.filter(g => !g.isBracket);
+        const bracketGames = games.filter(g =>  g.isBracket);
+
+        // Map selected team names → A/B team letters (order they were selected)
+        const selTeams = S.dirImport.selectedTeams || [];
+        const teamLetters = ['A', 'B', 'C'];
+        const teamLetterMap = {};
+        selTeams.forEach((tn, i) => { if (teamLetters[i]) teamLetterMap[tn] = teamLetters[i]; });
+
+        const merged = directGames.map(g => {
+          const letter = teamLetterMap[g.myTeam] || '';
+          return {
+            ...g,
+            id: existingByNum[g.gameNum]?.id || g.id,
+            ...(letter ? { team: letter } : {}),
+          };
+        });
+        merged.sort((a, b) => (a.dateISO||a.date||'').localeCompare(b.dateISO||b.date||'') || _dirParseTime(a.time) - _dirParseTime(b.time));
+
+        // Build bracket paths from bracket games: "If you WIN G11" / "If you LOSE G11"
+        const directNums = new Set(directGames.map(g => g.gameNum));
+        const pathMap = {};
+        for (const bg of bracketGames) {
+          const parts = (bg.bracketDesc || bg.opponent || '').split(' vs ');
+          const refs  = parts.map(p => _parseBracketRef((p || '').trim())).filter(r => r && directNums.has(r.num));
+          for (const ref of refs) {
+            const key = ref.type + '-' + ref.num;
+            if (!pathMap[key]) {
+              pathMap[key] = {
+                id: key,
+                label: (ref.type === 'W' ? 'WIN ' : 'LOSE ') + ref.num,
+                steps: []
+              };
+            }
+            pathMap[key].steps.push({
+              gameNum:  bg.gameNum,
+              time:     bg.time || '',
+              date:     bg.date || '',
+              dateISO:  bg.dateISO || '',
+              location: bg.location || '',
+              desc:     bg.bracketDesc || bg.opponent || ''
+            });
+          }
+        }
+        const importedPaths = Object.values(pathMap)
+          .sort((a, b) => a.id.localeCompare(b.id));
+
         S.tournament.games = merged;
         S.tournament.dirImportCode = S.dirImport.code;
         S.tournament.dirImportName = pkg?.tournamentName || '';
+        if (!S.tournament.bracket) S.tournament.bracket = {};
+        if (importedPaths.length) {
+          S.tournament.bracket.importedPaths = importedPaths;
+        } else {
+          delete S.tournament.bracket.importedPaths;
+        }
         delete S.tournament.upcomingMode;
         delete S.tournament.comingSoon;
+
         const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
         if (!saveRes.ok) throw new Error('Save failed — tap 💾 Deploy in the header to retry');
         await _pushToFirebaseMirror(S.team, S.tournament, S.history || []);
-        showStatus(`✅ ${merged.length} game(s) imported from ${pkg?.tournamentName || S.dirImport.code}!`, 'ok');
+        const bracketNote = importedPaths.length ? ` + ${bracketGames.length} bracket path(s)` : '';
+        showStatus(`✅ ${merged.length} game(s)${bracketNote} imported from ${pkg?.tournamentName || S.dirImport.code}!`, 'ok');
         S.dirImport = {};
         renderTab();
       } catch(e) {

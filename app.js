@@ -1556,14 +1556,18 @@ function getScopedTournamentGames(teamKey = '') {
 // A plain array (legacy format) belongs to the first team only.
 function getTournamentBracketPaths() {
   const bp = TOURNAMENT.bracket?.paths;
-  if (!bp) return null;
-  const letters = getActiveTeams();
-  if (!letters) return Array.isArray(bp) ? bp : null;  // single-team — return as-is
-  if (Array.isArray(bp)) {
-    return letters.includes('A') ? bp : null;
+  if (bp) {
+    const letters = getActiveTeams();
+    if (!letters) return Array.isArray(bp) ? bp : null;  // single-team — return as-is
+    if (Array.isArray(bp)) {
+      return letters.includes('A') ? bp : null;
+    }
+    const paths = letters.flatMap(l => bp[l] || []);
+    return paths.length ? paths : null;
   }
-  const paths = letters.flatMap(l => bp[l] || []);
-  return paths.length ? paths : null;
+  // Fall back to paths imported via director tournament import
+  const ip = TOURNAMENT.bracket?.importedPaths;
+  return Array.isArray(ip) && ip.length ? ip : null;
 }
 
 function switchTeam(letter, groupKey) {
@@ -2465,6 +2469,8 @@ function findNextGameOrProjected() {
 function inferProjectedPath() {
   const paths = getTournamentBracketPaths();
   if (!paths?.length) return null;
+  // Imported director paths have no qualifyMinWins/qualifyMaxWins — skip projection
+  if (!paths.some(p => p.qualifyMinWins != null || p.qualifyMaxWins != null)) return null;
 
   const games = getTournamentGames();
   if (!games.length) return null;
