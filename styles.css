@@ -740,6 +740,24 @@ body {
   background: var(--royal-light);
   border-color: var(--royal);
 }
+.scores-open-scorer-btn {
+  background: var(--royal);
+  border: 1px solid var(--royal);
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 7px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-left: 6px;
+  vertical-align: middle;
+  box-shadow: 0 2px 8px rgba(var(--royal-rgb), 0.2);
+}
+.scores-open-scorer-btn:hover {
+  background: var(--royal-dark);
+  border-color: var(--royal-dark);
+}
 
 /* ── Age group pill row ── */
 .age-pill-row {

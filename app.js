@@ -5781,6 +5781,12 @@ function openScoreDetail(gameId, groupKey = '', ageGroupLabel = '', viewerOnly =
   requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
 }
 
+function openScorerDetail(gameId, groupKey = '', ageGroupLabel = '') {
+  if (!state.scorerDetailsOpen) state.scorerDetailsOpen = {};
+  state.scorerDetailsOpen[gameId] = true;
+  openScoreDetail(gameId, groupKey, ageGroupLabel, false);
+}
+
 function closeScoreDetail() {
   state.scoreDetail = null;
   state.scoreDetailTab = 'summary';
@@ -5823,8 +5829,9 @@ function buildScoresListCard(g, viewerOnly = false, ageGroupLabel = '') {
   const finalChip = s.gameState === 'final' || _getResultForGame(g)
     ? `<span class="scores-status-chip final">Final</span>` : '';
   const canScore = !TOURNAMENT.scoringPassword || isScorerUnlockedForTournament(TOURNAMENT);
+  const scorerOpenArgs = `${JSON.stringify(gid)},${JSON.stringify(g._groupKey || '')},${JSON.stringify(ageGroupLabel || '')}`;
   const actionBtn = (!viewerOnly && canScore)
-    ? `<button class="follow-live-btn-sm" onclick="event.stopPropagation();openScoreDetail(${openArgs})" title="${escHtml(appT('scorer_open'))}">✏️ ${escHtml(appT('scorer_open'))}</button>`
+    ? `<button class="scores-open-scorer-btn" onclick="event.stopPropagation();openScorerDetail(${scorerOpenArgs})" title="${escHtml(appT('scorer_open'))}">✏️ ${escHtml(appT('scorer_open'))}</button>`
     : `<button class="follow-live-btn-sm" onclick="event.stopPropagation();toggleLiveActivity('${escHtml(gid)}')" title="${escHtml(appT('common_follow_live'))}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
 
   return `
