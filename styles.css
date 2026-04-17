@@ -1297,6 +1297,26 @@ h2 {
 .game-card.cap-dark-bg .icon-label,
 .sched-card.cap-dark-bg .sched-meta,
 .sched-card.cap-dark-bg .location-venue       { color: rgba(255,255,255,0.75); }
+.game-card.cap-dark-bg .location-venue {
+  color: rgba(255,255,255,0.96);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.game-card.cap-dark-bg .game-info-row > span:last-child {
+  min-width: 100%;
+  margin-top: 2px;
+}
+.game-card.cap-dark-bg .directions-btn {
+  background: rgba(255,255,255,0.94);
+  border-color: rgba(255,255,255,0.98);
+  color: var(--royal-dark);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
+.game-card.cap-dark-bg .directions-btn:hover {
+  background: white;
+  border-color: white;
+}
 .game-card.cap-dark-bg .game-num-tag,
 .sched-card.cap-dark-bg .sched-game-num       { background: rgba(255,255,255,0.18); color: white; }
 .game-card.cap-dark-bg .points-badge          { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.85); }
