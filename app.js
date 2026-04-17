@@ -487,20 +487,20 @@ const APP_I18N = {
         <li>Las tarjetas de abajo muestran rival, numero de juego, hora, pool, sede y color de gorro.</li>
         <li>El proximo juego solo aparece una vez y no se duplica en la lista.</li>
         <li>Cuando un juego recibe resultado se mueve automaticamente a <strong>Historial</strong>.</li>
-        <li>Toca <strong>Add to Calendar</strong> para sincronizar con Google Calendar.</li>
-        <li>Toca <strong>Get Notified</strong> para activar avisos cuando cambie el calendario.</li>
+        <li>Toca <strong>Agregar al calendario</strong> para sincronizar con Google Calendar.</li>
+        <li>Toca <strong>Recibir avisos</strong> para activar notificaciones cuando cambie el calendario.</li>
         <li>Si eliges varios grupos, el calendario se divide en secciones etiquetadas.</li>
       </ul>`,
     help_scores_body: `<p>La pestaña <strong>Marcadores</strong> contiene el marcador en vivo y el box score. Mira el punto rojo pulsante en la barra cuando un partido se esta anotando activamente.</p>
       <ul>
-        <li><strong>View Live Scores</strong> te deja seguir un partido en tiempo real sin la clave de anotacion.</li>
-        <li>Toca <strong>Login to Score</strong> si tienes la clave y necesitas controles completos.</li>
+        <li><strong>Ver marcador en vivo</strong> te deja seguir un partido en tiempo real sin la clave de anotacion.</li>
+        <li>Toca el boton <strong>Login to Score</strong> si tienes la clave y necesitas controles completos.</li>
         <li>Cuando un anotador esta activo veras la insignia <strong>LIVE</strong> y las actualizaciones llegan en unos 5 segundos.</li>
         <li>El <strong>registro de eventos</strong> muestra goles, asistencias, exclusiones y otros eventos con la hora del reloj.</li>
         <li>El <strong>box score</strong> muestra totales por jugador para goles, intentos, 5m, shootout, asistencias y exclusiones.</li>
         <li>Despues del juego las estadisticas pasan al historial del jugador en Roster.</li>
       </ul>`,
-    help_live_scoring_body: `<p>Si tienes la clave de anotacion, toca <strong>Login to Score</strong> en la parte superior del visor e ingresa la clave del torneo para desbloquear los controles completos.</p>
+    help_live_scoring_body: `<p>Si tienes la clave de anotacion, toca el boton <strong>Login to Score</strong> en la parte superior del visor e ingresa la clave del torneo para desbloquear los controles completos.</p>
       <ul>
         <li>Solo el juego actual muestra todos los botones de anotacion. Los demas quedan plegados.</li>
         <li><strong>Auto Clock</strong> cuenta hacia atras automaticamente desde la duracion configurada por el admin. Toca <strong>Start</strong> para iniciar Q1.</li>
@@ -558,7 +558,7 @@ const APP_I18N = {
         <li>Toca otro grupo para seguir varios grupos al mismo tiempo.</li>
         <li>Las selecciones se mantienen en orden por edad y se recuerdan entre sesiones.</li>
         <li>Si un club tiene equipos A/B en el mismo grupo, el selector se expande para elegir uno o ambos equipos.</li>
-        <li>Cuando se abre el selector de grupos, toca <strong>Done</strong> en la parte superior derecha (junto a <em>Select all</em> y <em>Clear</em>) para confirmar tu seleccion y cerrar el panel.</li>
+        <li>Cuando se abre el selector de grupos, toca <strong>Listo</strong> en la parte superior derecha (junto a <em>Seleccionar todo</em> y <em>Limpiar</em>) para confirmar tu seleccion y cerrar el panel.</li>
       </ul>`,
     help_multi_title: 'Vista multi-grupo y multi-equipo',
     help_multi_body: `<p>Eggbeater puede mostrar varios grupos y varios equipos al mismo tiempo en Calendario, Marcadores, Bracket, Roster e Historial.</p>
@@ -573,8 +573,8 @@ const APP_I18N = {
       <ul>
         <li><strong>Seleccion de equipo</strong> te permite elegir uno o varios grupos y guarda esas selecciones automaticamente.</li>
         <li><strong>Mis clubes</strong> muestra todos los clubes a los que te has unido y permite cambiar entre ellos.</li>
-        <li><strong>Add Club</strong> te permite unirte a otro club con su codigo o enlace.</li>
-        <li><strong>Return to Splash Screen</strong> limpia la vista actual sin borrar tus clubes guardados.</li>
+        <li><strong>Agregar club</strong> te permite unirte a otro club con su codigo o enlace.</li>
+        <li><strong>Volver al inicio</strong> limpia la vista actual sin borrar tus clubes guardados.</li>
         <li><strong>Cuenta</strong> muestra tu identidad conectada con Google y te permite cerrar sesion.</li>
       </ul>`,
     help_notifications_title: 'Notificaciones y sincronizacion de calendario',
@@ -592,7 +592,7 @@ const APP_I18N = {
       <ul>
         <li><strong>iPhone</strong> usa Live Activities en la pantalla bloqueada y Dynamic Island.</li>
         <li><strong>Android 16+</strong> usa una notificacion persistente tipo Live Update.</li>
-        <li>Toca <strong>Follow Live</strong> en un juego en progreso para empezar a seguirlo.</li>
+        <li>Toca <strong>Seguir en vivo</strong> en un juego en progreso para empezar a seguirlo.</li>
         <li>Las actualizaciones en vivo funcionan junto con las notificaciones push.</li>
       </ul>`,
     help_watch_title: 'App complementaria de Apple Watch',
@@ -630,7 +630,7 @@ const APP_I18N = {
     help_darkmode_title: 'Modo oscuro',
     help_darkmode_body: `<p>Eggbeater admite modo oscuro para una lectura mas comoda en poca luz.</p>
       <ul>
-        <li>Elige <strong>Light</strong>, <strong>Dark</strong> o <strong>System</strong> en Ajustes.</li>
+        <li>Elige <strong>Claro</strong>, <strong>Oscuro</strong> o <strong>Sistema</strong> en Ajustes.</li>
         <li>La app puede seguir automaticamente el tema del dispositivo.</li>
         <li>Tu preferencia se recuerda entre visitas.</li>
         <li>Todas las pantallas principales y modales soportan modo oscuro.</li>
@@ -837,20 +837,20 @@ const APP_I18N = {
         <li>Les cartes en dessous montrent l'adversaire, le numero de match, l'heure, la poule, le lieu et la couleur du bonnet.</li>
         <li>Le prochain match n'apparait qu'une seule fois et n'est pas duplique plus bas.</li>
         <li>Lorsqu'un resultat est enregistre, le match passe automatiquement dans <strong>Historique</strong>.</li>
-        <li>Touchez <strong>Add to Calendar</strong> pour synchroniser les matchs avec Google Calendar.</li>
-        <li>Touchez <strong>Get Notified</strong> pour activer les notifications de mise a jour.</li>
+        <li>Touchez <strong>Ajouter au calendrier</strong> pour synchroniser les matchs avec Google Calendar.</li>
+        <li>Touchez <strong>Recevoir des alertes</strong> pour activer les notifications de mise a jour.</li>
         <li>Si plusieurs groupes d'age sont selectionnes, le calendrier se divise en sections etiquetees.</li>
       </ul>`,
     help_scores_body: `<p>L'onglet <strong>Scores</strong> rassemble le score en direct et le box score. Surveillez le point rouge pulsant dans la navigation quand un match est activement score.</p>
       <ul>
-        <li><strong>View Live Scores</strong> permet de suivre un match en temps reel sans le mot de passe scoreur.</li>
-        <li>Touchez <strong>Login to Score</strong> si vous avez le mot de passe et avez besoin des commandes completes.</li>
+        <li><strong>Voir le score en direct</strong> permet de suivre un match en temps reel sans le mot de passe scoreur.</li>
+        <li>Touchez le bouton <strong>Login to Score</strong> si vous avez le mot de passe et avez besoin des commandes completes.</li>
         <li>Quand un scoreur est actif, le badge <strong>LIVE</strong> apparait et les mises a jour arrivent en environ 5 secondes.</li>
         <li>Le <strong>journal d'evenements</strong> montre les buts, passes, exclusions et autres actions avec l'heure au chronometre.</li>
         <li>Le <strong>box score</strong> montre les totaux par joueur pour buts, tentatives, 5m, shootout, passes et exclusions.</li>
         <li>Apres le match, les stats alimentent l'historique joueur dans l'onglet Effectif.</li>
       </ul>`,
-    help_live_scoring_body: `<p>Si vous avez le mot de passe scoreur, touchez <strong>Login to Score</strong> en haut a droite du lecteur et saisissez le mot de passe du tournoi pour debloquer toutes les commandes.</p>
+    help_live_scoring_body: `<p>Si vous avez le mot de passe scoreur, touchez le bouton <strong>Login to Score</strong> en haut a droite du lecteur et saisissez le mot de passe du tournoi pour debloquer toutes les commandes.</p>
       <ul>
         <li>Seul le match en cours affiche tous les boutons de score. Les matchs suivants restent replies.</li>
         <li><strong>Auto Clock</strong> decompte automatiquement depuis la duree de quart configuree par l'admin. Touchez <strong>Start</strong> pour lancer Q1.</li>
@@ -908,7 +908,7 @@ const APP_I18N = {
         <li>Touchez un autre groupe pour en suivre plusieurs en meme temps.</li>
         <li>Les selections restent triees par age et sont memorisees entre les sessions.</li>
         <li>Si un club a des equipes A/B dans le meme groupe, le selecteur s'etend pour choisir l'une ou les deux.</li>
-        <li>Lorsque le panneau de selection s'ouvre, touchez <strong>Done</strong> en haut a droite (a cote de <em>Select all</em> et <em>Clear</em>) pour confirmer votre selection et fermer le panneau.</li>
+        <li>Lorsque le panneau de selection s'ouvre, touchez <strong>Terminer</strong> en haut a droite (a cote de <em>Tout selectionner</em> et <em>Effacer</em>) pour confirmer votre selection et fermer le panneau.</li>
       </ul>`,
     help_multi_title: 'Vue multi-groupes et equipes multiples',
     help_multi_body: `<p>Eggbeater peut afficher plusieurs groupes d'age et plusieurs equipes en meme temps dans Calendrier, Scores, Bracket, Effectif et Historique.</p>
@@ -923,8 +923,8 @@ const APP_I18N = {
       <ul>
         <li><strong>Selection equipe</strong> permet de choisir un ou plusieurs groupes d'age et enregistre ces choix automatiquement.</li>
         <li><strong>Mes clubs</strong> affiche tous les clubs rejoints et permet de passer de l'un a l'autre.</li>
-        <li><strong>Add Club</strong> permet de rejoindre un autre club avec son code ou son lien.</li>
-        <li><strong>Return to Splash Screen</strong> efface la vue actuelle sans supprimer vos clubs enregistres.</li>
+        <li><strong>Ajouter un club</strong> permet de rejoindre un autre club avec son code ou son lien.</li>
+        <li><strong>Retour a l'accueil</strong> efface la vue actuelle sans supprimer vos clubs enregistres.</li>
         <li><strong>Compte</strong> montre votre identite Google connectee et permet de vous deconnecter.</li>
       </ul>`,
     help_notifications_title: 'Notifications et synchronisation calendrier',
@@ -942,7 +942,7 @@ const APP_I18N = {
       <ul>
         <li><strong>iPhone</strong> utilise Live Activities sur l'ecran verrouille et la Dynamic Island.</li>
         <li><strong>Android 16+</strong> utilise une notification Live Update persistante.</li>
-        <li>Touchez <strong>Follow Live</strong> sur un match en cours pour le suivre.</li>
+        <li>Touchez <strong>Suivre en direct</strong> sur un match en cours pour le suivre.</li>
         <li>Les mises a jour en direct fonctionnent avec les notifications push.</li>
       </ul>`,
     help_watch_title: 'Application compagnon Apple Watch',
@@ -980,7 +980,7 @@ const APP_I18N = {
     help_darkmode_title: 'Mode sombre',
     help_darkmode_body: `<p>Eggbeater prend en charge le mode sombre pour un confort visuel en faible luminosite.</p>
       <ul>
-        <li>Choisissez <strong>Light</strong>, <strong>Dark</strong> ou <strong>System</strong> dans Reglages.</li>
+        <li>Choisissez <strong>Clair</strong>, <strong>Sombre</strong> ou <strong>Systeme</strong> dans Reglages.</li>
         <li>L'app peut suivre automatiquement le theme de votre appareil.</li>
         <li>Votre preference est memorisee entre les visites.</li>
         <li>Tous les ecrans principaux et modales prennent en charge le mode sombre.</li>
@@ -8390,10 +8390,11 @@ function getCumulativeStandings(entries) {
   const map = {};
   for (const entry of entries) {
     const sub  = entry.subtitle || '';
+    const subtitleTeamMatch = sub.match(/^(.+?)\s+[ABC](?=\s*[·|-]|$)/i);
     // Resolve team label: explicit entry.team, or inferred from subtitle
     const team = entry.team
       || (/Team B/i.test(sub) ? 'Team B' : /Team A/i.test(sub) ? 'Team A'
-        : /\sB$/i.test(sub) ? sub.trim() : /\sA$/i.test(sub) ? sub.trim() : null);
+        : subtitleTeamMatch ? subtitleTeamMatch[0].trim() : null);
     if (!team) continue;
     if (!map[team]) map[team] = { team, pts: 0, wins: 0, losses: 0, days: 0 };
     map[team].pts    += entry.totalPoints || 0;

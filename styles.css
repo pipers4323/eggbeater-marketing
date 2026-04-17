@@ -7454,10 +7454,10 @@ html.native-android[data-theme="dark"] .settings-item-label[style*="var(--royal)
    keep dark-surface section headers white,
    keep in-card headers navy,
    and explicitly style the inner score/select/button components inside white cards. */
-html.native-ios .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
-html.native-ios .card.tab-card.mp-multi-card > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
-html.native-android .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
-html.native-android .card.tab-card.mp-multi-card > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label {
+html.native-ios[data-theme="dark"] .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-ios[data-theme="dark"] .card.tab-card.mp-multi-card > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-android[data-theme="dark"] .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-android[data-theme="dark"] .card.tab-card.mp-multi-card > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label {
   color: #ffffff !important;
   opacity: 1 !important;
 }
@@ -7474,6 +7474,10 @@ html.native-android .roster-view-card .scores-slot-header.slot-header-in-card .s
    Non-in-card headers (schedule, scores) sit on the dark outer shell and should stay white. */
 html.native-ios[data-theme="light"] .scores-slot-header.slot-header-in-card .scores-slot-label,
 html.native-android[data-theme="light"] .scores-slot-header.slot-header-in-card .scores-slot-label,
+html.native-ios[data-theme="light"] .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-android[data-theme="light"] .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-ios[data-theme="light"] .card.tab-card.mp-multi-card > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-android[data-theme="light"] .card.tab-card.mp-multi-card > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
 html.native-ios[data-theme="light"] .roster-view-card .scores-slot-label,
 html.native-android[data-theme="light"] .roster-view-card .scores-slot-label {
   color: #002868 !important;
