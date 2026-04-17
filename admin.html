@@ -9643,13 +9643,16 @@
       if (headerRow < 0) throw new Error('Could not find schedule grid — expected a row with "Time" and "White Team" columns');
       const hRow = allRows[headerRow];
       const crRow = headerRow > 0 ? allRows[headerRow - 1] : null;
+      const _wordNum = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10 };
       const courses = [];
       if (crRow) {
         for (let ci = 0; ci < crRow.length; ci++) {
           const txt = (crRow[ci] || '').trim();
-          if (/course\s*\d+|court\s*\d+|pool\s*\d+/i.test(txt)) {
-            const m = txt.match(/\d+/);
-            courses.push({ num: m ? parseInt(m[0], 10) : courses.length + 1, startCol: ci });
+          if (/\b(course|court|pool)\b/i.test(txt)) {
+            const digitM = txt.match(/\d+/);
+            const wordM = txt.toLowerCase().match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\b/);
+            const num = digitM ? parseInt(digitM[0], 10) : (wordM ? _wordNum[wordM[1]] : courses.length + 1);
+            courses.push({ num, startCol: ci });
           }
         }
       }
