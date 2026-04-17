@@ -21,7 +21,7 @@
 
 1. **Hydres director package:** closed for now. Hydres test club is live and usable; the separate 12-team hosted tournament/director artifact is intentionally deferred unless requested later.
 2. **Billing/product rename:** product-facing copy is now moving to `Spectator Monthly`; remaining work is only the internal entitlement/storage migration if that rename should propagate deeper.
-3. **Internal cleanup plan:** migration is partially started. Canonical paid tier is now `spectator`, but legacy compatibility mirrors still remain (`state.parentTier`, `ebwp-parent-tier`, `ENFORCE_PARENT_TIERS`, `PARENT_FEATURES`, legacy feature ids like `parent_stats`, legacy tier value `parent`, and old aliases such as `showParentUpgradeSheet()`).
+3. **Internal cleanup plan:** migration is partially started. Canonical paid tier is now `spectator`, spectator join UI ids are replacing parent-named ids, and `spectator_stats` is now the canonical feature id. Legacy compatibility mirrors still remain (`state.parentTier`, `ebwp-parent-tier`, `ENFORCE_PARENT_TIERS`, `PARENT_FEATURES`, legacy feature id fallback from `parent_stats`, legacy tier value `parent`, and old aliases such as `showParentUpgradeSheet()`).
 4. **Domain check:** completed. Apex currently redirects to `www`, and `www` serves successfully. No action needed unless that behavior changes.
 5. **Post-weekend triage:** review smoke test feedback and classify into blocker / important / later before broader beta expansion.
 

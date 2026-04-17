@@ -8048,7 +8048,7 @@ function _renderPossibleMulti(slots) {
 }
 
 function renderHistoryTab() {
-  if (!spectatorHasFeature('parent_stats')) {
+  if (!spectatorHasFeature('spectator_stats')) {
     const viewEl = document.getElementById('view-history');
     if (viewEl) viewEl.innerHTML = renderSpectatorNudge('history');
     return;
@@ -9056,8 +9056,13 @@ const ENFORCE_SPECTATOR_TIERS = false;
 const ENFORCE_PARENT_TIERS = ENFORCE_SPECTATOR_TIERS; // legacy alias during migration
 
 // Features gated behind Spectator Monthly ($4.99/mo)
-const SPECTATOR_FEATURES = ['parent_stats', 'bracket_view'];
+const SPECTATOR_FEATURES = ['spectator_stats', 'bracket_view'];
 const PARENT_FEATURES = SPECTATOR_FEATURES; // legacy alias during migration
+
+function normalizeSpectatorFeature(feature) {
+  if (feature === 'parent_stats') return 'spectator_stats';
+  return feature;
+}
 
 function getStoredSpectatorTier() {
   return normalizeSpectatorTier(
@@ -9083,13 +9088,14 @@ function spectatorHasFeature(feature) {
 
 // Always checks real tier — ignores ENFORCE_SPECTATOR_TIERS. Used for crown badges.
 function spectatorHasFeatureByTier(feature) {
+  feature = normalizeSpectatorFeature(feature);
   const tier = getResolvedSpectatorTier();
   if (tier === 'spectator') return true;
   return false;
 }
 
 function updateSpectatorCrowns() {
-  const gates = { history: 'parent_stats', possible: 'bracket_view' };
+  const gates = { history: 'spectator_stats', possible: 'bracket_view' };
   Object.entries(gates).forEach(([tab, feature]) => {
     const locked = !spectatorHasFeatureByTier(feature);
     document.querySelectorAll(`[data-parent-tab="${tab}"] .nav-crown`).forEach(el => {

@@ -3263,12 +3263,18 @@
 
     // Like tierHasFeature() but always checks real tier — ignores ENFORCE_TIERS flag.
     // Used for crown badges so they reflect actual club tier regardless of testing mode.
+    function normalizeSpectatorFeature(feature) {
+      if (feature === 'parent_stats') return 'spectator_stats';
+      return feature;
+    }
+
     function tierHasFeatureByTier(feature) {
+      feature = normalizeSpectatorFeature(feature);
       const tier = (S.clubTier === 'parent' ? 'spectator' : (S.clubTier || 'free'));
       const tiers = {
         free: [],
-        spectator: ['parent_stats'],
-        parent: ['parent_stats'], // legacy tier key
+        spectator: ['spectator_stats'],
+        parent: ['spectator_stats'], // legacy tier key
         club: ['push_notify', 'live_scoring', 'season_stats', 'multi_team'],
         tournament_host: ['push_notify', 'live_scoring', 'season_stats', 'multi_team', 'tournament_host']
       };
@@ -7305,8 +7311,8 @@
       container.innerHTML = html;
     }
 
-    function copyParentJoinLink() {
-      const input = document.getElementById('parent-join-url');
+    function copySpectatorJoinLink() {
+      const input = document.getElementById('spectator-join-url') || document.getElementById('parent-join-url');
       if (!input) return;
       input.select();
       if (navigator.clipboard) {
@@ -7421,10 +7427,10 @@
       <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
         <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">Share this link with spectators so they can see your club in the app.</div>
         <div style="display:flex;gap:8px;align-items:center">
-          <input class="form-input" id="parent-join-url" value="${esc(joinUrl)}" readonly
+          <input class="form-input" id="spectator-join-url" value="${esc(joinUrl)}" readonly
                  style="font-size:0.8rem;font-family:monospace;flex:1;background:var(--g50);cursor:text"
                  onclick="this.select()">
-          <button class="btn-save" onclick="copyParentJoinLink()" style="flex:0 0 auto;white-space:nowrap">📋 Copy</button>
+          <button class="btn-save" onclick="copySpectatorJoinLink()" style="flex:0 0 auto;white-space:nowrap">📋 Copy</button>
         </div>
         <div style="font-size:0.72rem;color:var(--g400)">Club code: <strong>${esc(clubId)}</strong> — spectators can also type this into the join screen.</div>
       </div>
