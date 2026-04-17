@@ -9766,26 +9766,40 @@
     async function dirBsDeploy(btn) {
       const status = document.getElementById('dir-bs-status');
       const games = S._dirBsGames;
-      if (!games?.length) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ No games to deploy — scan a sheet first'; } return; }
+      if (!games?.length) { if (status) { status.style.color='#dc2626'; status.textContent='⚠️ No games to deploy — scan a sheet first'; } return; }
       if (btn) btn.disabled = true;
-      if (status) { status.style.color = 'var(--g400)'; status.textContent = '⏳ Deploying…'; }
+      if (status) { status.style.color='var(--g400)'; status.textContent='⏳ Publishing schedule to director package…'; }
       try {
-        const existingByNum = {};
-        for (const g of (S.tournament.games || [])) existingByNum[g.gameNum] = g;
-        const merged = games.map(g => ({ ...g, id: existingByNum[g.gameNum]?.id || g.id }));
-        merged.sort((a, b) => (a.gameNum || '').localeCompare(b.gameNum || '', undefined, { numeric: true }));
-        S.tournament.games = merged;
-        delete S.tournament.upcomingMode;
-        delete S.tournament.comingSoon;
-        S.tournament.sheetSync = { sheetUrl: S._dirBsSheetUrl, courseFormat: true, lastSync: new Date().toISOString() };
-        const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
-        if (!saveRes.ok) throw new Error('Save failed — try again');
-        await _pushToFirebaseMirror(S.team, S.tournament, S.history || []);
-        if (status) { status.style.color = '#059669'; status.textContent = '✅ ' + merged.length + ' game(s) imported and live!'; }
+        // Normalize to director game format.
+        // Use the sheet's division/group column as ageGroupName when present
+        // so multi-age-group sheets auto-tag correctly; fall back to dropdown selection.
+        const agIdx = parseInt(document.getElementById('dir-bs-ag')?.value ?? '0');
+        const agName = S.director?.ageGroups?.[agIdx]?.name || '';
+        const schedule = games.map(g => ({
+          id: g.id,
+          gameNum: g.gameNum,
+          ageGroupName: g.division || agName,
+          team1Name: g.homeTeam || 'TBD',
+          team2Name: g.awayTeam || 'TBD',
+          time: g.time || '',
+          date: g.date || '',
+          dateISO: g.dateISO || '',
+          location: g.location || '',
+          division: g.division || '',
+        }));
+        if (!S.director) S.director = defaultDirector();
+        S.director.importedSchedule = schedule;
+        S.director.scheduleSheetUrl = S._dirBsSheetUrl || '';
+        saveDirectorLocally();
+        // Publish the full director package (bracket + schedule) so parents get it immediately
+        await publishDirectorPkg(null);
+        const st2 = document.getElementById('dir-bs-status');
+        if (st2) { st2.style.color='#059669'; st2.textContent='✅ '+schedule.length+' game(s) published to director package!'; }
         const deployBtn = document.getElementById('dir-bs-deploy');
-        if (deployBtn) deployBtn.style.display = 'none';
-      } catch (e) {
-        if (status) { status.style.color = '#dc2626'; status.textContent = '❌ ' + e.message; }
+        if (deployBtn) deployBtn.style.display='none';
+      } catch(e) {
+        const st2 = document.getElementById('dir-bs-status');
+        if (st2) { st2.style.color='#dc2626'; st2.textContent='❌ '+e.message; }
       } finally {
         if (btn) btn.disabled = false;
       }
@@ -14743,6 +14757,7 @@
             })),
           })),
           schedDays: S.director.schedDays,
+          importedSchedule: S.director.importedSchedule || [],
           publishedAt: Date.now(),
         };
         const res = await api('PUT', '/admin/tournament-pkg', { pkg });
