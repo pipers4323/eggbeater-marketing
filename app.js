@@ -208,6 +208,7 @@ const APP_I18N = {
         <li>Tap another group to follow multiple age groups at the same time.</li>
         <li>Selections stay sorted in age order and are remembered between sessions.</li>
         <li>If a club has A/B teams in the same age group, the selector expands so you can choose one or both squads independently.</li>
+        <li>When the age group picker slides up, tap <strong>Done</strong> at the top-right (next to <em>Select all</em> and <em>Clear</em>) to confirm your selection and close the picker.</li>
       </ul>`,
     help_multi_title: 'Multi-Age-Group & Split-Team View',
     help_multi_body: `<p>Eggbeater can show multiple age groups and multiple squads at the same time across Schedule, Scores, Bracket, Roster, and History.</p>
@@ -266,7 +267,7 @@ const APP_I18N = {
         <li>Director scores are the official finals used for standings and bracket placement.</li>
         <li>Authorized scorers may be able to submit final scores from this tab if the director has enabled that flow.</li>
         <li>Scores refresh as new director results are published.</li>
-        <li>This tab can also expose director-managed schedule import flows.</li>
+        <li>If your team admin has imported games from a hosted tournament director package, this tab also shows the <strong>director-published schedule</strong> — game times, courts, and matchups for all age groups at the tournament, so you can see the full picture even across teams you are not directly following.</li>
       </ul>`,
     help_multiclub_title: 'Multi-Club Support',
     help_multiclub_body: `<p>Eggbeater supports multiple clubs, each with separate tournaments, rosters, and admin teams.</p>
@@ -557,6 +558,7 @@ const APP_I18N = {
         <li>Toca otro grupo para seguir varios grupos al mismo tiempo.</li>
         <li>Las selecciones se mantienen en orden por edad y se recuerdan entre sesiones.</li>
         <li>Si un club tiene equipos A/B en el mismo grupo, el selector se expande para elegir uno o ambos equipos.</li>
+        <li>Cuando se abre el selector de grupos, toca <strong>Done</strong> en la parte superior derecha (junto a <em>Select all</em> y <em>Clear</em>) para confirmar tu seleccion y cerrar el panel.</li>
       </ul>`,
     help_multi_title: 'Vista multi-grupo y multi-equipo',
     help_multi_body: `<p>Eggbeater puede mostrar varios grupos y varios equipos al mismo tiempo en Calendario, Marcadores, Bracket, Roster e Historial.</p>
@@ -615,7 +617,7 @@ const APP_I18N = {
         <li>Los marcadores del director son los resultados oficiales usados para standings y bracket.</li>
         <li>Los anotadores autorizados pueden enviar finales desde esta pestaña si el director lo habilita.</li>
         <li>Los marcadores se actualizan al publicarse nuevos resultados del director.</li>
-        <li>Esta pestaña tambien puede mostrar importaciones de calendario gestionadas por el director.</li>
+        <li>Si el admin de tu equipo ha importado juegos del paquete de un director de torneo, esta pestana tambien muestra el <strong>calendario publicado por el director</strong> — horarios, canchas y enfrentamientos de todos los grupos de edad del torneo, para que puedas ver el panorama completo mas alla de tu equipo.</li>
       </ul>`,
     help_multiclub_title: 'Soporte multi-club',
     help_multiclub_body: `<p>Eggbeater admite varios clubes, cada uno con torneos, rosters y admins separados.</p>
@@ -906,6 +908,7 @@ const APP_I18N = {
         <li>Touchez un autre groupe pour en suivre plusieurs en meme temps.</li>
         <li>Les selections restent triees par age et sont memorisees entre les sessions.</li>
         <li>Si un club a des equipes A/B dans le meme groupe, le selecteur s'etend pour choisir l'une ou les deux.</li>
+        <li>Lorsque le panneau de selection s'ouvre, touchez <strong>Done</strong> en haut a droite (a cote de <em>Select all</em> et <em>Clear</em>) pour confirmer votre selection et fermer le panneau.</li>
       </ul>`,
     help_multi_title: 'Vue multi-groupes et equipes multiples',
     help_multi_body: `<p>Eggbeater peut afficher plusieurs groupes d'age et plusieurs equipes en meme temps dans Calendrier, Scores, Bracket, Effectif et Historique.</p>
@@ -964,7 +967,7 @@ const APP_I18N = {
         <li>Les scores du directeur sont les resultats officiels utilises pour les classements et le bracket.</li>
         <li>Les scoreurs autorises peuvent soumettre les scores finaux depuis cet onglet si le directeur active ce flux.</li>
         <li>Les scores se rafraichissent quand de nouveaux resultats du directeur sont publies.</li>
-        <li>Cet onglet peut aussi exposer des imports de calendrier geres par le directeur.</li>
+        <li>Si l'administrateur de votre equipe a importe des matchs depuis le package d'un directeur de tournoi, cet onglet affiche egalement le <strong>calendrier publie par le directeur</strong> — horaires, terrains et oppositions pour tous les groupes d'age du tournoi, afin de voir la vue d'ensemble au-dela de votre equipe.</li>
       </ul>`,
     help_multiclub_title: 'Support multi-clubs',
     help_multiclub_body: `<p>Eggbeater prend en charge plusieurs clubs, chacun avec ses propres tournois, effectifs et equipes admin.</p>

@@ -576,10 +576,11 @@ body {
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 14px 16px 0;
+  padding: 14px 16px 18px;
 }
 .team-picker-modal-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -593,16 +594,16 @@ body {
   font-weight: 700;
   cursor: pointer;
 }
+.team-picker-done-inline {
+  margin-left: auto;
+  padding: 8px 20px;
+  font-size: 0.88rem;
+}
 .team-picker-modal-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding-bottom: 14px;
-}
-.team-picker-modal-done-wrap {
-  flex-shrink: 0;
-  padding: 12px 16px 18px;
-  border-top: 1px solid var(--gray-100);
 }
 .team-picker-modal-row {
   display: flex;
@@ -7455,6 +7456,13 @@ html.native-ios #view-possible > .card.tab-card .scores-slot-header.slot-header-
 html.native-ios .roster-view-card .scores-slot-header.slot-header-in-card .scores-slot-label,
 html.native-android #view-possible > .card.tab-card .scores-slot-header.slot-header-in-card .scores-slot-label,
 html.native-android .roster-view-card .scores-slot-header.slot-header-in-card .scores-slot-label {
+  color: #002868 !important;
+  opacity: 1 !important;
+}
+
+/* Light mode: section header labels must be navy on history/roster/follow-player tabs */
+html.native-ios[data-theme="light"] .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-android[data-theme="light"] .scores-slot-header:not(.slot-header-in-card) .scores-slot-label {
   color: #002868 !important;
   opacity: 1 !important;
 }
