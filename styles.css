@@ -1285,10 +1285,10 @@ h2 {
 /* Cap color-coded cards — Dark cap: solid club primary with white text; White cap stays white */
 .game-card.cap-dark-bg,
 .sched-card.cap-dark-bg {
-  background: rgb(var(--royal-rgb));
+  background: linear-gradient(180deg, rgba(var(--royal-rgb),0.94) 0%, rgba(20,34,76,0.98) 100%);
   border-color: rgba(255,255,255,0.12);
   border-left-color: rgba(255,255,255,0.3);
-  box-shadow: 0 1px 4px rgba(0,0,0,.25);
+  box-shadow: 0 8px 24px rgba(0,0,0,.22);
 }
 .game-card.cap-dark-bg .game-vs,
 .game-card.cap-dark-bg .game-card-age-label,
@@ -1301,10 +1301,6 @@ h2 {
   color: rgba(255,255,255,0.96);
   font-weight: 700;
   letter-spacing: 0.01em;
-}
-.game-card.cap-dark-bg .game-info-row > span:last-child {
-  min-width: 100%;
-  margin-top: 2px;
 }
 .game-card.cap-dark-bg .directions-btn {
   background: rgba(255,255,255,0.94);
@@ -1352,11 +1348,11 @@ h2 {
 
 .game-card-age-label {
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--teal, #0891b2);
-  margin-bottom: 4px;
+  letter-spacing: 0.7px;
+  color: #fbbf24;
+  margin-bottom: 6px;
 }
 
 .game-card-top {
@@ -1368,10 +1364,11 @@ h2 {
 }
 
 .game-vs {
-  font-size: 1.05rem;
+  font-size: 1.14rem;
   font-weight: 800;
   color: var(--gray-900);
-  letter-spacing: -0.2px;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
   flex: 1;
 }
 
@@ -1392,15 +1389,42 @@ h2 {
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   color: var(--gray-600);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .game-info-row .icon-label {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
+}
+.game-info-row-primary {
+  row-gap: 8px;
+}
+.game-location-row {
+  margin: 4px 0 10px;
+}
+.game-cap-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+}
+.game-cap-pill-dark {
+  background: rgba(255,255,255,0.14);
+  border-color: rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.96);
+}
+.game-cap-pill-white {
+  background: var(--gray-50);
+  border-color: var(--gray-200);
+  color: var(--gray-700);
 }
 
 .cap-white { color: var(--gray-600); }

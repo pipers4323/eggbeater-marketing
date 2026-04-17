@@ -7439,6 +7439,17 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
   const capIcon   = g.cap === 'Dark' ? '🔵' : '⚪';
   const pillHtml  = result
     ? `<span class="result-pill ${win ? 'win' : 'loss'}">${resultLabel(result)}</span>` : '';
+  const capBadge = g.cap
+    ? `<span class="game-cap-pill ${g.cap === 'Dark' ? 'game-cap-pill-dark' : 'game-cap-pill-white'}">${capIcon} ${escHtml(g.cap)} Caps</span>`
+    : '';
+  const primaryMeta = [
+    `<span class="icon-label">🕐 ${escHtml(g.time || 'TBD')}${(g.date || g.dateISO) ? ' · ' + escHtml(g.date || g.dateISO) : ''}</span>`,
+    g.pool ? `<span class="icon-label">${swimmerEmoji()} ${escHtml(g.pool)}</span>` : '',
+    capBadge
+  ].filter(Boolean).join('');
+  const locationRow = showLocation && TOURNAMENT.location
+    ? `<div class="game-location-row">${buildLocationLink(TOURNAMENT.location)}</div>`
+    : '';
 
   const btn = (cls, val, label, p) => {
     const active = result === val ? 'active' : '';
@@ -7676,11 +7687,8 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
         ${g.gameNum ? `<div class="game-num-tag">${escHtml(g.gameNum)}</div>` : ''}
       </div>
       ${liveScoreBarHtml}
-      <div class="game-info-row">
-        <span class="icon-label">🕐 ${escHtml(g.time || 'TBD')}${(g.date || g.dateISO) ? ' · ' + escHtml(g.date || g.dateISO) : ''}</span>
-        ${g.pool ? `<span class="icon-label">${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span class="icon-label">${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
-        ${showLocation && TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
-      </div>
+      <div class="game-info-row game-info-row-primary">${primaryMeta}</div>
+      ${locationRow}
       ${pts !== null ? `<div class="game-info-row"><span class="points-badge">+${pts} bracket pts</span></div>` : ''}
 
       ${(viewerOnly || !canScore) ? viewerSection : scorerSection}
