@@ -10058,7 +10058,8 @@
         }
       }
 
-      filtered.sort((a, b) => (a.dateISO||a.date||'').localeCompare(b.dateISO||b.date||'') || (a.time||'').localeCompare(b.time||''));
+      const _parseTime = t => { if (!t) return 0; const m = t.match(/(\d+):(\d+)\s*(AM|PM)/i); if (!m) return 0; let h = parseInt(m[1]); const mn = parseInt(m[2]); const pm = m[3].toUpperCase() === 'PM'; if (pm && h !== 12) h += 12; if (!pm && h === 12) h = 0; return h * 60 + mn; };
+      filtered.sort((a, b) => (a.dateISO||a.date||'').localeCompare(b.dateISO||b.date||'') || _parseTime(a.time) - _parseTime(b.time));
       console.log('[dirImport] FINAL: total filtered:', filtered.length, '| bracket:', filtered.filter(g=>g.isBracket).length, '| reachableNums:', [...reachableNums]);
       S.dirImport.filteredGames = filtered;
       const card = document.getElementById('dir-import-card');
@@ -10083,7 +10084,8 @@
       try {
         const existingByNum = {};
         for (const g of (S.tournament.games || [])) existingByNum[g.gameNum] = g;
-        const merged = games.map(g => ({ ...g, id: existingByNum[g.gameNum]?.id || g.id }));
+        // Only import confirmed direct games — bracket possibles are for reference only
+        const merged = games.filter(g => !g.isBracket).map(g => ({ ...g, id: existingByNum[g.gameNum]?.id || g.id }));
         merged.sort((a, b) => (a.dateISO||a.date||'').localeCompare(b.dateISO||b.date||'') || (a.time||'').localeCompare(b.time||''));
         S.tournament.games = merged;
         S.tournament.dirImportCode = S.dirImport.code;
