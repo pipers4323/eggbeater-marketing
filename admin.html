@@ -12570,6 +12570,15 @@
         // (score fixes, team labels, points updates, etc.)
         let added = 0, updated = 0;
         const seedEntries = [];
+        // Parse a date string that may be a range ("Oct 4–5, 2025", "Jan 31 – Feb 1, 2026")
+        // Returns a valid ISO string, falling back to now if unparseable.
+        const parseSeedDate = s => {
+          if (!s) return new Date().toISOString();
+          // Strip range suffix: take only the part before the en/em dash or hyphen
+          const first = s.replace(/\s*[–—-]\s*\w.*$/, '').trim();
+          const d = new Date(first);
+          return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+        };
 
         for (const seed of LEGACY_SEED) {
           const histGames = (seed.games || []).map(g => {
@@ -12605,7 +12614,7 @@
             subtitle: seed.subtitle || '',
             games: histGames,
             playerStats: {},
-            archivedAt: new Date(seed.dates || Date.now()).toISOString(),
+            archivedAt: parseSeedDate(seed.dates),
           };
           seedEntries.push(entry);
         }
