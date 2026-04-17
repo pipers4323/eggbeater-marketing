@@ -9940,7 +9940,7 @@
     // Parse "W G21" / "L G11" / "WG21" → { type:'W'|'L', num:'21' } or null
     function _parseBracketRef(str) {
       const m = (str || '').trim().match(/^([WL])\s*G?\s*(\d+)$/i);
-      return m ? { type: m[1].toUpperCase(), num: m[2] } : null;
+      return m ? { type: m[1].toUpperCase(), num: 'G' + m[2] } : null;
     }
 
     function dirImportPickTeam(btnEl) {
