@@ -6097,9 +6097,37 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
 
 // ─── DIRECTOR LIVE SCORES ─────────────────────────────────────────────────────
 
+function buildDirScheduleHtml(dirPkg) {
+  const sched = dirPkg.importedSchedule || [];
+  if (!sched.length) return '';
+  // Group by date
+  const byDate = {};
+  for (const g of sched) {
+    const d = g.date || g.dateISO || '';
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(g);
+  }
+  let html = `<div style="margin-bottom:16px">
+    <div style="font-size:0.75rem;font-weight:700;color:var(--royal);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Game Schedule</div>`;
+  for (const [date, games] of Object.entries(byDate)) {
+    if (date) html += `<div style="font-size:0.72rem;font-weight:700;color:var(--gray-500);margin:8px 0 4px">${escHtml(date)}</div>`;
+    const sorted = [...games].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+    for (const g of sorted) {
+      html += `<div style="display:flex;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--gray-100)">
+        <div style="font-size:0.78rem;color:var(--gray-400);min-width:68px;flex-shrink:0">${escHtml(g.time || '')}</div>
+        <div style="flex:1;font-size:0.88rem"><span style="font-weight:600">${escHtml(g.team1Name || '')}</span><span style="color:var(--gray-300);margin:0 5px">vs</span><span style="font-weight:600">${escHtml(g.team2Name || '')}</span></div>
+        <div style="font-size:0.75rem;color:var(--gray-400);text-align:right">${escHtml(g.location || '')}</div>
+      </div>`;
+    }
+  }
+  html += '</div>';
+  return html;
+}
+
 function buildDirScoreSection(dirPkg, dirGames) {
+  const schedHtml = buildDirScheduleHtml(dirPkg);
   if (!state.dirScorerUnlocked) {
-    // Locked: show unlock button and read-only scores if any exist
+    // Locked: show schedule + unlock button + read-only scores if any exist
     const anyScores = Object.keys(state.dirScores).some(id => state.dirScores[id]?.status === 'final');
     const resultsHtml = anyScores ? buildDirStandingsHtml(dirGames) : '';
     return `
@@ -6108,8 +6136,9 @@ function buildDirScoreSection(dirPkg, dirGames) {
           <h2>Submit Live Scores</h2>
           <span class="history-subtitle">${escHtml(dirPkg.tournamentName || '')}</span>
         </div>
+        ${schedHtml}
         ${resultsHtml}
-        <button class="btn" style="margin-top:${anyScores?'12':'0'}px" onclick="openDirScoringModal()">🔒 Unlock Score Entry</button>
+        <button class="btn" style="margin-top:${anyScores||schedHtml?'12':'0'}px" onclick="openDirScoringModal()">🔒 Unlock Score Entry</button>
       </div>`;
   }
 
@@ -6161,6 +6190,7 @@ function buildDirScoreSection(dirPkg, dirGames) {
         <h2>Submit Live Scores</h2>
         <button class="btn btn-ghost" style="font-size:0.78rem;padding:5px 12px" onclick="lockDirScoring()">🔒 Lock</button>
       </div>
+      ${schedHtml}
       ${rows}
       ${standingsHtml ? `<div style="margin-top:14px;padding-top:12px;border-top:2px solid var(--gray-100)">${standingsHtml}</div>` : ''}
     </div>`;
