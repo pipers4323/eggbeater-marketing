@@ -3799,7 +3799,7 @@
         help_addgames_settings_body: `<p>Configure the current tournament and how the app behaves.</p>
       <ul>
         <li><strong>Club Name</strong> controls how your team name appears on game cards.</li>
-        <li><strong>Tournament ID</strong> is the unique key for this event. Only change it when starting a new tournament because changing it archives the current event on parent devices.</li>
+        <li><strong>Tournament ID</strong> is the unique key for this event. Only change it when starting a new tournament because changing it archives the current event on spectator devices.</li>
         <li><strong>Name, subtitle, dates, location, and pool</strong> appear in the app header and schedule.</li>
         <li><strong>Coming Soon message</strong> is shown before games are posted. Clear it after publishing games.</li>
         <li><strong>Scoring Password</strong> controls who can unlock scorer mode in the spectator app.</li>
@@ -11488,7 +11488,7 @@
         });
         if (!saveRes.ok) throw new Error('KV save failed: ' + saveRes.status);
 
-        // Phase 2: mirror tournament data to Firestore so parent apps update in real-time
+        // Phase 2: mirror tournament data to Firestore so spectator apps update in real-time
         const teamKey = S.team;
         if (typeof fbSaveTournamentMirror === 'function') {
           const mirrored = await fbSaveTournamentMirror(teamKey, {
@@ -14042,7 +14042,7 @@
       const pc = hexToRgb(primaryColor);
       const white = { r: 255, g: 255, b: 255 };
 
-      // Set primary and all computed variants (same as parent app)
+      // Set primary and all computed variants (same as spectator app)
       root.style.setProperty('--royal', primaryColor);
       const dark = darken(pc, 0.3);
       root.style.setProperty('--royal-dark', rgbToHex(dark.r, dark.g, dark.b));

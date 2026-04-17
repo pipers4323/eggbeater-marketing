@@ -6,7 +6,7 @@
  *          device they own automatically, via Firestore.
  *
  * Phase 2: Live tournament data via Firestore onSnapshot
- *          Admin saves scores / bracket / roster → all parent devices update
+ *          Admin saves scores / bracket / roster → all spectator devices update
  *          in real-time without a page refresh.
  *
  * NOTHING IS DELETED — localStorage remains the fallback for signed-out users
@@ -467,7 +467,7 @@ async function _onFbAuthChange(user) {
     // Silently refresh calendar token on page reload if a calendar was previously connected
     _fbTrySilentCalendarRefresh();
     // Phase B: check RevenueCat for active parent_monthly entitlement
-    _checkParentSubscription(user.uid);
+    _checkSpectatorSubscription(user.uid);
   }
 }
 
@@ -477,7 +477,7 @@ async function _onFbAuthChange(user) {
  * Sets state.parentTier = 'parent' and re-renders settings if entitled.
  * Silent no-op on web or when plugin is unavailable.
  */
-async function _checkParentSubscription(uid) {
+async function _checkSpectatorSubscription(uid) {
   try {
     const Purchases = window.Capacitor?.Plugins?.Purchases;
     if (!Purchases) return; // web browser — no native plugin
@@ -625,13 +625,13 @@ function fbListenToTournament(teamKey) {
     delete _tournamentListeners[teamKey];
   }
 
-  // Listen to the flat backward-compat collection because the parent app's
+  // Listen to the flat backward-compat collection because the spectator app's
   // real-time listener contract still depends on the admin panel dual-writing
   // tournament payloads into `tournaments/{teamKey}`.
   //
   // IMPORTANT: the newer club-scoped collection under `clubs/{clubId}/tournaments`
   // is used for admin CRUD/library flows, but it is NOT the live listener source
-  // for the parent app yet. Any future write path that only updates the club-scoped
+  // for the spectator app yet. Any future write path that only updates the club-scoped
   // document will silently bypass this listener and leave viewers stale.
   //
   // If you change this model, either:

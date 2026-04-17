@@ -59,7 +59,7 @@ const APP_I18N = {
     club_picker_title: 'Welcome to Eggbeater',
     club_picker_subtitle: 'Select your club to get started',
     club_picker_footer: "Don't see your club? Ask your club admin for the link.",
-    parent_guide_link: 'New to Eggbeater? Read the Spectator Guide ->',
+    spectator_guide_link: 'New to Eggbeater? Read the Spectator Guide ->',
     returning_user: 'Returning user?',
     splash_signin_hint: 'Restore your clubs and settings instantly',
     nav_schedule: 'Schedule',
@@ -409,7 +409,7 @@ const APP_I18N = {
     club_picker_title: 'Bienvenido a Eggbeater',
     club_picker_subtitle: 'Selecciona tu club para comenzar',
     club_picker_footer: 'No ves tu club? Pidele el enlace al administrador del club.',
-    parent_guide_link: 'Nuevo en Eggbeater? Lee la guia para espectadores ->',
+    spectator_guide_link: 'Nuevo en Eggbeater? Lee la guia para espectadores ->',
     returning_user: 'Ya usaste la app?',
     splash_signin_hint: 'Restaura tus clubes y ajustes al instante',
     nav_schedule: 'Calendario',
@@ -759,7 +759,7 @@ const APP_I18N = {
     club_picker_title: 'Bienvenue sur Eggbeater',
     club_picker_subtitle: 'Choisissez votre club pour commencer',
     club_picker_footer: 'Vous ne voyez pas votre club ? Demandez le lien a votre administrateur.',
-    parent_guide_link: 'Nouveau sur Eggbeater ? Lire le guide spectateurs ->',
+    spectator_guide_link: 'Nouveau sur Eggbeater ? Lire le guide spectateurs ->',
     returning_user: 'Utilisateur deja inscrit ?',
     splash_signin_hint: 'Retrouvez vos clubs et reglages instantanement',
     nav_schedule: 'Calendrier',
@@ -1127,7 +1127,7 @@ function applyAppTranslations() {
     'club-picker-title': 'club_picker_title',
     'club-picker-subtitle': 'club_picker_subtitle',
     'club-picker-footer': 'club_picker_footer',
-    'parent-guide-link': 'parent_guide_link',
+  'spectator-guide-link': 'spectator_guide_link',
     'returning-user-label': 'returning_user',
     'splash-signin-hint': 'splash_signin_hint',
     'nav-label-schedule': 'nav_schedule',
@@ -2006,7 +2006,7 @@ const state = {
   scoreDetailTab:   'summary',
   roster:           [],     // [{ cap, first, last }] — editable via Roster tab
   currentTab:       'schedule',
-  viewerMode:       true,       // true = viewing live scores without scorer login (default for parents)
+  viewerMode:       true,       // true = viewing live scores without scorer login (default for spectators)
   parentTier:       null,       // null = not yet checked, 'free' | 'parent' once resolved
   undoToast:        null,
   integrityWarnings: [],
@@ -5192,9 +5192,9 @@ function renderSettingsTab() {
   // This catches cases where logIn() hadn't completed yet on the first load.
   // Pass the best available email so RC can match the dashboard grant.
   if (user && (state.parentTier || localStorage.getItem('ebwp-parent-tier') || 'free') !== 'parent') {
-    if (typeof _checkParentSubscription === 'function') {
+    if (typeof _checkSpectatorSubscription === 'function') {
       const rcId = user.email || localStorage.getItem('ebwp-auth-email') || user.uid;
-      _checkParentSubscription(rcId);
+      _checkSpectatorSubscription(rcId);
     }
   }
 
@@ -10355,7 +10355,7 @@ function broadcastGameReset(gameId) {
   } catch { /* ignore */ }
 }
 
-/** Fire-and-forget APNs push to parents when a score event happens. */
+/** Fire-and-forget APNs push to spectators when a score event happens. */
 function notifyScorePush(gameId, eventType) {
   const scopedKey = _scopedGameKey(gameId);
   const score = state.liveScores[scopedKey];
