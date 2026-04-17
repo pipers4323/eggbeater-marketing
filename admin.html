@@ -9689,6 +9689,18 @@
       }
       const dateISO = parseDateToISO(dateStr) || '';
       const dateDisplay = dateISO ? isoToDate(dateISO) : dateStr;
+      // Pre-validate courses: only keep courses with ≥2 non-empty game rows
+      const courseGameCount = {};
+      for (let ri = headerRow + 1; ri < allRows.length; ri++) {
+        const row = allRows[ri];
+        for (const crs of courses) {
+          const white = (row[crs.whiteCol] || '').trim();
+          const dark = (row[crs.darkCol] || '').trim();
+          if (white || dark) courseGameCount[crs.num] = (courseGameCount[crs.num] || 0) + 1;
+        }
+      }
+      const validCourses = courses.filter(crs => (courseGameCount[crs.num] || 0) >= 4);
+
       const games = [];
       for (let ri = headerRow + 1; ri < allRows.length; ri++) {
         const row = allRows[ri];
@@ -9701,7 +9713,7 @@
           const hm = timeVal.match(/^(\d{1,2}):/);
           if (hm) { const h = parseInt(hm[1], 10); timeFormatted = timeVal + (h >= 7 && h <= 11 ? ' AM' : ' PM'); }
         }
-        for (const crs of courses) {
+        for (const crs of validCourses) {
           const white = (row[crs.whiteCol] || '').trim();
           const dark = (row[crs.darkCol] || '').trim();
           const div = (row[crs.divCol] || '').trim();
@@ -9752,7 +9764,8 @@
         if (!games.length) throw new Error('No games found — check the sheet format or enable "Court/course schedule format"');
         S._dirBsGames = games;
         S._dirBsSheetUrl = url;
-        if (status) { status.style.color = '#059669'; status.textContent = '✅ Found ' + games.length + ' game(s) — review below, then deploy'; }
+        const courseNums = [...new Set(games.map(g => g.location))].sort().join(', ');
+        if (status) { status.style.color = '#059669'; status.textContent = '✅ Found ' + games.length + ' game(s) across ' + courseNums + ' — review below, then deploy'; }
         if (preview) {
           preview.style.display = '';
           preview.innerHTML = games.map(g => `<div style="padding:3px 0;border-bottom:1px solid var(--g100)"><b>${esc(g.gameNum)}</b> · ${esc(g.time || '')} · ${esc(g.date || '')} · <span style="color:var(--royal)">${esc(g.homeTeam || '')}</span> vs <span style="color:var(--royal)">${esc(g.awayTeam || '')}</span> [${esc(g.location || '')}]</div>`).join('');
@@ -9955,6 +9968,8 @@
       if (idx >= 0) sel.splice(idx, 1); else sel.push(teamName);
       S.dirImport.selectedTeams = sel;
 
+      console.log('[dirImport] teamName:', JSON.stringify(teamName), '| ag:', JSON.stringify(ag), '| sched length:', sched.length, '| sel:', sel);
+
       // Build gameNum → raw game lookup
       const byNum = {};
       for (const g of sched) { if (g.gameNum) byNum[g.gameNum] = g; }
@@ -9970,24 +9985,32 @@
           const isTeam1 = (g.team1Name||'').toLowerCase() === tl;
           const isTeam2 = (g.team2Name||'').toLowerCase() === tl;
           if (!isTeam1 && !isTeam2) continue;
+          console.log('[dirImport] direct match:', g.gameNum, g.team1Name, 'vs', g.team2Name);
           if (g.gameNum) reachableNums.add(g.gameNum);
           const key = g.gameNum || g.id || (g.time + g.team1Name + g.team2Name);
           if (seen.has(key)) continue;
           seen.add(key);
+          const opponentName = isTeam1 ? (g.team2Name||'TBD') : (g.team1Name||'TBD');
+          const opponentIsBracketRef = !!_parseBracketRef(opponentName);
           filtered.push({
             id: g.id || ('g' + Date.now() + Math.random().toString(36).slice(2)),
             gameNum: g.gameNum || '',
             myTeam: tn,
-            opponent: isTeam1 ? (g.team2Name||'TBD') : (g.team1Name||'TBD'),
+            opponent: opponentName,
             cap: isTeam1 ? 'White' : 'Dark',
             time: g.time || '', date: g.date || '', dateISO: g.dateISO || '',
             location: g.location || '', pool: g.location || '', division: g.division || '',
-            isBracket: false,
+            isBracket: opponentIsBracketRef,
+            bracketDesc: opponentIsBracketRef ? ((g.team1Name||'?') + ' vs ' + (g.team2Name||'?')) : undefined,
           });
         }
       }
 
       // Bracket path traversal: expand reachableNums by following W G# / L G# references
+      console.log('[dirImport] reachableNums after direct:', [...reachableNums]);
+      // Sample a few bracket-style entries so we can verify _parseBracketRef works
+      const bracketSample = sched.filter(g => _parseBracketRef(g.team1Name) || _parseBracketRef(g.team2Name)).slice(0, 5);
+      console.log('[dirImport] bracket-style games sample:', bracketSample.map(g => g.gameNum + ': ' + g.team1Name + ' vs ' + g.team2Name));
       let changed = true;
       while (changed) {
         changed = false;
@@ -9996,6 +10019,7 @@
           const ref1 = _parseBracketRef(g.team1Name);
           const ref2 = _parseBracketRef(g.team2Name);
           if ((ref1 && reachableNums.has(ref1.num)) || (ref2 && reachableNums.has(ref2.num))) {
+            console.log('[dirImport] bracket hit:', g.gameNum, '←', g.team1Name, 'vs', g.team2Name);
             reachableNums.add(g.gameNum);
             changed = true;
             const key = g.gameNum;
@@ -10018,6 +10042,7 @@
       }
 
       filtered.sort((a, b) => (a.dateISO||a.date||'').localeCompare(b.dateISO||b.date||'') || (a.time||'').localeCompare(b.time||''));
+      console.log('[dirImport] FINAL: total filtered:', filtered.length, '| bracket:', filtered.filter(g=>g.isBracket).length, '| reachableNums:', [...reachableNums]);
       S.dirImport.filteredGames = filtered;
       const card = document.getElementById('dir-import-card');
       if (card) { card.outerHTML = dirImportWizardHtml(); document.getElementById('dir-import-card').open = true; }
