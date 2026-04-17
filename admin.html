@@ -2627,7 +2627,7 @@
       dirSelectedTeam: '',  // selected team name within age group
       adminTeamManagerOpen: false,
       teamStatuses: {},     // { 'teamKey': 'green'|'yellow'|'gray' } for status dots
-      clubTier: 'free', // current subscription tier: 'free' | 'club' | 'tournament_host' | 'parent'
+      clubTier: 'free', // current subscription tier: 'free' | 'club' | 'tournament_host' | 'parent' (legacy spectator tier id)
     };
 
     // ─── LOGIN ────────────────────────────────────────────────────────────────────
@@ -3228,7 +3228,7 @@
     /** Shared post-login setup — called by both doLogin() and doGoogleLogin(). */
     // ─── SUBSCRIPTION TIER (Phase C) ─────────────────────────────────────────────
 
-    const TIER_LABELS = { free: 'Free', club: 'Club', tournament_host: 'Tournament Host', parent: 'Parent' };
+    const TIER_LABELS = { free: 'Free', club: 'Club', tournament_host: 'Tournament Host', parent: 'Spectator' };
     const TIER_COLORS = { free: '#6b7280', club: '#2563eb', tournament_host: '#7c3aed', parent: '#059669' };
 
     /**
@@ -4629,7 +4629,7 @@
         addgames_refresh: 'Actualiser',
         addgames_scores_hint: 'Touchez Actualiser pour charger les scores.',
         addgames_score_entry_password: 'Mot de passe de saisie des scores',
-        addgames_share_code_help: 'Les autres equipes saisissent ce code dans l application parent sous Synchroniser depuis le directeur du tournoi pour importer les informations du tournoi.',
+        addgames_share_code_help: 'Les autres equipes saisissent ce code dans l application spectateur sous Synchroniser depuis le directeur du tournoi pour importer les informations du tournoi.',
         addgames_share_code_expiry: 'Expire dans 30 jours.',
         addgames_clear: 'Effacer',
         scorer_access_title: 'Acces scoreur uniquement',
@@ -5491,7 +5491,7 @@
       const _pastDateBanner = (_anyMissingDate || _allPastDates) ? `
         <div style="background:#fff8e1;border-bottom:1.5px solid #f59e0b;padding:10px 14px;font-size:0.82rem;color:#92400e;display:flex;gap:8px;align-items:flex-start">
           <span>⚠️</span>
-          <div><strong>${_anyMissingDate ? 'Some games are missing dates' : 'All game dates are in the past'}</strong> — parents will see <em>"All games complete"</em> instead of the schedule. Tap <strong>Edit</strong> on each game and set the correct upcoming date.</div>
+          <div><strong>${_anyMissingDate ? 'Some games are missing dates' : 'All game dates are in the past'}</strong> — spectators will see <em>"All games complete"</em> instead of the schedule. Tap <strong>Edit</strong> on each game and set the correct upcoming date.</div>
         </div>` : '';
 
       let cardsHtml = `
@@ -7305,11 +7305,11 @@
       input.select();
       if (navigator.clipboard) {
         navigator.clipboard.writeText(input.value).then(() => {
-          showStatus('✓ Parent join link copied!', 'ok');
+          showStatus('✓ Spectator join link copied!', 'ok');
         });
       } else {
         document.execCommand('copy');
-        showStatus('✓ Parent join link copied!', 'ok');
+        showStatus('✓ Spectator join link copied!', 'ok');
       }
     }
 
@@ -7354,7 +7354,7 @@
                    style="margin-top:2px;width:16px;height:16px;accent-color:var(--royal)">
             <span style="font-size:0.88rem;line-height:1.35">
               <strong>Enable Masters Men and Masters Women</strong><br>
-              <span style="color:var(--g500)">Adds adult-program age group pills to admin and parent views.</span>
+              <span style="color:var(--g500)">Adds adult-program age group pills to admin and spectator views.</span>
             </span>
           </label>
           <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer">
@@ -7409,9 +7409,9 @@
     </div>
     ` : ''}
 
-    <!-- ═══════ PARENT JOIN LINK ═══════ -->
+    <!-- ═══════ SPECTATOR JOIN LINK ═══════ -->
     <div class="card" style="margin-bottom:12px">
-      <div class="card-header">🔗 Parent Join Link</div>
+      <div class="card-header">🔗 Spectator Join Link</div>
       <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
         <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">Share this link with spectators so they can see your club in the app.</div>
         <div style="display:flex;gap:8px;align-items:center">
@@ -10760,7 +10760,7 @@
 
         // Step 4 — Calendar name + Sync frequency
         + '<div id="njo-s4" style="display:' + (step === 4 ? 'block' : 'none') + '">'
-        + '<div class="info-label" style="margin-bottom:4px">&#x1f4c5; Parent Calendar Name</div>'
+        + '<div class="info-label" style="margin-bottom:4px">&#x1f4c5; Spectator Calendar Name</div>'
         + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">Spectators subscribe to this calendar once and their app auto-updates as bracket games confirm. Make the name specific to the event and club.</div>'
         + '<input class="info-input" id="njo-calname" value="' + esc(n.calendarName || '') + '" placeholder="e.g. 14u Girls NJO 2026 — 680 Drivers" autocomplete="off" style="margin-bottom:4px" oninput="S.njo.calendarName=this.value">'
         + '<div style="font-size:.72rem;color:var(--g400);margin-bottom:14px">&#x1f517; Subscribe link shows after deploy — share it in your team chat so spectators can add it to Google Calendar, Apple Calendar, or Outlook with one tap.</div>'
@@ -11224,12 +11224,12 @@
           status.style.color = '#059669';
           status.innerHTML = '✅ NJO deployed! ' + allGames.length + ' group games + ' + totalBracketDays + ' bracket day(s).' + (n.pollMins ? ' Auto-sync every ' + n.pollMins + ' min.' : '')
             + (n.calendarName
-              ? '<br><br>&#x1f4c5; <strong>Parent Calendar Subscribe Link</strong><br>'
+              ? '<br><br>&#x1f4c5; <strong>Spectator Calendar Subscribe Link</strong><br>'
               + '<div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap">'
               + '<input readonly style="flex:1;min-width:0;padding:6px 8px;border:1px solid var(--g200);border-radius:6px;font-size:.75rem;background:var(--g50);font-family:monospace" value="' + esc(calWebcal) + '" id="njo-cal-link">'
               + '<button class="save-btn" style="flex:none;padding:6px 12px;font-size:.8rem;white-space:nowrap" onclick="navigator.clipboard.writeText(document.getElementById(\'njo-cal-link\').value).then(function(){this.textContent=\'Copied!\';var b=this;setTimeout(function(){b.textContent=\'📋 Copy\'},2000)}.bind(this))">&#x1f4cb; Copy</button>'
               + '</div>'
-              + '<div style="font-size:.72rem;color:var(--g400);margin-top:4px">Share in team chat → parents tap link → schedule added to their calendar. Updates auto. Works with Google, Apple, Outlook.</div>'
+              + '<div style="font-size:.72rem;color:var(--g400);margin-top:4px">Share in team chat → spectators tap link → schedule added to their calendar. Updates auto. Works with Google, Apple, Outlook.</div>'
               : '');
         }
         if (n.pollMins > 0) njoStartPoll();
@@ -13992,7 +13992,7 @@
         S._branding = { primaryColor: primary, secondaryColor: secondary, headerStyle, logoTrayStyle };
         // Apply branding to admin panel header so admin sees the club's colors
         applyAdminBranding(primary, secondary, S._clubLogo || null);
-        if (statusEl) statusEl.innerHTML = '<span style="color:var(--green)">✅ Branding saved — parents will see the new colors on their next visit</span>';
+        if (statusEl) statusEl.innerHTML = '<span style="color:var(--green)">✅ Branding saved — spectators will see the new colors on their next visit</span>';
       } catch (e) {
         if (statusEl) statusEl.innerHTML = '<span style="color:#dc2626">❌ ' + e.message + '</span>';
       }

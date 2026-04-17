@@ -1621,7 +1621,7 @@ function switchTeam(letter, groupKey) {
   renderHistoryTab();
   renderRosterTab();
   if (state.currentTab === 'settings') _renderSettingsTeamPicker();
-  updateParentCrowns();
+  updateSpectatorCrowns();
 }
 
 // Returns history entries relevant to the currently selected team.
@@ -4726,7 +4726,7 @@ function clearManualResults() {
 function ensureTokenClient() {
   if (state.tokenClient) return;
   if (!window.google?.accounts?.oauth2) return;
-  // If parent is already signed in via Firebase, skip the account-picker popup
+  // If a spectator is already signed in via Firebase, skip the account-picker popup
   const hint = (typeof fbGetUser === 'function' && fbGetUser()?.email) || undefined;
   state.tokenClient = google.accounts.oauth2.initTokenClient({
     client_id:  CONFIG.CLIENT_ID,
@@ -7738,7 +7738,7 @@ function bracketLocationDisplay(stepLocation) {
 function renderPossibleTab() {
   if (!spectatorHasFeature('bracket_view')) {
     const viewEl = document.getElementById('view-possible');
-    if (viewEl) viewEl.innerHTML = renderParentNudge('possible');
+    if (viewEl) viewEl.innerHTML = renderSpectatorNudge('possible');
     return;
   }
   // ── Director standings + reseeding (shown when dir scores exist) ─────────
@@ -8050,7 +8050,7 @@ function _renderPossibleMulti(slots) {
 function renderHistoryTab() {
   if (!spectatorHasFeature('parent_stats')) {
     const viewEl = document.getElementById('view-history');
-    if (viewEl) viewEl.innerHTML = renderParentNudge('history');
+    if (viewEl) viewEl.innerHTML = renderSpectatorNudge('history');
     return;
   }
   const slots = getExpandedTeamSlots();
@@ -8713,7 +8713,7 @@ function init() {
   // Firebase still inits in the background so the picker can list clubs
   if (typeof fbInit === 'function') fbInit();
 
-  // ── Handle ?join=CLUB_ID — parent clicked admin's share link ──
+  // ── Handle ?join=CLUB_ID — spectator clicked admin's share link ──
   _handleJoinParam();
 
   // ── Backward compat: migrate existing club selection to joined list ──
@@ -8766,7 +8766,7 @@ function init() {
   renderPossibleTab();
   renderHistoryTab();
   renderRosterTab();
-  updateParentCrowns(); // show/hide 👑 on History + Bracket based on parent tier
+  updateSpectatorCrowns(); // show/hide 👑 on History + Bracket based on spectator tier
   startLivePoller(); // start polling for live scores from other devices
   updateLiveDot();   // set dot state on initial load
   startDirScorePolling(); // start polling for director game scores
@@ -9250,7 +9250,7 @@ function showClubPickerIfNeeded() {
 
 /**
  * Fetch clubs from the worker and render the picker cards.
- * Only shows clubs the parent has joined via a share link.
+ * Only shows clubs the spectator has joined via a share link.
  */
 async function _loadClubPickerList(switchMode) {
   const listEl = document.getElementById('club-picker-list');
@@ -9280,7 +9280,7 @@ async function _loadClubPickerList(switchMode) {
         <div style="font-size:2.2rem;margin-bottom:10px">🤽‍♀️</div>
         <div style="font-size:1.1rem;font-weight:700;color:white;margin-bottom:8px">Join Your Club</div>
         <div style="font-size:0.88rem;color:rgba(255,255,255,0.7);line-height:1.5;margin-bottom:16px">
-          Ask your club admin for the parent join link.<br>
+          Ask your club admin for the spectator join link.<br>
           It looks like: <em style="color:#fbbf24">eggbeater.app?join=your-club</em>
         </div>
         <div style="display:flex;gap:8px;max-width:320px;margin:0 auto">
@@ -9432,7 +9432,7 @@ function _escHtml(s) {
 }
 
 /**
- * Called when a parent taps a club card.
+ * Called when a spectator taps a club card.
  */
 function _selectClub(clubId, clubName, clubType) {
   localStorage.setItem('ebwp-club-id', clubId);
@@ -9444,7 +9444,7 @@ function _selectClub(clubId, clubName, clubType) {
   localStorage.setItem('ebwp-team-keys', JSON.stringify([TEAM_OPTIONS[0].key]));
 
   // Update URL so bookmarks and shares include the club
-  // Use ?join= so the club gets added to the parent's joined-clubs list on reload
+  // Use ?join= so the club gets added to the spectator's joined-clubs list on reload
   const url = new URL(window.location);
   url.searchParams.delete('club');
   url.searchParams.set('join', clubId);
@@ -9596,7 +9596,7 @@ function getSelectedTeam() {
 function setSelectedTeams(keys) {
   localStorage.setItem(_teamKeysKey(), JSON.stringify(keys));
   if (keys.length) localStorage.setItem('ebwp-team-key', keys[0]); // compat
-  // Sync to Firestore if parent is signed in (Phase 1)
+  // Sync to Firestore if a spectator is signed in (Phase 1)
   if (typeof fbSavePrefs === 'function') fbSavePrefs();
 }
 
@@ -10529,7 +10529,7 @@ async function pollLiveScores() {
       const { deviceId, tournamentId, gameId: _gid, broadcastAt, ...scoreData } = remoteScore;
       const scoreAgeGroup = remoteScore.ageGroup || scoreData.ageGroup || '';
 
-      // Haptic for parent viewers when team scores (remote team score went up)
+      // Haptic for spectator viewers when team scores (remote team score went up)
       const prevTeam = local.team || 0;
       if ((scoreData.team || 0) > prevTeam) _hapticGoal();
 
@@ -11516,7 +11516,7 @@ function getMyPlayers() {
 }
 function saveMyPlayers(arr) {
   localStorage.setItem(STORE.MY_PLAYERS, JSON.stringify(arr));
-  // Sync to Firestore if parent is signed in (Phase 1)
+  // Sync to Firestore if a spectator is signed in (Phase 1)
   if (typeof fbSavePrefs === 'function') fbSavePrefs();
   _syncWidgetsAll();
 }

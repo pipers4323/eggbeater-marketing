@@ -2,7 +2,7 @@
  * firebase.js — Eggbeater Water Polo
  * ─────────────────────────────────────────────────────────────────────────────
  * Phase 1: Google Sign-In + cross-device preferences sync
- *          Parents sign in once → My Players & age group picks sync to every
+ *          Spectators sign in once → My Players & age group picks sync to every
  *          device they own automatically, via Firestore.
  *
  * Phase 2: Live tournament data via Firestore onSnapshot
@@ -28,7 +28,7 @@
  *     rules_version = '2';
  *     service cloud.firestore {
  *       match /databases/{database}/documents {
- *         // Each parent can only read/write their own preferences
+ *         // Each spectator can only read/write their own preferences
  *         match /users/{uid}/prefs/{doc} {
  *           allow read, write: if request.auth != null && request.auth.uid == uid;
  *         }
@@ -521,7 +521,7 @@ async function _checkSpectatorSubscription(uid) {
 // ─────────────────────────────────────────────────────────────────────────────
 // USER PREFS  (Phase 1)
 // Saves/loads My Players selections and chosen age groups to Firestore
-// so parents see the same picks on every device they use.
+// so spectators see the same picks on every device they use.
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function fbSavePrefs() {
@@ -615,7 +615,7 @@ async function fbLoadPrefs() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LIVE TOURNAMENT DATA  (Phase 2)
-// Admin saves → Firestore → onSnapshot fires on every parent device → re-render
+// Admin saves → Firestore → onSnapshot fires on every spectator device → re-render
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -1107,7 +1107,7 @@ async function fbMigrateTournaments() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SILENT CALENDAR TOKEN REFRESH
-// Called after Firebase restores a session on page reload. If the parent had a
+// Called after Firebase restores a session on page reload. If the spectator had a
 // calendar connected, attempt a silent GIS token refresh (no popup) since they
 // already granted calendar scope during their original Firebase sign-in.
 // ─────────────────────────────────────────────────────────────────────────────
