@@ -7470,12 +7470,20 @@ html.native-android .roster-view-card .scores-slot-header.slot-header-in-card .s
   opacity: 1 !important;
 }
 
-/* Light mode: in-card section header labels (roster-view-card, history, possible tab) must be navy.
-   Non-in-card headers (schedule, scores) sit on the dark outer shell and should stay white. */
+/* Native light mode: schedule/scores headers sit on the blue shell and stay white.
+   In-card headers (history, bracket, roster/my-player) stay navy on white cards. */
+html.native-ios[data-theme="light"] #schedule-list .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-android[data-theme="light"] #schedule-list .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-ios[data-theme="light"] #view-scores > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-android[data-theme="light"] #view-scores > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
 html.native-ios[data-theme="light"] .scores-slot-header.slot-header-in-card .scores-slot-label,
 html.native-android[data-theme="light"] .scores-slot-header.slot-header-in-card .scores-slot-label,
-html.native-ios[data-theme="light"] .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
-html.native-android[data-theme="light"] .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-ios[data-theme="light"] #view-history .card.tab-card .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
+html.native-android[data-theme="light"] #view-history .card.tab-card .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
 html.native-ios[data-theme="light"] .card.tab-card.mp-multi-card > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
 html.native-android[data-theme="light"] .card.tab-card.mp-multi-card > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
 html.native-ios[data-theme="light"] .roster-view-card .scores-slot-label,
