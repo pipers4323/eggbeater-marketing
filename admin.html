@@ -7437,6 +7437,8 @@
 
     ${bsWizardHtml()}
 
+    ${dirImportWizardHtml()}
+
     ${njoWizardHtml()}
 
     <details class="card collapsible-card" open>
@@ -9792,6 +9794,139 @@
         const st2 = document.getElementById('dir-bs-status');
         if (st2) { st2.style.color='#dc2626'; st2.textContent='❌ '+e.message; }
       } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    // ─── Import from Hosted Tournament (Director share code) ─────────────────
+
+    function dirImportWizardHtml() {
+      const di = S.dirImport || {};
+      const hasTeams = (di.teamNames || []).length > 0;
+      const hasGames = (di.filteredGames || []).length > 0;
+      return `<details class="card collapsible-card" id="dir-import-card"${di.open ? ' open' : ''}>
+        <summary class="card-header collapsible-header" onclick="S.dirImport=S.dirImport||{};S.dirImport.open=!document.getElementById('dir-import-card').open">
+          📋 Import from Hosted Tournament <span class="collapse-icon">▾</span>
+        </summary>
+        <div style="padding:10px 14px 14px">
+          <div class="info-hint" style="margin-bottom:10px">If your team is playing in a tournament hosted by another club, enter the tournament's 6-character share code to import your team's games directly into your schedule.</div>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input class="info-input" id="dir-import-code" type="text" maxlength="10"
+                   placeholder="Share code (e.g. AB1234)" autocomplete="off" autocapitalize="characters" spellcheck="false"
+                   value="${esc(di.code||'')}" style="flex:1;font-family:monospace;font-size:1rem;letter-spacing:.08em;text-transform:uppercase"
+                   onkeydown="if(event.key==='Enter')dirImportFetch()">
+            <button class="save-btn" style="white-space:nowrap;padding:8px 16px" onclick="dirImportFetch()">Fetch →</button>
+          </div>
+          <div id="dir-import-status" style="font-size:.82rem;min-height:1.1em;margin-bottom:8px">${di.statusHtml||''}</div>
+          ${hasTeams ? `
+          <div style="margin-bottom:10px">
+            <div class="info-label" style="margin-bottom:6px">Which team are you?</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              ${(di.teamNames||[]).map(n => `<button onclick="dirImportPickTeam(${JSON.stringify(n)})" style="padding:5px 14px;border-radius:20px;border:2px solid ${di.selectedTeam===n?'var(--royal)':'var(--g200)'};background:${di.selectedTeam===n?'var(--royal)':'white'};color:${di.selectedTeam===n?'white':'var(--g600)'};font-size:.82rem;font-weight:600;cursor:pointer">${esc(n)}</button>`).join('')}
+            </div>
+          </div>` : ''}
+          ${hasGames ? `
+          <div style="max-height:200px;overflow-y:auto;font-size:.78rem;border:1px solid var(--g100);border-radius:6px;padding:4px 8px;margin-bottom:10px">
+            ${(di.filteredGames||[]).map(g => `<div style="padding:4px 0;border-bottom:1px solid var(--g50)"><b>${esc(g.gameNum)}</b> · ${esc(g.time||'')} · <span style="color:var(--royal)">${esc(g.opponent||'')}</span> · ${esc(g.cap||'')} cap [${esc(g.location||'')}]</div>`).join('')}
+          </div>
+          <button class="save-btn" style="width:100%;background:var(--royal);color:white" onclick="dirImportApply(this)">🚀 Import ${(di.filteredGames||[]).length} Game(s) into My Schedule</button>` : ''}
+        </div>
+      </details>`;
+    }
+
+    async function dirImportFetch() {
+      if (!S.dirImport) S.dirImport = {};
+      const code = (document.getElementById('dir-import-code')?.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const statusEl = document.getElementById('dir-import-status');
+      if (code.length < 4) { if (statusEl) { statusEl.style.color='#dc2626'; statusEl.textContent='⚠️ Enter the share code first'; } return; }
+      if (statusEl) { statusEl.style.color='var(--g400)'; statusEl.textContent='⏳ Fetching tournament schedule…'; }
+      S.dirImport.code = code;
+      S.dirImport.statusHtml = '';
+      S.dirImport.teamNames = [];
+      S.dirImport.filteredGames = [];
+      S.dirImport.selectedTeam = '';
+      S.dirImport.pkg = null;
+      try {
+        const res = await fetch(WORKER + '/tournament-pkg?code=' + encodeURIComponent(code));
+        const data = await res.json();
+        if (!data.ok || !data.pkg) throw new Error(data.description || 'Code not found — check with the tournament director');
+        const pkg = data.pkg;
+        const sched = pkg.importedSchedule || [];
+        if (!sched.length) throw new Error('This tournament has no imported schedule yet — ask the director to publish it with the Schedule Sheet Import in their Director tab');
+        // Collect all unique team names
+        const names = new Set();
+        for (const g of sched) { if (g.team1Name && g.team1Name !== 'TBD') names.add(g.team1Name); if (g.team2Name && g.team2Name !== 'TBD') names.add(g.team2Name); }
+        S.dirImport.pkg = pkg;
+        S.dirImport.teamNames = Array.from(names).sort();
+        S.dirImport.statusHtml = `<span style="color:#059669">✅ Found ${sched.length} scheduled games in <strong>${esc(pkg.tournamentName||code)}</strong> — pick your team below</span>`;
+        if (statusEl) { statusEl.style.color='#059669'; statusEl.innerHTML = S.dirImport.statusHtml; }
+        S.dirImport.open = true;
+        // Re-render the card to show team picker
+        const card = document.getElementById('dir-import-card');
+        if (card) card.outerHTML = dirImportWizardHtml();
+        const newCard = document.getElementById('dir-import-card');
+        if (newCard) newCard.open = true;
+      } catch(e) {
+        S.dirImport.statusHtml = `<span style="color:#dc2626">❌ ${esc(e.message)}</span>`;
+        if (statusEl) { statusEl.innerHTML = S.dirImport.statusHtml; }
+      }
+    }
+
+    function dirImportPickTeam(teamName) {
+      if (!S.dirImport?.pkg) return;
+      const sched = S.dirImport.pkg.importedSchedule || [];
+      S.dirImport.selectedTeam = teamName;
+      const tl = teamName.toLowerCase();
+      S.dirImport.filteredGames = sched
+        .filter(g => (g.team1Name||'').toLowerCase() === tl || (g.team2Name||'').toLowerCase() === tl)
+        .map(g => {
+          const isTeam1 = (g.team1Name||'').toLowerCase() === tl;
+          return {
+            id: g.id || ('g' + Date.now() + Math.random().toString(36).slice(2)),
+            gameNum: g.gameNum || '',
+            opponent: isTeam1 ? (g.team2Name||'TBD') : (g.team1Name||'TBD'),
+            cap: isTeam1 ? 'White' : 'Dark',
+            time: g.time || '',
+            date: g.date || '',
+            dateISO: g.dateISO || '',
+            location: g.location || '',
+            pool: g.location || '',
+            division: g.division || '',
+          };
+        })
+        .sort((a, b) => (a.dateISO||a.date||'').localeCompare(b.dateISO||b.date||'') || (a.time||'').localeCompare(b.time||''));
+      // Re-render card
+      const card = document.getElementById('dir-import-card');
+      if (card) { card.outerHTML = dirImportWizardHtml(); document.getElementById('dir-import-card').open = true; }
+    }
+
+    async function dirImportApply(btn) {
+      const games = S.dirImport?.filteredGames;
+      const pkg   = S.dirImport?.pkg;
+      if (!games?.length) return;
+      if (btn) btn.disabled = true;
+      const statusEl = document.getElementById('dir-import-status');
+      if (statusEl) { statusEl.style.color='var(--g400)'; statusEl.innerHTML='⏳ Importing…'; }
+      try {
+        // Merge: preserve IDs for any games already in the tournament by gameNum
+        const existingByNum = {};
+        for (const g of (S.tournament.games || [])) existingByNum[g.gameNum] = g;
+        const merged = games.map(g => ({ ...g, id: existingByNum[g.gameNum]?.id || g.id }));
+        merged.sort((a, b) => (a.dateISO||a.date||'').localeCompare(b.dateISO||b.date||'') || (a.time||'').localeCompare(b.time||''));
+        S.tournament.games = merged;
+        // Stamp where these games came from
+        S.tournament.dirImportCode = S.dirImport.code;
+        S.tournament.dirImportName = pkg?.tournamentName || '';
+        delete S.tournament.upcomingMode;
+        delete S.tournament.comingSoon;
+        const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+        if (!saveRes.ok) throw new Error('Save failed — tap 💾 Deploy in the header to retry');
+        await _pushToFirebaseMirror(S.team, S.tournament, S.history || []);
+        showStatus(`✅ ${merged.length} game(s) imported from ${pkg?.tournamentName || S.dirImport.code}!`, 'ok');
+        S.dirImport = {};
+        renderTab();
+      } catch(e) {
+        if (statusEl) { statusEl.style.color='#dc2626'; statusEl.innerHTML='❌ '+esc(e.message); }
         if (btn) btn.disabled = false;
       }
     }
