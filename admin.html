@@ -3276,7 +3276,7 @@
           price: '$24.99/mo · $199/yr · 14-day free trial', feature: 'push_notify',
           items: [
             'Push notifications to all subscribers — scores, schedule changes, cancellations',
-            'Automatic game reminders sent to parents X minutes before tip-off',
+            'Automatic game reminders sent to spectators X minutes before tip-off',
             'Send custom announcements any time — team news, carpool, hotel info',
             'Telegram, GroupMe &amp; TeamSnap integrations for your existing group chats',
             'Schedule announcements in advance — set it and forget it',
@@ -3299,7 +3299,7 @@
           items: [
             'Import scores directly from tournament director — no double entry',
             'Manage all clubs &amp; age groups from a single director dashboard',
-            'Public shareable bracket URL for spectators, coaches, and parents',
+            'Public shareable bracket URL for spectators, coaches, and families',
             'Live public scoring visible to anyone — no app or login required',
             'Exportable results &amp; standings reports for end-of-tournament packets',
           ], cta: 'Get Tournament Host 👑',
@@ -3678,7 +3678,7 @@
         addgames_opponent: 'Opponent',
         addgames_time: 'Time',
         addgames_date_iso: 'Date (YYYY-MM-DD)',
-        addgames_date_past_warn: 'Date is in the past - parents see "All games complete"',
+        addgames_date_past_warn: 'Date is in the past - spectators see "All games complete"',
         addgames_start_typing_venue: 'Start typing a venue...',
         addgames_google_places_hint: 'Type to search via Google Places',
         addgames_pool: 'Pool',
@@ -3726,7 +3726,7 @@
         addgames_venue_hint: 'Type to search via Google Places — selecting a result auto-fills the address below.',
         addgames_venue_address: 'Venue Address',
         addgames_scorer_password: 'Scorer Password',
-        addgames_scorer_password_hint: 'This unlocks scorer mode in the parent app. Use a simple tournament-day password.',
+        addgames_scorer_password_hint: 'This unlocks scorer mode in the spectator app. Use a simple tournament-day password.',
         addgames_save_deploy_info: 'Save & Deploy Info',
         addgames_director_groups: 'Tournament Director — Age Groups and Divisions',
         addgames_director_groups_hint: 'Use one shared tournament shell across groups, then keep games, clocks, and brackets scoped to each age group.',
@@ -3743,7 +3743,7 @@
         addgames_refresh: 'Refresh',
         addgames_scores_hint: 'Published director scores appear here once other teams sync and submit results.',
         addgames_score_entry_password: 'Score Entry Password',
-        addgames_share_code_help: 'Other teams enter this code in the parent app under Sync from Tournament Director to import tournament info.',
+        addgames_share_code_help: 'Other teams enter this code in the spectator app under Sync from Tournament Director to import tournament info.',
         addgames_share_code_expiry: 'Expires in 30 days.',
         addgames_clear: 'Clear',
         scorer_access_title: 'Scorer Access Only',
@@ -3793,7 +3793,7 @@
         <li><strong>Archive a tournament:</strong> use the tournament selector actions and tap <strong>Archive</strong>. The tournament becomes read-only and moves into the archived set.</li>
         <li><strong>Season stats:</strong> archived tournament stats feed cumulative player stats on eligible plans.</li>
         <li><strong>Clone from archive:</strong> reuse an older tournament structure with games and roster while clearing scores.</li>
-        <li>Parents continue to see past results in the History tab of the parent app.</li>
+        <li>Spectators continue to see past results in the History tab of the spectator app.</li>
       </ul>`,
         help_addgames_settings_title: 'Add Games Tab — Tournament Settings',
         help_addgames_settings_body: `<p>Configure the current tournament and how the app behaves.</p>
@@ -3802,7 +3802,7 @@
         <li><strong>Tournament ID</strong> is the unique key for this event. Only change it when starting a new tournament because changing it archives the current event on parent devices.</li>
         <li><strong>Name, subtitle, dates, location, and pool</strong> appear in the app header and schedule.</li>
         <li><strong>Coming Soon message</strong> is shown before games are posted. Clear it after publishing games.</li>
-        <li><strong>Scoring Password</strong> controls who can unlock scorer mode in the parent app.</li>
+        <li><strong>Scoring Password</strong> controls who can unlock scorer mode in the spectator app.</li>
         <li><strong>Age Group</strong> keeps each team workspace separate for tournament data, roster, and history.</li>
         <li><strong>Multi-Team Mode</strong> lets you manage A, B, and optional C teams independently.</li>
         <li><strong>Sync Games from Sheet</strong> imports schedule data from Google Sheets.</li>
@@ -3811,10 +3811,10 @@
         help_deploy_title: 'The Deploy Button — When & Why',
         help_deploy_body: `<p>The <strong>Deploy</strong> button in the header publishes your latest changes to the live app.</p>
       <ul>
-        <li><strong>What it does:</strong> saves tournament data to the server and updates the live store parents read from.</li>
+        <li><strong>What it does:</strong> saves tournament data to the server and updates the live store spectators read from.</li>
         <li><strong>When to use it:</strong> after editing games, tournament info, or roster data.</li>
         <li>The header Deploy button is the main way to publish changes. Nothing is live until you deploy.</li>
-        <li>Deploy usually takes a few seconds and then parents see updates shortly after.</li>
+        <li>Deploy usually takes a few seconds and then spectators see updates shortly after.</li>
       </ul>`,
         help_tournament_selector_title: 'Tournament Selector — Multi-Tournament Management',
         help_tournament_selector_body: `<p>The tournament selector below the header lets you manage more than one tournament for the same club.</p>
@@ -3826,49 +3826,49 @@
         <li>When you select a tournament, the admin loads that tournament's cloud data and you deploy updates back into that same record.</li>
       </ul>`,
         help_panel_title: 'Admin Panel Guide',
-        help_panel_subtitle: 'Current workflow for tournament day, parent updates, and club operations.',
+        help_panel_subtitle: 'Current workflow for tournament day, spectator updates, and club operations.',
         help_overview_title: 'Getting Started - Current Workflow',
-        help_overview_body: `<p>Use this order to keep the admin panel and parent app aligned with the latest workflow.</p>
+        help_overview_body: `<p>Use this order to keep the admin panel and spectator app aligned with the latest workflow.</p>
       <ul>
         <li><strong>Pick the tournament and age group first:</strong> the tournament selector chooses the cloud record, and the age-group picker scopes schedule, roster, history, and team data.</li>
         <li><strong>Add Games:</strong> update tournament info, clock settings, scoring password, and multi-team setup before game day.</li>
         <li><strong>Schedule + Roster:</strong> confirm games, cap colors, and player lists for every active squad.</li>
         <li><strong>Director / T-Score flows:</strong> use hosted tournament imports when a tournament director publishes a package or official scores.</li>
-        <li><strong>Deploy:</strong> parent app changes are not live until you deploy the updated tournament record.</li>
+        <li><strong>Deploy:</strong> spectator app changes are not live until you deploy the updated tournament record.</li>
       </ul>`,
         help_schedule_ops_title: 'Schedule Operations - Games, Imports, and Team Splits',
-        help_schedule_ops_body: `<p>The Add Games and Schedule tabs now drive the current parent experience, including split teams and hosted-tournament imports.</p>
+        help_schedule_ops_body: `<p>The Add Games and Schedule tabs now drive the current spectator experience, including split teams and hosted-tournament imports.</p>
       <ul>
         <li><strong>Games are edited in Add Games:</strong> set opponent, time, date, location, pool, cap color, and team assignment there.</li>
-        <li><strong>Cap color matters:</strong> white and dark caps now change the card treatment parents see in Schedule and Scores.</li>
-        <li><strong>Multi-team mode:</strong> assign each game to A, B, or optional C so split-team schedules stay separated in the parent app.</li>
+        <li><strong>Cap color matters:</strong> white and dark caps now change the card treatment spectators see in Schedule and Scores.</li>
+        <li><strong>Multi-team mode:</strong> assign each game to A, B, or optional C so split-team schedules stay separated in the spectator app.</li>
         <li><strong>Google Sheet sync:</strong> replacing the sheet replaces the imported games for that age group.</li>
         <li><strong>Hosted tournament import:</strong> team admins can pull published games from a director package using its share code.</li>
       </ul>`,
-        help_roster_stats_title: 'Roster, Stats, and Parent History',
-        help_roster_stats_body: `<p>Roster and scoring changes feed directly into the parent app's Roster, Scores, and History tabs.</p>
+        help_roster_stats_title: 'Roster, Stats, and Spectator History',
+        help_roster_stats_body: `<p>Roster and scoring changes feed directly into the spectator app's Roster, Scores, and History tabs.</p>
       <ul>
         <li><strong>Keep rosters current per team:</strong> A, B, and C teams each have separate player lists.</li>
         <li><strong>Live scoring uses roster names:</strong> box scores, player history, and season stats depend on accurate cap numbers and names.</li>
         <li><strong>Archived tournaments feed season totals:</strong> once a tournament is archived, eligible plans can show cumulative player stats.</li>
-        <li><strong>Parent history is now multi-team aware:</strong> labels like 680 A and 680 B stay separated in standings and history cards.</li>
+        <li><strong>Spectator history is now multi-team aware:</strong> labels like 680 A and 680 B stay separated in standings and history cards.</li>
         <li><strong>Legacy history seeding:</strong> importing older history records should preserve dates and team labels before you deploy.</li>
       </ul>`,
         help_director_current_title: 'Tournament Director and T-Score',
         help_director_current_body: `<p>The director workflow is now the official path for hosted tournaments and published final scores.</p>
       <ul>
         <li><strong>Director package:</strong> publish the tournament schedule once, then share the code with each participating team admin.</li>
-        <li><strong>T-Score tab:</strong> the parent app can show director-published finals and the wider tournament schedule separately from live stat scoring.</li>
+        <li><strong>T-Score tab:</strong> the spectator app can show director-published finals and the wider tournament schedule separately from live stat scoring.</li>
         <li><strong>Period mode:</strong> set quarters or halves by age group before directors or scorers start entering results.</li>
         <li><strong>Bracket and standings:</strong> official director results drive tournament standings and bracket placement.</li>
       </ul>`,
-        help_comms_title: 'Team Communication and Parent Delivery',
+        help_comms_title: 'Team Communication and Spectator Delivery',
         help_comms_body: `<p>Use Team Communication to push updates beyond the app itself.</p>
       <ul>
-        <li><strong>Push notifications:</strong> schedule announcements or game reminders for subscribed parents.</li>
+        <li><strong>Push notifications:</strong> schedule announcements or game reminders for subscribed spectators.</li>
         <li><strong>Telegram / GroupMe / TeamSnap:</strong> configure and test each integration before tournament day.</li>
         <li><strong>Calendar feeds:</strong> share the webcal subscription link when you want families to keep schedule changes synced automatically.</li>
-        <li><strong>Live updates:</strong> parents can also follow games from widgets, Live Activities, and Android Live Updates once scoring starts.</li>
+        <li><strong>Live updates:</strong> spectators can also follow games from widgets, Live Activities, and Android Live Updates once scoring starts.</li>
       </ul>`,
         help_admin_access_title: 'Access, Roles, and Security',
         help_admin_access_body: `<p>Admin access is now a mix of Google sign-in, club admin lists, and optional scorer-only roles.</p>
@@ -3876,15 +3876,15 @@
         <li><strong>Google sign-in is preferred:</strong> each admin uses their own account instead of sharing a single password.</li>
         <li><strong>Club admin list:</strong> add or remove Firebase UIDs in Club Info to control who can manage the club.</li>
         <li><strong>Scorer role:</strong> scorers can be limited to game operations without opening the full admin surface.</li>
-        <li><strong>Scoring password:</strong> this is separate from admin auth and only unlocks scorer mode in the parent app.</li>
+        <li><strong>Scoring password:</strong> this is separate from admin auth and only unlocks scorer mode in the spectator app.</li>
       </ul>`,
         help_branding_title: 'Club Branding and Presentation',
-        help_branding_body: `<p>Club branding changes affect what parents see across the native app, widgets, and watch surfaces.</p>
+        help_branding_body: `<p>Club branding changes affect what spectators see across the native app, widgets, and watch surfaces.</p>
       <ul>
         <li><strong>Primary and secondary colors:</strong> update headers, buttons, live accents, and dark-cap cards.</li>
         <li><strong>Header style:</strong> choose the treatment that best fits your club brand.</li>
-        <li><strong>Preview before saving:</strong> use the live preview strip to catch contrast issues before parents see the update.</li>
-        <li><strong>Branding saves separately from deploy:</strong> tournament data still needs Deploy, but club appearance updates should also be checked in the parent app after saving.</li>
+        <li><strong>Preview before saving:</strong> use the live preview strip to catch contrast issues before spectators see the update.</li>
+        <li><strong>Branding saves separately from deploy:</strong> tournament data still needs Deploy, but club appearance updates should also be checked in the spectator app after saving.</li>
       </ul>`,
         auth_accepting_invite: 'Accepting invite...',
         auth_invite_accepted: 'Invite accepted!',
@@ -4564,7 +4564,7 @@
         addgames_opponent: 'Adversaire',
         addgames_time: 'Heure',
         addgames_date_iso: 'Date (YYYY-MM-DD)',
-        addgames_date_past_warn: 'La date est passee - les parents voient "All games complete"',
+        addgames_date_past_warn: 'La date est passee - les spectateurs voient "All games complete"',
         addgames_start_typing_venue: 'Commencez a saisir un lieu...',
         addgames_google_places_hint: 'Tapez pour rechercher via Google Places',
         addgames_pool: 'Bassin',
@@ -4612,7 +4612,7 @@
         addgames_venue_hint: "Saisissez pour rechercher via Google Places — le choix d'un resultat remplit l'adresse.",
         addgames_venue_address: 'Adresse du lieu',
         addgames_scorer_password: 'Mot de passe du scoreur (stats)',
-        addgames_scorer_password_hint: 'Les parents saisissent ceci pour utiliser le score en direct le jour du match.',
+        addgames_scorer_password_hint: 'Les spectateurs saisissent ceci pour utiliser le score en direct le jour du match.',
         addgames_save_deploy_info: 'Enregistrer et deployer les infos',
         addgames_director_groups: "Directeur du tournoi — groupes d'age et divisions",
         addgames_director_groups_hint: "Configurez chaque groupe d'age puis ajoutez des sections de division. Chaque section est un tableau independant.",
@@ -4679,13 +4679,13 @@
         <li><strong>Archiver un tournoi :</strong> utilisez les actions du selecteur puis touchez <strong>Archiver</strong>. Le tournoi devient en lecture seule et passe dans les archives.</li>
         <li><strong>Stats de saison :</strong> les stats archivees alimentent les cumuls joueurs sur les offres eligibles.</li>
         <li><strong>Cloner depuis les archives :</strong> reutilisez la structure d'un ancien tournoi avec matchs et effectif mais sans scores.</li>
-        <li>Les parents continuent de voir les anciens resultats dans l'onglet Historique.</li>
+        <li>Les spectateurs continuent de voir les anciens resultats dans l'onglet Historique.</li>
       </ul>`,
         help_addgames_settings_title: 'Onglet Matchs — reglages du tournoi',
         help_addgames_settings_body: `<p>Configurez le tournoi en cours et le comportement de l'application.</p>
       <ul>
         <li><strong>Nom du club</strong> controle la facon dont votre equipe apparait sur les cartes de match.</li>
-        <li><strong>ID du tournoi</strong> est la cle unique de l'evenement. Ne la changez qu'au debut d'un nouveau tournoi car cela archive l'evenement en cours sur les appareils des parents.</li>
+        <li><strong>ID du tournoi</strong> est la cle unique de l'evenement. Ne la changez qu'au debut d'un nouveau tournoi car cela archive l'evenement en cours sur les appareils des spectateurs.</li>
         <li><strong>Nom, sous-titre, dates, lieu et poule</strong> s'affichent dans l'en-tete et le calendrier.</li>
         <li><strong>Message Coming Soon</strong> s'affiche avant la publication des matchs. Effacez-le une fois les matchs publies.</li>
         <li><strong>Mot de passe scoreur</strong> controle qui peut deverrouiller le mode scoreur.</li>
@@ -4697,10 +4697,10 @@
         help_deploy_title: 'Le bouton Deploy — quand et pourquoi',
         help_deploy_body: `<p>Le bouton <strong>Deploy</strong> dans l'en-tete publie vos changements vers l'application en direct.</p>
       <ul>
-        <li><strong>Ce qu'il fait :</strong> enregistre les donnees du tournoi sur le serveur et met a jour la source lue par les parents.</li>
+        <li><strong>Ce qu'il fait :</strong> enregistre les donnees du tournoi sur le serveur et met a jour la source lue par les spectateurs.</li>
         <li><strong>Quand l'utiliser :</strong> apres avoir modifie des matchs, les infos du tournoi ou l'effectif.</li>
         <li>Le bouton Deploy de l'en-tete est le moyen principal de publier les changements. Rien n'est en ligne avant le deploy.</li>
-        <li>Le deploy prend generalement quelques secondes, puis les parents voient les mises a jour peu apres.</li>
+        <li>Le deploy prend generalement quelques secondes, puis les spectateurs voient les mises a jour peu apres.</li>
       </ul>`,
         help_tournament_selector_title: 'Selecteur de tournois — gestion multi-tournois',
         help_tournament_selector_body: `<p>Le selecteur de tournoi sous l'en-tete permet de gerer plusieurs tournois pour le meme club.</p>
@@ -4712,49 +4712,49 @@
         <li>Quand vous selectionnez un tournoi, l'admin charge ses donnees cloud et vos deploys retournent dans ce meme dossier.</li>
       </ul>`,
         help_panel_title: 'Guide du panneau admin',
-        help_panel_subtitle: 'Flux actuel pour le jour de tournoi, les mises a jour parents et les operations du club.',
+        help_panel_subtitle: 'Flux actuel pour le jour de tournoi, les mises a jour spectateurs et les operations du club.',
         help_overview_title: 'Demarrage - flux actuel',
-        help_overview_body: `<p>Suivez cet ordre pour garder le panneau admin et l'app parents alignes sur le flux le plus recent.</p>
+        help_overview_body: `<p>Suivez cet ordre pour garder le panneau admin et l'app spectateurs alignes sur le flux le plus recent.</p>
       <ul>
         <li><strong>Choisissez d'abord le tournoi et le groupe d'age :</strong> le selecteur de tournoi choisit le dossier cloud, et le selecteur de groupe delimite calendrier, effectif, historique et equipe.</li>
         <li><strong>Add Games :</strong> mettez a jour les infos tournoi, le chronometre, le mot de passe scoreur et la configuration multi-equipes avant le jour J.</li>
         <li><strong>Schedule + Roster :</strong> verifiez matchs, couleurs de bonnet et listes de joueuses pour chaque equipe active.</li>
         <li><strong>Director / T-Score :</strong> utilisez les imports de tournoi heberge quand un directeur publie un package ou des scores officiels.</li>
-        <li><strong>Deploy :</strong> les changements visibles par les parents ne sont pas en ligne tant que vous ne deployez pas le dossier tournoi.</li>
+        <li><strong>Deploy :</strong> les changements visibles par les spectateurs ne sont pas en ligne tant que vous ne deployez pas le dossier tournoi.</li>
       </ul>`,
         help_schedule_ops_title: 'Operations calendrier - matchs, imports et equipes scindees',
-        help_schedule_ops_body: `<p>Les onglets Add Games et Schedule pilotent maintenant l'experience parents actuelle, y compris les equipes scindees et les imports de tournois heberges.</p>
+        help_schedule_ops_body: `<p>Les onglets Add Games et Schedule pilotent maintenant l'experience spectateurs actuelle, y compris les equipes scindees et les imports de tournois heberges.</p>
       <ul>
         <li><strong>Les matchs se modifient dans Add Games :</strong> reglez adversaire, heure, date, lieu, poule, couleur de bonnet et equipe.</li>
-        <li><strong>La couleur de bonnet compte :</strong> bonnets blancs et fonces changent l'apparence des cartes vues par les parents dans Schedule et Scores.</li>
+        <li><strong>La couleur de bonnet compte :</strong> bonnets blancs et fonces changent l'apparence des cartes vues par les spectateurs dans Schedule et Scores.</li>
         <li><strong>Mode multi-equipes :</strong> affectez chaque match a A, B ou C en option pour garder les calendriers separes.</li>
         <li><strong>Sync depuis Google Sheets :</strong> une nouvelle synchro remplace les matchs importes pour ce groupe.</li>
         <li><strong>Import de tournoi heberge :</strong> les admins d'equipe peuvent recuperer les matchs publies par un directeur avec le code partage.</li>
       </ul>`,
-        help_roster_stats_title: 'Effectif, stats et historique parents',
-        help_roster_stats_body: `<p>Les changements d'effectif et de score alimentent directement les onglets Effectif, Scores et Historique de l'app parents.</p>
+        help_roster_stats_title: 'Effectif, stats et historique spectateurs',
+        help_roster_stats_body: `<p>Les changements d'effectif et de score alimentent directement les onglets Effectif, Scores et Historique de l'app spectateurs.</p>
       <ul>
         <li><strong>Gardez un effectif par equipe :</strong> les equipes A, B et C ont chacune leur propre liste.</li>
         <li><strong>Le score en direct utilise les noms d'effectif :</strong> box scores, historique joueur et stats de saison dependent de noms et numeros exacts.</li>
         <li><strong>Les tournois archives alimentent les totaux de saison :</strong> apres archivage, les offres eligibles peuvent afficher des cumuls.</li>
-        <li><strong>L'historique parents separe maintenant les equipes :</strong> des libelles comme 680 A et 680 B restent distincts dans les classements et cartes d'historique.</li>
+        <li><strong>L'historique spectateurs separe maintenant les equipes :</strong> des libelles comme 680 A et 680 B restent distincts dans les classements et cartes d'historique.</li>
         <li><strong>Si vous importez un historique ancien :</strong> verifiez les dates et les libelles d'equipe avant le deploy.</li>
       </ul>`,
         help_director_current_title: 'Directeur de tournoi et T-Score',
         help_director_current_body: `<p>Le flux directeur est maintenant le chemin officiel pour les tournois heberges et les scores finaux publies.</p>
       <ul>
         <li><strong>Package directeur :</strong> publiez le calendrier une fois puis partagez le code avec chaque admin participant.</li>
-        <li><strong>Onglet T-Score :</strong> l'app parents peut afficher les scores finaux publies par le directeur et le calendrier global du tournoi, separes du score en direct.</li>
+        <li><strong>Onglet T-Score :</strong> l'app spectateurs peut afficher les scores finaux publies par le directeur et le calendrier global du tournoi, separes du score en direct.</li>
         <li><strong>Mode de periode :</strong> reglez quarts ou mi-temps par groupe d'age avant que le directeur ou les scoreurs ne saisissent des resultats.</li>
         <li><strong>Bracket et classements :</strong> les resultats officiels du directeur pilotent les classements et le tableau final.</li>
       </ul>`,
-        help_comms_title: 'Communication equipe et diffusion parents',
+        help_comms_title: 'Communication equipe et diffusion spectateurs',
         help_comms_body: `<p>Utilisez Team Communication pour diffuser des mises a jour au-dela de l'application.</p>
       <ul>
-        <li><strong>Notifications push :</strong> programmez des annonces ou rappels pour les parents abonnes.</li>
+        <li><strong>Notifications push :</strong> programmez des annonces ou rappels pour les spectateurs abonnes.</li>
         <li><strong>Telegram / GroupMe / TeamSnap :</strong> configurez et testez chaque integration avant le tournoi.</li>
         <li><strong>Flux calendrier :</strong> partagez le lien webcal si vous voulez que les changements se synchronisent automatiquement.</li>
-        <li><strong>Mises a jour en direct :</strong> les parents peuvent aussi suivre les matchs via widgets, Live Activities et Android Live Updates des que le score commence.</li>
+        <li><strong>Mises a jour en direct :</strong> les spectateurs peuvent aussi suivre les matchs via widgets, Live Activities et Android Live Updates des que le score commence.</li>
       </ul>`,
         help_admin_access_title: 'Acces, roles et securite',
         help_admin_access_body: `<p>L'acces admin combine maintenant connexion Google, liste des admins du club et roles scoreur uniquement en option.</p>
@@ -4762,15 +4762,15 @@
         <li><strong>Google est prefere :</strong> chaque admin utilise son propre compte au lieu de partager un seul mot de passe.</li>
         <li><strong>Liste des admins du club :</strong> ajoutez ou retirez des UID Firebase dans Club Info pour controler l'acces.</li>
         <li><strong>Role scoreur :</strong> vous pouvez limiter certains comptes aux operations de match sans ouvrir tout le panneau admin.</li>
-        <li><strong>Mot de passe scoreur :</strong> il reste separe de l'auth admin et deverrouille seulement le mode scoreur dans l'app parents.</li>
+        <li><strong>Mot de passe scoreur :</strong> il reste separe de l'auth admin et deverrouille seulement le mode scoreur dans l'app spectateurs.</li>
       </ul>`,
         help_branding_title: 'Branding du club et presentation',
-        help_branding_body: `<p>Les changements de branding modifient ce que les parents voient dans l'app native, les widgets et l'Apple Watch.</p>
+        help_branding_body: `<p>Les changements de branding modifient ce que les spectateurs voient dans l'app native, les widgets et l'Apple Watch.</p>
       <ul>
         <li><strong>Couleurs primaire et secondaire :</strong> mettent a jour en-tetes, boutons, accents live et cartes bonnet fonce.</li>
         <li><strong>Style d'en-tete :</strong> choisissez le rendu le plus adapte a votre image de club.</li>
         <li><strong>Previsualisez avant d'enregistrer :</strong> utilisez la bande de preview pour detecter les problemes de contraste avant publication.</li>
-        <li><strong>Le branding se sauvegarde a part :</strong> les donnees tournoi demandent encore Deploy, et l'apparence club doit etre reverifiee dans l'app parents apres enregistrement.</li>
+        <li><strong>Le branding se sauvegarde a part :</strong> les donnees tournoi demandent encore Deploy, et l'apparence club doit etre reverifiee dans l'app spectateurs apres enregistrement.</li>
       </ul>`,
         auth_accepting_invite: "Acceptation de l'invitation...",
         auth_invite_accepted: 'Invitation acceptee',
@@ -7373,7 +7373,7 @@
                  oninput="S.tournament.clubName=this.value">
         </div>
         <div class="info-field">
-          <div class="info-label">Join Password (Optional) <span style="color:var(--g400);font-weight:400;text-transform:none">(parents must enter this to join)</span></div>
+          <div class="info-label">Join Password (Optional) <span style="color:var(--g400);font-weight:400;text-transform:none">(spectators must enter this to join)</span></div>
           <input class="info-input" id="club-join-password" value="${esc(t.joinPassword || '')}" placeholder="e.g. gatorade"
                  oninput="S.tournament.joinPassword=this.value">
           <div class="info-hint">Only required for initial join. Recommended 1 word, lowercase.</div>
@@ -7413,14 +7413,14 @@
     <div class="card" style="margin-bottom:12px">
       <div class="card-header">🔗 Parent Join Link</div>
       <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
-        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">Share this link with parents so they can see your club in the app.</div>
+        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">Share this link with spectators so they can see your club in the app.</div>
         <div style="display:flex;gap:8px;align-items:center">
           <input class="form-input" id="parent-join-url" value="${esc(joinUrl)}" readonly
                  style="font-size:0.8rem;font-family:monospace;flex:1;background:var(--g50);cursor:text"
                  onclick="this.select()">
           <button class="btn-save" onclick="copyParentJoinLink()" style="flex:0 0 auto;white-space:nowrap">📋 Copy</button>
         </div>
-        <div style="font-size:0.72rem;color:var(--g400)">Club code: <strong>${esc(clubId)}</strong> — parents can also type this into the join screen.</div>
+        <div style="font-size:0.72rem;color:var(--g400)">Club code: <strong>${esc(clubId)}</strong> — spectators can also type this into the join screen.</div>
       </div>
     </div>
 
@@ -7435,7 +7435,7 @@
           <button class="save-btn" style="flex:1;background:var(--green);color:white" onclick="uploadClubLogo()" id="upload-logo-btn" disabled>⬆️ Upload Logo</button>
         </div>
         <div id="logo-upload-status" style="font-size:0.78rem;margin-top:6px"></div>
-        <div class="info-hint" style="margin-top:4px">Max 150KB. Shown in the parent app header.</div>
+        <div class="info-hint" style="margin-top:4px">Max 150KB. Shown in the spectator app header.</div>
       </div>
     </div>
 
@@ -7444,7 +7444,7 @@
       <div class="card-header" style="background:var(--royal);color:white;font-size:0.82rem">🎨 Club Branding</div>
       <div class="info-form">
         <div style="font-size:0.82rem;color:var(--g600);line-height:1.5;margin-bottom:10px">
-          Customize your club's colors in the parent app. All parents will see these colors automatically.
+          Customize your club's colors in the spectator app. All spectators will see these colors automatically.
         </div>
         <div class="info-field">
           <div class="info-label">Primary Color <span style="color:var(--g400);font-weight:400;text-transform:none">(header, buttons, accents)</span></div>
@@ -9781,7 +9781,7 @@
         // Also mirror to Firestore so real-time listeners get the live data immediately
         await _pushToFirebaseMirror(S.team, S.tournament, S.history || []);
 
-        if (status) { status.style.color = '#059669'; status.textContent = `✅ ${games.length} game(s) imported and LIVE in parent app!${S.bsync.pollMins ? ` Auto-sync every ${S.bsync.pollMins} min.` : ''} Fill in tournament name/dates below and tap 💾 Save & Deploy to publish those details.`; }
+        if (status) { status.style.color = '#059669'; status.textContent = `✅ ${games.length} game(s) imported and LIVE in spectator app!${S.bsync.pollMins ? ` Auto-sync every ${S.bsync.pollMins} min.` : ''} Fill in tournament name/dates below and tap 💾 Save & Deploy to publish those details.`; }
         if (S.bsync.pollMins > 0) bsStartPoll();
         // Scroll to Game/Tournament Setup so admin fills in name, dates, venue, etc. before deploying
         setTimeout(() => {
@@ -10006,7 +10006,7 @@
         S.director.importedSchedule = schedule;
         S.director.scheduleSheetUrl = S._dirBsSheetUrl || '';
         saveDirectorLocally();
-        // Publish the full director package (bracket + schedule) so parents get it immediately
+        // Publish the full director package (bracket + schedule) so spectators get it immediately
         await publishDirectorPkg(null);
         const st2 = document.getElementById('dir-bs-status');
         const labelNote = agLabel ? ` for "${agLabel}"` : '';
@@ -10761,11 +10761,11 @@
         // Step 4 — Calendar name + Sync frequency
         + '<div id="njo-s4" style="display:' + (step === 4 ? 'block' : 'none') + '">'
         + '<div class="info-label" style="margin-bottom:4px">&#x1f4c5; Parent Calendar Name</div>'
-        + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">Parents subscribe to this calendar once and their app auto-updates as bracket games confirm. Make the name specific to the event and club.</div>'
+        + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">Spectators subscribe to this calendar once and their app auto-updates as bracket games confirm. Make the name specific to the event and club.</div>'
         + '<input class="info-input" id="njo-calname" value="' + esc(n.calendarName || '') + '" placeholder="e.g. 14u Girls NJO 2026 — 680 Drivers" autocomplete="off" style="margin-bottom:4px" oninput="S.njo.calendarName=this.value">'
-        + '<div style="font-size:.72rem;color:var(--g400);margin-bottom:14px">&#x1f517; Subscribe link shows after deploy — share it in your team chat so parents can add it to Google Calendar, Apple Calendar, or Outlook with one tap.</div>'
+        + '<div style="font-size:.72rem;color:var(--g400);margin-bottom:14px">&#x1f517; Subscribe link shows after deploy — share it in your team chat so spectators can add it to Google Calendar, Apple Calendar, or Outlook with one tap.</div>'
         + '<div class="info-label" style="margin-bottom:4px">How often should we check for updates?</div>'
-        + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:8px">During NJO, bracket opponents get confirmed as pool play finishes. Every 5 minutes is recommended so parents see updates quickly.</div>'
+        + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:8px">During NJO, bracket opponents get confirmed as pool play finishes. Every 5 minutes is recommended so spectators see updates quickly.</div>'
         + '<select class="info-input" id="njo-poll" style="margin-bottom:10px">' + pollOpts + '</select>'
         + '<div style="display:flex;gap:8px">'
         + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g200)" onclick="njoStep(3)">&larr; Back</button>'
@@ -12198,7 +12198,7 @@
           4. Paste it above and tap <strong>💾 Save</strong><br><br>
           <strong>Callback URL:</strong> <code>https://ebwp-push.sarah-new.workers.dev/groupme</code><br>
           <strong>Avatar URL:</strong> <code>https://eggbeater.app/logo_large.svg</code><br><br>
-          Parents in the group can also message: <code>score</code>, <code>schedule</code>, or <code>help</code>
+          Spectators in the group can also message: <code>score</code>, <code>schedule</code>, or <code>help</code>
         </div>
       </div>
     </div>
@@ -12994,7 +12994,7 @@
       <div class="card-header" style="color:var(--royal)">🔄 Restore History from Archive — ${esc(teamLabel)}</div>
       <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px">
         <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">
-          Pulls every archived tournament for this age group and rebuilds the history parents see.
+          Pulls every archived tournament for this age group and rebuilds the history spectators see.
           Existing entries are preserved; only missing ones are added.
           Use this after a deploy accidentally cleared the history.
         </div>

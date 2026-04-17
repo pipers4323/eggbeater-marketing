@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spectator Guide - Eggbeater Water Polo</title>
+<meta name="description" content="How to follow live water polo games, get scores, and view tournament brackets with the Eggbeater app." />
+<meta property="og:title" content="Spectator Guide - Eggbeater Water Polo" />
+<meta property="og:description" content="Follow live water polo games, get scores, and never miss a tournament update. Complete spectator guide." />
+<meta property="og:url" content="https://eggbeater.app/spectator-guide.html" />
+<meta property="og:type" content="website" />
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
+<link rel="apple-touch-icon" href="/icon-512.png">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --royal:       #002868;
+  --royal-dark:  #001a4a;
+  --royal-mid:   #1a4898;
+  --royal-light: #dce5f5;
+  --royal-subtle:#edf1f8;
+  --red:         #cc1f1f;
+  --green:       #16a34a;
+  --amber:       #d97706;
+  --teal:        #0d9488;
+  --g50:         #f8f9fb;
+  --g100:        #f0f2f7;
+  --g200:        #e2e6ef;
+  --g400:        #8a94a6;
+  --g600:        #4a5568;
+  --g900:        #1a202c;
+  --radius:      14px;
+  --radius-sm:   8px;
+}
+
+html { font-size: 16px; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: var(--g100);
+  color: var(--g900);
+  line-height: 1.6;
+}
+
+/* ── Hero ─────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(135deg, var(--royal) 0%, var(--royal-mid) 100%);
+  color: white;
+  padding: 48px 24px 56px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: -30px; left: 0; right: 0;
+  height: 60px;
+  background: var(--g100);
+  border-radius: 50% 50% 0 0;
+}
+.hero-badge {
+  display: inline-block;
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.hero h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  letter-spacing: -.5px;
+}
+.hero p {
+  font-size: 1rem;
+  opacity: .85;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+/* ── Container ────────────────────────────────────── */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 20px 80px;
+}
+
+/* ── Table of Contents ────────────────────────────── */
+.toc {
+  background: white;
+  border-radius: var(--radius);
+  padding: 24px 28px;
+  margin: -20px auto 32px;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 4px 20px rgba(0,40,104,.1);
+}
+.toc h2 {
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--g400);
+  margin-bottom: 14px;
+}
+.toc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 24px;
+}
+@media (max-width: 600px) { .toc-grid { grid-template-columns: 1fr; } }
+.toc a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--g900);
+  font-size: .88rem;
+  font-weight: 500;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  transition: background .15s;
+}
+.toc a:hover { background: var(--royal-subtle); }
+.toc a .num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  background: var(--royal-light);
+  color: var(--royal);
+  border-radius: 6px;
+  font-size: .7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ── Section ──────────────────────────────────────── */
+.section {
+  margin-bottom: 36px;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--royal-light);
+}
+.section-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px; height: 40px;
+  background: var(--royal);
+  color: white;
+  border-radius: 10px;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+.section-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--royal);
+}
+
+/* ── Cards ────────────────────────────────────────── */
+.card {
+  background: white;
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 14px;
+  border: 1px solid var(--g200);
+}
+.card h3 {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--g900);
+  margin-bottom: 8px;
+}
+.card p, .card li {
+  font-size: .88rem;
+  color: var(--g600);
+  line-height: 1.65;
+}
+.card ul, .card ol {
+  padding-left: 20px;
+  margin-top: 6px;
+}
+.card li { margin-bottom: 4px; }
+.card li strong { color: var(--g900); }
+
+/* ── Step cards ───────────────────────────────────── */
+.steps {
+  counter-reset: step;
+}
+.step {
+  background: white;
+  border-radius: var(--radius);
+  padding: 18px 20px 18px 56px;
+  margin-bottom: 10px;
+  border: 1px solid var(--g200);
+  position: relative;
+}
+.step::before {
+  counter-increment: step;
+  content: counter(step);
+  position: absolute;
+  left: 18px; top: 18px;
+  width: 26px; height: 26px;
+  background: var(--royal);
+  color: white;
+  border-radius: 8px;
+  font-size: .78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.step h3 {
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--g900);
+  margin-bottom: 4px;
+}
+.step p {
+  font-size: .85rem;
+  color: var(--g600);
+  line-height: 1.6;
+}
+
+/* ── Callout ──────────────────────────────────────── */
+.callout {
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.callout-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+.callout p { font-size: .85rem; line-height: 1.6; }
+.callout-info { background: var(--royal-subtle); border: 1px solid var(--royal-light); }
+.callout-info p { color: var(--royal-mid); }
+.callout-warn { background: #fffbeb; border: 1px solid #fde68a; }
+.callout-warn p { color: #92400e; }
+.callout-success { background: #dcfce7; border: 1px solid #bbf7d0; }
+.callout-success p { color: #166534; }
+
+/* ── Key-value pairs ──────────────────────────────── */
+.kv-row {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--g100);
+  font-size: .85rem;
+}
+.kv-row:last-child { border-bottom: none; }
+.kv-label {
+  font-weight: 600;
+  color: var(--g900);
+  min-width: 110px;
+  flex-shrink: 0;
+}
+.kv-value { color: var(--g600); }
+
+/* ── Tab preview ──────────────────────────────────── */
+.tab-strip {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.tab-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: .8rem;
+  font-weight: 600;
+  border: 1.5px solid var(--g200);
+  background: white;
+  color: var(--g600);
+}
+.tab-pill.active {
+  background: var(--royal);
+  color: white;
+  border-color: var(--royal);
+}
+
+/* ── Inline code ──────────────────────────────────── */
+code {
+  background: var(--royal-subtle);
+  color: var(--royal);
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: .82rem;
+  font-family: "SF Mono", "Menlo", monospace;
+}
+
+/* ── Two-column feature grid ──────────────────────── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+@media (max-width: 600px) { .feature-grid { grid-template-columns: 1fr; } }
+.feature-card {
+  background: white;
+  border: 1px solid var(--g200);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.feature-card .fc-icon {
+  font-size: 1.3rem;
+  margin-bottom: 6px;
+}
+.feature-card h4 {
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--g900);
+  margin-bottom: 4px;
+}
+.feature-card p {
+  font-size: .8rem;
+  color: var(--g400);
+  line-height: 1.5;
+}
+
+/* ── Platform cards ───────────────────────────────── */
+.platform-steps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+@media (max-width: 600px) { .platform-steps { grid-template-columns: 1fr; } }
+.platform-card {
+  background: white;
+  border: 1px solid var(--g200);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+.platform-card h4 {
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--g900);
+  margin-bottom: 6px;
+}
+.platform-card ol {
+  padding-left: 18px;
+  margin: 0;
+}
+.platform-card li {
+  font-size: .82rem;
+  color: var(--g600);
+  line-height: 1.55;
+  margin-bottom: 2px;
+}
+
+/* ── Footer ───────────────────────────────────────── */
+.footer {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--g400);
+  font-size: .8rem;
+}
+.footer a { color: var(--royal); text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+
+/* ── Print ────────────────────────────────────────── */
+@media print {
+  .hero { padding: 24px; }
+  .hero::after { display: none; }
+  .container { padding: 0 10px; }
+  .toc { box-shadow: none; border: 1px solid var(--g200); }
+  .section { page-break-inside: avoid; }
+}
+.site-header { background: #002868; }
+.site-header-logo-band { padding: 10px 24px; display: flex; align-items: center; }
+.site-header-logo-band img { height: 72px; width: auto; display: block; }
+.site-header-teal-bar { height: 3px; background: #0891b2; }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --royal:       #58a6ff;
+    --royal-dark:  #1e40af;
+    --royal-mid:   #79b8ff;
+    --royal-light: #1e3a5f;
+    --royal-subtle:#0d1d35;
+    --g50:  #0d1117;
+    --g100: #0d1117;
+    --g200: #30363d;
+    --g400: #8b949e;
+    --g600: #c9d1d9;
+    --g900: #e6edf3;
+  }
+  body { background: #0d1117; color: #e6edf3; }
+  .hero::after { background: #0d1117; }
+  .toc { background: #161b22; box-shadow: 0 4px 20px rgba(0,0,0,.4); }
+  .toc a { color: #e6edf3; }
+  .toc a:hover { background: #0d1d35; }
+  .toc a .num { background: #1e3a5f; color: #58a6ff; }
+  .section-header { border-bottom-color: #1e3a5f; }
+  .section-header h2 { color: #58a6ff; }
+  .card, .step, .feature-card, .platform-card, .tab-pill { background: #161b22; border-color: #30363d; }
+  .card h3, .step h3, .feature-card h4, .platform-card h4 { color: #e6edf3; }
+  .tab-pill { color: #c9d1d9; }
+  .callout-info { background: #0d1d35; border-color: #1e3a5f; }
+  .callout-info p { color: #79b8ff; }
+  .callout-warn { background: #2d1f00; border-color: #6b4800; }
+  .callout-warn p { color: #fcd34d; }
+  .callout-success { background: #052e16; border-color: #166534; }
+  .callout-success p { color: #86efac; }
+  code { background: #0d1d35; color: #79b8ff; }
+  .kv-row { border-bottom-color: #30363d; }
+  .footer a { color: #58a6ff; }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="site-header-logo-band">
+    <img src="logo_large.svg" alt="Eggbeater Water Polo">
+  </div>
+  <div class="site-header-teal-bar"></div>
+</header>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<div class="hero">
+  <div class="hero-badge">Spectator Guide</div>
+  <h1>Welcome to Eggbeater</h1>
+  <p>Follow live water polo games, get scores, and never miss a tournament update.</p>
+</div>
+
+<div class="container">
+
+<!-- ═══════════════ TOC ═══════════════ -->
+<nav class="toc">
+  <h2>In This Guide</h2>
+  <div class="toc-grid">
+    <a href="#getting-started"><span class="num">1</span> Getting Started</a>
+    <a href="#install"><span class="num">2</span> Install on Your Phone</a>
+    <a href="#pick-team"><span class="num">3</span> Pick Your Team</a>
+    <a href="#schedule"><span class="num">4</span> Schedule Tab</a>
+    <a href="#live-scores"><span class="num">5</span> Live Scores</a>
+    <a href="#my-player"><span class="num">6</span> Follow Your Child</a>
+    <a href="#bracket"><span class="num">7</span> Bracket &amp; Standings</a>
+    <a href="#history"><span class="num">8</span> History &amp; Season Stats</a>
+    <a href="#calendar"><span class="num">9</span> Calendar Sync</a>
+    <a href="#notifications"><span class="num">10</span> Push Notifications</a>
+    <a href="#settings"><span class="num">11</span> Settings &amp; Account</a>
+    <a href="#tips"><span class="num">12</span> Tips &amp; FAQ</a>
+  </div>
+</nav>
+
+<!-- ═══════════════ 1. GETTING STARTED ═══════════════ -->
+<div class="section" id="getting-started">
+  <div class="section-header">
+    <div class="section-icon">1</div>
+    <h2>Getting Started</h2>
+  </div>
+
+  <div class="card">
+    <h3>What is Eggbeater?</h3>
+    <p>Eggbeater is a free app for water polo spectators, families, and fans. Your club's coaches use it to post tournament schedules, run live scoring, and send announcements. You use it to follow along &mdash; check game times, watch live scores from anywhere, and track players and teams throughout the tournament.</p>
+    <p style="margin-top:8px">Access Eggbeater anywhere: Use our mobile-friendly <strong>web app</strong> in any browser, or download the <strong>Eggbeater native app for iOS or Android</strong>.</p>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <h3>Open the Link</h3>
+<p>Your coach will share a link that looks like <code>eggbeater.app/?join=your-club</code>. Open it in Safari (iPhone) or Chrome (Android).</p>
+    </div>
+    <div class="step">
+      <h3>Pick Your Club</h3>
+      <p>If this is your first visit, you'll see a club picker. Tap your club's name. If you got a direct link from your coach, this step is automatic.</p>
+    </div>
+    <div class="step">
+      <h3>Select Your Age Group</h3>
+      <p>Tap the age group pill at the top that matches your child's team (e.g., <strong>14U Girls</strong>). If your child plays on multiple age groups, you can select more than one.</p>
+    </div>
+    <div class="step">
+      <h3>You're In!</h3>
+      <p>You'll see the current tournament schedule with game times, opponents, locations, and cap colors. Bookmark the page or install it to your home screen for quick access.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 2. INSTALL ═══════════════ -->
+<div class="section" id="install">
+  <div class="section-header">
+    <div class="section-icon">2</div>
+    <h2>Install on Your Phone</h2>
+  </div>
+
+  <div class="card">
+    <h3>Why Install?</h3>
+    <p>Installing Eggbeater to your home screen gives you a full-screen app experience &mdash; no browser bars, faster loading, and push notifications work best when opened from the home screen icon.</p>
+  </div>
+
+  <div class="platform-steps">
+    <div class="platform-card" style="grid-column: span 2; background: var(--royal-subtle); border-color: var(--royal-light)">
+      <h4>🚀 Native App (Recommended)</h4>
+      <p>Download <strong>"Eggbeater Water Polo"</strong> from the <strong>Apple App Store</strong> (iOS) or <strong>Google Play</strong> (Android). The native app provides the most premium experience, including faster loading, ultra-smooth scrolling, and native push notifications.</p>
+    </div>
+    <div class="platform-card">
+      <h4>iPhone (Safari Web App)</h4>
+      <ol>
+        <li>Open the web link in <strong>Safari</strong></li>
+        <li>Tap the <strong>Share</strong> button (square + arrow)</li>
+        <li>Tap <strong>"Add to Home Screen"</strong></li>
+      </ol>
+    </div>
+    <div class="platform-card">
+      <h4>Android (Chrome Web App - RECOMMENDED)</h4>
+      <ol>
+        <li>Open the web link in <strong>Chrome</strong></li>
+        <li>Tap the <strong>menu</strong> (three dots)</li>
+        <li>Tap <strong>"Install app"</strong></li>
+        <li>Tap <strong>Install</strong> to add it to your home screen</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-icon">&#x1f514;</div>
+    <p><strong>Pro Tip:</strong> For the most reliable notification experience, we recommend downloading the <strong>Eggbeater native app</strong> from the App Store (iOS) or Google Play (Android).</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 3. PICK YOUR TEAM ═══════════════ -->
+<div class="section" id="pick-team">
+  <div class="section-header">
+    <div class="section-icon">3</div>
+    <h2>Pick Your Team</h2>
+  </div>
+
+  <div class="card">
+    <h3>Age Group Pills</h3>
+    <p>The colored pills below the tournament header let you choose which age group you're following. Tap one to select it. Your selection is remembered between visits.</p>
+    <div class="tab-strip" style="margin-top:12px">
+      <span class="tab-pill">10U</span>
+      <span class="tab-pill active">14U Girls</span>
+      <span class="tab-pill">16U Boys</span>
+      <span class="tab-pill">18U Girls</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Following Multiple Teams</h3>
+    <p>If you have kids in different age groups, tap multiple pills to follow them all at once. Each tab will show separate sections for each age group you've selected.</p>
+  </div>
+
+  <div class="card">
+    <h3>A/B Teams</h3>
+    <p>Some age groups have multiple teams (e.g., Team A and Team B). When available, you'll see sub-buttons within the age group pill. Tap to select your child's specific team, or select both to see everyone.</p>
+  </div>
+
+  <div class="card">
+    <h3>Favorites</h3>
+    <p>Tap the <strong>star icon</strong> on any age group pill to mark it as a favorite. Favorite teams appear first in the list and the app will open to your favorite team automatically.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 4. SCHEDULE TAB ═══════════════ -->
+<div class="section" id="schedule">
+  <div class="section-header">
+    <div class="section-icon">4</div>
+    <h2>Schedule Tab</h2>
+  </div>
+
+  <div class="card">
+    <h3>Your Home Screen</h3>
+    <p>The Schedule tab is the first thing you see when you open the app. It shows everything about the current tournament:</p>
+    <ul>
+      <li><strong>Next Game Card</strong> &mdash; Highlighted at the top with the upcoming game's opponent, time, location, and cap color. When a game is live, this card shows the current score with a pulsing red LIVE badge.</li>
+      <li><strong>Game List</strong> &mdash; All games in the tournament grouped by date. Each game card shows the opponent, time, location, pool, and whether you're wearing white or dark caps.</li>
+      <li><strong>Directions</strong> &mdash; Each game card shows the venue name with three direction buttons below it: <strong>Apple Maps</strong>, <strong>Google Maps</strong>, and <strong>Waze</strong>. Tap whichever navigation app you prefer to get turn-by-turn directions straight to the pool.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>What the Cap Color Means</h3>
+    <p>Each game card shows pool and cap color together in a single row &mdash; for example, <strong>Pool A &middot; White cap</strong>. This tells you which pool your child plays in and which cap color to bring. White Cap games use a white card, while Dark Cap games use your club's dark/primary card color with readable white text. The Schedule and Scores tabs use the same treatment so the cap assignment is consistent everywhere.</p>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-icon">&#x1f4a1;</div>
+    <p><strong>Upcoming Mode:</strong> Sometimes your coach posts the tournament info (name, dates, venue) before the full schedule is ready. You'll see a "coming soon" message &mdash; check back later for game times.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 5. LIVE SCORES ═══════════════ -->
+<div class="section" id="live-scores">
+  <div class="section-header">
+    <div class="section-icon">5</div>
+    <h2>Live Scores</h2>
+  </div>
+
+  <div class="card">
+    <h3>Watching Live</h3>
+    <p>When someone at the pool is scoring a game, you'll see it instantly in the app:</p>
+    <ul>
+      <li>A pulsing <strong style="color:var(--red)">&#x1f534; LIVE</strong> badge appears on the game card and on the Scores tab icon</li>
+      <li>The <strong>Next Game</strong> card on the Schedule tab shows the live score and current quarter</li>
+      <li>Tap the <strong>Scores</strong> tab to see the full box score with individual player stats</li>
+      <li>The <strong>event log</strong> shows a play-by-play of every goal, assist, ejection, and save</li>
+    </ul>
+    <p style="margin-top:8px">Scores update automatically every 10 seconds. You don't need to refresh.</p>
+  </div>
+
+  <div class="card">
+    <h3>Box Score</h3>
+    <p>Expand any game in the Scores tab to see the full box score. For each player you'll see goals, assists, attempts, 5-meter goals, shootout goals, exclusions, earned exclusions, and more. Goalies show GK Saves.</p>
+  </div>
+
+  <div class="card">
+    <h3>Apple Watch Companion</h3>
+    <p>If you have the Apple Watch app installed, Eggbeater can show your selected team on your wrist with a branded header, Featured Game, Auto Next Game, and Team Schedule. When you follow a live game, new goals can trigger a Watch haptic/local alert so you notice score changes without keeping your phone open.</p>
+  </div>
+
+  <div class="card">
+    <h3>Share Results</h3>
+    <p>After a game is finished, tap <strong>Share Result</strong> to generate a branded image with the final score. Share it to iMessage, Instagram Stories, or any social app right from your phone.</p>
+  </div>
+
+  <div class="callout callout-info" style="margin-top: 14px; background: #f0fdfa; border-color: var(--teal);">
+    <div class="callout-icon" style="color: var(--teal);">📝</div>
+    <div>
+      <h4 style="color: var(--teal); font-weight: bold; font-size: .95rem; margin-bottom: 2px;">New to Scoring?</h4>
+      <p>Learn how to record live play-by-play actions from the pool deck so other spectators can follow along from anywhere.</p>
+      <a href="scoring-guide.html" style="display:inline-block; margin-top:6px; font-weight:600; color:var(--teal); text-decoration:none;">Read the Box Scoring Guide &rarr;</a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 6. MY PLAYER ═══════════════ -->
+<div class="section" id="my-player">
+  <div class="section-header">
+    <div class="section-icon">6</div>
+    <h2>Follow Your Child</h2>
+  </div>
+
+  <div class="card">
+    <h3>My Player</h3>
+    <p>The <strong>Roster</strong> tab has a special "My Player" card at the top. Here's how to use it:</p>
+    <ol>
+      <li>Tap the dropdown and select your child's name</li>
+      <li>The card expands to show their personal stats for the current tournament</li>
+      <li>Stats update live as games are scored</li>
+      <li>Your selection is saved &mdash; next time you open the app, your child's stats are right there</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h3>What You'll See</h3>
+    <div class="kv-row"><span class="kv-label">Goals</span><span class="kv-value">Total goals scored in the current tournament</span></div>
+    <div class="kv-row"><span class="kv-label">Assists</span><span class="kv-value">Passes that led directly to a goal</span></div>
+    <div class="kv-row"><span class="kv-label">Shooting %</span><span class="kv-value">Goals divided by attempts &mdash; shown for regular shots, 5-meter penalties, and shootouts</span></div>
+    <div class="kv-row"><span class="kv-label">Exclusions</span><span class="kv-value">Times ejected (20-second penalty)</span></div>
+    <div class="kv-row"><span class="kv-label">Earned Excl</span><span class="kv-value">Times your player drew an exclusion foul — forced a defender into a 20-second penalty</span></div>
+    <div class="kv-row"><span class="kv-label">Recent Games</span><span class="kv-value">Per-game breakdown with stats and scores</span></div>
+    <p style="margin-top:10px;font-size:.85rem;color:var(--g400)">Goalies see GK Saves instead of shooting stats.</p>
+  </div>
+
+  <div class="card">
+    <h3>Multiple Kids?</h3>
+    <p>If you follow multiple age groups, each one gets its own "My Player" card. You can follow a different child in each age group simultaneously.</p>
+  </div>
+
+  <div class="card">
+    <h3>Season Stats</h3>
+    <p>Tap <strong>Season Stats</strong> in the Roster tab to see your child's cumulative stats across all tournaments this season &mdash; total goals, assists, games played, and goals per game.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 7. BRACKET ═══════════════ -->
+<div class="section" id="bracket">
+  <div class="section-header">
+    <div class="section-icon">7</div>
+    <h2>Bracket &amp; Standings</h2>
+  </div>
+
+  <div class="card">
+    <h3>Bracket Tab</h3>
+    <p>Open the <strong>Bracket</strong> tab to see where your team is headed after pool play. Based on your current record, the app projects which bracket path you'll play in &mdash; Gold, Silver, or Bronze &mdash; and shows your possible next opponent, game time, and location.</p>
+  </div>
+
+  <div class="card">
+    <h3>Bracket Points</h3>
+    <p>Many tournaments use bracket points to determine final standings. Here's how they work:</p>
+    <div class="kv-row"><span class="kv-label">Win (W)</span><span class="kv-value">4 points</span></div>
+    <div class="kv-row"><span class="kv-label">Shootout Win (SW)</span><span class="kv-value">3 points</span></div>
+    <div class="kv-row"><span class="kv-label">Shootout Loss (SL)</span><span class="kv-value">2 points</span></div>
+    <div class="kv-row"><span class="kv-label">Loss (L)</span><span class="kv-value">1 point</span></div>
+    <div class="kv-row"><span class="kv-label">Forfeit (F)</span><span class="kv-value">0 points</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════ 8. HISTORY ═══════════════ -->
+<div class="section" id="history">
+  <div class="section-header">
+    <div class="section-icon">8</div>
+    <h2>History &amp; Season Stats</h2>
+  </div>
+
+  <div class="card">
+    <h3>History Tab</h3>
+    <p>The <strong>History</strong> tab shows all past tournament results for your age group. At the top you'll see the season record with overall wins, losses, and win percentage. Below that, each tournament is listed with:</p>
+    <ul>
+      <li>Tournament name and dates</li>
+      <li>Record (e.g., 3W-1L)</li>
+      <li>Bracket placement and points</li>
+      <li>Tap to expand and see every game result with scores</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Season Record</h3>
+    <p>The season record card at the top of History aggregates all tournaments into one view. You'll see total wins, losses, goals scored, goals against, and a color-coded win percentage ring. It's a great snapshot of how the season is going.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 9. CALENDAR SYNC ═══════════════ -->
+<div class="section" id="calendar">
+  <div class="section-header">
+    <div class="section-icon">9</div>
+    <h2>Calendar Sync</h2>
+  </div>
+
+  <div class="card">
+    <h3>Add Games to Google Calendar</h3>
+    <p>In the <strong>Settings</strong> tab, go to <strong>Calendar &amp; Notifications</strong>. Here's how to set it up:</p>
+    <ol>
+      <li>Tap <strong>Connect</strong></li>
+      <li>Sign in with your Google account</li>
+      <li>Choose which Google Calendar to add games to</li>
+      <li>Games appear on your calendar automatically with opponent, time, and location</li>
+    </ol>
+    <p style="margin-top:8px">The app syncs every 20 minutes. You can also tap <strong>Sync Now</strong> to update immediately. Tap <strong>Change</strong> to switch calendars or disconnect.</p>
+  </div>
+
+  <div class="callout callout-success">
+    <div class="callout-icon">&#x1f4c5;</div>
+    <p><strong>When the schedule changes</strong> (time moved, game added), your calendar updates automatically at the next sync. No manual work needed.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 10. NOTIFICATIONS ═══════════════ -->
+<div class="section" id="notifications">
+  <div class="section-header">
+    <div class="section-icon">10</div>
+    <h2>Push Notifications</h2>
+  </div>
+
+  <div class="card">
+    <h3>Stay in the Loop</h3>
+    <p>Enable push notifications to get alerts on your phone even when the app isn't open. In the <strong>Settings</strong> tab, go to <strong>Calendar &amp; Notifications</strong> and tap <strong>Enable Notifications</strong>, then allow when your browser prompts you.</p>
+  </div>
+
+  <div class="card">
+    <h3>What You Can Get Notified About</h3>
+    <p>After enabling, you'll see checkboxes to choose exactly what you want:</p>
+    <div class="kv-row"><span class="kv-label">Game Scores</span><span class="kv-value">Live score updates &mdash; choose every goal, end of quarter, or end of game only</span></div>
+    <div class="kv-row"><span class="kv-label">Schedule Changes</span><span class="kv-value">Alerts when game times, locations, or opponents change</span></div>
+    <div class="kv-row"><span class="kv-label">Announcements</span><span class="kv-value">Messages from your coach or club admin</span></div>
+    <div class="kv-row"><span class="kv-label">Game Reminders</span><span class="kv-value">Heads-up before game time &mdash; choose 30 minutes, 1 hour, or 2 hours before</span></div>
+  </div>
+
+  <div class="callout callout-warn">
+    <div class="callout-icon">&#x1f514;</div>
+    <p><strong>iPhone users:</strong> Push notifications require iOS 16.4 or later. If using the web app, you must open it from your <strong>home screen icon</strong> (not Safari) for notifications to work. The native iOS app from the App Store is the easiest option.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 11. SETTINGS ═══════════════ -->
+<div class="section" id="settings">
+  <div class="section-header">
+    <div class="section-icon">11</div>
+    <h2>Settings &amp; Account</h2>
+  </div>
+
+  <div class="card">
+    <h3>Sign In with Google</h3>
+    <p>Signing in is optional but recommended. It syncs your preferences across devices &mdash; your age group selections, "My Player" picks, and favorites carry over if you switch phones or use the app on a computer. Go to <strong>Settings &gt; Account &gt; Sign In with Google</strong>.</p>
+  </div>
+
+  <div class="card">
+    <h3>Appearance</h3>
+    <p>Choose how the app looks in <strong>Settings &gt; Appearance</strong>:</p>
+    <div class="tab-strip" style="margin-top:8px">
+      <span class="tab-pill">&#x2600;&#xfe0f; Light</span>
+      <span class="tab-pill active">&#x1f319; Dark</span>
+      <span class="tab-pill">&#x2699;&#xfe0f; System</span>
+    </div>
+    <ul style="margin-top:10px">
+      <li><strong>Light</strong> &mdash; Classic light theme, great in bright sunlight</li>
+      <li><strong>Dark</strong> &mdash; Easy on the eyes for evening games and indoor pools</li>
+      <li><strong>System</strong> &mdash; Automatically matches your phone's light/dark mode setting</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Multiple Clubs</h3>
+    <p>If your child plays for more than one club (or you follow a club and a high school team), you can add multiple clubs in Settings. Tap <strong>Add Club</strong> and enter the club code from your coach. Switch between clubs with one tap.</p>
+    <p style="margin-top:8px">To remove a club you no longer need, tap the <strong>&times;</strong> button next to its name in your club list. If you want to switch to a completely different club, tap <strong>Return to Club Picker</strong> at the bottom of Settings to go back to the club selection screen.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 12. TIPS & FAQ ═══════════════ -->
+<div class="section" id="tips">
+  <div class="section-header">
+    <div class="section-icon">12</div>
+    <h2>Tips &amp; FAQ</h2>
+  </div>
+
+  <div class="card">
+    <h3>Common Questions</h3>
+
+    <div class="kv-row" style="flex-direction:column;gap:2px">
+      <span class="kv-label">Q: The schedule says "Coming Soon" &mdash; when will games be posted?</span>
+      <span class="kv-value">A: Your coach has posted the tournament info but hasn't finalized the game schedule yet. Check back later &mdash; if you have notifications enabled, you'll get an alert when the schedule is posted.</span>
+    </div>
+
+    <div class="kv-row" style="flex-direction:column;gap:2px">
+      <span class="kv-label">Q: I don't see live scores &mdash; is anyone scoring?</span>
+      <span class="kv-value">A: Live scores only appear when a designated scorer at the pool is actively entering them. Look for the red LIVE badge. If there's no badge, no one is scoring that game live.</span>
+    </div>
+
+    <div class="kv-row" style="flex-direction:column;gap:2px">
+      <span class="kv-label">Q: My child's stats don't look right.</span>
+      <span class="kv-value">A: Stats come from live scoring. If a scorer misses a goal or attributes it to the wrong player, the stats will reflect that. Let your coach know &mdash; they can correct scores from the admin panel.</span>
+    </div>
+
+    <div class="kv-row" style="flex-direction:column;gap:2px">
+      <span class="kv-label">Q: How do I switch to a different age group?</span>
+      <span class="kv-value">A: Tap the age group pills at the top of the screen. You can also change your selection in Settings.</span>
+    </div>
+
+    <div class="kv-row" style="flex-direction:column;gap:2px">
+      <span class="kv-label">Q: Notifications aren't working on my iPhone.</span>
+      <span class="kv-value">A: iPhone users need iOS 16.4+ and must open the app from the <strong>home screen icon</strong> (not Safari) when using the web app. The easiest fix is to download the native app from the App Store or Google Play.</span>
+    </div>
+
+    <div class="kv-row" style="flex-direction:column;gap:2px">
+      <span class="kv-label">Q: The app looks outdated or isn't loading new data.</span>
+      <span class="kv-value">A: Scroll to the bottom of the Schedule tab and tap <strong>Force Refresh</strong>. This clears the cache and reloads everything fresh.</span>
+    </div>
+
+    <div class="kv-row" style="flex-direction:column;gap:2px">
+      <span class="kv-label">Q: Can I use this on my computer?</span>
+      <span class="kv-value">A: Yes! Open the same link in any browser on your laptop or desktop. Everything works the same way.</span>
+    </div>
+
+    <div class="kv-row" style="flex-direction:column;gap:2px">
+      <span class="kv-label">Q: Do I need to create an account?</span>
+      <span class="kv-value">A: No. The app works without signing in. Google sign-in is optional and just syncs your preferences across devices.</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Quick Tips</h3>
+    <ul>
+      <li><strong>Bookmark it</strong> &mdash; Save the link to your home screen for one-tap access.</li>
+      <li><strong>Enable reminders</strong> &mdash; Turn on game reminders in notification preferences to get a heads-up 2 hours before each game.</li>
+      <li><strong>Follow your child</strong> &mdash; Set up "My Player" in the Roster tab so their stats are always front and center.</li>
+      <li><strong>Sync your calendar</strong> &mdash; Connect Google Calendar once and all game times show up automatically. When the schedule changes, your calendar updates too.</li>
+      <li><strong>Try dark mode</strong> &mdash; If you're at an outdoor pool in the sun, dark mode can be easier to read. Switch in Settings.</li>
+      <li><strong>Check the bracket</strong> &mdash; After pool play, open the Bracket tab to see your projected next game and bracket path.</li>
+    </ul>
+  </div>
+
+  <div class="callout callout-success">
+    <div class="callout-icon">&#x2753;</div>
+    <p><strong>Still need help?</strong> Tap <strong>More &gt; Help</strong> inside the app for detailed instructions on every feature, or reach out to your club's coach or admin.</p>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<div class="footer">
+  <p><strong>Eggbeater Water Polo</strong></p>
+  <p style="margin-top:4px"><a href="https://eggbeater.app">eggbeater.app</a></p>
+</div>
+
+</body>
+</html>

@@ -179,7 +179,7 @@
 <main>
 
   <div class="intro-card">
-    <p>Eggbeater is a tournament tracking tool built for water polo teams and clubs. Core features are available free of charge; optional paid plans unlock additional features for clubs and parents.</p>
+    <p>Eggbeater is a tournament tracking tool built for water polo teams and clubs. Core features are available free of charge; optional paid plans unlock additional features for clubs and spectators.</p>
     <p>These Terms of Service ("Terms") govern your use of the <strong>Eggbeater Water Polo</strong> app ("the App") available at <a href="https://eggbeater.app">eggbeater.app</a>. By accessing or using the App you agree to these Terms. If you do not agree, please do not use the App.</p>
   </div>
 
@@ -274,7 +274,7 @@
       <li>Admins for one club cannot access or modify another club's data. Data isolation is enforced at both the server (Cloudflare Worker) and database (Firestore security rules) levels.</li>
       <li>Each club can manage multiple tournaments. Tournaments can be created, activated, archived, and deleted through the admin panel. Only one tournament per club can be active at a time.</li>
       <li>When a tournament is archived, all age group data is automatically snapshotted to Firestore for long-term storage. Archived tournaments can be viewed in the tournament selector but are read-only.</li>
-<li>Parents access a specific club's data via the <code>?join=</code> URL parameter. No cross-club data is ever loaded or displayed.</li>
+<li>Spectators access a specific club's data via the <code>?join=</code> URL parameter. No cross-club data is ever loaded or displayed.</li>
     </ul>
   </section>
 

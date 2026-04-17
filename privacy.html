@@ -215,7 +215,7 @@
     <ul>
       <li>Your Google account display name, email address, and profile photo — used solely to identify your session and display your first name in the App header. This information is never stored on our servers.</li>
       <li>A unique user ID (UID) issued by Firebase Authentication, used to associate your saved preferences with your account in Firestore.</li>
-      <li>A Google OAuth access token granting access to Google Calendar — requested at sign-in time (alongside account authentication) so parents only see one Google consent screen. This token is held in memory only and is never written to a server or database.</li>
+      <li>A Google OAuth access token granting access to Google Calendar — requested at sign-in time (alongside account authentication) so spectators only see one Google consent screen. This token is held in memory only and is never written to a server or database.</li>
     </ul>
     <p><strong>Admin authentication (if you sign in via the admin panel):</strong></p>
     <ul>
@@ -275,7 +275,7 @@
   <section>
     <h2><span class="num">3</span> Google API Scopes &amp; Firebase Authentication</h2>
     <p><strong>Firebase Authentication (Google Sign-In):</strong> When you tap "Sign In," the App uses Firebase Authentication with Google's identity provider. This requests the standard OpenID Connect scopes (<code>openid</code>, <code>email</code>, <code>profile</code>) to authenticate your identity, plus the Google Calendar scope (see below) — all in a single consent screen. Firebase issues a UID stored in Firestore to associate your preferences with your account.</p>
-    <p><strong>Google Calendar scope (bundled with sign-in):</strong> To eliminate friction, the App requests the following scope at the time of Google Sign-In, so parents only ever see one Google consent popup:</p>
+    <p><strong>Google Calendar scope (bundled with sign-in):</strong> To eliminate friction, the App requests the following scope at the time of Google Sign-In, so spectators only ever see one Google consent popup:</p>
     <ul>
       <li><code>https://www.googleapis.com/auth/calendar</code> — Required to create and manage game events in Google Calendar. This scope is only exercised when you explicitly connect a calendar in the Schedule tab.</li>
     </ul>

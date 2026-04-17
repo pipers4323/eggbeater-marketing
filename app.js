@@ -59,7 +59,7 @@ const APP_I18N = {
     club_picker_title: 'Welcome to Eggbeater',
     club_picker_subtitle: 'Select your club to get started',
     club_picker_footer: "Don't see your club? Ask your club admin for the link.",
-    parent_guide_link: 'New to Eggbeater? Read the Parent Guide ->',
+    parent_guide_link: 'New to Eggbeater? Read the Spectator Guide ->',
     returning_user: 'Returning user?',
     splash_signin_hint: 'Restore your clubs and settings instantly',
     nav_schedule: 'Schedule',
@@ -409,7 +409,7 @@ const APP_I18N = {
     club_picker_title: 'Bienvenido a Eggbeater',
     club_picker_subtitle: 'Selecciona tu club para comenzar',
     club_picker_footer: 'No ves tu club? Pidele el enlace al administrador del club.',
-    parent_guide_link: 'Nuevo en Eggbeater? Lee la guia para familias ->',
+    parent_guide_link: 'Nuevo en Eggbeater? Lee la guia para espectadores ->',
     returning_user: 'Ya usaste la app?',
     splash_signin_hint: 'Restaura tus clubes y ajustes al instante',
     nav_schedule: 'Calendario',
@@ -759,7 +759,7 @@ const APP_I18N = {
     club_picker_title: 'Bienvenue sur Eggbeater',
     club_picker_subtitle: 'Choisissez votre club pour commencer',
     club_picker_footer: 'Vous ne voyez pas votre club ? Demandez le lien a votre administrateur.',
-    parent_guide_link: 'Nouveau sur Eggbeater ? Lire le guide parents ->',
+    parent_guide_link: 'Nouveau sur Eggbeater ? Lire le guide spectateurs ->',
     returning_user: 'Utilisateur deja inscrit ?',
     splash_signin_hint: 'Retrouvez vos clubs et reglages instantanement',
     nav_schedule: 'Calendrier',
@@ -11041,7 +11041,7 @@ function renderHelpTab() {
     },
     {
       icon: '🌐',
-      title: 'Accessing the Parent App from the Web',
+      title: 'Accessing the Spectator App from the Web',
       body: `<p>No install required — the full app works in any modern browser on any device: phone, tablet, or computer.</p>
       <ul>
         <li>Open <a href="https://eggbeater.app" target="_blank" rel="noopener" style="color:var(--royal);font-weight:700">eggbeater.app</a> in any browser — Chrome, Safari, Firefox, Edge, etc.</li>
@@ -11149,7 +11149,7 @@ function renderHelpTab() {
         <img src="icon-512.png" alt="Eggbeater" class="help-logo">
         <div>
           <h2 class="help-intro-title">Eggbeater Water Polo</h2>
-          <p class="help-intro-sub">Parent guide &amp; quick reference</p>
+          <p class="help-intro-sub">Spectator guide &amp; quick reference</p>
         </div>
       </div>
       <a href="eggbeater-quickstart.pdf" target="_blank" rel="noopener" class="help-quickstart-btn">
