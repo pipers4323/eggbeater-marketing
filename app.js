@@ -6024,7 +6024,12 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
       for (const dk of dateOrder) {
         html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dk))}</div>`;
         html += `<div class="games-section">`;
-        for (const g of byDate[dk]) html += buildScoresListCard(g, scorerLocked, slotLabel);
+        const slotCanScore = !window.TOURNAMENT?.scoringPassword || isScorerUnlockedForTournament(window.TOURNAMENT);
+        for (const g of byDate[dk]) {
+          html += slotCanScore
+            ? buildGameCard(g, false, true, slotLabel)
+            : buildScoresListCard(g, true, slotLabel);
+        }
         html += `</div>`;
       }
       _activeAgeGroup = null;
