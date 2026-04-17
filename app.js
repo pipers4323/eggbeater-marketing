@@ -6071,7 +6071,7 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
       }
       for (const dateKey of dateOrder) {
         cardsHtml += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dateKey))}</div><div class="games-section">`;
-        for (const g of byDate[dateKey]) cardsHtml += buildScoresListCard(g, true);
+        for (const g of byDate[dateKey]) cardsHtml += buildGameCard(g, true, true);
         cardsHtml += `</div>`;
       }
     }
@@ -6152,7 +6152,7 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
   for (const dateKey of dateOrder) {
     html += `<div class="date-group-header">${escHtml(formatDateGroupLabel(dateKey))}</div>`;
     html += `<div class="games-section">`;
-    for (const g of byDate[dateKey]) html += buildScoresListCard(g, false);
+    for (const g of byDate[dateKey]) html += buildGameCard(g, false, true);
     html += `</div>`;
   }
 
