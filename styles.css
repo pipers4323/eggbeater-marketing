@@ -600,7 +600,15 @@ body {
   flex-shrink: 0;
   padding: 8px 20px;
   font-size: 0.88rem;
+  font-weight: 700;
+  background: var(--royal);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
+.team-picker-done-inline:active { opacity: 0.85; }
 .team-picker-modal-list {
   display: flex;
   flex-direction: column;
