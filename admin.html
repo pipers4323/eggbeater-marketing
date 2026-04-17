@@ -9669,21 +9669,24 @@
           }
         }
       }
-      console.log('[dirBs] headerRow:', headerRow, '| crRow:', JSON.stringify(crRow), '| detected courses:', JSON.stringify(courses));
+      console.log('[dirBs] headerRow:', headerRow, '| crRow:', JSON.stringify(crRow), '| detected courses (pre-colscan):', JSON.stringify(courses));
       if (!courses.length) throw new Error('Could not detect course/court columns');
       for (let ci2 = 0; ci2 < courses.length; ci2++) {
         const course = courses[ci2];
         // Stop at the next course's start column (or +7, whichever is sooner) to avoid stealing columns
         const nextStart = courses[ci2 + 1]?.startCol ?? hRow.length;
         const scanEnd = Math.min(course.startCol + 7, nextStart, hRow.length);
-        let whiteCol = course.startCol, darkCol = course.startCol + 2, divCol = course.startCol + 4;
+        let whiteCol = course.startCol, darkCol = course.startCol + 2, divCol = -1;
+        let foundWhite = false, foundDark = false, foundDiv = false;
         for (let ci = course.startCol; ci < scanEnd; ci++) {
           const lc = (hRow[ci] || '').toLowerCase().trim();
-          if (lc.includes('white')) whiteCol = ci;
-          else if (lc.includes('dark') || lc.includes('navy')) darkCol = ci;
-          else if (lc.includes('div') || lc === 'gender' || lc === 'group') divCol = ci;
+          if (!foundWhite && lc.includes('white')) { whiteCol = ci; foundWhite = true; }
+          else if (!foundDark && (lc.includes('dark') || lc.includes('navy'))) { darkCol = ci; foundDark = true; }
+          else if (!foundDiv && (lc.includes('div') || lc === 'gender' || lc === 'group')) { divCol = ci; foundDiv = true; }
         }
+        if (divCol < 0) divCol = course.startCol + 4; // fallback
         course.whiteCol = whiteCol; course.darkCol = darkCol; course.divCol = divCol;
+        console.log('[dirBs] course', course.num, '→ whiteCol:', whiteCol, 'darkCol:', darkCol, 'divCol:', divCol, '| headers:', hRow[whiteCol], '/', hRow[darkCol]);
       }
       let timeCol = 0, slotCol = 1;
       for (let ci = 0; ci < Math.min(hRow.length, 5); ci++) {
