@@ -14988,7 +14988,7 @@
           importedSchedule: S.director.importedSchedule || [],
           publishedAt: Date.now(),
         };
-        const res = await api('PUT', '/admin/tournament-pkg', { pkg });
+        const res = await api('PUT', '/admin/tournament-pkg', { pkg, code: S.director.publishedCode || undefined });
         const data = await res.json();
         if (!data.ok) throw new Error(data.description || 'Publish failed');
         S.director.publishedCode = data.code;
