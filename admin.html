@@ -9827,14 +9827,14 @@
           <div id="dir-import-status" style="font-size:.82rem;min-height:1.1em;margin-bottom:8px">${di.statusHtml||''}</div>
           ${hasTeams ? `
           <div style="margin-bottom:10px">
-            <div class="info-label" style="margin-bottom:6px">Which team are you?</div>
+            <div class="info-label" style="margin-bottom:6px">Which team(s) are you? <span style="font-weight:400;color:var(--g400);font-size:.78rem">Tap to select — tap again to deselect. Select multiple for A/B teams.</span></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-              ${(di.teamNames||[]).map(n => `<button onclick="dirImportPickTeam(${JSON.stringify(n)})" style="padding:5px 14px;border-radius:20px;border:2px solid ${di.selectedTeam===n?'var(--royal)':'var(--g200)'};background:${di.selectedTeam===n?'var(--royal)':'white'};color:${di.selectedTeam===n?'white':'var(--g600)'};font-size:.82rem;font-weight:600;cursor:pointer">${esc(n)}</button>`).join('')}
+              ${(di.teamNames||[]).map(n => { const sel=(di.selectedTeams||[]).includes(n); return `<button onclick="dirImportPickTeam(${JSON.stringify(n)})" style="padding:5px 14px;border-radius:20px;border:2px solid ${sel?'var(--royal)':'var(--g200)'};background:${sel?'var(--royal)':'white'};color:${sel?'white':'var(--g600)'};font-size:.82rem;font-weight:600;cursor:pointer">${esc(n)}</button>`; }).join('')}
             </div>
           </div>` : ''}
           ${hasGames ? `
           <div style="max-height:200px;overflow-y:auto;font-size:.78rem;border:1px solid var(--g100);border-radius:6px;padding:4px 8px;margin-bottom:10px">
-            ${(di.filteredGames||[]).map(g => `<div style="padding:4px 0;border-bottom:1px solid var(--g50)"><b>${esc(g.gameNum)}</b> · ${esc(g.time||'')} · <span style="color:var(--royal)">${esc(g.opponent||'')}</span> · ${esc(g.cap||'')} cap [${esc(g.location||'')}]</div>`).join('')}
+            ${(di.filteredGames||[]).map(g => `<div style="padding:4px 0;border-bottom:1px solid var(--g50)"><b>${esc(g.gameNum)}</b> · ${esc(g.time||'')} · <span style="color:var(--royal)">${esc(g.opponent||'')}</span> · ${esc(g.cap||'')} cap${(di.selectedTeams||[]).length>1?' · <em>'+esc(g.myTeam||'')+'</em>':''} [${esc(g.location||'')}]</div>`).join('')}
           </div>
           <button class="save-btn" style="width:100%;background:var(--royal);color:white" onclick="dirImportApply(this)">🚀 Import ${(di.filteredGames||[]).length} Game(s) into My Schedule</button>` : ''}
         </div>
@@ -9851,7 +9851,7 @@
       S.dirImport.statusHtml = '';
       S.dirImport.teamNames = [];
       S.dirImport.filteredGames = [];
-      S.dirImport.selectedTeam = '';
+      S.dirImport.selectedTeams = [];
       S.dirImport.pkg = null;
       try {
         const res = await fetch(WORKER + '/tournament-pkg?code=' + encodeURIComponent(code));
@@ -9880,15 +9880,27 @@
     function dirImportPickTeam(teamName) {
       if (!S.dirImport?.pkg) return;
       const sched = S.dirImport.pkg.importedSchedule || [];
-      S.dirImport.selectedTeam = teamName;
-      const tl = teamName.toLowerCase();
-      S.dirImport.filteredGames = sched
-        .filter(g => (g.team1Name||'').toLowerCase() === tl || (g.team2Name||'').toLowerCase() === tl)
-        .map(g => {
+      // Toggle team in selectedTeams array
+      const sel = S.dirImport.selectedTeams || [];
+      const idx = sel.indexOf(teamName);
+      if (idx >= 0) sel.splice(idx, 1); else sel.push(teamName);
+      S.dirImport.selectedTeams = sel;
+      // Union all games for all selected teams
+      const seen = new Set();
+      const filtered = [];
+      for (const tn of sel) {
+        const tl = tn.toLowerCase();
+        for (const g of sched) {
           const isTeam1 = (g.team1Name||'').toLowerCase() === tl;
-          return {
+          const isTeam2 = (g.team2Name||'').toLowerCase() === tl;
+          if (!isTeam1 && !isTeam2) continue;
+          const key = g.id || g.gameNum || (g.time + g.team1Name + g.team2Name);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          filtered.push({
             id: g.id || ('g' + Date.now() + Math.random().toString(36).slice(2)),
             gameNum: g.gameNum || '',
+            myTeam: tn,
             opponent: isTeam1 ? (g.team2Name||'TBD') : (g.team1Name||'TBD'),
             cap: isTeam1 ? 'White' : 'Dark',
             time: g.time || '',
@@ -9897,9 +9909,11 @@
             location: g.location || '',
             pool: g.location || '',
             division: g.division || '',
-          };
-        })
-        .sort((a, b) => (a.dateISO||a.date||'').localeCompare(b.dateISO||b.date||'') || (a.time||'').localeCompare(b.time||''));
+          });
+        }
+      }
+      filtered.sort((a, b) => (a.dateISO||a.date||'').localeCompare(b.dateISO||b.date||'') || (a.time||'').localeCompare(b.time||''));
+      S.dirImport.filteredGames = filtered;
       const card = document.getElementById('dir-import-card');
       if (card) { card.outerHTML = dirImportWizardHtml(); document.getElementById('dir-import-card').open = true; }
     }
