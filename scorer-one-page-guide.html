@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eggbeater Scorer Guide</title>
+  <meta name="description" content="One-page Eggbeater scorer guide for coaches, team managers, and tournament scorers." />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png" />
+  <style>
+    :root {
+      --royal: #002868;
+      --royal-dark: #001a4a;
+      --royal-light: #edf3ff;
+      --royal-mid: #1f4aa8;
+      --gold: #f4b400;
+      --green: #15803d;
+      --amber: #b45309;
+      --red: #b91c1c;
+      --ink: #0f172a;
+      --muted: #475569;
+      --line: #dbe4f0;
+      --surface: #ffffff;
+      --page: #f3f6fb;
+      --radius: 16px;
+      --shadow: 0 12px 32px rgba(0, 40, 104, 0.10);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Arial, sans-serif;
+      line-height: 1.45;
+    }
+
+    body {
+      padding: 28px;
+    }
+
+    .sheet {
+      max-width: 960px;
+      margin: 0 auto;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, var(--royal-dark) 0%, var(--royal) 58%, var(--royal-mid) 100%);
+      color: white;
+      padding: 26px 30px 24px;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at top right, rgba(255,255,255,0.10), transparent 26%),
+        radial-gradient(circle at bottom left, rgba(255,255,255,0.08), transparent 24%);
+      pointer-events: none;
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .brand img {
+      width: 220px;
+      height: auto;
+      display: block;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.20);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .hero-copy {
+      margin-top: 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 34px;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 700px;
+      color: rgba(255,255,255,0.88);
+      font-size: 15px;
+    }
+
+    .content {
+      padding: 26px 28px 30px;
+    }
+
+    .top-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 16px 18px;
+    }
+
+    .card-title {
+      margin: 0 0 10px;
+      color: var(--royal);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .plain-list {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .plain-list li {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .plain-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    .plain-list strong {
+      color: var(--ink);
+    }
+
+    .quick-facts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .fact {
+      border-radius: 12px;
+      padding: 12px;
+      background: var(--royal-light);
+      border: 1px solid #d7e4ff;
+    }
+
+    .fact-label {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--royal);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .fact-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .step {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 16px;
+      min-height: 220px;
+    }
+
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: var(--royal);
+      color: white;
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .step h2 {
+      margin: 0 0 8px;
+      font-size: 19px;
+      color: var(--ink);
+    }
+
+    .step p {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .step ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .step li {
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .step li:last-child {
+      margin-bottom: 0;
+    }
+
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .status-box {
+      border-radius: 14px;
+      padding: 14px 15px;
+      border: 1px solid var(--line);
+      margin-bottom: 10px;
+    }
+
+    .status-box:last-child {
+      margin-bottom: 0;
+    }
+
+    .status-box h3 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .status-box p,
+    .status-box li {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .status-box ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    .status-green { background: #f0fdf4; border-color: #bbf7d0; }
+    .status-green h3 { color: var(--green); }
+    .status-amber { background: #fffbeb; border-color: #fde68a; }
+    .status-amber h3 { color: var(--amber); }
+    .status-red { background: #fef2f2; border-color: #fecaca; }
+    .status-red h3 { color: var(--red); }
+
+    .footer {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .footer strong {
+      color: var(--ink);
+    }
+
+    @media (max-width: 880px) {
+      body { padding: 16px; }
+      .top-grid,
+      .steps,
+      .bottom-grid {
+        grid-template-columns: 1fr;
+      }
+      .step {
+        min-height: 0;
+      }
+      .hero-top,
+      .footer {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .brand img {
+        width: 190px;
+      }
+    }
+
+    @media print {
+      @page {
+        size: letter portrait;
+        margin: 0.4in;
+      }
+
+      html, body {
+        background: white;
+      }
+
+      body {
+        padding: 0;
+      }
+
+      .sheet {
+        max-width: none;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .hero {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .card,
+      .step,
+      .status-box,
+      .fact {
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="sheet">
+    <section class="hero">
+      <div class="hero-top">
+        <div class="brand">
+          <img src="/logo_large.png" alt="Eggbeater Water Polo" />
+        </div>
+        <div class="badge">One-Page Scorer Guide</div>
+      </div>
+      <div class="hero-copy">
+        <h1>Live Scoring, without the extra noise</h1>
+        <p>Use this guide for coaches, team managers, and designated scorers. The goal is simple: enter the right game, keep the score accurate, record the key events, and close the game cleanly.</p>
+      </div>
+    </section>
+
+    <section class="content">
+      <div class="top-grid">
+        <section class="card">
+          <h2 class="card-title">What Eggbeater is for</h2>
+          <ul class="plain-list">
+            <li><strong>Spectators do not need to sign in.</strong> They can open the app and follow schedule, scores, history, roster, and tournament updates.</li>
+            <li><strong>Only the scorer uses scorer mode.</strong> The scorer password unlocks live scoring controls for the assigned game.</li>
+            <li><strong>Keep the score right first.</strong> If anything gets hectic, accurate score and game state matter more than perfect stat detail.</li>
+          </ul>
+        </section>
+
+        <aside class="card">
+          <h2 class="card-title">Quick Facts</h2>
+          <div class="quick-facts">
+            <div class="fact">
+              <span class="fact-label">Start Here</span>
+              <span class="fact-value">Scores tab</span>
+            </div>
+            <div class="fact">
+              <span class="fact-label">Unlock</span>
+              <span class="fact-value">Login to Score</span>
+            </div>
+            <div class="fact">
+              <span class="fact-label">Open Game</span>
+              <span class="fact-value">Open Scorer</span>
+            </div>
+            <div class="fact">
+              <span class="fact-label">Done</span>
+              <span class="fact-value">Set Final + Lock</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="steps">
+        <section class="step">
+          <div class="step-num">1</div>
+          <h2>Before the game</h2>
+          <p>Open the app, go to <strong>Scores</strong>, and unlock scorer mode.</p>
+          <ul>
+            <li>Tap <strong>Login to Score</strong></li>
+            <li>Enter the scorer password</li>
+            <li>Tap <strong>Open Scorer</strong> on the correct game</li>
+            <li>Confirm opponent, time, and cap color</li>
+            <li>Confirm roster/player names look right</li>
+          </ul>
+        </section>
+
+        <section class="step">
+          <div class="step-num">2</div>
+          <h2>During the game</h2>
+          <p>Use the live controls to track the game as it happens.</p>
+          <ul>
+            <li>Tap <strong>Start</strong> when play begins</li>
+            <li>Record goals, assists, steals, exclusions, and saves</li>
+            <li>Track opponent goals too</li>
+            <li>Update quarter / halftime / game-state changes</li>
+            <li>If unsure, keep the score accurate first</li>
+          </ul>
+        </section>
+
+        <section class="step">
+          <div class="step-num">3</div>
+          <h2>After the game</h2>
+          <p>Close the game cleanly so spectators see the correct final result.</p>
+          <ul>
+            <li>Set the game state to <strong>Final</strong></li>
+            <li>Confirm the final score</li>
+            <li>Select the correct result</li>
+            <li>Share/send the box score if needed</li>
+            <li><strong>Lock scorer mode</strong> when finished</li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="bottom-grid">
+        <section class="card">
+          <h2 class="card-title">Best Practices</h2>
+          <ul class="plain-list">
+            <li><strong>Score one game only.</strong> Make sure you are in the correct game before entering events.</li>
+            <li><strong>Pause if something looks wrong.</strong> Refresh and verify before continuing if the score, game, or roster looks off.</li>
+            <li><strong>Use the game-state buttons consistently.</strong> Quarter and final state changes are part of what spectators rely on.</li>
+            <li><strong>Do not share scorer access broadly.</strong> Keep the scorer password with designated scorers only.</li>
+          </ul>
+        </section>
+
+        <section class="card">
+          <h2 class="card-title">Fast Troubleshooting</h2>
+          <div class="status-box status-green">
+            <h3>If it is working</h3>
+            <p>You should see the correct game card, cap color, live score controls, and an updated score as events are entered.</p>
+          </div>
+          <div class="status-box status-amber">
+            <h3>If something looks off</h3>
+            <ul>
+              <li>Refresh the app</li>
+              <li>Re-open the correct game</li>
+              <li>Check scorer mode is still unlocked</li>
+            </ul>
+          </div>
+          <div class="status-box status-red">
+            <h3>If something breaks</h3>
+            <p>Send: what you were trying to do, what happened instead, your device type, and a screenshot if possible.</p>
+          </div>
+        </section>
+      </div>
+
+      <footer class="footer">
+        <div><strong>Eggbeater Water Polo</strong> - scorer quick reference for tournament day</div>
+        <div>Tip: open this page in a browser and print as PDF</div>
+      </footer>
+    </section>
+  </main>
+</body>
+</html>
