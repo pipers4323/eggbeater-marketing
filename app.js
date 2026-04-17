@@ -1595,6 +1595,22 @@ function switchTeam(letter, groupKey) {
 // Red (A) team → entries for 'Team', 'Team A', 'Team A1', 'Team A2', 'A', 'A1', 'A2' (any non-B variant).
 // Blue (B) team → entries for 'Team B', 'B' only.
 // Single-team mode (no multi-team) → all entries unchanged.
+/** Extracts team letter from a history entry's team label.
+ *  Handles: 'A', 'B', 'Team A', 'Team B', '680 A', '680 B', etc.
+ *  Returns 'A', 'B', 'C', or null (unassigned → belongs to primary/A team). */
+function _historyEntryTeamLetter(teamLabel) {
+  const t = (teamLabel || '').trim();
+  if (!t) return null;
+  if (/^[ABC]$/i.test(t)) return t.toUpperCase();
+  if (/\bTeam\s*A\b/i.test(t)) return 'A';
+  if (/\bTeam\s*B\b/i.test(t)) return 'B';
+  if (/\bTeam\s*C\b/i.test(t)) return 'C';
+  // Custom labels like "680 A", "680 B" — letter at end after space
+  const m = t.match(/\s([ABC])$/i);
+  if (m) return m[1].toUpperCase();
+  return null; // unassigned
+}
+
 function getHistoryForActiveTeam() {
   const history = getHistory();
   const all = history;
@@ -1604,18 +1620,10 @@ function getHistoryForActiveTeam() {
   if (!team) return all;
 
   return all.filter(entry => {
-    const t = (entry.team || '').trim();
-    if (team === 'A') {
-      const isB = t === 'B' || /^Team\s*B$/i.test(t);
-      const isC = t === 'C' || /^Team\s*C$/i.test(t);
-      return !isB && !isC;
-    }
-    if (team === 'B') {
-      return t === 'B' || /^Team\s*B$/i.test(t);
-    }
-    if (team === 'C') {
-      return t === 'C' || /^Team\s*C$/i.test(t);
-    }
+    const letter = _historyEntryTeamLetter(entry.team);
+    if (team === 'A') return letter === 'A' || letter === null; // unassigned defaults to A
+    if (team === 'B') return letter === 'B';
+    if (team === 'C') return letter === 'C';
     return true;
   });
 }
@@ -8382,8 +8390,10 @@ function getCumulativeStandings(entries) {
   const map = {};
   for (const entry of entries) {
     const sub  = entry.subtitle || '';
+    // Resolve team label: explicit entry.team, or inferred from subtitle
     const team = entry.team
-      || (/Team B/i.test(sub) ? 'Team B' : /Team A/i.test(sub) ? 'Team A' : null);
+      || (/Team B/i.test(sub) ? 'Team B' : /Team A/i.test(sub) ? 'Team A'
+        : /\sB$/i.test(sub) ? sub.trim() : /\sA$/i.test(sub) ? sub.trim() : null);
     if (!team) continue;
     if (!map[team]) map[team] = { team, pts: 0, wins: 0, losses: 0, days: 0 };
     map[team].pts    += entry.totalPoints || 0;

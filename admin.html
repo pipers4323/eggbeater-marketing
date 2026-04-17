@@ -12566,13 +12566,12 @@
           },
         ];
 
-        const existingIds = new Set((S.history || []).map(h => String(h.id)));
-        let added = 0, skipped = 0;
-        const newEntries = [];
+        // Always overwrite existing seed entries so re-deploys pick up corrected data
+        // (score fixes, team labels, points updates, etc.)
+        let added = 0, updated = 0;
+        const seedEntries = [];
 
         for (const seed of LEGACY_SEED) {
-          if (existingIds.has(String(seed.id))) { skipped++; continue; }
-
           const histGames = (seed.games || []).map(g => {
             const { team: ts, opp: os } = parseScore(g.score);
             return {
@@ -12582,14 +12581,14 @@
               score: g.score || '',
               teamScore: ts,
               oppScore: os,
+              points: g.points != null ? g.points : null,
               date: '',
               time: '',
               liveScore: null,
-              bracketPoints: g.points != null ? g.points : null,
             };
           });
 
-          newEntries.push({
+          const entry = {
             id: seed.id,
             name: seed.name || 'Tournament',
             dates: seed.dates || '',
@@ -12607,15 +12606,20 @@
             games: histGames,
             playerStats: {},
             archivedAt: new Date(seed.dates || Date.now()).toISOString(),
-          });
-          existingIds.add(String(seed.id));
-          added++;
+          };
+          seedEntries.push(entry);
         }
 
-        S.history = [...newEntries, ...(S.history || [])];
+        // Merge: seed entries overwrite existing by ID; non-seed entries are kept
+        const seedIds = new Set(seedEntries.map(e => String(e.id)));
+        const nonSeed = (S.history || []).filter(h => !seedIds.has(String(h.id)));
+        const prevSeedCount = (S.history || []).filter(h => seedIds.has(String(h.id))).length;
+        added = seedEntries.length - prevSeedCount;
+        updated = prevSeedCount;
+        S.history = [...seedEntries, ...nonSeed];
         S.history.sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt));
         await saveHistory();
-        if (statusEl) statusEl.innerHTML = `<span style="color:var(--green)">✅ Seeded ${added} legacy tournament(s)${skipped ? ` · ${skipped} already present` : ''}.</span>`;
+        if (statusEl) statusEl.innerHTML = `<span style="color:var(--green)">✅ Seeded ${added} new + ${updated} updated legacy tournament(s).</span>`;
       } catch (e) {
         if (statusEl) statusEl.innerHTML = `<span style="color:var(--red)">❌ ${esc(e.message)}</span>`;
       } finally {
