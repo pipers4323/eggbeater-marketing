@@ -14766,8 +14766,8 @@
         S.director.publishedCode = data.code;
         S.director.publishedAt = Date.now();
         saveDirectorLocally();
-        showStatus(adminT('addgames_published_code') + ' ' + data.code, 'ok');
         renderTab();
+        alert('✅ Director package published!\n\nShare Code: ' + data.code + '\n\nSend this 6-character code to each team\'s admin. They enter it in Add Games → Import from Hosted Tournament to pull their games.\n\nThe code also appears in the Brackets & Publishing card below.');
       } catch (e) {
         showStatus('❌ ' + e.message, 'err');
         if (btn) { btn.disabled = false; btn.innerHTML = '📤 Publish &amp; Generate Share Code'; }
