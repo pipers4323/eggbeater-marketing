@@ -7581,6 +7581,13 @@ async function forceAppRefresh(btn) {
   location.replace(base + '?_r=' + Date.now());
 }
 
+function openLiveGameFromSchedule(gameOrRef, ageGroupLabel = '') {
+  const game = _findGameByRef(gameOrRef);
+  if (!game) return;
+  if (!isGameLive(_gameRef(game))) return;
+  openScoreDetail(_gameIdOnly(game), _contextGroupKey(game), ageGroupLabel || '', false);
+}
+
 function renderNextGameCard() {
   const section = $('next-game-section');
   const next = findNextGameOrProjected();
@@ -7630,11 +7637,11 @@ function renderNextGameCard() {
     section.innerHTML = `
       ${nextDateHeader}
       <div class="next-game-wrap">
-        <div class="next-game-card${nextCapBgClass}${nextLive ? ' next-game-live' : ''}">
+        <div class="next-game-card${nextCapBgClass}${nextLive ? ' next-game-live next-game-card-clickable' : ''}"${nextLive ? ` onclick="openLiveGameFromSchedule('${escHtml(_gameRef(g))}')"` : ''}>
           <div class="next-game-card-top">
             ${g.gameNum ? `<div class="next-game-num">${escHtml(g.gameNum)}</div>` : ''}
             ${nextLive ? `<span class="live-badge-next">🔴 LIVE</span>` : ''}
-            <button class="follow-live-btn" onclick="toggleLiveActivity('${_gameRef(g)}')">📡 ${appT('common_follow_live')}</button>
+            <button class="follow-live-btn" onclick="event.stopPropagation();toggleLiveActivity('${_gameRef(g)}')">📡 ${appT('common_follow_live')}</button>
           </div>
           <div class="next-label">${nextLive ? appT('next_in_progress') : appT('next_next_game')}</div>
           <div class="next-vs">vs ${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}</div>
@@ -7863,10 +7870,10 @@ function buildScheduleCard(g) {
   // LIVE badge is handled by the Next Game blue card; plain schedule cards don't show it
   const isLive = isGameLive(_gameRef(g));
   const liveBadge = isLive ? ' <span class="live-badge">🔴 LIVE</span>' : '';
-  const followBtn = `<button class="follow-live-btn-sm" onclick="toggleLiveActivity('${_gameRef(g)}')" title="${escHtml(appT('common_follow_live'))}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
+  const followBtn = `<button class="follow-live-btn-sm" onclick="event.stopPropagation();toggleLiveActivity('${_gameRef(g)}')" title="${escHtml(appT('common_follow_live'))}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
 
   return `
-    <div class="sched-card ${capBgClass}">
+    <div class="sched-card ${capBgClass}${isLive ? ' sched-card-clickable' : ''}"${isLive ? ` onclick="openLiveGameFromSchedule('${escHtml(_gameRef(g))}')"` : ''}>
       <div class="sched-card-top">
         <div class="sched-vs">${TOURNAMENT.clubName ? escHtml(TOURNAMENT.clubName) + ' vs ' : 'vs '}${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}${liveBadge} ${followBtn}</div>
         ${g.gameNum ? `<div class="sched-game-num">${escHtml(g.gameNum)}</div>` : ''}
