@@ -2108,6 +2108,59 @@ function _hydrateDerivedResultsFromLiveScores() {
   return changed;
 }
 
+function _mergeTournamentWithScoredGames(tournament, scoredGames, explicitGroupKey = '') {
+  if (!tournament || !Array.isArray(tournament.games) || !scoredGames || typeof scoredGames !== 'object') {
+    return tournament;
+  }
+  const mergedGames = tournament.games.map((g) => {
+    const scored = scoredGames[String(g.id)];
+    if (!scored) return explicitGroupKey && !g._groupKey ? { ...g, _groupKey: explicitGroupKey } : g;
+    const merged = {
+      ...g,
+      _groupKey: explicitGroupKey || g._groupKey || '',
+      liveScore: scored.score || g.liveScore || null,
+      teamScore: typeof scored.score?.team === 'number' ? scored.score.team : (g.teamScore ?? g.liveScore?.team),
+      oppScore: typeof scored.score?.opp === 'number' ? scored.score.opp : (g.oppScore ?? g.liveScore?.opp),
+      result: scored.result || g.result || '',
+    };
+    if (scored.opponent && !merged.opponent) merged.opponent = scored.opponent;
+    return merged;
+  });
+  return { ...tournament, games: mergedGames };
+}
+
+function _mergeScoredGamesIntoLocalState(scoredGames, explicitGroupKey = '') {
+  if (!scoredGames || typeof scoredGames !== 'object') return false;
+  let changed = false;
+  for (const [gameId, scored] of Object.entries(scoredGames)) {
+    if (!scored?.score) continue;
+    const scopedKey = _scopedGameKey(gameId, explicitGroupKey || scored.teamKey || scored.score.ageGroup || '');
+    const nextScore = {
+      ...scored.score,
+      ageGroup: explicitGroupKey || scored.teamKey || scored.score.ageGroup || '',
+      _remote: true,
+      _broadcastAt: scored.updatedAt || scored.finalizedAt || Date.now(),
+      _deviceId: scored.sourceDeviceId || '',
+    };
+    const prevScore = state.liveScores[scopedKey];
+    if (JSON.stringify(prevScore || null) !== JSON.stringify(nextScore)) {
+      state.liveScores[scopedKey] = nextScore;
+      changed = true;
+    }
+    if (scored.result && state.results[scopedKey] !== scored.result) {
+      state.results[scopedKey] = scored.result;
+      changed = true;
+    } else if (!scored.result) {
+      if (_applyAutoFinalResult(gameId, nextScore, explicitGroupKey || scored.teamKey || '')) changed = true;
+    }
+  }
+  if (changed) {
+    saveLiveScores();
+    _saveResults();
+  }
+  return changed;
+}
+
 // ─── STATE ────────────────────────────────────────────────────────────────────
 
 const state = {
@@ -10402,11 +10455,13 @@ async function loadTeamData(teamKey) {
       return;
     }
     const data = await res.json();
-    const { tournament, history, clubType, clubName, branding, enableMasters, mastersOnly, singleMastersTeam } = data;
+    const { tournament, history, scoredGames, clubType, clubName, branding, enableMasters, mastersOnly, singleMastersTeam } = data;
     const inferredSingleMastersTeam = !!singleMastersTeam || (!!enableMasters && !!mastersOnly && teamKey === 'masters');
     if (tournament) {
-      TEAM_CACHE[teamKey]  = { tournament, history: history || [] };
-      window.TOURNAMENT    = tournament;
+      const mergedTournament = _mergeTournamentWithScoredGames(tournament, scoredGames, teamKey);
+      _mergeScoredGamesIntoLocalState(scoredGames, teamKey);
+      TEAM_CACHE[teamKey]  = { tournament: mergedTournament, history: history || [] };
+      window.TOURNAMENT    = mergedTournament;
       window.HISTORY_SEED  = history || [];
       // Clear cached roster and history so fresh data from server is used.
       // Keep tournament history/results intact on refresh; only clear roster caches here.
