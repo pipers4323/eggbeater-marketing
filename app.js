@@ -1571,7 +1571,7 @@ function getScopedRoster(gameOrRef = null, explicitGroupKey = '') {
   const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
   const cacheRoster = groupKey ? TEAM_CACHE[groupKey]?.tournament?.roster : null;
   const localRoster = (!groupKey || groupKey === getSelectedTeam()) ? TOURNAMENT.roster : null;
-  const rosterSrc = cacheRoster || localRoster;
+  const rosterSrc = cacheRoster || localRoster || TOURNAMENT.roster || null;
   if (!rosterSrc) return [];
   if (Array.isArray(rosterSrc)) return rosterSrc.map(p => ({ ...p }));
 
@@ -5471,8 +5471,11 @@ function openEventPicker(gameId, eventType) {
 
     const TITLES = {
       goal:         'Who scored?',
+      goal_5m:      'Who scored the 5m?',
       assist:       'Who assisted?',
       steal:        'Who got the steal?',
+      shot_miss:    'Who took the shot?',
+      miss_5m:      'Who took the 5m?',
       turnover:     'Who committed the turnover?',
       sprint_won:   'Who won the sprint?',
       field_block:  'Who got the field block?',
@@ -5516,10 +5519,23 @@ function openEventPicker(gameId, eventType) {
     }
 
     // For saves, show only goalkeepers; for everything else show full roster
-    const goalieOnly    = realType === 'save';
+    const goalieOnly = realType === 'save';
+    const sorted = sortedRoster(roster);
+    const goalieRoster = sorted.filter(p => isGoalie(p.cap));
     const displayRoster = goalieOnly
-      ? sortedRoster(roster).filter(p => isGoalie(p.cap))
-      : sortedRoster(roster);
+      ? (goalieRoster.length ? goalieRoster : sorted)
+      : sorted;
+
+    if (realType === 'save' && goalieRoster.length === 1) {
+      const player = goalieRoster[0];
+      recordEventForPlayer(gameId, 'save', player.cap, `${player.first} ${player.last}`);
+      return;
+    }
+
+    if (!displayRoster.length) {
+      showToast('No roster loaded for this team yet.', 'warn');
+      return;
+    }
 
     if (realType === 'save' && displayRoster.length === 1) {
       const player = displayRoster[0];
