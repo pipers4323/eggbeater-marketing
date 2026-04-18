@@ -3539,19 +3539,23 @@ function _isOppGoalType(type) {
   return ['opp_goal', 'opp_goal_5m', 'opp_so_goal'].includes(type);
 }
 
+function _scoreSummaryStatusLabel(score, gameOrRef) {
+  const periodBaseLabel = score.gameState === 'final'
+    ? 'Final'
+    : (score.timerPhase
+        ? _phaseLabel(score.timerPhase)
+        : (PERIOD_LABELS[score.period] || (isGameLive(_gameRef(gameOrRef)) ? 'Live' : 'Scheduled')));
+  return score.gameState && score.gameState !== 'pre' && score.gameState !== 'final'
+    ? `${periodBaseLabel} · ${getCurrentClockStr(gameOrRef)}`
+    : periodBaseLabel;
+}
+
 function _buildScoreDetailSummary(game, score, ageGroupLabel = '', extraActionHtml = '') {
   const events = (score.events || []).filter(e => e.type !== 'game_state');
   const teamName = _teamDisplayNameForGame(game, TOURNAMENT.clubName || appT('scorer_team_label'));
   const oppName = normalizeOpponentName(game.opponent || 'Opp');
   const isPregame = (score.gameState || 'pre') === 'pre' && !events.length && !Number(score.team || 0) && !Number(score.opp || 0);
-  const periodBaseLabel = score.gameState === 'final'
-    ? 'Final'
-    : (score.timerPhase
-        ? _phaseLabel(score.timerPhase)
-        : (PERIOD_LABELS[score.period] || (isGameLive(_gameRef(game)) ? 'Live' : 'Scheduled')));
-  const statusLabel = score.clock && score.gameState && score.gameState !== 'pre' && score.gameState !== 'final'
-    ? `${periodBaseLabel} · ${score.clock}`
-    : periodBaseLabel;
+  const statusLabel = _scoreSummaryStatusLabel(score, _gameRef(game));
   const periodsSeen = new Set([1, 2, 3, 4]);
   const periodScores = {};
   const teamStats = { saves: 0, powerGoals: 0, powerOpps: 0, penGoals: 0, penAttempts: 0, sprints: 0, steals: 0, blocks: 0 };
@@ -3676,7 +3680,7 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '', extraActionHt
         <div class="team-block"><div class="team-name">${escHtml(teamName)}</div><div class="team-score">${Number.isInteger(score.team) ? score.team : Number(score.team || 0).toFixed(1)}</div></div>
         <div class="score-sep-block">
           ${score.gameState && score.gameState !== 'pre'
-            ? `<div class="score-sep-state">${escHtml(statusLabel)}</div>`
+            ? `<div class="score-sep-state" id="summary-live-state-${escHtml(_gameRef(game))}">${escHtml(statusLabel)}</div>`
             : ''}
           <div class="score-sep">-</div>
         </div>
@@ -4894,6 +4898,8 @@ function _tickAllClocks() {
     // Also update the schedule page live card clock
     const schedEl = document.getElementById('next-game-clock-' + gameId);
     if (schedEl) schedEl.textContent = fmtTime;
+    const summaryEl = document.getElementById('summary-live-state-' + gameId);
+    if (summaryEl) summaryEl.textContent = _scoreSummaryStatusLabel(s, gameId);
     // Keep state.clock in sync so broadcasts and Live Activity updates have the current time
     s.clock = fmtTime;
     // Push clock to iOS Live Activity once per second — no _activeLA check since
