@@ -1716,7 +1716,7 @@ h2 {
 
 @media (min-width: 1100px) {
   .score-card-detail {
-    max-width: 980px;
+    max-width: 1280px;
     margin: 14px auto 0;
   }
 
@@ -1724,28 +1724,21 @@ h2 {
   .score-card-detail-tabs,
   .score-card-detail .score-detail-summary.card.tab-card,
   .score-card-detail .score-detail-play.card.tab-card {
-    max-width: 980px;
+    max-width: 1280px;
     margin-left: auto;
     margin-right: auto;
   }
 
   .score-card-detail .score-detail-summary-info {
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr);
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 0.95fr);
   }
 
   .score-card-detail .score-detail-summary-scoreline {
-    grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+    grid-template-columns: minmax(280px, 1fr) auto minmax(280px, 1fr);
   }
 
   .score-card-detail .score-detail-scoring-row {
-    grid-template-columns: minmax(160px, 1.2fr) repeat(5, minmax(42px, 0.42fr));
-  }
-
-  .score-card-detail .score-detail-compare.team-only,
-  .score-card-detail .score-detail-leaders.team-only {
-    max-width: 760px;
-    margin-left: auto;
-    margin-right: auto;
+    grid-template-columns: minmax(220px, 1.5fr) repeat(5, minmax(56px, 0.5fr));
   }
 }
 
@@ -7024,6 +7017,13 @@ html.native-android[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-gr
   font-size: 0.8rem;
   color: var(--gray-600);
   letter-spacing: 0.01em;
+}
+
+.location-venue-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 [data-theme="dark"] .directions-btn {
   background: #1e3a5f !important;
