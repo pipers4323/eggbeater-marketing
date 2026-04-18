@@ -1,0 +1,1303 @@
+{
+  "clubId": "hydres-quebec",
+  "clubName": "Hydres Quebec",
+  "clubSettings": {
+    "clubType": "club",
+    "primaryColor": "#000000",
+    "secondaryColor": "#ffde00",
+    "headerStyle": "default",
+    "enableMasters": true,
+    "mastersOnly": true,
+    "singleMastersTeam": true
+  },
+  "teamKey": "masters",
+  "tournament": {
+    "clubId": "hydres-quebec",
+    "id": "hydres-masters-showcase-2026",
+    "name": "Hydres Quebec Masters Showcase",
+    "subtitle": "Masters - 12 Teams - Platinum / Gold / Silver",
+    "singleTeam": true,
+    "location": "PEPS de l'Universite Laval",
+    "address": "2300 Rue de la Terrasse, Quebec, QC G1V 0A6, Canada",
+    "dates": "April 24-26, 2026",
+    "pool": "Masters",
+    "scoringPassword": "hydres26",
+    "comingSoon": "",
+    "clockSettings": {
+      "quarterMins": 7,
+      "breakMins": 2,
+      "halftimeMins": 3,
+      "timeoutsPerTeam": 2,
+      "timeoutLengths": [
+        1,
+        1
+      ]
+    },
+    "games": [
+      {
+        "id": "hyd-g1",
+        "gameNum": "G1",
+        "opponent": "Montreal Mariniers",
+        "time": "8:00 AM",
+        "dateISO": "2026-04-24",
+        "date": "Fri, Apr 24",
+        "location": "Competition Pool A",
+        "pool": "Masters Platinum Crossover",
+        "cap": "White"
+      },
+      {
+        "id": "hyd-g2",
+        "gameNum": "G2",
+        "opponent": "Ottawa Tritons",
+        "time": "12:10 PM",
+        "dateISO": "2026-04-24",
+        "date": "Fri, Apr 24",
+        "location": "Competition Pool A",
+        "pool": "Masters Platinum Crossover",
+        "cap": "Dark"
+      },
+      {
+        "id": "hyd-g3",
+        "gameNum": "G3",
+        "opponent": "Toronto Steam",
+        "time": "5:40 PM",
+        "dateISO": "2026-04-24",
+        "date": "Fri, Apr 24",
+        "location": "Championship Pool",
+        "pool": "Masters Platinum Crossover",
+        "cap": "White"
+      },
+      {
+        "id": "hyd-g4",
+        "gameNum": "G4",
+        "opponent": "Laval Rapids",
+        "time": "8:30 AM",
+        "dateISO": "2026-04-25",
+        "date": "Sat, Apr 25",
+        "location": "Competition Pool B",
+        "pool": "Power Pool Round 2",
+        "cap": "Dark"
+      },
+      {
+        "id": "hyd-g5",
+        "gameNum": "G5",
+        "opponent": "Quebec Nordiques Masters",
+        "time": "1:00 PM",
+        "dateISO": "2026-04-25",
+        "date": "Sat, Apr 25",
+        "location": "Championship Pool",
+        "pool": "Power Pool Round 2",
+        "cap": "White"
+      },
+      {
+        "id": "hyd-g6",
+        "gameNum": "G6",
+        "opponent": "Sherbrooke Cascades",
+        "time": "6:20 PM",
+        "dateISO": "2026-04-25",
+        "date": "Sat, Apr 25",
+        "location": "Competition Pool B",
+        "pool": "Power Pool Round 2",
+        "cap": "Dark"
+      },
+      {
+        "id": "hyd-g7",
+        "gameNum": "QF1",
+        "opponent": "Platinum Seed #4",
+        "time": "8:00 AM",
+        "dateISO": "2026-04-26",
+        "date": "Sun, Apr 26",
+        "location": "Championship Pool",
+        "pool": "Platinum Quarterfinal",
+        "cap": "White"
+      },
+      {
+        "id": "hyd-g8",
+        "gameNum": "SF1",
+        "opponent": "Winner Platinum QF2",
+        "time": "1:10 PM",
+        "dateISO": "2026-04-26",
+        "date": "Sun, Apr 26",
+        "location": "Championship Pool",
+        "pool": "Platinum Semifinal",
+        "cap": "Dark"
+      },
+      {
+        "id": "hyd-g9",
+        "gameNum": "F1",
+        "opponent": "Winner Platinum SF2",
+        "time": "6:00 PM",
+        "dateISO": "2026-04-26",
+        "date": "Sun, Apr 26",
+        "location": "Championship Pool",
+        "pool": "Platinum Final",
+        "cap": "White"
+      }
+    ],
+    "bracket": {
+      "paths": [
+        {
+          "id": "masters-platinum",
+          "label": "Platinum Bracket",
+          "qualifier": "Top 4 after six preliminary games",
+          "qualifyMinWins": 4,
+          "steps": [
+            {
+              "gameNum": "QF1",
+              "desc": "Platinum Quarterfinal",
+              "dateISO": "2026-04-26",
+              "date": "Sun, Apr 26",
+              "time": "8:00 AM",
+              "location": "Championship Pool"
+            },
+            {
+              "gameNum": "SF1",
+              "desc": "Platinum Semifinal",
+              "dateISO": "2026-04-26",
+              "date": "Sun, Apr 26",
+              "time": "1:10 PM",
+              "location": "Championship Pool"
+            },
+            {
+              "gameNum": "F1",
+              "desc": "Platinum Final",
+              "dateISO": "2026-04-26",
+              "date": "Sun, Apr 26",
+              "time": "6:00 PM",
+              "location": "Championship Pool"
+            }
+          ]
+        },
+        {
+          "id": "masters-gold",
+          "label": "Gold Bracket",
+          "qualifier": "Seeds 5-8 after six preliminary games",
+          "qualifyMinWins": 2,
+          "qualifyMaxWins": 3,
+          "steps": [
+            {
+              "gameNum": "QF-G1",
+              "desc": "Gold Quarterfinal",
+              "dateISO": "2026-04-26",
+              "date": "Sun, Apr 26",
+              "time": "9:20 AM",
+              "location": "Competition Pool A"
+            },
+            {
+              "gameNum": "SF-G1",
+              "desc": "Gold Semifinal",
+              "dateISO": "2026-04-26",
+              "date": "Sun, Apr 26",
+              "time": "2:20 PM",
+              "location": "Competition Pool A"
+            },
+            {
+              "gameNum": "GF1",
+              "desc": "Gold Final",
+              "dateISO": "2026-04-26",
+              "date": "Sun, Apr 26",
+              "time": "5:00 PM",
+              "location": "Competition Pool A"
+            }
+          ]
+        },
+        {
+          "id": "masters-silver",
+          "label": "Silver Bracket",
+          "qualifier": "Seeds 9-12 after six preliminary games",
+          "qualifyMaxWins": 1,
+          "steps": [
+            {
+              "gameNum": "QF-S1",
+              "desc": "Silver Quarterfinal",
+              "dateISO": "2026-04-26",
+              "date": "Sun, Apr 26",
+              "time": "10:30 AM",
+              "location": "Competition Pool B"
+            },
+            {
+              "gameNum": "SF-S1",
+              "desc": "Silver Semifinal",
+              "dateISO": "2026-04-26",
+              "date": "Sun, Apr 26",
+              "time": "3:10 PM",
+              "location": "Competition Pool B"
+            },
+            {
+              "gameNum": "SFIN",
+              "desc": "Silver Final",
+              "dateISO": "2026-04-26",
+              "date": "Sun, Apr 26",
+              "time": "4:30 PM",
+              "location": "Competition Pool B"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "history": [],
+  "roster": [
+    {
+      "cap": "1",
+      "first": "Etienne",
+      "last": "Gagnon"
+    },
+    {
+      "cap": "2",
+      "first": "Mathieu",
+      "last": "Bouchard"
+    },
+    {
+      "cap": "3",
+      "first": "Samuel",
+      "last": "Tremblay"
+    },
+    {
+      "cap": "4",
+      "first": "Antoine",
+      "last": "Lefebvre"
+    },
+    {
+      "cap": "5",
+      "first": "Nicolas",
+      "last": "Roy"
+    },
+    {
+      "cap": "6",
+      "first": "Charles",
+      "last": "Pelletier"
+    },
+    {
+      "cap": "7",
+      "first": "Philippe",
+      "last": "Cote"
+    },
+    {
+      "cap": "8",
+      "first": "Alexandre",
+      "last": "Fortin"
+    },
+    {
+      "cap": "9",
+      "first": "Guillaume",
+      "last": "Morin"
+    },
+    {
+      "cap": "10",
+      "first": "Julien",
+      "last": "Lavoie"
+    },
+    {
+      "cap": "11",
+      "first": "Dominic",
+      "last": "Cloutier"
+    },
+    {
+      "cap": "12",
+      "first": "Marc",
+      "last": "Bergeron"
+    },
+    {
+      "cap": "13",
+      "first": "Vincent",
+      "last": "Lemieux"
+    },
+    {
+      "cap": "14",
+      "first": "Cedric",
+      "last": "Desjardins"
+    },
+    {
+      "cap": "15",
+      "first": "Olivier",
+      "last": "Girard"
+    }
+  ],
+  "allTeams": [
+    {
+      "name": "Hydres Quebec",
+      "short": "HYD",
+      "division": "Platinum",
+      "roster": [
+        {
+          "cap": "1",
+          "first": "Etienne",
+          "last": "Gagnon"
+        },
+        {
+          "cap": "2",
+          "first": "Mathieu",
+          "last": "Bouchard"
+        },
+        {
+          "cap": "3",
+          "first": "Samuel",
+          "last": "Tremblay"
+        },
+        {
+          "cap": "4",
+          "first": "Antoine",
+          "last": "Lefebvre"
+        },
+        {
+          "cap": "5",
+          "first": "Nicolas",
+          "last": "Roy"
+        },
+        {
+          "cap": "6",
+          "first": "Charles",
+          "last": "Pelletier"
+        },
+        {
+          "cap": "7",
+          "first": "Philippe",
+          "last": "Cote"
+        },
+        {
+          "cap": "8",
+          "first": "Alexandre",
+          "last": "Fortin"
+        },
+        {
+          "cap": "9",
+          "first": "Guillaume",
+          "last": "Morin"
+        },
+        {
+          "cap": "10",
+          "first": "Julien",
+          "last": "Lavoie"
+        },
+        {
+          "cap": "11",
+          "first": "Dominic",
+          "last": "Cloutier"
+        },
+        {
+          "cap": "12",
+          "first": "Marc",
+          "last": "Bergeron"
+        },
+        {
+          "cap": "13",
+          "first": "Vincent",
+          "last": "Lemieux"
+        },
+        {
+          "cap": "14",
+          "first": "Cedric",
+          "last": "Desjardins"
+        },
+        {
+          "cap": "15",
+          "first": "Olivier",
+          "last": "Girard"
+        }
+      ]
+    },
+    {
+      "name": "Montreal Mariniers",
+      "short": "MTL",
+      "division": "Platinum",
+      "roster": [
+        {
+          "cap": "1",
+          "first": "Pascal",
+          "last": "Renaud"
+        },
+        {
+          "cap": "2",
+          "first": "Xavier",
+          "last": "Leduc"
+        },
+        {
+          "cap": "3",
+          "first": "Simon",
+          "last": "Harvey"
+        },
+        {
+          "cap": "4",
+          "first": "David",
+          "last": "Brunet"
+        },
+        {
+          "cap": "5",
+          "first": "Frederic",
+          "last": "Nadeau"
+        },
+        {
+          "cap": "6",
+          "first": "Cedrik",
+          "last": "Poirier"
+        },
+        {
+          "cap": "7",
+          "first": "Louis",
+          "last": "Perreault"
+        },
+        {
+          "cap": "8",
+          "first": "Jean-Sebastien",
+          "last": "Hebert"
+        },
+        {
+          "cap": "9",
+          "first": "Maxime",
+          "last": "Blais"
+        },
+        {
+          "cap": "10",
+          "first": "Patrick",
+          "last": "Dion"
+        },
+        {
+          "cap": "11",
+          "first": "Hugo",
+          "last": "Lachance"
+        },
+        {
+          "cap": "12",
+          "first": "Keven",
+          "last": "Bourque"
+        },
+        {
+          "cap": "13",
+          "first": "Karl",
+          "last": "Gervais"
+        },
+        {
+          "cap": "14",
+          "first": "Francis",
+          "last": "Paquette"
+        },
+        {
+          "cap": "15",
+          "first": "Remi",
+          "last": "Thibault"
+        }
+      ]
+    },
+    {
+      "name": "Ottawa Tritons",
+      "short": "OTT",
+      "division": "Platinum",
+      "roster": [
+        {
+          "cap": "1",
+          "first": "Daniel",
+          "last": "Mercer"
+        },
+        {
+          "cap": "2",
+          "first": "Connor",
+          "last": "Walsh"
+        },
+        {
+          "cap": "3",
+          "first": "Ethan",
+          "last": "Boyle"
+        },
+        {
+          "cap": "4",
+          "first": "Liam",
+          "last": "Reid"
+        },
+        {
+          "cap": "5",
+          "first": "Ryan",
+          "last": "Forbes"
+        },
+        {
+          "cap": "6",
+          "first": "Sean",
+          "last": "McCarthy"
+        },
+        {
+          "cap": "7",
+          "first": "Aidan",
+          "last": "Brennan"
+        },
+        {
+          "cap": "8",
+          "first": "Mason",
+          "last": "Clarke"
+        },
+        {
+          "cap": "9",
+          "first": "Owen",
+          "last": "Fisher"
+        },
+        {
+          "cap": "10",
+          "first": "Noah",
+          "last": "Gillespie"
+        },
+        {
+          "cap": "11",
+          "first": "Declan",
+          "last": "Murray"
+        },
+        {
+          "cap": "12",
+          "first": "Caleb",
+          "last": "Irwin"
+        },
+        {
+          "cap": "13",
+          "first": "Tyler",
+          "last": "Dawson"
+        },
+        {
+          "cap": "14",
+          "first": "Dylan",
+          "last": "Fraser"
+        },
+        {
+          "cap": "15",
+          "first": "Luke",
+          "last": "Holland"
+        }
+      ]
+    },
+    {
+      "name": "Toronto Steam",
+      "short": "TOR",
+      "division": "Platinum",
+      "roster": [
+        {
+          "cap": "1",
+          "first": "Brandon",
+          "last": "Kerr"
+        },
+        {
+          "cap": "2",
+          "first": "Jordan",
+          "last": "Patel"
+        },
+        {
+          "cap": "3",
+          "first": "Adrian",
+          "last": "Singh"
+        },
+        {
+          "cap": "4",
+          "first": "Corey",
+          "last": "Martin"
+        },
+        {
+          "cap": "5",
+          "first": "Trevor",
+          "last": "Lewis"
+        },
+        {
+          "cap": "6",
+          "first": "Victor",
+          "last": "Bennett"
+        },
+        {
+          "cap": "7",
+          "first": "Jason",
+          "last": "Lopez"
+        },
+        {
+          "cap": "8",
+          "first": "Mitchell",
+          "last": "Cole"
+        },
+        {
+          "cap": "9",
+          "first": "Graham",
+          "last": "James"
+        },
+        {
+          "cap": "10",
+          "first": "Marcus",
+          "last": "Young"
+        },
+        {
+          "cap": "11",
+          "first": "Shane",
+          "last": "Miller"
+        },
+        {
+          "cap": "12",
+          "first": "Anthony",
+          "last": "Price"
+        },
+        {
+          "cap": "13",
+          "first": "Derek",
+          "last": "Scott"
+        },
+        {
+          "cap": "14",
+          "first": "Justin",
+          "last": "Ward"
+        },
+        {
+          "cap": "15",
+          "first": "Kyle",
+          "last": "Roberts"
+        }
+      ]
+    },
+    {
+      "name": "Laval Rapids",
+      "short": "LAV",
+      "division": "Gold",
+      "roster": [
+        {
+          "cap": "1",
+          "first": "Mathis",
+          "last": "Savard"
+        },
+        {
+          "cap": "2",
+          "first": "Felix",
+          "last": "Boucher"
+        },
+        {
+          "cap": "3",
+          "first": "Jerome",
+          "last": "Turcotte"
+        },
+        {
+          "cap": "4",
+          "first": "Alexis",
+          "last": "Roux"
+        },
+        {
+          "cap": "5",
+          "first": "Samuel",
+          "last": "Tardif"
+        },
+        {
+          "cap": "6",
+          "first": "Martin",
+          "last": "Boutin"
+        },
+        {
+          "cap": "7",
+          "first": "Loic",
+          "last": "Parent"
+        },
+        {
+          "cap": "8",
+          "first": "Henri",
+          "last": "Masse"
+        },
+        {
+          "cap": "9",
+          "first": "Tommy",
+          "last": "Giroux"
+        },
+        {
+          "cap": "10",
+          "first": "Jonathan",
+          "last": "Racine"
+        },
+        {
+          "cap": "11",
+          "first": "Stephane",
+          "last": "Lalonde"
+        },
+        {
+          "cap": "12",
+          "first": "Bruno",
+          "last": "Rioux"
+        },
+        {
+          "cap": "13",
+          "first": "Cyril",
+          "last": "Marchand"
+        },
+        {
+          "cap": "14",
+          "first": "Mikael",
+          "last": "Charron"
+        },
+        {
+          "cap": "15",
+          "first": "Yannick",
+          "last": "Dube"
+        }
+      ]
+    },
+    {
+      "name": "Quebec Nordiques Masters",
+      "short": "QNM",
+      "division": "Gold",
+      "roster": [
+        {
+          "cap": "1",
+          "first": "Renaud",
+          "last": "Guillemette"
+        },
+        {
+          "cap": "2",
+          "first": "Cedric",
+          "last": "Boivin"
+        },
+        {
+          "cap": "3",
+          "first": "Alex",
+          "last": "Piche"
+        },
+        {
+          "cap": "4",
+          "first": "Francois",
+          "last": "Belley"
+        },
+        {
+          "cap": "5",
+          "first": "Dominique",
+          "last": "Caron"
+        },
+        {
+          "cap": "6",
+          "first": "Tristan",
+          "last": "Michaud"
+        },
+        {
+          "cap": "7",
+          "first": "Vincent",
+          "last": "Demers"
+        },
+        {
+          "cap": "8",
+          "first": "Pier-Luc",
+          "last": "Trempe"
+        },
+        {
+          "cap": "9",
+          "first": "Emile",
+          "last": "Lebel"
+        },
+        {
+          "cap": "10",
+          "first": "Nicolas",
+          "last": "Vezina"
+        },
+        {
+          "cap": "11",
+          "first": "Simon",
+          "last": "Dallaire"
+        },
+        {
+          "cap": "12",
+          "first": "Luc",
+          "last": "Lacroix"
+        },
+        {
+          "cap": "13",
+          "first": "Etienne",
+          "last": "Briere"
+        },
+        {
+          "cap": "14",
+          "first": "Maxence",
+          "last": "Bazin"
+        },
+        {
+          "cap": "15",
+          "first": "Antoine",
+          "last": "Tanguay"
+        }
+      ]
+    },
+    {
+      "name": "Sherbrooke Cascades",
+      "short": "SHR",
+      "division": "Gold",
+      "roster": [
+        {
+          "cap": "1",
+          "first": "Cedrick",
+          "last": "Bolduc"
+        },
+        {
+          "cap": "2",
+          "first": "Gabriel",
+          "last": "St-Pierre"
+        },
+        {
+          "cap": "3",
+          "first": "Thomas",
+          "last": "Gilbert"
+        },
+        {
+          "cap": "4",
+          "first": "Olivier",
+          "last": "Lussier"
+        },
+        {
+          "cap": "5",
+          "first": "Raphael",
+          "last": "Houde"
+        },
+        {
+          "cap": "6",
+          "first": "Jules",
+          "last": "Cayer"
+        },
+        {
+          "cap": "7",
+          "first": "William",
+          "last": "Arsenault"
+        },
+        {
+          "cap": "8",
+          "first": "Jonathan",
+          "last": "Valliere"
+        },
+        {
+          "cap": "9",
+          "first": "Brice",
+          "last": "Fortier"
+        },
+        {
+          "cap": "10",
+          "first": "Leo",
+          "last": "Bisson"
+        },
+        {
+          "cap": "11",
+          "first": "Marc-Antoine",
+          "last": "Goulet"
+        },
+        {
+          "cap": "12",
+          "first": "Alexandre",
+          "last": "Robert"
+        },
+        {
+          "cap": "13",
+          "first": "Joel",
+          "last": "Allard"
+        },
+        {
+          "cap": "14",
+          "first": "Eric",
+          "last": "Ruel"
+        },
+        {
+          "cap": "15",
+          "first": "Dominik",
+          "last": "Bibeau"
+        }
+      ]
+    },
+    {
+      "name": "Gatineau Voyageurs",
+      "short": "GAT",
+      "division": "Gold",
+      "roster": [
+        {
+          "cap": "1",
+          "first": "Mathieu",
+          "last": "Beaudoin"
+        },
+        {
+          "cap": "2",
+          "first": "Nicolas",
+          "last": "Brault"
+        },
+        {
+          "cap": "3",
+          "first": "Julien",
+          "last": "Pilon"
+        },
+        {
+          "cap": "4",
+          "first": "Jeremie",
+          "last": "Rivard"
+        },
+        {
+          "cap": "5",
+          "first": "Maxime",
+          "last": "Guay"
+        },
+        {
+          "cap": "6",
+          "first": "Alexandre",
+          "last": "Hamelin"
+        },
+        {
+          "cap": "7",
+          "first": "Charles",
+          "last": "Sicard"
+        },
+        {
+          "cap": "8",
+          "first": "Lucas",
+          "last": "Laplante"
+        },
+        {
+          "cap": "9",
+          "first": "Simon",
+          "last": "Belisle"
+        },
+        {
+          "cap": "10",
+          "first": "David",
+          "last": "Lepage"
+        },
+        {
+          "cap": "11",
+          "first": "Jerome",
+          "last": "Leduc"
+        },
+        {
+          "cap": "12",
+          "first": "Benoit",
+          "last": "Valois"
+        },
+        {
+          "cap": "13",
+          "first": "Jean-Francois",
+          "last": "Parisien"
+        },
+        {
+          "cap": "14",
+          "first": "Kevin",
+          "last": "Trempe"
+        },
+        {
+          "cap": "15",
+          "first": "Francis",
+          "last": "Lafrance"
+        }
+      ]
+    },
+    {
+      "name": "Halifax Harbour",
+      "short": "HAL",
+      "division": "Silver",
+      "roster": [
+        {
+          "cap": "1",
+          "first": "Cameron",
+          "last": "Ross"
+        },
+        {
+          "cap": "2",
+          "first": "Gavin",
+          "last": "MacLeod"
+        },
+        {
+          "cap": "3",
+          "first": "Ian",
+          "last": "Sullivan"
+        },
+        {
+          "cap": "4",
+          "first": "Colin",
+          "last": "Doyle"
+        },
+        {
+          "cap": "5",
+          "first": "Avery",
+          "last": "Parker"
+        },
+        {
+          "cap": "6",
+          "first": "Elliot",
+          "last": "Grant"
+        },
+        {
+          "cap": "7",
+          "first": "Nate",
+          "last": "Campbell"
+        },
+        {
+          "cap": "8",
+          "first": "Logan",
+          "last": "Fraser"
+        },
+        {
+          "cap": "9",
+          "first": "Ty",
+          "last": "Murphy"
+        },
+        {
+          "cap": "10",
+          "first": "Ben",
+          "last": "McNeil"
+        },
+        {
+          "cap": "11",
+          "first": "Craig",
+          "last": "MacDonald"
+        },
+        {
+          "cap": "12",
+          "first": "Troy",
+          "last": "Hopkins"
+        },
+        {
+          "cap": "13",
+          "first": "Spencer",
+          "last": "Cochrane"
+        },
+        {
+          "cap": "14",
+          "first": "Adam",
+          "last": "Rutledge"
+        },
+        {
+          "cap": "15",
+          "first": "Mitchell",
+          "last": "Perry"
+        }
+      ]
+    },
+    {
+      "name": "Vancouver Orcas",
+      "short": "VAN",
+      "division": "Silver",
+      "roster": [
+        {
+          "cap": "1",
+          "first": "Tyson",
+          "last": "Wong"
+        },
+        {
+          "cap": "2",
+          "first": "Evan",
+          "last": "Chu"
+        },
+        {
+          "cap": "3",
+          "first": "Jordan",
+          "last": "Kwan"
+        },
+        {
+          "cap": "4",
+          "first": "Brayden",
+          "last": "Lim"
+        },
+        {
+          "cap": "5",
+          "first": "Marcus",
+          "last": "Yuen"
+        },
+        {
+          "cap": "6",
+          "first": "Noel",
+          "last": "Park"
+        },
+        {
+          "cap": "7",
+          "first": "Kevin",
+          "last": "Ho"
+        },
+        {
+          "cap": "8",
+          "first": "Alec",
+          "last": "Leung"
+        },
+        {
+          "cap": "9",
+          "first": "Miles",
+          "last": "Chen"
+        },
+        {
+          "cap": "10",
+          "first": "Darren",
+          "last": "Liu"
+        },
+        {
+          "cap": "11",
+          "first": "Reid",
+          "last": "Sandhu"
+        },
+        {
+          "cap": "12",
+          "first": "Trey",
+          "last": "Poon"
+        },
+        {
+          "cap": "13",
+          "first": "Jason",
+          "last": "Ng"
+        },
+        {
+          "cap": "14",
+          "first": "Colby",
+          "last": "Tam"
+        },
+        {
+          "cap": "15",
+          "first": "Scott",
+          "last": "Ip"
+        }
+      ]
+    },
+    {
+      "name": "Calgary Mavericks",
+      "short": "CAL",
+      "division": "Silver",
+      "roster": [
+        {
+          "cap": "1",
+          "first": "Brett",
+          "last": "Sinclair"
+        },
+        {
+          "cap": "2",
+          "first": "Tyson",
+          "last": "Hughes"
+        },
+        {
+          "cap": "3",
+          "first": "Cole",
+          "last": "Jamieson"
+        },
+        {
+          "cap": "4",
+          "first": "Parker",
+          "last": "Dunn"
+        },
+        {
+          "cap": "5",
+          "first": "Rylan",
+          "last": "Peters"
+        },
+        {
+          "cap": "6",
+          "first": "Carter",
+          "last": "Dixon"
+        },
+        {
+          "cap": "7",
+          "first": "Rhett",
+          "last": "Morrison"
+        },
+        {
+          "cap": "8",
+          "first": "Jaxon",
+          "last": "Sharp"
+        },
+        {
+          "cap": "9",
+          "first": "Odin",
+          "last": "McKay"
+        },
+        {
+          "cap": "10",
+          "first": "Sawyer",
+          "last": "Noble"
+        },
+        {
+          "cap": "11",
+          "first": "Landon",
+          "last": "Reimer"
+        },
+        {
+          "cap": "12",
+          "first": "Mack",
+          "last": "Bishop"
+        },
+        {
+          "cap": "13",
+          "first": "Hayden",
+          "last": "Currie"
+        },
+        {
+          "cap": "14",
+          "first": "Briggs",
+          "last": "Yates"
+        },
+        {
+          "cap": "15",
+          "first": "Devon",
+          "last": "Sheppard"
+        }
+      ]
+    },
+    {
+      "name": "Edmonton Ice",
+      "short": "EDM",
+      "division": "Silver",
+      "roster": [
+        {
+          "cap": "1",
+          "first": "Wes",
+          "last": "Hawkins"
+        },
+        {
+          "cap": "2",
+          "first": "Brandon",
+          "last": "Elliott"
+        },
+        {
+          "cap": "3",
+          "first": "Tanner",
+          "last": "Berg"
+        },
+        {
+          "cap": "4",
+          "first": "Colton",
+          "last": "Schaefer"
+        },
+        {
+          "cap": "5",
+          "first": "Dawson",
+          "last": "Neufeld"
+        },
+        {
+          "cap": "6",
+          "first": "Gage",
+          "last": "Keller"
+        },
+        {
+          "cap": "7",
+          "first": "Mason",
+          "last": "Schultz"
+        },
+        {
+          "cap": "8",
+          "first": "Kade",
+          "last": "Bauman"
+        },
+        {
+          "cap": "9",
+          "first": "Griffin",
+          "last": "Klein"
+        },
+        {
+          "cap": "10",
+          "first": "Liam",
+          "last": "Krause"
+        },
+        {
+          "cap": "11",
+          "first": "Trevor",
+          "last": "Wolfe"
+        },
+        {
+          "cap": "12",
+          "first": "Austin",
+          "last": "Friesen"
+        },
+        {
+          "cap": "13",
+          "first": "Jay",
+          "last": "Snyder"
+        },
+        {
+          "cap": "14",
+          "first": "Riley",
+          "last": "Grau"
+        },
+        {
+          "cap": "15",
+          "first": "Cody",
+          "last": "Meyer"
+        }
+      ]
+    }
+  ]
+}

@@ -8731,7 +8731,7 @@ function init() {
     const clubType = localStorage.getItem('ebwp-club-type');
     const teamKey  = localStorage.getItem('ebwp-team-key');
     const HS_KEYS  = ['boys-varsity','boys-jv','girls-varsity','girls-jv'];
-    const CLUB_KEYS = ['10u-coed','12u-girls','12u-boys','14u-girls','14u-boys','16u-girls','16u-boys','18u-girls','18u-boys','masters-women','masters-men'];
+    const CLUB_KEYS = ['10u-coed','12u-girls','12u-boys','14u-girls','14u-boys','16u-girls','16u-boys','18u-girls','18u-boys','masters','masters-women','masters-men'];
     // If HS club but team key is a club key (or vice versa), clear stale data
     if ((clubType === 'highschool' && teamKey && CLUB_KEYS.includes(teamKey)) ||
         (clubType === 'club' && teamKey && HS_KEYS.includes(teamKey))) {
@@ -8820,9 +8820,9 @@ function init() {
           }
           if (info.clubType) {
             localStorage.setItem('ebwp-club-type', info.clubType);
-            storeClubPrograms(!!info.enableMasters, !!info.mastersOnly);
+            storeClubPrograms(!!info.enableMasters, !!info.mastersOnly, !!info.singleMastersTeam);
             const isHS = info.clubType === 'highschool';
-            TEAM_OPTIONS = getClubTeamOptions(info.clubType, !!info.enableMasters, !!info.mastersOnly);
+            TEAM_OPTIONS = getClubTeamOptions(info.clubType, !!info.enableMasters, !!info.mastersOnly, !!info.singleMastersTeam);
             // Reset selection if current keys are invalid for this club type
             const validKeys = TEAM_OPTIONS.map(t => t.key);
             // Always prioritize favorite if current selection is the default or missing
@@ -9458,8 +9458,8 @@ function _selectClub(clubId, clubName, clubType) {
   localStorage.setItem('ebwp-club-id', clubId);
   if (clubName) localStorage.setItem('ebwp-club-name', clubName);
   localStorage.setItem('ebwp-club-type', clubType || 'club');
-  storeClubPrograms(false, false);
-  TEAM_OPTIONS = getClubTeamOptions(clubType || 'club', false, false);
+  storeClubPrograms(false, false, false);
+  TEAM_OPTIONS = getClubTeamOptions(clubType || 'club', false, false, false);
   // Reset team selection to first valid team for this club type
   localStorage.setItem('ebwp-team-keys', JSON.stringify([TEAM_OPTIONS[0].key]));
 
@@ -9501,6 +9501,7 @@ function changeClub() {
   localStorage.removeItem('ebwp-club-type');
   localStorage.removeItem('ebwp-enable-masters');
   localStorage.removeItem('ebwp-masters-only');
+  localStorage.removeItem('ebwp-single-masters-team');
   localStorage.removeItem('ebwp-team-keys');
   localStorage.removeItem('ebwp-team-key');
   TEAM_OPTIONS = TEAM_OPTIONS_CLUB_YOUTH; // reset to default
@@ -9545,6 +9546,9 @@ const TEAM_OPTIONS_CLUB_MASTERS = [
   { key: 'masters-women', label: 'Masters Women' },
   { key: 'masters-men',   label: 'Masters Men'   },
 ];
+const TEAM_OPTIONS_CLUB_MASTERS_SINGLE = [
+  { key: 'masters', label: 'Masters' },
+];
 const TEAM_OPTIONS_CLUB = [...TEAM_OPTIONS_CLUB_YOUTH, ...TEAM_OPTIONS_CLUB_MASTERS];
 
 const TEAM_OPTIONS_HS = [
@@ -9558,17 +9562,19 @@ function getStoredClubPrograms() {
   return {
     enableMasters: localStorage.getItem('ebwp-enable-masters') === 'true',
     mastersOnly: localStorage.getItem('ebwp-masters-only') === 'true',
+    singleMastersTeam: localStorage.getItem('ebwp-single-masters-team') === 'true',
   };
 }
 
-function storeClubPrograms(enableMasters, mastersOnly) {
+function storeClubPrograms(enableMasters, mastersOnly, singleMastersTeam = false) {
   localStorage.setItem('ebwp-enable-masters', enableMasters ? 'true' : 'false');
   localStorage.setItem('ebwp-masters-only', enableMasters && mastersOnly ? 'true' : 'false');
+  localStorage.setItem('ebwp-single-masters-team', enableMasters && singleMastersTeam ? 'true' : 'false');
 }
 
-function getClubTeamOptions(clubType, enableMasters = false, mastersOnly = false) {
+function getClubTeamOptions(clubType, enableMasters = false, mastersOnly = false, singleMastersTeam = false) {
   if (clubType === 'highschool') return TEAM_OPTIONS_HS;
-  if (enableMasters && mastersOnly) return TEAM_OPTIONS_CLUB_MASTERS;
+  if (enableMasters && mastersOnly) return singleMastersTeam ? TEAM_OPTIONS_CLUB_MASTERS_SINGLE : TEAM_OPTIONS_CLUB_MASTERS;
   if (enableMasters) return TEAM_OPTIONS_CLUB;
   return TEAM_OPTIONS_CLUB_YOUTH;
 }
@@ -9577,7 +9583,8 @@ const storedPrograms = getStoredClubPrograms();
 let TEAM_OPTIONS = getClubTeamOptions(
   localStorage.getItem('ebwp-club-type'),
   storedPrograms.enableMasters,
-  storedPrograms.mastersOnly
+  storedPrograms.mastersOnly,
+  storedPrograms.singleMastersTeam
 );
 
 // ── Age-group selection (supports multiple selections) ────────────────────────
@@ -9791,7 +9798,7 @@ async function loadTeamData(teamKey) {
       return;
     }
     const data = await res.json();
-    const { tournament, history, clubType, clubName, branding, enableMasters, mastersOnly } = data;
+    const { tournament, history, clubType, clubName, branding, enableMasters, mastersOnly, singleMastersTeam } = data;
     if (tournament) {
       TEAM_CACHE[teamKey]  = { tournament, history: history || [] };
       window.TOURNAMENT    = tournament;
@@ -9820,9 +9827,9 @@ async function loadTeamData(teamKey) {
     // Detect HS club type and switch team options dynamically
     if (clubType && clubType !== localStorage.getItem('ebwp-club-type')) {
       localStorage.setItem('ebwp-club-type', clubType);
-      storeClubPrograms(!!enableMasters, !!mastersOnly);
+      storeClubPrograms(!!enableMasters, !!mastersOnly, !!singleMastersTeam);
       const isHS = clubType === 'highschool';
-      TEAM_OPTIONS = getClubTeamOptions(clubType, !!enableMasters, !!mastersOnly);
+      TEAM_OPTIONS = getClubTeamOptions(clubType, !!enableMasters, !!mastersOnly, !!singleMastersTeam);
       // If the current team key doesn't belong to the new options, reset selection
       const validKeys = TEAM_OPTIONS.map(t => t.key);
       const current = getSelectedTeams();
@@ -10237,15 +10244,22 @@ function closeScoringPasswordModal() {
 function submitScoringPassword() {
   const entered = ($('scoring-pw-input').value || '').trim();
   const correct = (TOURNAMENT.scoringPassword || '').trim();
+  const selectedTournaments = getSelectedTeams()
+    .map(groupKey => TEAM_CACHE[groupKey]?.tournament)
+    .filter(Boolean);
+  const protectedPasswords = new Set(
+    [correct, ...selectedTournaments.map(t => (t.scoringPassword || '').trim())].filter(Boolean)
+  );
+  const passwordMatchesSelectedScope = protectedPasswords.has(entered);
 
-  if (!correct || entered === correct) {
+  if (!protectedPasswords.size || passwordMatchesSelectedScope) {
     const unlocked = new Set(_getUnlockedScoringTournamentIds());
     const primaryId = TOURNAMENT.id || '';
-    if (primaryId) unlocked.add(primaryId);
-    for (const groupKey of getSelectedTeams()) {
-      const cacheTournament = TEAM_CACHE[groupKey]?.tournament;
+    if (primaryId && (!correct || correct === entered)) unlocked.add(primaryId);
+    for (const cacheTournament of selectedTournaments) {
       if (!cacheTournament?.id) continue;
-      if ((cacheTournament.scoringPassword || '').trim() === correct) unlocked.add(cacheTournament.id);
+      const cachePassword = (cacheTournament.scoringPassword || '').trim();
+      if (!cachePassword || cachePassword === entered) unlocked.add(cacheTournament.id);
     }
     _setUnlockedScoringTournamentIds([...unlocked]);
     localStorage.setItem('ebwp-scorer-unlocked',    '1');
