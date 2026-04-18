@@ -6178,6 +6178,34 @@ details[open] .help-chevron { transform: rotate(180deg); }
   border-color: #30363d;
 }
 
+[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-box,
+html.native-ios[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-box,
+html.native-android[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-box {
+  background: #f8fafc !important;
+  border-color: #d1d5db !important;
+}
+
+[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-num,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-num-sm,
+html.native-ios[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-num,
+html.native-ios[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-num-sm,
+html.native-android[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-num,
+html.native-android[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-num-sm {
+  color: #0b63ce !important;
+}
+
+[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-lbl,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-lbl-sm,
+[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-group-label,
+html.native-ios[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-lbl,
+html.native-ios[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-lbl-sm,
+html.native-ios[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-group-label,
+html.native-android[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-lbl,
+html.native-android[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-lbl-sm,
+html.native-android[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-group-label {
+  color: #4b5563 !important;
+}
+
 /* ── Toast ──────────────────────────────────────────────────────────────── */
 [data-theme="dark"] .toast {
   background: #30363d;
