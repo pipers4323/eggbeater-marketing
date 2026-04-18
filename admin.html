@@ -2605,6 +2605,7 @@
       pw: '',
       tournament: null,
       history: [],
+      scoredGames: {},
       roster: null,   // master roster — stored separately, persists across tournaments
       currentTab: 'schedule',
       editingGame: null,   // gameId currently open for edit
@@ -2757,6 +2758,7 @@
       const data = await res.json();
       S.tournament = data.tournament || defaultTournament();
       S.history = data.history || [];
+      S.scoredGames = data.scoredGames || {};
       S.roster = data.roster || null;
       S.role = data.adminRole || 'admin';
       S.director = JSON.parse(localStorage.getItem('ebadmin-director-' + S.team) || 'null');
@@ -2861,6 +2863,7 @@
         const data = await res.json();
         S.tournament = data.tournament || defaultTournament();
         S.history = data.history || [];
+        S.scoredGames = data.scoredGames || {};
         S.roster = data.roster || null;
         S.role = data.adminRole || 'admin';
         S.director = JSON.parse(localStorage.getItem('ebadmin-director-' + S.team) || 'null');
@@ -2941,6 +2944,7 @@
         const data = await res.json();
         S.tournament = data.tournament || defaultTournament();
         S.history = data.history || [];
+        S.scoredGames = data.scoredGames || {};
         S.roster = data.roster || null;
         S.role = data.adminRole || 'admin';
         S.director = JSON.parse(localStorage.getItem('ebadmin-director-' + S.team) || 'null');
@@ -3108,6 +3112,7 @@
         const data = await res.json();
         S.tournament = data.tournament || defaultTournament();
         S.history = data.history || [];
+        S.scoredGames = data.scoredGames || {};
         S.roster = data.roster || null;
         if (S.tournament.singleTeam !== true) {
           if (!Array.isArray(S.tournament.teams) || S.tournament.teams.length < 2) S.tournament.teams = ['A', 'B'];
@@ -3583,7 +3588,7 @@
 
     async function api(method, path, body) {
       // Append team + club query params to admin endpoints
-      const teamPaths = ['/admin/data', '/admin/roster', '/admin/deploy'];
+      const teamPaths = ['/admin/data', '/admin/roster', '/admin/deploy', '/admin/scored-games'];
       const needsTeam = teamPaths.some(p => path.startsWith(p));
       let fullPath = path;
       if (needsTeam) {
@@ -13030,7 +13035,48 @@
       const teamObj = getAdminTeams().find(t => t.key === S.team);
       const teamLabel = teamObj ? teamObj.label : S.team;
       const isHS = S.clubType === 'highschool';
+      const scoredEntries = Object.values(S.scoredGames || {}).sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+      const scoredRows = scoredEntries.length
+        ? scoredEntries.map(entry => {
+          const score = entry.score || {};
+          const scoreLabel = (typeof score.team === 'number' && typeof score.opp === 'number')
+            ? `${score.team}-${score.opp}`
+            : '—';
+          const stateLabel = String(score.gameState || '').trim() || 'pre';
+          const stamp = entry.updatedAt ? new Date(entry.updatedAt).toLocaleString() : '';
+          const promoteLabel = stateLabel === 'final' ? 'Reopen' : 'Promote Final';
+          const promoteAction = stateLabel === 'final' ? 'reopen' : 'promote';
+          return `<div class="game-row">
+            <div class="game-summary" style="cursor:default">
+              <div class="game-info">
+                <div class="game-opp">${esc(entry.opponent || entry.gameId || 'Scored game')}</div>
+                <div class="game-meta">${esc(scoreLabel)} · ${esc(stateLabel)}${stamp ? ' · ' + esc(stamp) : ''}</div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+                <button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','${promoteAction}')">${promoteLabel}</button>
+                <button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','reset')">Reset</button>
+              </div>
+            </div>
+          </div>`;
+        }).join('')
+        : `<div style="padding:16px 14px;color:var(--g400)">No durable scored games for this age group yet.</div>`;
       let html = `
+    <div class="card" style="margin-bottom:10px;border-color:var(--royal-light);background:var(--royal-subtle)">
+      <div class="card-header" style="color:var(--royal)">🛠️ Scored Games Recovery — ${esc(teamLabel)}</div>
+      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="save-btn" onclick="syncOfficialSheetResultsAdmin()" style="background:var(--royal)">📥 Sync Official Sheet Results</button>
+          <button class="save-btn" onclick="rebuildHistoryFromScoredGamesAdmin()" style="background:#2e7d32">🧱 Rebuild History from Scored Games</button>
+          <button class="save-btn" onclick="refreshScoredGamesAdmin()" style="background:var(--g100);color:var(--g700)">↻ Refresh</button>
+          <span id="scored-games-status" style="font-size:0.82rem"></span>
+        </div>
+        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">
+          Official sheet sync writes final scores into durable scored-game records and the live tournament snapshot.
+          Recovery actions let you promote, reopen, or reset a scored game without manual KV patching.
+        </div>
+        ${scoredRows}
+      </div>
+    </div>
     <div class="card" style="margin-bottom:10px;border-color:var(--royal-light);background:var(--royal-subtle)">
       <div class="card-header" style="color:var(--royal)">🔄 Restore History from Archive — ${esc(teamLabel)}</div>
       <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px">
@@ -13235,6 +13281,80 @@
         }
       }
       return opts.join('');
+    }
+
+    function setScoredGamesStatus(message, type = 'info') {
+      const el = document.getElementById('scored-games-status');
+      if (!el) return;
+      const color = type === 'err' ? '#dc2626' : type === 'ok' ? '#15803d' : 'var(--g600)';
+      el.style.color = color;
+      el.textContent = message || '';
+    }
+
+    async function refreshScoredGamesAdmin() {
+      try {
+        setScoredGamesStatus('Refreshing…', 'info');
+        const res = await api('GET', '/admin/scored-games');
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || data.description || ('Worker returned ' + res.status));
+        if (data.tournament) S.tournament = data.tournament;
+        S.scoredGames = data.scoredGames || {};
+        setScoredGamesStatus('Scored games refreshed', 'ok');
+        renderTab();
+      } catch (e) {
+        setScoredGamesStatus('Error: ' + e.message, 'err');
+      }
+    }
+
+    async function syncOfficialSheetResultsAdmin() {
+      try {
+        setScoredGamesStatus('Syncing official sheet results…', 'info');
+        const res = await api('POST', '/admin/scored-games/sync-sheet', {});
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || data.description || ('Worker returned ' + res.status));
+        if (data.tournament) S.tournament = data.tournament;
+        S.scoredGames = data.scoredGames || {};
+        setScoredGamesStatus(`Updated ${Array.isArray(data.updated) ? data.updated.length : 0} game(s) from sheet`, 'ok');
+        renderTab();
+      } catch (e) {
+        setScoredGamesStatus('Error: ' + e.message, 'err');
+      }
+    }
+
+    async function rebuildHistoryFromScoredGamesAdmin() {
+      try {
+        setScoredGamesStatus('Rebuilding history from scored games…', 'info');
+        const res = await api('POST', '/admin/scored-games/rebuild-history', {});
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || data.description || ('Worker returned ' + res.status));
+        S.history = data.history || [];
+        S.scoredGames = data.scoredGames || {};
+        setScoredGamesStatus('History rebuilt from scored games', 'ok');
+        renderTab();
+      } catch (e) {
+        setScoredGamesStatus('Error: ' + e.message, 'err');
+      }
+    }
+
+    async function updateScoredGameAdmin(gameId, action) {
+      const prompt = action === 'reset'
+        ? 'Reset this scored game and clear its stored score?'
+        : action === 'reopen'
+          ? 'Reopen this scored game?'
+          : 'Promote this scored game to final?';
+      if (!confirm(prompt)) return;
+      try {
+        setScoredGamesStatus(`${action}…`, 'info');
+        const res = await api('POST', '/admin/scored-games/action', { gameId, action });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || data.description || ('Worker returned ' + res.status));
+        if (data.tournament) S.tournament = data.tournament;
+        S.scoredGames = data.scoredGames || {};
+        setScoredGamesStatus(`Scored game ${action} complete`, 'ok');
+        renderTab();
+      } catch (e) {
+        setScoredGamesStatus('Error: ' + e.message, 'err');
+      }
     }
 
     function addHistoryEntry() {

@@ -1711,10 +1711,46 @@ function _historyEntryMatchesCurrentTournament(entry) {
   ));
 }
 
+function _historyEntryHasRealResults(entry) {
+  if (!entry) return false;
+  if (Number(entry.wins || 0) || Number(entry.losses || 0) || Number(entry.ties || 0) || Number(entry.totalPoints || 0)) {
+    return true;
+  }
+  const games = Array.isArray(entry.games) ? entry.games : [];
+  if (games.some(g =>
+    g?.result
+    || g?.score
+    || typeof g?.teamScore === 'number'
+    || typeof g?.oppScore === 'number'
+    || typeof g?.ourScore === 'number'
+    || typeof g?.theirScore === 'number'
+    || (Array.isArray(g?.liveScore?.events) && g.liveScore.events.length)
+  )) return true;
+  const bracketPaths = Array.isArray(entry.bracketPaths) ? entry.bracketPaths : [];
+  return bracketPaths.some(path => (path?.steps || []).some(step => step?.result));
+}
+
+function _isBogusHistoryEntry(entry) {
+  if (!entry) return true;
+  if (_historyEntryMatchesCurrentTournament(entry)) return true;
+  if (_historyEntryHasRealResults(entry)) return false;
+
+  const name = String(entry.name || '').trim().toLowerCase();
+  const notes = String(entry.notes || '').trim().toLowerCase();
+  const location = String(entry.location || '').trim();
+  const dates = String(entry.dates || '').trim();
+  const games = Array.isArray(entry.games) ? entry.games : [];
+
+  if (!games.length && !location && !dates) return true;
+  if (name === 'stay tuned!' || name === 'tournament 2026') return true;
+  if (notes.includes('coming soon') || notes.includes('stay tuned')) return true;
+  return false;
+}
+
 function _pruneCurrentTournamentHistoryDuplicates() {
   const history = getHistory();
   if (!Array.isArray(history) || !history.length) return false;
-  const next = history.filter(entry => !_historyEntryMatchesCurrentTournament(entry));
+  const next = history.filter(entry => !_isBogusHistoryEntry(entry));
   if (next.length === history.length) return false;
   localStorage.setItem(STORE.HISTORY, JSON.stringify(next));
   return true;
