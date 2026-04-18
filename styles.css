@@ -8231,6 +8231,25 @@ html.native-android .bracket-section:not(.projected) * {
   color: #1a202c !important;
 }
 
+html.native-ios .card.tab-card.my-player-card .mp-avatar,
+html.native-ios .card.tab-card.player-lookup-card .mp-avatar,
+html.native-android .card.tab-card.my-player-card .mp-avatar,
+html.native-android .card.tab-card.player-lookup-card .mp-avatar {
+  background: #3858b8 !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.14) !important;
+}
+
+html.native-ios .card.tab-card.my-player-card .mp-multi-add-btn,
+html.native-ios .card.tab-card.player-lookup-card .mp-multi-add-btn,
+html.native-android .card.tab-card.my-player-card .mp-multi-add-btn,
+html.native-android .card.tab-card.player-lookup-card .mp-multi-add-btn {
+  background: #1d4ed8 !important;
+  border: 1px solid #1e40af !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(29, 78, 216, 0.18) !important;
+}
+
 html.native-ios .next-game-card.cap-white-bg .next-label,
 html.native-ios .next-game-card.cap-white-bg .next-meta,
 html.native-ios .next-game-card.cap-white-bg .location-venue,
