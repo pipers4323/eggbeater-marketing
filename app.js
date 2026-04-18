@@ -2819,13 +2819,55 @@ function getHistory() {
   catch { return []; }
 }
 
-function archiveTournament(snapshot, results, bracketResults, liveScores) {
+function _groupKeyForSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return '';
+  if (snapshot._groupKey || snapshot.ageGroup) return snapshot._groupKey || snapshot.ageGroup || '';
+  const games = Array.isArray(snapshot.games) ? snapshot.games : [];
+  const withGroup = games.find(g => g && g._groupKey);
+  if (withGroup?._groupKey) return withGroup._groupKey;
+  const withAge = games.find(g => g?.liveScore?.ageGroup);
+  if (withAge?.liveScore?.ageGroup) return withAge.liveScore.ageGroup;
+  return getSelectedTeam() || getSelectedTeams()[0] || _activeAgeGroup || '';
+}
+
+async function _fetchDurableScoredGamesForTournament(teamKey, tournamentId) {
+  if (!teamKey || !tournamentId) return {};
+  try {
+    let url = `${WORKER}/scored-games?team=${encodeURIComponent(teamKey)}&tournamentId=${encodeURIComponent(tournamentId)}`;
+    const club = getAppClubId();
+    if (club) url += `&club=${encodeURIComponent(club)}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return {};
+    const data = await res.json();
+    return data?.scoredGames && typeof data.scoredGames === 'object' ? data.scoredGames : {};
+  } catch (e) {
+    console.warn('[ebwp] scored-games archive fetch failed:', e.message);
+    return {};
+  }
+}
+
+function archiveTournament(snapshot, results, bracketResults, liveScores, durableScoredGames = null) {
   const history = getHistory();
   const games = snapshot.games || [];
-  const snapshotGroupKey = snapshot._groupKey || snapshot.ageGroup || getSelectedTeams()[0] || '';
+  const snapshotGroupKey = _groupKeyForSnapshot(snapshot);
+  const mergedResults = { ...(results || {}) };
+  const mergedLiveScores = { ...(liveScores || {}) };
+  const durableMap = durableScoredGames && typeof durableScoredGames === 'object' ? durableScoredGames : {};
+  for (const g of games) {
+    const scored = durableMap[String(g?.id)];
+    if (!scored?.score) continue;
+    const scopedKey = _scopedGameKey(g, snapshotGroupKey);
+    mergedLiveScores[scopedKey] = scored.score;
+    mergedLiveScores[String(g.id)] = scored.score;
+    const result = scored.result || _inferFinalResultFromScore(scored.score) || null;
+    if (result) {
+      mergedResults[scopedKey] = result;
+      mergedResults[String(g.id)] = result;
+    }
+  }
   let wins = 0, losses = 0, totalPoints = 0;
   for (const g of games) {
-    const r = results[_scopedGameKey(g, snapshotGroupKey)] ?? results[g.id];
+    const r = mergedResults[_scopedGameKey(g, snapshotGroupKey)] ?? mergedResults[g.id];
     if (isWin(r))        wins++;
     else if (isLoss(r))  losses++;
     if (r != null) totalPoints += POINTS[r] ?? 0;
@@ -2843,7 +2885,7 @@ function archiveTournament(snapshot, results, bracketResults, liveScores) {
   // Extract player stats from liveScores events (Phase 5D)
   const playerStats = {};
   for (const g of games) {
-    const ls = (liveScores || {})[_scopedGameKey(g, snapshotGroupKey)] || (liveScores || {})[g.id];
+    const ls = mergedLiveScores[_scopedGameKey(g, snapshotGroupKey)] || mergedLiveScores[g.id];
     if (!ls || !Array.isArray(ls.events)) continue;
     const playersInGame = new Set();
     for (const ev of ls.events) {
@@ -2874,9 +2916,9 @@ function archiveTournament(snapshot, results, bracketResults, liveScores) {
     games: games.map(g => ({
       ...g,
       _groupKey: snapshotGroupKey || g._groupKey || '',
-      result:    results[_scopedGameKey(g, snapshotGroupKey)] ?? results[g.id] ?? null,
-      points:    getPoints(results[_scopedGameKey(g, snapshotGroupKey)] ?? results[g.id] ?? null),
-      liveScore: (liveScores || {})[_scopedGameKey(g, snapshotGroupKey)] || (liveScores || {})[g.id] || null,
+      result:    mergedResults[_scopedGameKey(g, snapshotGroupKey)] ?? mergedResults[g.id] ?? null,
+      points:    getPoints(mergedResults[_scopedGameKey(g, snapshotGroupKey)] ?? mergedResults[g.id] ?? null),
+      liveScore: mergedLiveScores[_scopedGameKey(g, snapshotGroupKey)] || mergedLiveScores[g.id] || null,
     })),
     bracketPaths,
     playerStats,
@@ -2893,7 +2935,7 @@ function archiveTournament(snapshot, results, bracketResults, liveScores) {
 
 // ─── TOURNAMENT CHANGE DETECTION ──────────────────────────────────────────────
 
-function checkTournamentChange() {
+async function checkTournamentChange() {
   const savedId = localStorage.getItem(STORE.TOURNAMENT_ID);
   let savedSnap, savedRes, savedBrRes, savedLiveScores;
   try {
@@ -2908,9 +2950,12 @@ function checkTournamentChange() {
 
   if (savedId && savedId !== TOURNAMENT.id && savedSnap) {
     // Only archive if results were actually recorded (skip blank placeholder data)
-    const hasResults = Object.keys(savedRes).length > 0 || Object.keys(savedBrRes).length > 0;
+    const snapshotGroupKey = _groupKeyForSnapshot(savedSnap);
+    const durableScoredGames = await _fetchDurableScoredGamesForTournament(snapshotGroupKey, savedSnap.id || savedId);
+    const hasDurableScores = Object.keys(durableScoredGames || {}).length > 0;
+    const hasResults = Object.keys(savedRes).length > 0 || Object.keys(savedBrRes).length > 0 || hasDurableScores;
     if (hasResults) {
-      archiveTournament(savedSnap, savedRes, savedBrRes, savedLiveScores);
+      archiveTournament(savedSnap, savedRes, savedBrRes, savedLiveScores, durableScoredGames);
       showToast(`${savedSnap.name || 'Last tournament'} archived to History ✓`, 'ok');
     }
     localStorage.removeItem(STORE.RESULTS);
