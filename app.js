@@ -6326,6 +6326,18 @@ function openScorerDetail(gameId, groupKey = '', ageGroupLabel = '') {
   requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
 }
 
+function handleOpenScorerClick(evt, gameId, groupKey = '', ageGroupLabel = '') {
+  evt?.stopPropagation?.();
+  openScorerDetail(gameId, groupKey, ageGroupLabel);
+  return false;
+}
+
+function handleToggleLiveClick(evt, gameId) {
+  evt?.stopPropagation?.();
+  toggleLiveActivity(gameId);
+  return false;
+}
+
 function closeScoreDetail() {
   state.scoreDetail = null;
   state.scoreDetailTab = 'summary';
@@ -6478,8 +6490,8 @@ function buildScoresListCard(g, viewerOnly = false, ageGroupLabel = '') {
   const canScore = !TOURNAMENT.scoringPassword || isScorerUnlockedForTournament(TOURNAMENT);
   const scorerOpenArgs = `${JSON.stringify(gid)},${JSON.stringify(g._groupKey || '')},${JSON.stringify(ageGroupLabel || '')}`;
   const actionBtn = (!viewerOnly && canScore)
-    ? `<button class="scores-open-scorer-btn" onclick="event.stopPropagation();openScorerDetail(${scorerOpenArgs})" title="${escHtml(appT('scorer_open'))}">✏️ ${escHtml(appT('scorer_open'))}</button>`
-    : `<button class="follow-live-btn-sm" onclick="event.stopPropagation();toggleLiveActivity('${escHtml(gid)}')" title="${escHtml(appT('common_follow_live'))}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
+    ? `<button class="scores-open-scorer-btn" onclick="return handleOpenScorerClick(event, ${scorerOpenArgs})" title="${escHtml(appT('scorer_open'))}">✏️ ${escHtml(appT('scorer_open'))}</button>`
+    : `<button class="follow-live-btn-sm" onclick="return handleToggleLiveClick(event, '${escHtml(gid)}')" title="${escHtml(appT('common_follow_live'))}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
 
   return `
     <div class="scores-list-card ${g.cap === 'Dark' ? 'cap-dark-bg' : g.cap === 'White' ? 'cap-white-bg' : ''}"
@@ -6533,7 +6545,7 @@ function buildEmbeddedScoreCardDetail(game, viewerOnly = false, ageGroupLabel = 
   const gid = escHtml(_gameRef(game));
   const scorerOpenArgs = `${JSON.stringify(_gameRef(game))},${JSON.stringify(_contextGroupKey(game))},${JSON.stringify(ageGroupLabel || '')}`;
   const scorerAction = (!viewerOnly && canScore)
-    ? `<button class="scores-open-scorer-btn score-detail-inline-scorer-btn" onclick="event.stopPropagation();openScorerDetail(${scorerOpenArgs})">✏️ ${escHtml(appT('scorer_open'))}</button>`
+    ? `<button class="scores-open-scorer-btn score-detail-inline-scorer-btn" onclick="return handleOpenScorerClick(event, ${scorerOpenArgs})">✏️ ${escHtml(appT('scorer_open'))}</button>`
     : '';
 
   return `
