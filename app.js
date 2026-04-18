@@ -3185,6 +3185,11 @@ function _getPeriodLabel(period, gameOrRef) {
 // Log a game-state transition (Start, Q1, Q2, Half, Q3, Q4, OT, Final)
 function setGameState(gameId, gstate) {
   const s = getLiveScore(gameId);
+  if (['final', 'so_w', 'so_l', 'ff'].includes(gstate)) {
+    s.needsFinalization = false;
+    s.needsFinalizationAt = null;
+    s.finalizationConfirmedAt = s.finalizationConfirmedAt || new Date().toISOString();
+  }
   s.gameState = gstate;
   const newPeriod = PERIOD_FOR_STATE[gstate];
   if (newPeriod != null) s.period = newPeriod;
@@ -3202,6 +3207,22 @@ function setGameState(gameId, gstate) {
   }
 
   afterScore(gameId);
+}
+
+function reopenFinalizedGame(gameId) {
+  const s = getLiveScore(gameId);
+  const fallbackPhase = s.timerPhase && s.timerPhase !== 'done'
+    ? s.timerPhase
+    : (s.period >= 4 ? 'q4' : s.period === 3 ? 'q3' : s.period === 2 ? 'q2' : 'q1');
+  s.timerPhase = fallbackPhase;
+  s.gameState = _phaseGameState(fallbackPhase) || 'q4';
+  s.timerRunning = false;
+  s.timerStartedAt = null;
+  s.needsFinalization = true;
+  s.needsFinalizationAt = s.needsFinalizationAt || new Date().toISOString();
+  _setLiveScore(gameId, s);
+  afterScore(gameId);
+  showToast('Game reopened');
 }
 
 // Toggle a game-state button — tap once to activate, tap again to revert to Pre-Game.
@@ -3231,6 +3252,8 @@ function resetToPreGame(gameId) {
   s.gameState    = 'pre';
   s.period       = 0;
   s.timerRunning = false; // stop clock ticker so LA/chip stops updating
+  s.needsFinalization = false;
+  s.needsFinalizationAt = null;
   _setLiveScore(gameId, s);
   afterScore(gameId);
   showUndoToast('Game reset to pre-game', () => {
@@ -3575,6 +3598,34 @@ function _scoreSummaryStatusLabel(score, gameOrRef) {
     : periodBaseLabel;
 }
 
+function _gameNeedsFinalization(score) {
+  return !!(score && score.needsFinalization && !['pre', 'final', 'so_w', 'so_l', 'ff'].includes(String(score.gameState || '')));
+}
+
+function _buildNeedsFinalizationBanner(game, score, opts = {}) {
+  if (!_gameNeedsFinalization(score)) return '';
+  const gid = _gameRef(game);
+  const groupKey = _contextGroupKey(game);
+  const ageGroupLabel = opts.ageGroupLabel || '';
+  const teamName = _teamDisplayNameForGame(game, TOURNAMENT.clubName || appT('scorer_team_label'));
+  const oppName = normalizeOpponentName(game?.opponent || 'Opp');
+  const scoreLine = `${teamName} ${Number(score.team || 0)} - ${Number(score.opp || 0)} ${oppName}`;
+  const reviewBtn = `<button class="finalize-warning-btn primary" onclick="openFinalizeGameModal('${escHtml(gid)}','banner')">🏁 Review Final Score</button>`;
+  const scorerBtn = opts.hideScorerBtn ? '' : `<button class="finalize-warning-btn" data-game-id="${escHtml(gid)}" data-group-key="${escHtml(groupKey || '')}" data-age-group-label="${escHtml(ageGroupLabel)}" onclick="return handleOpenScorerButtonClick(event, this)">✏️ Open Scorer</button>`;
+  return `
+    <div class="finalize-warning-banner${opts.compact ? ' compact' : ''}">
+      <div class="finalize-warning-copy">
+        <div class="finalize-warning-title">Needs Finalization</div>
+        <div class="finalize-warning-text">Clock expired. Review and submit the final score to lock in stats.</div>
+        <div class="finalize-warning-score">${escHtml(scoreLine)}</div>
+      </div>
+      <div class="finalize-warning-actions">
+        ${reviewBtn}
+        ${scorerBtn}
+      </div>
+    </div>`;
+}
+
 function _buildScoreDetailSummary(game, score, ageGroupLabel = '', extraActionHtml = '') {
   const events = (score.events || []).filter(e => e.type !== 'game_state');
   const teamName = _teamDisplayNameForGame(game, TOURNAMENT.clubName || appT('scorer_team_label'));
@@ -3747,6 +3798,7 @@ function _buildScoreDetailScorerPanel(game, s) {
   const teamDisplayName = _teamDisplayNameForGame(game, TOURNAMENT.clubName || appT('scorer_team_label'));
   const cs = getClockSettings(gid);
   const isFinal = s.gameState === 'final';
+  const finalizeBanner = _buildNeedsFinalizationBanner(game, s, { hideScorerBtn: true, compact: true });
   const _isHalves = cs.periodMode === 'halves';
   const GS_OPTS = _isHalves ? [
     { key:'start', label:'▶ Start' },
@@ -3773,6 +3825,7 @@ function _buildScoreDetailScorerPanel(game, s) {
     const active = s.gameState === o.key ? ' gs-active' : '';
     let handler;
     if (o.key === 'start') handler = `startScoring('${gid}')`;
+    else if (o.key === 'final') handler = isFinal ? `reopenFinalizedGame('${gid}')` : `openFinalizeGameModal('${gid}','manual')`;
     else if (TOGGLE_KEYS.has(o.key)) handler = `toggleGameState('${gid}','${o.key}')`;
     else handler = `setGameState('${gid}','${o.key}')`;
     return `<button class="gs-btn${active}" onclick="${handler}">${o.label}</button>`;
@@ -3821,6 +3874,7 @@ function _buildScoreDetailScorerPanel(game, s) {
   return `
     <div class="score-detail-scorer card tab-card">
       <div class="score-detail-section-title">Scoring Controls</div>
+      ${finalizeBanner}
       <div class="scoring-section score-detail-scoring-section">
         <div class="gs-bar">${gsBar}</div>
         ${timingRow}
@@ -3840,7 +3894,7 @@ function _buildScoreDetailScorerPanel(game, s) {
           <button class="ls-share-btn" onclick="shareBoxScore('${gid}')">📤 ${escHtml(appT('scorer_share_box_score'))}</button>
         </div>
         <div class="score-finalize-row">
-          <button class="score-finalize-btn${isFinal ? ' is-final' : ''}" onclick="${isFinal ? `resetToPreGame('${gid}')` : `setGameState('${gid}','final')`}">
+          <button class="score-finalize-btn${isFinal ? ' is-final' : ''}" onclick="${isFinal ? `reopenFinalizedGame('${gid}')` : `openFinalizeGameModal('${gid}','manual')`}">
             ${isFinal ? '↩ Reopen Game' : '🏁 Submit Final Score & End Game'}
           </button>
           <div class="score-finalize-note">
@@ -4988,24 +5042,18 @@ function _phaseLabel(phase) {
 function _promptFinalizeOnClockEnd(gameId) {
   const s = getLiveScore(gameId);
   if (!s) return;
-  const game = (TOURNAMENT.games || []).find(g => _gameRef(g) === _gameRef(gameId));
-  const teamName = _teamDisplayNameForGame(game || {}, TOURNAMENT.clubName || appT('scorer_team_label'));
-  const oppName = normalizeOpponentName(game?.opponent || 'Opp');
-  const scoreLine = `${teamName} ${Number(s.team || 0)} - ${Number(s.opp || 0)} ${oppName}`;
-  const phaseLabel = _phaseLabel(s.timerPhase || 'q4');
+  const nowIso = new Date().toISOString();
+  s.needsFinalization = true;
+  s.needsFinalizationAt = s.needsFinalizationAt || nowIso;
+  s.finalizationPromptedAt = nowIso;
+  s.finalizationPromptSource = 'clock-expired';
   try { switchTab('scores'); } catch {}
   try { openScorerDetail(gameId); } catch {}
-  setTimeout(() => {
-    const confirmed = window.confirm(`${phaseLabel} has ended.\n\nSubmit final score now?\n\n${scoreLine}`);
-    if (confirmed) {
-      setGameState(gameId, 'final');
-    } else {
-      showToast('Clock expired. Submit Final Score & End Game when ready.');
-      renderGamesList();
-      renderNextGameCard();
-      if (state.currentTab === 'scores') renderScoresTab();
-    }
-  }, 0);
+  _setLiveScore(gameId, s);
+  saveLiveScores();
+  afterScore(gameId);
+  showToast('Clock expired. Review and submit the final score.');
+  setTimeout(() => openFinalizeGameModal(gameId, 'clock-expired'), 0);
 }
 
 function _handleClockExpired(gameId) {
@@ -5251,6 +5299,8 @@ function callOppTimeout(gameId, lengthMins) {
 
 let _pendingClock    = '';   // clock value bridged from prompt → recording
 let _clockCallback   = null; // called with the entered time (or '' to skip)
+let _pendingFinalizeGameId = '';
+let _pendingFinalizeSource = 'manual';
 
 /** Show the clock-prompt bottom sheet. callback(clockStr) fires when confirmed. */
 function promptClock(callback) {
@@ -5274,6 +5324,81 @@ function confirmClockPrompt(val) {
 }
 
 function skipClockPrompt() { confirmClockPrompt(''); }
+
+function _ensureFinalizeGameModal() {
+  if (document.getElementById('finalize-game-modal')) return;
+  const host = document.createElement('div');
+  host.id = 'finalize-game-modal';
+  host.className = 'roster-modal hidden';
+  host.setAttribute('role', 'dialog');
+  host.setAttribute('aria-modal', 'true');
+  host.setAttribute('aria-label', 'Finalize game');
+  host.innerHTML = `
+    <div class="roster-modal-backdrop" onclick="closeFinalizeGameModal()"></div>
+    <div class="roster-modal-sheet finalize-game-sheet">
+      <div class="roster-modal-header">
+        <span class="roster-modal-title">🏁 Finalize Game</span>
+        <button class="roster-modal-close" onclick="closeFinalizeGameModal()" aria-label="Close">✕</button>
+      </div>
+      <div class="finalize-game-body">
+        <div class="finalize-game-copy">Confirm the final score before ending the game.</div>
+        <div id="finalize-game-scoreline" class="finalize-game-scoreline"></div>
+        <div id="finalize-game-meta" class="finalize-game-meta"></div>
+        <div class="finalize-game-actions">
+          <button class="scoring-pw-btn-cancel" onclick="closeFinalizeGameModal()" style="background:transparent;color:var(--gray-500);border:none;font-size:0.9rem;font-weight:700;cursor:pointer">Keep Editing</button>
+          <button class="score-finalize-btn" onclick="confirmFinalizeGame()">🏁 Submit Final Score & End Game</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(host);
+}
+
+function openFinalizeGameModal(gameId, source = 'manual') {
+  const gid = _gameRef(gameId);
+  const game = _findGameByRef(gid);
+  const score = getLiveScore(gid);
+  if (!game || !score) return;
+  _ensureFinalizeGameModal();
+  _pendingFinalizeGameId = gid;
+  _pendingFinalizeSource = source || 'manual';
+  const nowIso = new Date().toISOString();
+  score.finalizationPromptedAt = nowIso;
+  score.finalizationPromptSource = _pendingFinalizeSource;
+  _setLiveScore(gid, score);
+  saveLiveScores();
+  const teamName = _teamDisplayNameForGame(game, TOURNAMENT.clubName || appT('scorer_team_label'));
+  const oppName = normalizeOpponentName(game.opponent || 'Opp');
+  const scoreLine = `${teamName} ${Number(score.team || 0)} - ${Number(score.opp || 0)} ${oppName}`;
+  const meta = `${_phaseLabel(score.timerPhase || (score.period ? `q${score.period}` : 'q4'))} · ${getCurrentClockStr(gid)} · ${(Array.isArray(score.events) ? score.events.filter(ev => ev && ev.type !== 'game_state').length : 0)} events`;
+  const scorelineEl = document.getElementById('finalize-game-scoreline');
+  const metaEl = document.getElementById('finalize-game-meta');
+  if (scorelineEl) scorelineEl.textContent = scoreLine;
+  if (metaEl) metaEl.textContent = meta;
+  document.getElementById('finalize-game-modal')?.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  _openModal('finalize-game-modal');
+}
+
+function closeFinalizeGameModal() {
+  document.getElementById('finalize-game-modal')?.classList.add('hidden');
+  document.body.classList.remove('modal-open');
+  _closeModal('finalize-game-modal');
+}
+
+function confirmFinalizeGame() {
+  const gid = _pendingFinalizeGameId;
+  if (!gid) return closeFinalizeGameModal();
+  const score = getLiveScore(gid);
+  score.needsFinalization = false;
+  score.needsFinalizationAt = null;
+  score.finalizationConfirmedAt = new Date().toISOString();
+  score.finalizedBy = 'scorer';
+  score.finalizedSource = _pendingFinalizeSource || 'manual';
+  _setLiveScore(gid, score);
+  saveLiveScores();
+  closeFinalizeGameModal();
+  setGameState(gid, 'final');
+}
 
 // ─── EVENT PICKER MODAL ───────────────────────────────────────────────────────
 
@@ -6788,10 +6913,12 @@ function buildEmbeddedScoreCardDetail(game, viewerOnly = false, ageGroupLabel = 
     ? `<button class="scores-open-scorer-btn score-detail-inline-scorer-btn" data-game-id="${escHtml(_gameRef(game))}" data-group-key="${escHtml(_contextGroupKey(game))}" data-age-group-label="${escHtml(ageGroupLabel || '')}" onclick="return handleOpenScorerButtonClick(event, this)">✏️ ${escHtml(appT('scorer_open'))}</button>`
     : '';
   const summaryHtml = _buildScoreDetailSummary(game, s, ageGroupLabel);
+  const finalizeBanner = canScore ? _buildNeedsFinalizationBanner(game, s, { hideScorerBtn: !!scorerAction, ageGroupLabel }) : '';
 
   return `
     <div class="score-card-detail">
       ${scorerAction ? `<div class="score-card-detail-toolbar">${scorerAction}</div>` : ''}
+      ${finalizeBanner}
       <div class="scores-detail-tabs score-card-detail-tabs">
         <button class="scores-detail-tab ${tab !== 'play' ? 'active' : ''}" onclick="setScoreCardTab('${gid}','summary')">Summary</button>
         <button class="scores-detail-tab ${tab === 'play' ? 'active' : ''}" onclick="setScoreCardTab('${gid}','play')">Play-by-Play</button>
@@ -6816,6 +6943,9 @@ function buildScoreDetailView(ctx) {
       ? _buildScoreDetailScorerPanel(game, s)
       : '';
     const summaryHtml = _buildScoreDetailSummary(game, s, ageGroupLabel);
+    const finalizeBanner = (!viewerOnly && canScore && !ctx.scorerMode)
+      ? _buildNeedsFinalizationBanner(game, s, { hideScorerBtn: true, ageGroupLabel })
+      : '';
     return `
       <div class="scores-detail-shell">
         <div class="scores-detail-topbar">
@@ -6841,6 +6971,7 @@ function buildScoreDetailView(ctx) {
         ${state.scoreDetailTab === 'play'
           ? buildScoreDetailPlayByPlay(game)
           : `<div class="score-detail-summary-host">
+              ${finalizeBanner}
               ${scorerPanel}
               ${summaryHtml}
             </div>`}

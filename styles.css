@@ -7753,6 +7753,99 @@ html.native-android[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-gr
   color: #64748b;
   text-align: center;
 }
+
+.finalize-warning-banner {
+  display: grid;
+  gap: 10px;
+  align-items: center;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid #facc15;
+  border-radius: 14px;
+  background: #fffbeb;
+  box-shadow: 0 10px 20px rgba(245, 158, 11, 0.08);
+}
+
+.finalize-warning-banner.compact {
+  margin-bottom: 10px;
+}
+
+.finalize-warning-title {
+  font-size: 0.88rem;
+  font-weight: 900;
+  color: #92400e;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.finalize-warning-text,
+.finalize-warning-score {
+  font-size: 0.84rem;
+  color: #78350f;
+}
+
+.finalize-warning-score {
+  font-weight: 800;
+}
+
+.finalize-warning-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.finalize-warning-btn {
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #fff;
+  color: #1e3a8a;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.finalize-warning-btn.primary {
+  background: linear-gradient(180deg, #15803d 0%, #166534 100%);
+  border-color: transparent;
+  color: #fff;
+}
+
+.finalize-game-sheet {
+  max-width: 420px;
+}
+
+.finalize-game-body {
+  display: grid;
+  gap: 12px;
+  padding: 0 4px 4px;
+}
+
+.finalize-game-copy {
+  font-size: 0.88rem;
+  color: var(--gray-600);
+}
+
+.finalize-game-scoreline {
+  border-radius: 14px;
+  padding: 16px 14px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 1.02rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.finalize-game-meta {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+  text-align: center;
+}
+
+.finalize-game-actions {
+  display: grid;
+  gap: 10px;
+}
 .ls-undo-btn, .ls-share-btn {
   background: var(--gray-100);
   border: 1px solid var(--gray-200);
