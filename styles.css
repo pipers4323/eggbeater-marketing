@@ -8250,6 +8250,13 @@ html.native-android .card.tab-card.player-lookup-card .mp-multi-add-btn {
   box-shadow: 0 6px 16px rgba(29, 78, 216, 0.18) !important;
 }
 
+html.native-ios .scores-detail-tab.active,
+html.native-ios .scores-detail-tab.active *,
+html.native-android .scores-detail-tab.active,
+html.native-android .scores-detail-tab.active * {
+  color: #ffffff !important;
+}
+
 html.native-ios .next-game-card.cap-white-bg .next-label,
 html.native-ios .next-game-card.cap-white-bg .next-meta,
 html.native-ios .next-game-card.cap-white-bg .location-venue,
