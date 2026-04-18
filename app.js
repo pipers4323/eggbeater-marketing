@@ -1788,18 +1788,22 @@ function _getLiveScoreForGame(gameOrRef, explicitGroupKey = '') {
   return state.liveScores[scopedKey] || state.liveScores[_gameIdOnly(gameOrRef)] || null;
 }
 
+function _hasMeaningfulLiveScoreData(score) {
+  if (!score) return false;
+  return (Array.isArray(score.events) && score.events.some(ev => ev.type !== 'game_state'))
+    || Number(score.team || 0) !== 0
+    || Number(score.opp || 0) !== 0;
+}
+
 function _getAuthoritativeLiveResult(gameOrRef, explicitGroupKey = '') {
   const score = _getLiveScoreForGame(gameOrRef, explicitGroupKey);
-  if (!score) return null;
+  if (!score) return { hasLive: false, result: null };
 
   const direct = _inferFinalResultFromScore(score);
-  if (direct) return direct;
+  if (direct) return { hasLive: true, result: direct };
 
-  const hasMeaningfulLiveData =
-    (Array.isArray(score.events) && score.events.some(ev => ev.type !== 'game_state')) ||
-    Number(score.team || 0) !== 0 ||
-    Number(score.opp || 0) !== 0;
-  if (!hasMeaningfulLiveData) return null;
+  const hasMeaningfulLiveData = _hasMeaningfulLiveScoreData(score);
+  if (!hasMeaningfulLiveData) return { hasLive: false, result: null };
 
   const game = _findGameByRef(gameOrRef, explicitGroupKey);
   const start = game ? parseGameTime(game.dateISO, game.time) : null;
@@ -1807,23 +1811,26 @@ function _getAuthoritativeLiveResult(gameOrRef, explicitGroupKey = '') {
   const stillLive = !!isGameLive(_gameRef(gameOrRef, explicitGroupKey));
   if (!stillLive && isPastExpectedWindow) {
     if (typeof score.team === 'number' && typeof score.opp === 'number') {
-      if (score.team > score.opp) return 'W';
-      if (score.team < score.opp) return 'L';
+      if (score.team > score.opp) return { hasLive: true, result: 'W' };
+      if (score.team < score.opp) return { hasLive: true, result: 'L' };
     }
   }
 
-  return null;
+  return { hasLive: true, result: null };
 }
 
 function _getResultForGame(gameOrRef, explicitGroupKey = '') {
-  const liveDerived = _getAuthoritativeLiveResult(gameOrRef, explicitGroupKey);
-  if (liveDerived) {
+  const liveResolved = _getAuthoritativeLiveResult(gameOrRef, explicitGroupKey);
+  if (liveResolved.hasLive && liveResolved.result) {
     const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
-    if (state.results[scopedKey] !== liveDerived) {
-      state.results[scopedKey] = liveDerived;
+    if (state.results[scopedKey] !== liveResolved.result) {
+      state.results[scopedKey] = liveResolved.result;
       _saveResults();
     }
-    return liveDerived;
+    return liveResolved.result;
+  }
+  if (liveResolved.hasLive) {
+    return null;
   }
   const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
   if (state.results[scopedKey] != null) return state.results[scopedKey];
