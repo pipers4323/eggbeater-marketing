@@ -3192,24 +3192,207 @@ function buildEventLog(events, currentPeriod = 0, gameId = null) {
     
     html += `<details class="event-log-qtr" ${isOpen?'open':''} ontoggle="onQuarterToggle(this, '${period}')">
       <summary class="event-period-header">${escHtml(label)}</summary>`;
-    for (const ev of evs) {
+    const sortedEvents = [...evs].sort((a, b) => {
+      if ((a.ts || 0) !== (b.ts || 0)) return (b.ts || 0) - (a.ts || 0);
+      const aClock = _clockSortValue(a.clock);
+      const bClock = _clockSortValue(b.clock);
+      if (aClock !== bClock) return aClock - bClock;
+      return String(a.type || '').localeCompare(String(b.type || ''));
+    });
+    for (const ev of sortedEvents) {
       const isTeam    = ev.side === 'team';
       const icon      = TYPE_ICONS[ev.type] || '·';
       const typeLabel = (TYPE_LABEL[ev.type] || (() => ev.type))(ev);
-      const player    = ev.cap  ? `#${escHtml(ev.cap)} ${escHtml((ev.name||'').split(' ')[0])}`
-                      : ev.name ? escHtml(ev.name)
-                      : isTeam  ? appT('event_team_fallback') : appT('event_opp_fallback');
+      const playerName = ev.cap
+        ? `${ev.cap}. ${ev.name || '(No Name Provided)'}`
+        : (ev.name || (isTeam ? appT('event_team_fallback') : appT('event_opp_fallback')));
+      const teamName = isTeam
+        ? _teamDisplayNameForGame(gameId, TOURNAMENT.clubName || appT('scorer_team_label'))
+        : normalizeOpponentName(_findGameByRef(gameId)?.opponent || 'Opp');
       html += `<div class="event-row event-${isTeam?'team':'opp'}">
-        <span class="event-clock">${escHtml(ev.clock||'—')}</span>
-        <span class="event-icon">${icon}</span>
-        <span class="event-player">${player}</span>
-        <span class="event-type">${escHtml(typeLabel)}</span>
+        <div class="event-main">
+          <span class="event-type">${escHtml(typeLabel)}</span>
+          <span class="event-team-name">${escHtml(teamName)}</span>
+        </div>
+        <div class="event-sub">
+          <span class="event-clock">${escHtml(ev.clock||'—')}</span>
+          <span class="event-player">${escHtml(playerName)}</span>
+        </div>
       </div>`;
     }
     html += `</details>`;
   }
   html += '</div>';
   return html;
+}
+
+function _clockSortValue(clock) {
+  const match = String(clock || '').match(/^(\d+):(\d{2})$/);
+  if (!match) return Number.MAX_SAFE_INTEGER;
+  return (parseInt(match[1], 10) * 60) + parseInt(match[2], 10);
+}
+
+function _isTeamGoalType(type) {
+  return ['goal', 'goal_5m', 'so_goal'].includes(type);
+}
+
+function _isOppGoalType(type) {
+  return ['opp_goal', 'opp_goal_5m', 'opp_so_goal'].includes(type);
+}
+
+function _buildScoreDetailSummary(game, score, ageGroupLabel = '') {
+  const events = (score.events || []).filter(e => e.type !== 'game_state');
+  const teamName = _teamDisplayNameForGame(game, TOURNAMENT.clubName || appT('scorer_team_label'));
+  const oppName = normalizeOpponentName(game.opponent || 'Opp');
+  const statusLabel = score.gameState === 'final'
+    ? 'Final'
+    : (PERIOD_LABELS[score.period] || (isGameLive(_gameRef(game)) ? 'Live' : 'Scheduled'));
+  const periodsSeen = new Set([1, 2, 3, 4]);
+  const periodScores = {};
+  const teamStats = { saves: 0, powerGoals: 0, powerOpps: 0, penGoals: 0, penAttempts: 0, sprints: 0, steals: 0, blocks: 0 };
+  const oppStats  = { saves: 0, powerGoals: 0, powerOpps: 0, penGoals: 0, penAttempts: 0, sprints: 0, steals: 0, blocks: 0 };
+  const teamPlayers = {};
+  const oppPlayers = {};
+
+  for (const ev of events) {
+    const period = Number(ev.period || 0);
+    if (period > 0) periodsSeen.add(period);
+    if (!periodScores[period]) periodScores[period] = { team: 0, opp: 0 };
+    if (_isTeamGoalType(ev.type)) periodScores[period].team++;
+    if (_isOppGoalType(ev.type)) periodScores[period].opp++;
+
+    const targetStats = ev.side === 'team' ? teamStats : oppStats;
+    const playerKey = ev.cap || ev.name || '_unknown';
+    const playerMap = ev.side === 'team' ? teamPlayers : oppPlayers;
+    if (!playerMap[playerKey]) playerMap[playerKey] = { name: ev.name || '(No Name Provided)', cap: ev.cap || '', goals: 0, assists: 0, steals: 0, saves: 0, blocks: 0, exclusions: 0 };
+    const player = playerMap[playerKey];
+
+    if (ev.type === 'save') { targetStats.saves++; player.saves++; }
+    if (ev.type === 'block' || ev.type === 'field_block') { targetStats.blocks++; player.blocks++; }
+    if (ev.type === 'steal' || ev.type === 'opp_steal') { targetStats.steals++; player.steals++; }
+    if (ev.type === 'sprint_won') targetStats.sprints++;
+    if (ev.type === 'opp_sprint_won') oppStats.sprints++;
+    if (ev.type === 'earned_excl') teamStats.powerOpps++;
+    if (ev.type === 'opp_exclusion') oppStats.powerOpps++;
+    if (ev.type === 'goal' && ev.sixOnFive) teamStats.powerGoals++;
+    if (ev.type === 'opp_goal' && ev.sixOnFive) oppStats.powerGoals++;
+    if (ev.type === 'goal_5m') { teamStats.penGoals++; teamStats.penAttempts++; }
+    if (ev.type === 'miss_5m') teamStats.penAttempts++;
+    if (ev.type === 'opp_goal_5m') { oppStats.penGoals++; oppStats.penAttempts++; }
+    if (ev.type === 'opp_miss_5m') oppStats.penAttempts++;
+    if (ev.type === 'goal' || ev.type === 'goal_5m' || ev.type === 'so_goal') player.goals++;
+    if (ev.type === 'assist') player.assists++;
+    if (ev.type === 'exclusion' || ev.type === 'brutality') player.exclusions++;
+    if (ev.type === 'opp_exclusion') {
+      const oppPlayer = oppPlayers[playerKey] || (oppPlayers[playerKey] = { name: ev.name || '(No Name Provided)', cap: ev.cap || '', goals: 0, assists: 0, steals: 0, saves: 0, blocks: 0, exclusions: 0 });
+      oppPlayer.exclusions++;
+    }
+  }
+
+  const periodColumns = [...periodsSeen]
+    .filter(p => p > 0)
+    .sort((a, b) => a - b)
+    .map(p => ({
+      key: p,
+      label: p <= 4 ? `Q${p}` : (p === 5 ? 'OT' : `P${p}`),
+      team: periodScores[p]?.team || 0,
+      opp: periodScores[p]?.opp || 0,
+    }));
+
+  const buildLeaderRows = (players, kind) => Object.values(players)
+    .sort((a, b) => {
+      const aVal = kind === 'off' ? (a.goals * 3 + a.assists) : (a.steals * 2 + a.blocks + a.saves);
+      const bVal = kind === 'off' ? (b.goals * 3 + b.assists) : (b.steals * 2 + b.blocks + b.saves);
+      return bVal - aVal || b.goals - a.goals || a.name.localeCompare(b.name);
+    })
+    .slice(0, 3);
+
+  const teamOff = buildLeaderRows(teamPlayers, 'off');
+  const oppOff = buildLeaderRows(oppPlayers, 'off');
+  const teamDef = buildLeaderRows(teamPlayers, 'def');
+  const oppDef = buildLeaderRows(oppPlayers, 'def');
+
+  const saveRatioTeam = `${teamStats.saves}/${teamStats.saves + (score.opp || 0)}`;
+  const saveRatioOpp = `${oppStats.saves}/${oppStats.saves + (score.team || 0)}`;
+  const powerPlayTeam = `${teamStats.powerGoals}/${teamStats.powerOpps}`;
+  const powerPlayOpp = `${oppStats.powerGoals}/${oppStats.powerOpps}`;
+  const pensTeam = `${teamStats.penGoals}/${teamStats.penAttempts}`;
+  const pensOpp = `${oppStats.penGoals}/${oppStats.penAttempts}`;
+  const scoringGridCols = `minmax(140px, 1.6fr) repeat(${periodColumns.length + 1}, minmax(32px, 0.5fr))`;
+
+  const compareRow = (label, leftRaw, rightRaw, leftDisplay, rightDisplay) => {
+    const max = Math.max(leftRaw, rightRaw, 1);
+    const leftPct = (leftRaw / max) * 100;
+    const rightPct = (rightRaw / max) * 100;
+    return `<div class="score-detail-compare-row">
+      <div class="score-detail-compare-head">
+        <span>${escHtml(leftDisplay)}</span>
+        <span>${escHtml(label)}</span>
+        <span>${escHtml(rightDisplay)}</span>
+      </div>
+      <div class="score-detail-compare-bars">
+        <span class="score-detail-bar score-detail-bar-left"><span style="width:${leftPct}%"></span></span>
+        <span class="score-detail-bar score-detail-bar-right"><span style="width:${rightPct}%"></span></span>
+      </div>
+    </div>`;
+  };
+
+  const leaderSection = (title, leftRows, rightRows, formatter) => `
+    <div class="score-detail-leaders">
+      <div class="score-detail-section-title">${escHtml(title)}</div>
+      <div class="score-detail-leader-grid">
+        <div>${leftRows.map(r => `<div class="score-detail-leader-row"><strong>${escHtml(r.name)}</strong><span>${escHtml(formatter(r))}</span></div>`).join('') || '<div class="score-detail-leader-row muted">—</div>'}</div>
+        <div>${rightRows.map(r => `<div class="score-detail-leader-row"><strong>${escHtml(r.name)}</strong><span>${escHtml(formatter(r))}</span></div>`).join('') || '<div class="score-detail-leader-row muted">—</div>'}</div>
+      </div>
+    </div>`;
+
+  return `
+    <div class="score-detail-summary card tab-card">
+      <div class="score-detail-summary-meta">
+        <div>
+          <div class="score-detail-summary-kicker">${escHtml(ageGroupLabel || TOURNAMENT.name || 'Match Details')}</div>
+          <div class="score-detail-summary-status">${escHtml(statusLabel)}</div>
+        </div>
+        ${game.gameNum ? `<div class="scores-detail-game-num">${escHtml(game.gameNum)}</div>` : ''}
+      </div>
+      <div class="score-detail-summary-info">
+        <div><strong>Time</strong><span>${escHtml(game.date || formatDateGroupLabel(game.dateISO) || '')}${game.time ? ` ${escHtml(game.time)}` : ''}</span></div>
+        <div><strong>Location</strong><span>${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : 'TBD'}</span></div>
+      </div>
+      <div class="score-detail-summary-scoreline">
+        <div class="team-block"><div class="team-name">${escHtml(teamName)}</div><div class="team-score">${Number.isInteger(score.team) ? score.team : Number(score.team || 0).toFixed(1)}</div></div>
+        <div class="score-sep">-</div>
+        <div class="team-block"><div class="team-name">${escHtml(oppName)}</div><div class="team-score">${Number.isInteger(score.opp) ? score.opp : Number(score.opp || 0).toFixed(1)}</div></div>
+      </div>
+      <div class="score-detail-scoring-table">
+        <div class="score-detail-scoring-head">Scoring</div>
+        <div class="score-detail-scoring-row head" style="grid-template-columns:${scoringGridCols}">
+          <span></span>
+          ${periodColumns.map(col => `<span>${escHtml(col.label)}</span>`).join('')}
+          <span>Total</span>
+        </div>
+        <div class="score-detail-scoring-row" style="grid-template-columns:${scoringGridCols}">
+          <span>${escHtml(teamName)}</span>
+          ${periodColumns.map(col => `<span>${col.team}</span>`).join('')}
+          <span>${Number.isInteger(score.team) ? score.team : Number(score.team || 0).toFixed(1)}</span>
+        </div>
+        <div class="score-detail-scoring-row" style="grid-template-columns:${scoringGridCols}">
+          <span>${escHtml(oppName)}</span>
+          ${periodColumns.map(col => `<span>${col.opp}</span>`).join('')}
+          <span>${Number.isInteger(score.opp) ? score.opp : Number(score.opp || 0).toFixed(1)}</span>
+        </div>
+      </div>
+      <div class="score-detail-compare">
+        ${compareRow('Scoring', Number(score.team || 0), Number(score.opp || 0), String(score.team || 0), String(score.opp || 0))}
+        ${compareRow('Save Ratio', teamStats.saves + (score.opp || 0), oppStats.saves + (score.team || 0), saveRatioTeam, saveRatioOpp)}
+        ${compareRow('Power Plays', teamStats.powerOpps || teamStats.powerGoals, oppStats.powerOpps || oppStats.powerGoals, powerPlayTeam, powerPlayOpp)}
+        ${compareRow('Penalties', teamStats.penAttempts || teamStats.penGoals, oppStats.penAttempts || oppStats.penGoals, pensTeam, pensOpp)}
+        ${compareRow('Sprints Won', teamStats.sprints, oppStats.sprints, String(teamStats.sprints), String(oppStats.sprints))}
+        ${compareRow('Saves', teamStats.saves, oppStats.saves, String(teamStats.saves), String(oppStats.saves))}
+      </div>
+      ${leaderSection('Offensive Leaders', teamOff, oppOff, r => `${r.goals}G${r.assists ? ` · ${r.assists}A` : ''}`)}
+      ${leaderSection('Defensive Leaders', teamDef, oppDef, r => `${r.steals} STL${(r.blocks + r.saves) ? ` · ${r.blocks + r.saves} DEF` : ''}`)}
+    </div>`;
 }
 
 // Build the box score summary table HTML
@@ -5906,12 +6089,7 @@ function buildScoreDetailView(ctx) {
   return _withScoreTournamentContext(ctx.groupKey || '', () => {
     const { game, viewerOnly, ageGroupLabel } = ctx;
     const s = getLiveScore(game);
-    const scoreLabel = (s.team > 0 || s.opp > 0 || (s.gameState && s.gameState !== 'pre'))
-      ? `${s.team} - ${s.opp}`
-      : '—';
-    const stateLabel = s.gameState === 'final'
-      ? 'Final'
-      : (PERIOD_LABELS[s.period] || (isGameLive(_gameRef(game)) ? 'Live' : 'Scheduled'));
+    const canScore = !TOURNAMENT.scoringPassword || isScorerUnlockedForTournament(TOURNAMENT);
     return `
       <div class="scores-detail-shell">
         <div class="scores-detail-topbar">
@@ -5922,20 +6100,9 @@ function buildScoreDetailView(ctx) {
           <div class="scores-detail-hero-top">
             <div>
               <div class="scores-detail-kicker">${escHtml(TOURNAMENT.name || 'Game Details')}</div>
-              <div class="scores-detail-title">${escHtml(TOURNAMENT.clubName || 'Team')} vs ${escHtml(normalizeOpponentName(game.opponent || 'TBD'))}</div>
+              <div class="scores-detail-title">${escHtml(_teamDisplayNameForGame(game, TOURNAMENT.clubName || 'Team'))} vs ${escHtml(normalizeOpponentName(game.opponent || 'TBD'))}</div>
             </div>
             ${game.gameNum ? `<div class="scores-detail-game-num">${escHtml(game.gameNum)}</div>` : ''}
-          </div>
-          <div class="scores-detail-scoreline">
-            <span class="team">${escHtml(TOURNAMENT.clubName || 'Team')}</span>
-            <span class="score">${scoreLabel}</span>
-            <span class="team">${escHtml(normalizeOpponentName(game.opponent || 'Opp'))}</span>
-          </div>
-          <div class="scores-detail-meta">
-            <span>${escHtml(stateLabel)}</span>
-            <span>🕐 ${escHtml(game.time || 'TBD')}${(game.date || game.dateISO) ? ` · ${escHtml(game.date || formatDateGroupLabel(game.dateISO))}` : ''}</span>
-            ${game.pool ? `<span>${swimmerEmoji()} ${escHtml(game.pool)}</span>` : ''}
-            ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
           </div>
         </div>
         <div class="scores-detail-tabs">
@@ -5944,7 +6111,15 @@ function buildScoreDetailView(ctx) {
         </div>
         ${state.scoreDetailTab === 'play'
           ? buildScoreDetailPlayByPlay(game)
-          : `<div class="score-detail-summary-host">${buildGameCard(game, viewerOnly, true, ageGroupLabel)}</div>`}
+          : `<div class="score-detail-summary-host">
+              ${_buildScoreDetailSummary(game, s, ageGroupLabel)}
+              ${(!viewerOnly && canScore)
+                ? `<details class="score-detail-controls-wrap">
+                    <summary>Scoring Controls</summary>
+                    <div class="score-detail-controls-host">${buildGameCard(game, false, true, ageGroupLabel)}</div>
+                  </details>`
+                : ''}
+            </div>`}
       </div>`;
   });
 }
