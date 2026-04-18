@@ -2744,14 +2744,39 @@ function findNextGameOrProjected() {
 
 // ─── BRACKET PROJECTION ───────────────────────────────────────────────────────
 
+function _pathProjectedRank(path) {
+  const label = String(path?.label || path?.qualifier || '');
+  const m = label.match(/\bif\s+(\d+)(?:st|nd|rd|th)\s+in\s+pool\b/i)
+    || label.match(/\b(\d+)(?:st|nd|rd|th)\s+in\s+pool\b/i);
+  return m ? Number(m[1]) : null;
+}
+
+function _inferImportedPath(paths, games) {
+  const completedGames = games.filter(g => _getResultForGame(g));
+  if (!completedGames.length) return null;
+  if (games.some(g => !_getResultForGame(g))) return null;
+
+  const rankedPaths = paths
+    .map(path => ({ path, rank: _pathProjectedRank(path) }))
+    .filter(item => Number.isFinite(item.rank))
+    .sort((a, b) => a.rank - b.rank);
+  if (!rankedPaths.length) return null;
+
+  const wins = completedGames.filter(g => isWin(_getResultForGame(g))).length;
+  const estimatedRank = Math.max(1, Math.min(rankedPaths[rankedPaths.length - 1].rank, (games.length + 1) - wins));
+  return rankedPaths.find(item => item.rank === estimatedRank)?.path || rankedPaths[0].path;
+}
+
 function inferProjectedPath() {
   const paths = getTournamentBracketPaths();
   if (!paths?.length) return null;
-  // Imported director paths have no qualifyMinWins/qualifyMaxWins — skip projection
-  if (!paths.some(p => p.qualifyMinWins != null || p.qualifyMaxWins != null)) return null;
 
   const games = getTournamentGames();
   if (!games.length) return null;
+
+  if (!paths.some(p => p.qualifyMinWins != null || p.qualifyMaxWins != null)) {
+    return _inferImportedPath(paths, games);
+  }
 
   const completedGames = games.filter(g => _getResultForGame(g));
   if (!completedGames.length) return null;
