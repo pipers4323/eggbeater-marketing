@@ -6567,6 +6567,12 @@ function buildScoreDetailView(ctx) {
     const { game, viewerOnly, ageGroupLabel } = ctx;
     const s = getLiveScore(game);
     const canScore = !TOURNAMENT.scoringPassword || isScorerUnlockedForTournament(TOURNAMENT);
+    const summaryAction = (!viewerOnly && canScore && !ctx.scorerMode)
+      ? `<button class="scores-open-scorer-btn score-detail-inline-scorer-btn" onclick="enableScoreDetailScorer()">✏️ ${escHtml(appT('scorer_open'))}</button>`
+      : '';
+    const scorerPanel = (!viewerOnly && canScore && ctx.scorerMode)
+      ? _buildScoreDetailScorerPanel(game, s)
+      : '';
     return `
       <div class="scores-detail-shell">
         <div class="scores-detail-topbar">
@@ -6589,8 +6595,8 @@ function buildScoreDetailView(ctx) {
         ${state.scoreDetailTab === 'play'
           ? buildScoreDetailPlayByPlay(game)
           : `<div class="score-detail-summary-host">
-              ${_buildScoreDetailSummary(game, s, ageGroupLabel, (!viewerOnly && canScore && !ctx.scorerMode) ? `<button class="scores-open-scorer-btn score-detail-inline-scorer-btn" onclick="enableScoreDetailScorer()">✏️ ${escHtml(appT('scorer_open'))}</button>` : '')}
-              ${(!viewerOnly && canScore && ctx.scorerMode) ? _buildScoreDetailScorerPanel(game, s) : ''}
+              ${scorerPanel}
+              ${_buildScoreDetailSummary(game, s, ageGroupLabel, summaryAction)}
             </div>`}
       </div>`;
   });
