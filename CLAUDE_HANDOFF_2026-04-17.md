@@ -496,3 +496,25 @@ de21880  fix: correct age group header colors in light mode
    - full standings engine for projected bracket placement instead of current heuristic
    - broader admin tooling polish around scored-game restore/rebuild flows
    - confirm all official sheet sync paths also update any client-side projected/current tournament caches cleanly.
+
+## 2026-04-18 Late Venue/Native Sync Update
+
+- `eggbeater-marketing` `main` is now at `3d1d451` (`fix: use game venue in schedule cards`).
+- `eggbeater-waterpolo` `main` is now at `f188cdb` (`chore: sync native bundle with schedule venue fix`).
+- Schedule cards were still using `TOURNAMENT.location`; they now use `g.location || TOURNAMENT.location` so sheet/materialized next games show the correct venue.
+- Santa Cruz projected/materialized next game should now show `NORCO HS` instead of `Elsinore High School`.
+- Latest native build should be triggered from wrapper commit `f188cdb`.
+
+### Updated follow-ups
+
+1. Trigger and verify a fresh native build from `f188cdb`.
+2. Device QA for Santa Cruz next game should confirm all of:
+   - opponent `1st C`
+   - venue `NORCO HS`
+   - cap color `Dark`
+   - projected-next card styling and readable text
+3. Keep watching sheet sync on the next tournament rollover/end-of-game cycle:
+   - official score ingestion
+   - next-game materialization
+   - durable history/archive preservation
+4. If another scored game disappears, inspect durable scored-game record before running any official-sheet/admin rebuild action so the original event stream is not overwritten.
