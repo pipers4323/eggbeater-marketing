@@ -452,3 +452,47 @@ de21880  fix: correct age group header colors in light mode
 
 4. **Future improvement**
 - If desired later, add a cleaner explicit worker-side archive/recovery view instead of depending on local spectator history shells at all.
+## 2026-04-18 Live Scoring / Sheet Sync Update
+
+- `eggbeater-marketing` `main` is now at `2a12024` (`fix: keep blue button text readable`).
+- `eggbeater-waterpolo` `main` is now at `8a61800` (`chore: sync native styles for button contrast`).
+- Live worker deploy is current at version `890fc8e8-ba1d-43af-97ae-db6ad220e78e`.
+- Durable scored-game persistence is now the intended source of truth for scored games; schedule/history restore and archive recovery were hardened around that path.
+- Official sheet sync now updates durable scored-game records and history without wiping an existing event stream with `events: []`.
+- Santa Cruz `16u Girls` was manually recovered and restored from copied play-by-play:
+  - `CHAWP WHITE` final is `17-10 W`
+  - `CLOVIS` final is `13-5 W`
+  - `CLOVIS` durable scored-game record and history entry now include restored play-by-play.
+- Sheet-driven next-game materialization is live in the worker:
+  - Santa Cruz now gets the next bracket game as a real scheduled game object (`7:00 AM`, `April 19, 2026`, `NORCO HS`, opponent `1st C`).
+  - Cap color is now derived from sheet white/blue columns; Santa Cruz next game comes through as `Dark`.
+- Recent UI fixes now shipped/synced:
+  - projected-next card restyled lighter on the blue background
+  - blue buttons/tabs force white text when active
+  - My Players light-mode contrast improved (`Add` button + initials/avatar)
+  - score/schedule surfaces keep map buttons off scores/summary views where requested
+  - score summary clock/period sizing and live state display improved
+  - live schedule click-through to Scores summary fixed
+  - halftime label shows correctly
+- Wrapper sync state:
+  - latest native build should come from `eggbeater-waterpolo` `main` at `8a61800`
+  - latest marketing web head is `2a12024`
+
+### Follow-ups
+
+1. Verify fresh native build from `8a61800` on device for:
+   - projected next game card
+   - next-game cap color
+   - blue-button/tab contrast
+   - My Players readability in light mode
+   - live summary/play-by-play and delete support
+2. Watch the next scored game end-to-end and confirm:
+   - durable scored-game record keeps full event stream
+   - archive/history transition preserves score and play-by-play
+   - finalization prompt appears at Q4 expiry and drives a durable final write
+3. Santa Cruz / Clovis recovery note:
+   - one anonymous opponent goal at `Q4 0:00` was added to reconcile restored play-by-play to the official `13-5` sheet result.
+4. Remaining product cleanup after tournament pressure is lower:
+   - full standings engine for projected bracket placement instead of current heuristic
+   - broader admin tooling polish around scored-game restore/rebuild flows
+   - confirm all official sheet sync paths also update any client-side projected/current tournament caches cleanly.
