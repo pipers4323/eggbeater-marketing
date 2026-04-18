@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Eggbeater Scorer Guide</title>
-  <meta name="description" content="One-page Eggbeater scorer guide for coaches, team managers, and tournament scorers." />
+  <title data-i18n-title="page_title">Eggbeater Scorer Guide</title>
+  <meta name="description" data-i18n-content="page_description" content="One-page Eggbeater scorer guide for coaches, team managers, and tournament scorers." />
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png" />
   <style>
     :root {
@@ -102,6 +102,37 @@
       letter-spacing: 0.04em;
       text-transform: uppercase;
       white-space: nowrap;
+    }
+
+    .hero-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+
+    .hero-controls label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.88);
+    }
+
+    .site-lang-picker {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,.28);
+      background: rgba(255,255,255,.14);
+      color: white;
+      border-radius: 999px;
+      padding: 8px 28px 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .site-lang-picker option {
+      color: #111827;
     }
 
     .hero-copy {
@@ -328,6 +359,9 @@
         flex-direction: column;
         align-items: flex-start;
       }
+      .hero-controls label {
+        display: none;
+      }
       .brand img {
         width: 190px;
       }
@@ -375,19 +409,27 @@
         <div class="brand">
           <img src="/logo_large.png" alt="Eggbeater Water Polo" />
         </div>
-        <div class="badge">One-Page Scorer Guide</div>
+        <div class="hero-controls">
+          <div class="badge" data-i18n="badge">One-Page Scorer Guide</div>
+          <label for="site-lang-picker" data-i18n="lang_label">Language</label>
+          <select id="site-lang-picker" class="site-lang-picker" data-site-lang-picker data-i18n-aria-label="lang_label">
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="fr">FR</option>
+          </select>
+        </div>
       </div>
       <div class="hero-copy">
-        <h1>Live Scoring, without the extra noise</h1>
-        <p>Use this guide for coaches, team managers, and designated scorers. The goal is simple: enter the right game, keep the score accurate, record the key events, and close the game cleanly.</p>
+        <h1 data-i18n="hero_title">Live Scoring, without the extra noise</h1>
+        <p data-i18n="hero_subtitle">Use this guide for coaches, team managers, and designated scorers. The goal is simple: enter the right game, keep the score accurate, record the key events, and close the game cleanly.</p>
       </div>
     </section>
 
     <section class="content">
       <div class="top-grid">
         <section class="card">
-          <h2 class="card-title">What Eggbeater is for</h2>
-          <ul class="plain-list">
+          <h2 class="card-title" data-i18n="intro_title">What Eggbeater is for</h2>
+          <ul class="plain-list" data-i18n-html="intro_list">
             <li><strong>Spectators do not need to sign in.</strong> They can open the app and follow schedule, scores, history, roster, and tournament updates.</li>
             <li><strong>Only the scorer uses scorer mode.</strong> The scorer password unlocks live scoring controls for the assigned game.</li>
             <li><strong>Keep the score right first.</strong> If anything gets hectic, accurate score and game state matter more than perfect stat detail.</li>
@@ -395,23 +437,23 @@
         </section>
 
         <aside class="card">
-          <h2 class="card-title">Quick Facts</h2>
+          <h2 class="card-title" data-i18n="facts_title">Quick Facts</h2>
           <div class="quick-facts">
             <div class="fact">
-              <span class="fact-label">Start Here</span>
-              <span class="fact-value">Scores tab</span>
+              <span class="fact-label" data-i18n="fact_1_label">Start Here</span>
+              <span class="fact-value" data-i18n="fact_1_value">Scores tab</span>
             </div>
             <div class="fact">
-              <span class="fact-label">Unlock</span>
-              <span class="fact-value">Login to Score</span>
+              <span class="fact-label" data-i18n="fact_2_label">Unlock</span>
+              <span class="fact-value" data-i18n="fact_2_value">Login to Score</span>
             </div>
             <div class="fact">
-              <span class="fact-label">Open Game</span>
-              <span class="fact-value">Open Scorer</span>
+              <span class="fact-label" data-i18n="fact_3_label">Open Game</span>
+              <span class="fact-value" data-i18n="fact_3_value">Open Scorer</span>
             </div>
             <div class="fact">
-              <span class="fact-label">Done</span>
-              <span class="fact-value">Set Final + Lock</span>
+              <span class="fact-label" data-i18n="fact_4_label">Done</span>
+              <span class="fact-value" data-i18n="fact_4_value">Set Final + Lock</span>
             </div>
           </div>
         </aside>
@@ -420,9 +462,9 @@
       <div class="steps">
         <section class="step">
           <div class="step-num">1</div>
-          <h2>Before the game</h2>
-          <p>Open the app, go to <strong>Scores</strong>, and unlock scorer mode.</p>
-          <ul>
+          <h2 data-i18n="step_1_title">Before the game</h2>
+          <p data-i18n-html="step_1_intro">Open the app, go to <strong>Scores</strong>, and unlock scorer mode.</p>
+          <ul data-i18n-html="step_1_list">
             <li>Tap <strong>Login to Score</strong></li>
             <li>Enter the scorer password</li>
             <li>Tap <strong>Open Scorer</strong> on the correct game</li>
@@ -433,9 +475,9 @@
 
         <section class="step">
           <div class="step-num">2</div>
-          <h2>During the game</h2>
-          <p>Use the live controls to track the game as it happens.</p>
-          <ul>
+          <h2 data-i18n="step_2_title">During the game</h2>
+          <p data-i18n-html="step_2_intro">Use the live controls to track the game as it happens.</p>
+          <ul data-i18n-html="step_2_list">
             <li>Tap <strong>Start</strong> when play begins</li>
             <li>Record goals, assists, steals, exclusions, and saves</li>
             <li>Track opponent goals too</li>
@@ -446,9 +488,9 @@
 
         <section class="step">
           <div class="step-num">3</div>
-          <h2>After the game</h2>
-          <p>Close the game cleanly so spectators see the correct final result.</p>
-          <ul>
+          <h2 data-i18n="step_3_title">After the game</h2>
+          <p data-i18n-html="step_3_intro">Close the game cleanly so spectators see the correct final result.</p>
+          <ul data-i18n-html="step_3_list">
             <li>Set the game state to <strong>Final</strong></li>
             <li>Confirm the final score</li>
             <li>Select the correct result</li>
@@ -460,8 +502,8 @@
 
       <div class="bottom-grid">
         <section class="card">
-          <h2 class="card-title">Best Practices</h2>
-          <ul class="plain-list">
+          <h2 class="card-title" data-i18n="best_title">Best Practices</h2>
+          <ul class="plain-list" data-i18n-html="best_list">
             <li><strong>Score one game only.</strong> Make sure you are in the correct game before entering events.</li>
             <li><strong>Pause if something looks wrong.</strong> Refresh and verify before continuing if the score, game, or roster looks off.</li>
             <li><strong>Use the game-state buttons consistently.</strong> Quarter and final state changes are part of what spectators rely on.</li>
@@ -470,31 +512,34 @@
         </section>
 
         <section class="card">
-          <h2 class="card-title">Fast Troubleshooting</h2>
+          <h2 class="card-title" data-i18n="trouble_title">Fast Troubleshooting</h2>
           <div class="status-box status-green">
-            <h3>If it is working</h3>
-            <p>You should see the correct game card, cap color, live score controls, and an updated score as events are entered.</p>
+            <h3 data-i18n="status_green_title">If it is working</h3>
+            <p data-i18n="status_green_body">You should see the correct game card, cap color, live score controls, and an updated score as events are entered.</p>
           </div>
           <div class="status-box status-amber">
-            <h3>If something looks off</h3>
-            <ul>
+            <h3 data-i18n="status_amber_title">If something looks off</h3>
+            <ul data-i18n-html="status_amber_list">
               <li>Refresh the app</li>
               <li>Re-open the correct game</li>
               <li>Check scorer mode is still unlocked</li>
             </ul>
           </div>
           <div class="status-box status-red">
-            <h3>If something breaks</h3>
-            <p>Send: what you were trying to do, what happened instead, your device type, and a screenshot if possible.</p>
+            <h3 data-i18n="status_red_title">If something breaks</h3>
+            <p data-i18n="status_red_body">Send: what you were trying to do, what happened instead, your device type, and a screenshot if possible.</p>
           </div>
         </section>
       </div>
 
       <footer class="footer">
-        <div><strong>Eggbeater Water Polo</strong> - scorer quick reference for tournament day</div>
-        <div>Tip: open this page in a browser and print as PDF</div>
+        <div data-i18n-html="footer_left"><strong>Eggbeater Water Polo</strong> - scorer quick reference for tournament day</div>
+        <div data-i18n="footer_right">Tip: open this page in a browser and print as PDF</div>
       </footer>
     </section>
   </main>
+  <script src="scorer-one-page-guide.i18n.js"></script>
+  <script src="site-i18n.js"></script>
 </body>
 </html>
+

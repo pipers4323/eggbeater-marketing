@@ -62,6 +62,7 @@ const APP_I18N = {
     spectator_guide_link: 'New to Eggbeater? Read the Spectator Guide ->',
     returning_user: 'Returning user?',
     splash_signin_hint: 'Restore your clubs and settings instantly',
+    header_lang: 'Lang',
     nav_schedule: 'Schedule',
     nav_scores: 'Scores',
     nav_history: 'History',
@@ -412,6 +413,7 @@ const APP_I18N = {
     spectator_guide_link: 'Nuevo en Eggbeater? Lee la guia para espectadores ->',
     returning_user: 'Ya usaste la app?',
     splash_signin_hint: 'Restaura tus clubes y ajustes al instante',
+    header_lang: 'Idioma',
     nav_schedule: 'Calendario',
     nav_scores: 'Marcadores',
     nav_history: 'Historial',
@@ -762,6 +764,7 @@ const APP_I18N = {
     spectator_guide_link: 'Nouveau sur Eggbeater ? Lire le guide spectateurs ->',
     returning_user: 'Utilisateur deja inscrit ?',
     splash_signin_hint: 'Retrouvez vos clubs et reglages instantanement',
+    header_lang: 'Langue',
     nav_schedule: 'Calendrier',
     nav_scores: 'Scores',
     nav_history: 'Historique',
@@ -1108,7 +1111,9 @@ const APP_I18N = {
 };
 
 function getAppLang() {
-  return localStorage.getItem(APP_LANG_KEY) || 'en';
+  return localStorage.getItem(APP_LANG_KEY)
+    || localStorage.getItem('eggbeater-site-lang')
+    || 'en';
 }
 
 function appT(key) {
@@ -1127,9 +1132,10 @@ function applyAppTranslations() {
     'club-picker-title': 'club_picker_title',
     'club-picker-subtitle': 'club_picker_subtitle',
     'club-picker-footer': 'club_picker_footer',
-  'spectator-guide-link': 'spectator_guide_link',
+    'spectator-guide-link': 'spectator_guide_link',
     'returning-user-label': 'returning_user',
     'splash-signin-hint': 'splash_signin_hint',
+    'header-lang-label': 'header_lang',
     'nav-label-schedule': 'nav_schedule',
     'nav-label-scores': 'nav_scores',
     'nav-label-more': 'nav_more',
@@ -1161,6 +1167,7 @@ function applyAppTranslations() {
 function setAppLang(lang) {
   if (!APP_I18N[lang]) lang = 'en';
   localStorage.setItem(APP_LANG_KEY, lang);
+  localStorage.setItem('eggbeater-site-lang', lang);
   applyAppTranslations();
   renderHeader();
   if (state.currentTab === 'settings') renderSettingsTab();

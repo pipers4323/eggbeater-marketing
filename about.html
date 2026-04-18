@@ -105,6 +105,26 @@
       padding: 8px 18px !important;
     }
     .nav-cta:hover { background: var(--gold-light) !important; }
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .site-lang-select {
+      appearance: none;
+      -webkit-appearance: none;
+      background: rgba(255,255,255,0.1);
+      color: var(--white);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 999px;
+      padding: 8px 30px 8px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .site-lang-select option {
+      color: var(--gray-800);
+    }
 
     /* ── HERO ── */
     .hero {
@@ -657,6 +677,8 @@
     @media (max-width: 600px) {
       .steps, .features-grid, .pricing-grid { grid-template-columns: 1fr; }
       .nav-links { display: none; }
+      .nav-controls { gap: 8px; }
+      .site-lang-select { padding: 7px 28px 7px 10px; font-size: 12px; }
       .cta-form { flex-direction: column; }
       .footer-inner { flex-direction: column; text-align: center; }
     }
@@ -670,14 +692,21 @@
     <a href="/" class="nav-logo">
       <img src="logo_large.svg" alt="Eggbeater Water Polo" class="nav-logo-img" />
     </a>
-    <ul class="nav-links">
-      <li><a href="#how-it-works">How It Works</a></li>
-      <li><a href="#features">Features</a></li>
-      <li><a href="#pricing">Pricing</a></li>
-      <li><a href="/" style="color:rgba(255,255,255,0.6);">Spectator App</a></li>
-      <li><a href="/admin.html" style="color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:6px 12px;">Admin Login</a></li>
-      <li><a href="#get-started" class="nav-cta">Get Started</a></li>
-    </ul>
+    <div class="nav-controls">
+      <ul class="nav-links">
+        <li><a href="#how-it-works">How It Works</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="/" style="color:rgba(255,255,255,0.6);">Spectator App</a></li>
+        <li><a href="/admin.html" style="color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:6px 12px;">Admin Login</a></li>
+        <li><a href="#get-started" class="nav-cta">Get Started</a></li>
+      </ul>
+      <select class="site-lang-select" data-site-lang-picker data-i18n-aria-label="lang_label">
+        <option value="en">EN</option>
+        <option value="es">ES</option>
+        <option value="fr">FR</option>
+      </select>
+    </div>
   </div>
 </nav>
 
@@ -1029,12 +1058,263 @@
 </footer>
 
 <script>
+  window.SITE_I18N_SHARED = {
+    en: {
+      lang_label: 'Language',
+      nav_how: 'How It Works',
+      nav_features: 'Features',
+      nav_pricing: 'Pricing',
+      nav_spectator_app: 'Spectator App',
+      nav_admin_login: 'Admin Login',
+      nav_get_started: 'Get Started',
+      footer_spectator_guide: 'Spectator Guide',
+      footer_admin_guide: 'Admin Guide',
+      footer_accessibility: 'Accessibility',
+      footer_privacy: 'Privacy',
+      footer_terms: 'Terms',
+      footer_contact: 'Contact'
+    },
+    es: {
+      lang_label: 'Idioma',
+      nav_how: 'Como funciona',
+      nav_features: 'Funciones',
+      nav_pricing: 'Precios',
+      nav_spectator_app: 'App para espectadores',
+      nav_admin_login: 'Acceso admin',
+      nav_get_started: 'Comenzar',
+      footer_spectator_guide: 'Guia para espectadores',
+      footer_admin_guide: 'Guia admin',
+      footer_accessibility: 'Accesibilidad',
+      footer_privacy: 'Privacidad',
+      footer_terms: 'Terminos',
+      footer_contact: 'Contacto'
+    },
+    fr: {
+      lang_label: 'Langue',
+      nav_how: 'Fonctionnement',
+      nav_features: 'Fonctionnalites',
+      nav_pricing: 'Tarifs',
+      nav_spectator_app: 'App spectateur',
+      nav_admin_login: 'Connexion admin',
+      nav_get_started: 'Commencer',
+      footer_spectator_guide: 'Guide spectateur',
+      footer_admin_guide: 'Guide admin',
+      footer_accessibility: 'Accessibilite',
+      footer_privacy: 'Confidentialite',
+      footer_terms: 'Conditions',
+      footer_contact: 'Contact'
+    }
+  };
+
+  window.SITE_PAGE_I18N = {
+    en: {
+      meta_title: 'Eggbeater Water Polo — Club Management Platform',
+      meta_description: 'The all-in-one water polo club app. Live scoring, My Player stats, history, bracket sheets, lock screen Live Activities, home screen widgets, push notifications, and custom club branding — on iOS, Android, and web.',
+      og_title: 'Eggbeater Water Polo — Club Management Platform',
+      og_description: 'The all-in-one platform for water polo clubs. Live scoring, schedules, My Player stats, history, and push notifications — on iOS, Android, and web.',
+      hero_badge: 'Built for Water Polo',
+      hero_title_html: 'Run your club.<br /><span>All in one app.</span>',
+      hero_sub: 'Eggbeater brings rosters, schedules, live scoring, and club branding together in a single platform — built specifically for water polo clubs.',
+      hero_cta_primary: 'Get Started →',
+      hero_cta_secondary: 'See How It Works',
+      hero_admins_html: '<strong style="color:rgba(255,255,255,0.9)">Club admins:</strong> get set up in 10 min, free to start',
+      hero_spectators_html: '<strong style="color:rgba(255,255,255,0.9)">Spectators &amp; fans:</strong> download free — <a href="https://apps.apple.com/us/app/eggbeater-water-polo/id6761336789" target="_blank" rel="noopener" style="color:#22d3ee;text-decoration:none">App Store</a> · <a href="https://play.google.com/store/apps/details?id=com.eggbeater.waterpolo" target="_blank" rel="noopener" style="color:#22d3ee;text-decoration:none">Google Play</a> · <a href="/" style="color:#22d3ee;text-decoration:none">web app</a>',
+      how_tag: 'How It Works',
+      how_title: 'Up and running in minutes',
+      how_sub: 'No spreadsheets, no group texts. Just a clean app your whole club will actually use.',
+      step1_title: 'Set up your club',
+      step1_body: 'Create your club profile, add your colors and logo, and invite your coaching staff. Your branded app is live immediately.',
+      step2_title: 'Add players & teams',
+      step2_body: 'Import your roster or invite players directly. Organize into age groups and teams. Players download the app and they\'re in.',
+      step3_title: 'Run your season',
+      step3_body: 'Post the schedule, send push notifications, and manage everything from the admin dashboard.',
+      features_tag: 'Features',
+      features_title: 'Everything your club needs',
+      features_sub: 'Purpose-built for water polo. Not another generic sports app.',
+      clubs_tag: 'For Club Admins',
+      clubs_title: 'One platform. Every club you run.',
+      clubs_sub: 'Whether you manage one team or fifteen, Eggbeater scales with you. Each club is fully isolated with its own branding, roster, and admin access.',
+      pricing_tag: 'Pricing',
+      pricing_title: 'Simple, transparent pricing',
+      pricing_sub: 'No per-seat fees, no hidden costs. One flat rate per club — plus an optional spectator upgrade.',
+      cta_tag: 'Get Started',
+      cta_title: 'Ready to run a better club?',
+      cta_sub: 'Leave your email and we\'ll reach out to get your club set up. It takes about 10 minutes.',
+      cta_placeholder: 'your@email.com',
+      cta_button: 'Get Access',
+      cta_success_title: 'You\'re on the list.',
+      cta_success_body: 'We\'ll reach out within 24 hours to get your club set up.',
+      cta_note: 'No spam. No credit card required to start.',
+      sending: 'Sending…',
+      try_again: 'Try again',
+      store_app_sub: 'Download on the',
+      store_app_name: 'App Store',
+      store_play_sub: 'Get it on',
+      store_play_name: 'Google Play',
+      footer_copy: '© 2026 Eggbeater Water Polo'
+    },
+    es: {
+      meta_title: 'Eggbeater Water Polo — Plataforma para clubes',
+      meta_description: 'La app todo en uno para clubes de waterpolo. Marcador en vivo, estadisticas de Mi Jugador, historial, cuadros, Live Activities, widgets, notificaciones push y branding personalizado en iOS, Android y web.',
+      og_title: 'Eggbeater Water Polo — Plataforma para clubes',
+      og_description: 'La plataforma todo en uno para clubes de waterpolo. Marcador en vivo, calendarios, estadisticas e historial en iOS, Android y web.',
+      hero_badge: 'Creado para waterpolo',
+      hero_title_html: 'Gestiona tu club.<br /><span>Todo en una sola app.</span>',
+      hero_sub: 'Eggbeater reúne planteles, calendarios, marcador en vivo y branding del club en una sola plataforma, creada específicamente para clubes de waterpolo.',
+      hero_cta_primary: 'Comenzar →',
+      hero_cta_secondary: 'Ver como funciona',
+      hero_admins_html: '<strong style="color:rgba(255,255,255,0.9)">Admins del club:</strong> configuren todo en 10 min, gratis para empezar',
+      hero_spectators_html: '<strong style="color:rgba(255,255,255,0.9)">Espectadores y fans:</strong> descarga gratis — <a href="https://apps.apple.com/us/app/eggbeater-water-polo/id6761336789" target="_blank" rel="noopener" style="color:#22d3ee;text-decoration:none">App Store</a> · <a href="https://play.google.com/store/apps/details?id=com.eggbeater.waterpolo" target="_blank" rel="noopener" style="color:#22d3ee;text-decoration:none">Google Play</a> · <a href="/" style="color:#22d3ee;text-decoration:none">app web</a>',
+      how_tag: 'Como funciona',
+      how_title: 'Listo en minutos',
+      how_sub: 'Sin hojas de calculo ni cadenas de mensajes. Solo una app clara que tu club realmente usará.',
+      step1_title: 'Configura tu club',
+      step1_body: 'Crea el perfil del club, agrega colores y logo, e invita a tu staff. Tu app con branding queda lista de inmediato.',
+      step2_title: 'Agrega jugadores y equipos',
+      step2_body: 'Importa tu roster o invita jugadores directamente. Organízalos por edades y equipos. Descargan la app y listo.',
+      step3_title: 'Gestiona la temporada',
+      step3_body: 'Publica el calendario, envía notificaciones push y administra todo desde el panel admin.',
+      features_tag: 'Funciones',
+      features_title: 'Todo lo que tu club necesita',
+      features_sub: 'Hecho para waterpolo. No otra app deportiva genérica.',
+      clubs_tag: 'Para admins de club',
+      clubs_title: 'Una plataforma. Todos tus clubes.',
+      clubs_sub: 'Administres un equipo o quince, Eggbeater escala contigo. Cada club queda aislado con su propio branding, roster y acceso admin.',
+      pricing_tag: 'Precios',
+      pricing_title: 'Precios simples y transparentes',
+      pricing_sub: 'Sin costo por asiento ni cargos ocultos. Una tarifa plana por club, más una mejora opcional para espectadores.',
+      cta_tag: 'Comenzar',
+      cta_title: '¿Listo para gestionar un mejor club?',
+      cta_sub: 'Déjanos tu correo y te contactamos para dejar tu club configurado. Toma unos 10 minutos.',
+      cta_placeholder: 'tu@email.com',
+      cta_button: 'Solicitar acceso',
+      cta_success_title: 'Ya estás en la lista.',
+      cta_success_body: 'Te contactaremos dentro de 24 horas para dejar tu club configurado.',
+      cta_note: 'Sin spam. Sin tarjeta para empezar.',
+      sending: 'Enviando…',
+      try_again: 'Intenta de nuevo',
+      store_app_sub: 'Descargar en',
+      store_app_name: 'App Store',
+      store_play_sub: 'Disponible en',
+      store_play_name: 'Google Play',
+      footer_copy: '© 2026 Eggbeater Water Polo'
+    },
+    fr: {
+      meta_title: 'Eggbeater Water Polo — Plateforme de gestion de club',
+      meta_description: 'L’application tout-en-un pour les clubs de water-polo. Score en direct, stats Mon Joueur, historique, tableaux, Live Activities, widgets, notifications push et branding personnalisé sur iOS, Android et web.',
+      og_title: 'Eggbeater Water Polo — Plateforme de gestion de club',
+      og_description: 'La plateforme tout-en-un pour les clubs de water-polo. Score en direct, calendriers, stats et historique sur iOS, Android et web.',
+      hero_badge: 'Conçu pour le water-polo',
+      hero_title_html: 'Pilotez votre club.<br /><span>Tout dans une seule app.</span>',
+      hero_sub: 'Eggbeater réunit effectifs, calendriers, score en direct et branding du club dans une seule plateforme, conçue spécifiquement pour les clubs de water-polo.',
+      hero_cta_primary: 'Commencer →',
+      hero_cta_secondary: 'Voir le fonctionnement',
+      hero_admins_html: '<strong style="color:rgba(255,255,255,0.9)">Admins du club :</strong> mise en place en 10 min, gratuit pour commencer',
+      hero_spectators_html: '<strong style="color:rgba(255,255,255,0.9)">Spectateurs et supporters :</strong> telechargez gratuitement — <a href="https://apps.apple.com/us/app/eggbeater-water-polo/id6761336789" target="_blank" rel="noopener" style="color:#22d3ee;text-decoration:none">App Store</a> · <a href="https://play.google.com/store/apps/details?id=com.eggbeater.waterpolo" target="_blank" rel="noopener" style="color:#22d3ee;text-decoration:none">Google Play</a> · <a href="/" style="color:#22d3ee;text-decoration:none">app web</a>',
+      how_tag: 'Fonctionnement',
+      how_title: 'Operationnel en quelques minutes',
+      how_sub: 'Pas de feuilles de calcul, pas de groupes de messages. Juste une app claire que tout le club utilisera vraiment.',
+      step1_title: 'Configurez votre club',
+      step1_body: 'Créez le profil du club, ajoutez vos couleurs et votre logo, puis invitez le staff. Votre app brandée est disponible immédiatement.',
+      step2_title: 'Ajoutez joueurs et équipes',
+      step2_body: 'Importez votre effectif ou invitez les joueurs directement. Organisez-les par catégories d’âge et équipes. Ils téléchargent l’app et c’est parti.',
+      step3_title: 'Gérez la saison',
+      step3_body: 'Publiez le calendrier, envoyez des notifications push et gérez tout depuis le tableau de bord admin.',
+      features_tag: 'Fonctionnalites',
+      features_title: 'Tout ce dont votre club a besoin',
+      features_sub: 'Conçu pour le water-polo. Pas une app de sport générique.',
+      clubs_tag: 'Pour les admins de club',
+      clubs_title: 'Une plateforme. Tous vos clubs.',
+      clubs_sub: 'Que vous gériez une équipe ou quinze, Eggbeater évolue avec vous. Chaque club reste isolé avec son propre branding, effectif et accès admin.',
+      pricing_tag: 'Tarifs',
+      pricing_title: 'Tarification simple et transparente',
+      pricing_sub: 'Aucun coût par siège, aucun frais caché. Un tarif fixe par club, plus une option spectateur.',
+      cta_tag: 'Commencer',
+      cta_title: 'Prêt à mieux gérer votre club ?',
+      cta_sub: 'Laissez votre email et nous vous contacterons pour configurer votre club. Cela prend environ 10 minutes.',
+      cta_placeholder: 'votre@email.com',
+      cta_button: 'Demander l’accès',
+      cta_success_title: 'Vous êtes sur la liste.',
+      cta_success_body: 'Nous vous contacterons sous 24 heures pour configurer votre club.',
+      cta_note: 'Pas de spam. Aucune carte bancaire nécessaire pour commencer.',
+      sending: 'Envoi…',
+      try_again: 'Réessayer',
+      store_app_sub: 'Telecharger sur',
+      store_app_name: 'App Store',
+      store_play_sub: 'Disponible sur',
+      store_play_name: 'Google Play',
+      footer_copy: '© 2026 Eggbeater Water Polo'
+    }
+  };
+
+  window.SITE_I18N_BINDINGS = [
+    { selector: 'title', key: 'meta_title', attr: 'title' },
+    { selector: 'meta[name="description"]', key: 'meta_description', attr: 'content' },
+    { selector: 'meta[property="og:title"]', key: 'og_title', attr: 'content' },
+    { selector: 'meta[property="og:description"]', key: 'og_description', attr: 'content' },
+    { selector: '.nav-links a[href="#how-it-works"]', key: 'nav_how' },
+    { selector: '.nav-links a[href="#features"]', key: 'nav_features' },
+    { selector: '.nav-links a[href="#pricing"]', key: 'nav_pricing' },
+    { selector: '.nav-links a[href="/"]', key: 'nav_spectator_app' },
+    { selector: '.nav-links a[href="/admin.html"]', key: 'nav_admin_login' },
+    { selector: '.nav-links .nav-cta', key: 'nav_get_started' },
+    { selector: '.hero-badge', key: 'hero_badge' },
+    { selector: '.hero h1', key: 'hero_title_html', attr: 'html' },
+    { selector: '.hero-sub', key: 'hero_sub' },
+    { selector: '.hero-actions .btn-primary', key: 'hero_cta_primary' },
+    { selector: '.hero-actions .btn-secondary', key: 'hero_cta_secondary' },
+    { selector: '.hero-content > div[style*="margin-top:20px"] > div:first-child span:last-child', key: 'hero_admins_html', attr: 'html' },
+    { selector: '.hero-content > div[style*="margin-top:20px"] > div:last-child span:last-child', key: 'hero_spectators_html', attr: 'html' },
+    { selector: '#how-it-works .section-tag', key: 'how_tag' },
+    { selector: '#how-it-works .section-heading', key: 'how_title' },
+    { selector: '#how-it-works .section-sub', key: 'how_sub' },
+    { selector: '#how-it-works .step:nth-of-type(1) h3', key: 'step1_title' },
+    { selector: '#how-it-works .step:nth-of-type(1) p', key: 'step1_body' },
+    { selector: '#how-it-works .step:nth-of-type(2) h3', key: 'step2_title' },
+    { selector: '#how-it-works .step:nth-of-type(2) p', key: 'step2_body' },
+    { selector: '#how-it-works .step:nth-of-type(3) h3', key: 'step3_title' },
+    { selector: '#how-it-works .step:nth-of-type(3) p', key: 'step3_body' },
+    { selector: '#features .section-tag', key: 'features_tag' },
+    { selector: '#features .section-heading', key: 'features_title' },
+    { selector: '#features .section-sub', key: 'features_sub' },
+    { selector: '#clubs .section-tag', key: 'clubs_tag' },
+    { selector: '#clubs .section-heading', key: 'clubs_title' },
+    { selector: '#clubs .section-sub', key: 'clubs_sub' },
+    { selector: '#pricing .section-tag', key: 'pricing_tag' },
+    { selector: '#pricing .section-heading', key: 'pricing_title' },
+    { selector: '#pricing .section-sub', key: 'pricing_sub' },
+    { selector: '#get-started .section-tag', key: 'cta_tag' },
+    { selector: '#get-started .section-heading', key: 'cta_title' },
+    { selector: '#get-started .section-sub', key: 'cta_sub' },
+    { selector: '#get-started .cta-input', key: 'cta_placeholder', attr: 'placeholder' },
+    { selector: '#get-started .cta-form .btn-primary', key: 'cta_button' },
+    { selector: '#access-success p:first-of-type', key: 'cta_success_title' },
+    { selector: '#access-success p:last-of-type', key: 'cta_success_body' },
+    { selector: '#access-note', key: 'cta_note' },
+    { selector: '.store-badge:first-of-type .store-badge-sub', key: 'store_app_sub' },
+    { selector: '.store-badge:first-of-type .store-badge-name', key: 'store_app_name' },
+    { selector: '.store-badge:last-of-type .store-badge-sub', key: 'store_play_sub' },
+    { selector: '.store-badge:last-of-type .store-badge-name', key: 'store_play_name' },
+    { selector: '.footer-links a[href="#how-it-works"]', key: 'nav_how' },
+    { selector: '.footer-links a[href="#features"]', key: 'nav_features' },
+    { selector: '.footer-links a[href="#pricing"]', key: 'nav_pricing' },
+    { selector: '.footer-links a[href="/spectator-guide.html"]', key: 'footer_spectator_guide' },
+    { selector: '.footer-links a[href="/admin-guide.html"]', key: 'footer_admin_guide' },
+    { selector: '.footer-links a[href="/accessibility.html"]', key: 'footer_accessibility' },
+    { selector: '.footer-links a[href="/privacy.html"]', key: 'footer_privacy' },
+    { selector: '.footer-links a[href="/terms.html"]', key: 'footer_terms' },
+    { selector: '.footer-links a[href="mailto:hello@eggbeater.app"]', key: 'footer_contact' },
+    { selector: '.footer-copy', key: 'footer_copy' }
+  ];
+</script>
+<script src="site-i18n.js"></script>
+<script>
   // Early access form — async submit, inline confirmation
   const accessForm = document.getElementById('access-form');
   accessForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = accessForm.querySelector('button');
-    btn.textContent = 'Sending…';
+    btn.textContent = siteT('sending');
     btn.disabled = true;
     try {
       const res = await fetch(accessForm.action, {
@@ -1047,11 +1327,11 @@
         document.getElementById('access-note').style.display = 'none';
         document.getElementById('access-success').style.display = 'block';
       } else {
-        btn.textContent = 'Try again';
+        btn.textContent = siteT('try_again');
         btn.disabled = false;
       }
     } catch {
-      btn.textContent = 'Try again';
+      btn.textContent = siteT('try_again');
       btn.disabled = false;
     }
   });
@@ -1076,3 +1356,4 @@
 
 </body>
 </html>
+

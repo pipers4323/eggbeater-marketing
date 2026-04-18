@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Box Scoring Guide — Eggbeater Water Polo</title>
-<meta name="description" content="Complete guide to box scoring water polo games with the Eggbeater app — from first login to final whistle." />
-<meta property="og:title" content="Box Scoring Guide — Eggbeater Water Polo" />
-<meta property="og:description" content="Step-by-step instructions for scoring water polo games live with Eggbeater. Goals, exclusions, shootouts, and more." />
+<title data-i18n-title="page_title">Box Scoring Guide - Eggbeater Water Polo</title>
+<meta name="description" data-i18n-content="page_description" content="Complete guide to box scoring water polo games with the Eggbeater app - from first login to final whistle." />
+<meta property="og:title" data-i18n-content="og_title" content="Box Scoring Guide - Eggbeater Water Polo" />
+<meta property="og:description" data-i18n-content="og_description" content="Step-by-step instructions for scoring water polo games live with Eggbeater. Goals, exclusions, shootouts, and more." />
 <meta property="og:url" content="https://eggbeater.app/scoring-guide.html" />
 <meta property="og:type" content="website" />
 <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
@@ -356,6 +356,25 @@ code {
 .site-header-logo-band { padding: 10px 24px; display: flex; align-items: center; }
 .site-header-logo-band img { height: 72px; width: auto; display: block; }
 .site-header-teal-bar { height: 3px; background: #0891b2; }
+.site-header-controls { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.site-header-controls label { color: white; font-size: .78rem; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
+.site-lang-picker {
+  appearance: none;
+  border: 1px solid rgba(255,255,255,.35);
+  background: rgba(255,255,255,.12);
+  color: white;
+  border-radius: 999px;
+  padding: 8px 28px 8px 12px;
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.site-lang-picker option { color: #111827; }
+@media (max-width: 600px) {
+  .site-header-logo-band { gap: 12px; }
+  .site-header-logo-band img { height: 52px; }
+  .site-header-controls label { display: none; }
+}
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -400,6 +419,14 @@ code {
 <header class="site-header">
   <div class="site-header-logo-band">
     <img src="logo_large.svg" alt="Eggbeater Water Polo">
+    <div class="site-header-controls">
+      <label for="site-lang-picker" data-i18n="lang_label">Language</label>
+      <select id="site-lang-picker" class="site-lang-picker" data-site-lang-picker data-i18n-aria-label="lang_label">
+        <option value="en">EN</option>
+        <option value="es">ES</option>
+        <option value="fr">FR</option>
+      </select>
+    </div>
   </div>
   <div class="site-header-teal-bar"></div>
 </header>
@@ -933,5 +960,14 @@ code {
   <p style="margin-top:6px"><a href="/spectator-guide.html">Spectator Guide</a> &nbsp;&middot;&nbsp; <a href="https://eggbeater.app">Home</a></p>
 </div>
 
+<script src="scoring-guide.i18n.js"></script>
+<script src="site-i18n.js"></script>
 </body>
 </html>
+
+
+
+
+
+
+

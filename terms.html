@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Terms of Service — Eggbeater Water Polo</title>
+  <title data-i18n-title="page_title">Terms of Service - Eggbeater Water Polo</title>
+  <meta name="description" data-i18n-content="page_description" content="Terms of Service for Eggbeater Water Polo." />
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
   <link rel="apple-touch-icon" href="/icon-512.png">
   <style>
@@ -37,6 +38,31 @@
       align-items: center;
     }
     .header-logo-band img { height: 72px; width: auto; display: block; }
+    .header-controls {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-controls label {
+      color: white;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+    }
+    .site-lang-picker {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(255,255,255,.12);
+      color: white;
+      border-radius: 999px;
+      padding: 8px 28px 8px 12px;
+      font-size: .82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .site-lang-picker option { color: #111827; }
     .header-title-band {
       background: linear-gradient(135deg, var(--royal-mid) 0%, var(--royal-dark) 100%);
       padding: 14px 24px 0;
@@ -165,12 +191,20 @@
 <header>
   <div class="header-logo-band">
     <img src="logo_large.svg" alt="Eggbeater Water Polo">
+    <div class="header-controls">
+      <label for="site-lang-picker" data-i18n="lang_label">Language</label>
+      <select id="site-lang-picker" class="site-lang-picker" data-site-lang-picker data-i18n-aria-label="lang_label">
+        <option value="en">EN</option>
+        <option value="es">ES</option>
+        <option value="fr">FR</option>
+      </select>
+    </div>
   </div>
   <div class="header-title-band">
-    <div class="header-doc-title">Terms of Service</div>
+    <div class="header-doc-title" data-i18n="doc_title">Terms of Service</div>
     <div class="header-bottom">
-      <span>Effective date: March 22, 2026 &nbsp;·&nbsp; Last updated: April 4, 2026</span>
-      <a href="/">← Back to App</a>
+      <span data-i18n-html="header_dates">Effective date: March 22, 2026 &nbsp;&middot;&nbsp; Last updated: April 4, 2026</span>
+      <a href="/" data-i18n="back_link">&larr; Back to App</a>
     </div>
   </div>
   <div class="red-bar"></div>
@@ -340,12 +374,16 @@
 
 <footer>
   <div class="footer-links">
-    <a href="/">← Back to App</a>
+    <a href="/" data-i18n="back_link">&larr; Back to App</a>
     <a href="/privacy.html">Privacy Policy</a>
     <a href="/eggbeater-quickstart.pdf" target="_blank">Quick Start Guide ↗</a>
   </div>
   <div class="footer-copy">Eggbeater Water Polo &nbsp;·&nbsp; Private tournament tracking for water polo families</div>
 </footer>
 
+<script src="terms.i18n.js"></script>
+<script src="site-i18n.js"></script>
 </body>
 </html>
+
+
