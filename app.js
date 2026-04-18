@@ -7467,6 +7467,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
   // ── Live scoring / box score section ──────────────────────────────────────
   const s   = getLiveScore(g);
   const gid = escHtml(_gameRef(g));
+  const teamDisplayName = TOURNAMENT.clubName || appT('scorer_team_label');
 
   // Live broadcast indicator (shown when another device is actively scoring)
   const STALE_MS = 30 * 60 * 1000; // 30 min — after this, treat as stale
@@ -7480,7 +7481,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       : '';
     const periodStr = PERIOD_LABELS[s.period] || '';
     return `<div class="live-score-bar">
-      <span class="lsb-scores">Team&nbsp;<strong>${Number.isInteger(s.team) ? s.team : s.team.toFixed(1)}</strong>&nbsp;—&nbsp;<strong>${Number.isInteger(s.opp) ? s.opp : s.opp.toFixed(1)}</strong>&nbsp;${escHtml(g.opponent||'Opp')}</span>
+      <span class="lsb-scores">${escHtml(teamDisplayName)}&nbsp;<strong>${Number.isInteger(s.team) ? s.team : s.team.toFixed(1)}</strong>&nbsp;—&nbsp;<strong>${Number.isInteger(s.opp) ? s.opp : s.opp.toFixed(1)}</strong>&nbsp;${escHtml(g.opponent||'Opp')}</span>
       ${periodStr ? `<span class="lsb-period">${periodStr}</span>` : ''}
       ${updatedAt ? `<span class="lsb-updated">↻ ${updatedAt}</span>` : ''}
     </div>`;
@@ -7591,7 +7592,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       ${timingRow}
       <div class="live-scoreboard">
         <div class="ls-team">
-          <span class="ls-label">${escHtml(appT('scorer_team_label'))}</span>
+          <span class="ls-label">${escHtml(teamDisplayName)}</span>
           <span class="ls-score ls-score-team">${Number.isInteger(s.team) ? s.team : s.team.toFixed(1)}</span>
         </div>
         <span class="ls-sep">—</span>
@@ -7670,7 +7671,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       ${(s.team > 0 || s.opp > 0 || s.gameState !== 'pre') ? `
         <div class="live-scoreboard viewer-scoreboard">
           <div class="ls-team">
-            <span class="ls-label">${escHtml(appT('scorer_team_label'))}</span>
+            <span class="ls-label">${escHtml(teamDisplayName)}</span>
             <span class="ls-score ls-score-team">${s.team}</span>
           </div>
           <span class="ls-sep">—</span>
