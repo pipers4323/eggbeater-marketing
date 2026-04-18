@@ -6501,7 +6501,7 @@ function setHistoryDetailTab(tab) {
 }
 
 function _historyGamesSource() {
-  const history = getHistoryForActiveTeam().filter(h => h.id !== TOURNAMENT.id);
+  const history = getHistoryForActiveTeam().filter(h => h.id !== TOURNAMENT.id && !_isBogusHistoryEntry(h));
   const virtualT = _getVirtualHistoryEntry();
   return virtualT ? [virtualT, ...history] : history;
 }
