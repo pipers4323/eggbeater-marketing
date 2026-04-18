@@ -3785,17 +3785,18 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '', extraActionHt
     <div class="score-detail-summary card tab-card">
       <div class="score-detail-summary-meta">
         <div>
-          <div class="score-detail-summary-kicker">${escHtml(ageGroupLabel || TOURNAMENT.name || 'Match Details')}</div>
+          <div class="score-detail-summary-kicker">${escHtml(TOURNAMENT.name || 'Match Details')}</div>
           <div class="score-detail-summary-status">${escHtml(statusLabel)}</div>
         </div>
         <div class="score-detail-summary-head-actions">
+          ${ageGroupLabel ? `<span class="scores-detail-pill score-detail-age-pill">${escHtml(ageGroupLabel)}</span>` : ''}
           ${game.gameNum ? `<div class="scores-detail-game-num">${escHtml(game.gameNum)}</div>` : ''}
           ${extraActionHtml || ''}
         </div>
       </div>
       <div class="score-detail-summary-info">
         <div><strong>Time</strong><span>${escHtml(game.date || formatDateGroupLabel(game.dateISO) || '')}${game.time ? ` ${escHtml(game.time)}` : ''}</span></div>
-        <div><strong>Location</strong><span>${TOURNAMENT.location ? buildLocationVenueOnly(TOURNAMENT.location) : 'TBD'}</span></div>
+        <div><strong>Location</strong><span>${(game.location || TOURNAMENT.location) ? buildLocationVenueOnly(game.location || TOURNAMENT.location) : 'TBD'}</span></div>
       </div>
       <div class="score-detail-summary-scoreline">
         <div class="team-block"><div class="team-name">${escHtml(teamName)}</div><div class="team-score">${Number.isInteger(score.team) ? score.team : Number(score.team || 0).toFixed(1)}</div></div>

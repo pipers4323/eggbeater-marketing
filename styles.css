@@ -1855,6 +1855,11 @@ h2 {
   justify-content: flex-end;
 }
 
+.score-detail-age-pill {
+  padding: 4px 9px;
+  font-size: 0.72rem;
+}
+
 .scores-detail-hero-actions {
   display: flex;
   align-items: center;
@@ -2330,16 +2335,65 @@ h2 {
     justify-content: space-between;
   }
 
-  .score-detail-summary-scoreline {
-    grid-template-columns: 1fr;
+  .score-card-detail .score-detail-summary-meta,
+  .score-detail-summary-meta {
+    align-items: center;
   }
 
-  .score-sep-block {
-    gap: 2px;
+  .score-card-detail .score-detail-summary-kicker {
+    font-size: 0.88rem;
+    line-height: 1.2;
   }
 
-  .score-detail-summary-scoreline .score-sep {
-    display: none;
+  .score-card-detail .score-detail-summary-status {
+    font-size: 0.8rem;
+    margin-top: 2px;
+  }
+
+  .score-card-detail .score-detail-summary-info {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .score-card-detail .score-detail-summary-info strong {
+    font-size: 0.74rem;
+    margin-bottom: 4px;
+  }
+
+  .score-card-detail .score-detail-summary-info span {
+    font-size: 0.88rem;
+    line-height: 1.25;
+  }
+
+  .score-card-detail .score-detail-summary-scoreline {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+  }
+
+  .score-card-detail .score-detail-summary-scoreline .team-name {
+    font-size: 0.95rem;
+    line-height: 1.15;
+    margin-bottom: 4px;
+  }
+
+  .score-card-detail .score-detail-summary-scoreline .team-score {
+    font-size: clamp(2rem, 9vw, 2.6rem);
+  }
+
+  .score-card-detail .score-sep-block {
+    gap: 4px;
+  }
+
+  .score-card-detail .score-detail-summary-scoreline .score-sep {
+    display: block;
+    font-size: 1.9rem;
+    line-height: 1;
+  }
+
+  .score-card-detail .score-sep-state {
+    font-size: 0.95rem;
+    white-space: nowrap;
   }
 
   .score-detail-scoring-row {
@@ -2367,13 +2421,33 @@ h2 {
     font-size: 0.92rem;
   }
 
-  .score-card-detail .score-detail-summary-scoreline .team-score,
+  .score-card-detail .score-detail-summary-scoreline .team-score {
+    font-size: clamp(1.8rem, 8vw, 2.2rem);
+  }
+
   .score-card-detail .score-detail-summary-scoreline .score-sep {
-    font-size: clamp(1.5rem, 7vw, 2rem);
+    font-size: 1.5rem;
   }
 
   .score-card-detail-toolbar {
     margin-bottom: 8px;
+  }
+
+  .score-card-detail .score-detail-summary-info {
+    grid-template-columns: 1fr;
+  }
+
+  .score-card-detail .score-detail-summary-head-actions {
+    gap: 6px;
+  }
+
+  .score-card-detail .score-detail-summary-status {
+    display: none;
+  }
+
+  .score-card-detail .score-detail-summary-kicker {
+    font-size: 0.96rem;
+    font-weight: 900;
   }
 
   .score-card-detail .score-detail-scoring-row {
