@@ -3546,7 +3546,9 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '', extraActionHt
   const isPregame = (score.gameState || 'pre') === 'pre' && !events.length && !Number(score.team || 0) && !Number(score.opp || 0);
   const periodBaseLabel = score.gameState === 'final'
     ? 'Final'
-    : (PERIOD_LABELS[score.period] || (isGameLive(_gameRef(game)) ? 'Live' : 'Scheduled'));
+    : (score.timerPhase
+        ? _phaseLabel(score.timerPhase)
+        : (PERIOD_LABELS[score.period] || (isGameLive(_gameRef(game)) ? 'Live' : 'Scheduled')));
   const statusLabel = score.clock && score.gameState && score.gameState !== 'pre' && score.gameState !== 'final'
     ? `${periodBaseLabel} · ${score.clock}`
     : periodBaseLabel;
@@ -6663,7 +6665,9 @@ function buildScoresListCard(g, viewerOnly = false, ageGroupLabel = '') {
   const hasScore = (s.team > 0 || s.opp > 0 || (s.gameState && s.gameState !== 'pre'));
   const statusLabel = s.gameState === 'final'
     ? 'Final'
-    : (PERIOD_LABELS[s.period] || (isGameLive(gid) ? 'Live' : 'Scheduled'));
+    : (s.timerPhase
+        ? _phaseLabel(s.timerPhase)
+        : (PERIOD_LABELS[s.period] || (isGameLive(gid) ? 'Live' : 'Scheduled')));
   const timeMeta = g.time && g.time !== 'TBD'
     ? `${escHtml(g.time)}${(g.date || g.dateISO) ? ` · ${escHtml(g.date || formatDateGroupLabel(g.dateISO))}` : ''}`
     : escHtml(g.date || (g.dateISO ? formatDateGroupLabel(g.dateISO) : 'Time TBD'));
