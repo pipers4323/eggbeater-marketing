@@ -11586,8 +11586,13 @@ async function pollLiveScores() {
 
     for (const [gameId, remoteScore] of Object.entries(remote)) {
       const scopedKey = _scopedGameKey(gameId, remoteScore.ageGroup || remoteScore.score?.ageGroup || '');
-      if ((myGames.has(scopedKey) || myGames.has(gameId)) && isScorerUnlocked()) continue; // active scorer — don't overwrite local state
       const local = state.liveScores[scopedKey] || state.liveScores[gameId] || {};
+      const localScorerOwnsGame = isScorerUnlocked()
+        && (myGames.has(scopedKey) || myGames.has(gameId))
+        && !local._remote
+        && !!local.gameState
+        && local.gameState !== 'pre';
+      if (localScorerOwnsGame) continue; // active local scorer owns this game — don't overwrite local state
       if ((remoteScore.broadcastAt || 0) <= (local._broadcastAt || 0)) continue; // not newer
 
       // Strip worker meta fields; tag the score as remote with the source device
