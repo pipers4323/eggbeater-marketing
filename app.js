@@ -6332,10 +6332,25 @@ function handleOpenScorerClick(evt, gameId, groupKey = '', ageGroupLabel = '') {
   return false;
 }
 
+function handleOpenScorerButtonClick(evt, btn) {
+  if (!btn) return false;
+  return handleOpenScorerClick(
+    evt,
+    btn.dataset.gameId || '',
+    btn.dataset.groupKey || '',
+    btn.dataset.ageGroupLabel || '',
+  );
+}
+
 function handleToggleLiveClick(evt, gameId) {
   evt?.stopPropagation?.();
   toggleLiveActivity(gameId);
   return false;
+}
+
+function handleToggleLiveButtonClick(evt, btn) {
+  if (!btn) return false;
+  return handleToggleLiveClick(evt, btn.dataset.gameId || '');
 }
 
 function closeScoreDetail() {
@@ -6488,10 +6503,9 @@ function buildScoresListCard(g, viewerOnly = false, ageGroupLabel = '') {
   const finalChip = s.gameState === 'final' || _getResultForGame(g)
     ? `<span class="scores-status-chip final">Final</span>` : '';
   const canScore = !TOURNAMENT.scoringPassword || isScorerUnlockedForTournament(TOURNAMENT);
-  const scorerOpenArgs = `${JSON.stringify(gid)},${JSON.stringify(g._groupKey || '')},${JSON.stringify(ageGroupLabel || '')}`;
   const actionBtn = (!viewerOnly && canScore)
-    ? `<button class="scores-open-scorer-btn" onclick="return handleOpenScorerClick(event, ${scorerOpenArgs})" title="${escHtml(appT('scorer_open'))}">✏️ ${escHtml(appT('scorer_open'))}</button>`
-    : `<button class="follow-live-btn-sm" onclick="return handleToggleLiveClick(event, '${escHtml(gid)}')" title="${escHtml(appT('common_follow_live'))}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
+    ? `<button class="scores-open-scorer-btn" data-game-id="${escHtml(gid)}" data-group-key="${escHtml(g._groupKey || '')}" data-age-group-label="${escHtml(ageGroupLabel || '')}" onclick="return handleOpenScorerButtonClick(event, this)" title="${escHtml(appT('scorer_open'))}">✏️ ${escHtml(appT('scorer_open'))}</button>`
+    : `<button class="follow-live-btn-sm" data-game-id="${escHtml(gid)}" onclick="return handleToggleLiveButtonClick(event, this)" title="${escHtml(appT('common_follow_live'))}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
 
   return `
     <div class="scores-list-card ${g.cap === 'Dark' ? 'cap-dark-bg' : g.cap === 'White' ? 'cap-white-bg' : ''}"
@@ -6543,9 +6557,8 @@ function buildEmbeddedScoreCardDetail(game, viewerOnly = false, ageGroupLabel = 
   const canScore = !TOURNAMENT.scoringPassword || isScorerUnlockedForTournament(TOURNAMENT);
   const tab = getScoreCardTab(game);
   const gid = escHtml(_gameRef(game));
-  const scorerOpenArgs = `${JSON.stringify(_gameRef(game))},${JSON.stringify(_contextGroupKey(game))},${JSON.stringify(ageGroupLabel || '')}`;
   const scorerAction = (!viewerOnly && canScore)
-    ? `<button class="scores-open-scorer-btn score-detail-inline-scorer-btn" onclick="return handleOpenScorerClick(event, ${scorerOpenArgs})">✏️ ${escHtml(appT('scorer_open'))}</button>`
+    ? `<button class="scores-open-scorer-btn score-detail-inline-scorer-btn" data-game-id="${escHtml(_gameRef(game))}" data-group-key="${escHtml(_contextGroupKey(game))}" data-age-group-label="${escHtml(ageGroupLabel || '')}" onclick="return handleOpenScorerButtonClick(event, this)">✏️ ${escHtml(appT('scorer_open'))}</button>`
     : '';
 
   return `
