@@ -8819,10 +8819,13 @@ function init() {
             renderHeader(); // update header as soon as we have the club name
           }
           if (info.clubType) {
+            const singleMastersTeam = (!!info.enableMasters && !!info.mastersOnly)
+              ? (!!info.singleMastersTeam || await detectSingleMastersTeamClub(_appClubId))
+              : false;
             localStorage.setItem('ebwp-club-type', info.clubType);
-            storeClubPrograms(!!info.enableMasters, !!info.mastersOnly, !!info.singleMastersTeam);
+            storeClubPrograms(!!info.enableMasters, !!info.mastersOnly, singleMastersTeam);
             const isHS = info.clubType === 'highschool';
-            TEAM_OPTIONS = getClubTeamOptions(info.clubType, !!info.enableMasters, !!info.mastersOnly, !!info.singleMastersTeam);
+            TEAM_OPTIONS = getClubTeamOptions(info.clubType, !!info.enableMasters, !!info.mastersOnly, singleMastersTeam);
             // Reset selection if current keys are invalid for this club type
             const validKeys = TEAM_OPTIONS.map(t => t.key);
             // Always prioritize favorite if current selection is the default or missing
@@ -9579,6 +9582,16 @@ function getClubTeamOptions(clubType, enableMasters = false, mastersOnly = false
   return TEAM_OPTIONS_CLUB_YOUTH;
 }
 
+async function detectSingleMastersTeamClub(clubId) {
+  if (!clubId) return false;
+  try {
+    const res = await fetch(WORKER + '/team-data?team=masters&club=' + encodeURIComponent(clubId));
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 const storedPrograms = getStoredClubPrograms();
 let TEAM_OPTIONS = getClubTeamOptions(
   localStorage.getItem('ebwp-club-type'),
@@ -9799,6 +9812,7 @@ async function loadTeamData(teamKey) {
     }
     const data = await res.json();
     const { tournament, history, clubType, clubName, branding, enableMasters, mastersOnly, singleMastersTeam } = data;
+    const inferredSingleMastersTeam = !!singleMastersTeam || (!!enableMasters && !!mastersOnly && teamKey === 'masters');
     if (tournament) {
       TEAM_CACHE[teamKey]  = { tournament, history: history || [] };
       window.TOURNAMENT    = tournament;
@@ -9827,9 +9841,9 @@ async function loadTeamData(teamKey) {
     // Detect HS club type and switch team options dynamically
     if (clubType && clubType !== localStorage.getItem('ebwp-club-type')) {
       localStorage.setItem('ebwp-club-type', clubType);
-      storeClubPrograms(!!enableMasters, !!mastersOnly, !!singleMastersTeam);
+      storeClubPrograms(!!enableMasters, !!mastersOnly, inferredSingleMastersTeam);
       const isHS = clubType === 'highschool';
-      TEAM_OPTIONS = getClubTeamOptions(clubType, !!enableMasters, !!mastersOnly, !!singleMastersTeam);
+      TEAM_OPTIONS = getClubTeamOptions(clubType, !!enableMasters, !!mastersOnly, inferredSingleMastersTeam);
       // If the current team key doesn't belong to the new options, reset selection
       const validKeys = TEAM_OPTIONS.map(t => t.key);
       const current = getSelectedTeams();
