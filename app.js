@@ -6476,6 +6476,7 @@ function _withScoreTournamentContext(groupKey, fn) {
 function openScoreDetail(gameId, groupKey = '', ageGroupLabel = '', viewerOnly = false) {
   state.scoreDetail = { gameId, groupKey, ageGroupLabel, viewerOnly: !!viewerOnly, scorerMode: false };
   state.scoreDetailTab = 'summary';
+  if (state.currentTab !== 'scores') switchTab('scores');
   renderScoresTab();
   requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
 }
@@ -6485,6 +6486,7 @@ function openScorerDetail(gameId, groupKey = '', ageGroupLabel = '') {
   state.scorerDetailsOpen[gameId] = true;
   state.scoreDetail = { gameId, groupKey, ageGroupLabel, viewerOnly: false, scorerMode: true };
   state.scoreDetailTab = 'summary';
+  if (state.currentTab !== 'scores') switchTab('scores');
   renderScoresTab();
   requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
 }
