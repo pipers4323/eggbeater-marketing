@@ -2766,7 +2766,15 @@ function getPoolRecord() {
 
 function getHistory() {
   if (_historyOverride !== null) return _historyOverride;
-  try { return JSON.parse(localStorage.getItem(STORE.HISTORY) || '[]'); }
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORE.HISTORY) || '[]');
+    if (!Array.isArray(parsed)) return [];
+    const filtered = parsed.filter(entry => !_isBogusHistoryEntry(entry));
+    if (filtered.length !== parsed.length) {
+      localStorage.setItem(STORE.HISTORY, JSON.stringify(filtered));
+    }
+    return filtered;
+  }
   catch { return []; }
 }
 
