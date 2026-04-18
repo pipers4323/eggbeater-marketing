@@ -12456,6 +12456,8 @@ function _buildLastEventStr(gameId) {
 async function toggleLiveActivity(gameId) {
   const platform = window.Capacitor?.getPlatform?.();
   const isNative = window.Capacitor?.isNativePlatform?.();
+  const rawGameId = _gameIdOnly(gameId);
+  const scopedGameId = _gameRef(gameId);
 
   // ── Android: route to Live Update chip (not iOS Live Activities) ──────────
   if (isNative && platform === 'android') {
@@ -12492,7 +12494,7 @@ async function toggleLiveActivity(gameId) {
   }
 
   // If already following this game — end it
-  if (window._activeLA && window._activeLA.gameId === _gameRef(gameId)) {
+  if (window._activeLA && window._activeLA.gameId === scopedGameId) {
     try { await LiveActivity.endActivity({}); } catch {}
     window._activeLA = null;
     showToast(appT('live_follow_stopped'), "info");
@@ -12521,6 +12523,21 @@ async function toggleLiveActivity(gameId) {
       ? Math.max(0, (score.timerSecondsLeft || 0) - (Date.now() - (score.timerStartedAt || Date.now())) / 1000)
       : 0;
 
+    if (window._liveActivityPushTokenListener?.remove) {
+      try { await window._liveActivityPushTokenListener.remove(); } catch {}
+    }
+    window._liveActivityPushTokenListener = await LiveActivity.addListener('onPushTokenReceived', async (info) => {
+      try {
+        await fetch(`${PUSH_SERVER_URL}/live-activity/sync`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gameId: rawGameId, pushToken: info.token }),
+        });
+      } catch (e) {
+        console.error('[LA] Failed to sync push token:', e);
+      }
+    });
+
     await LiveActivity.startActivity({
       homeTeam:      game ? (`${localStorage.getItem('ebwp-club-name') || getAppClubId() || ''}${game.team ? ' ' + game.team : ''}`).trim() : "Home",
       awayTeam:      game?.opponent || "Away",
@@ -12540,20 +12557,7 @@ async function toggleLiveActivity(gameId) {
     });
 
     // Track so pollLiveScores can push updates
-    window._activeLA = { gameId: _gameRef(gameId), plugin: LiveActivity };
-
-    // Listen for APNs push token (sent to Worker for server-side updates)
-    LiveActivity.addListener('onPushTokenReceived', async (info) => {
-      try {
-        await fetch(`${PUSH_SERVER_URL}/live-activity/sync`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gameId, pushToken: info.token }),
-        });
-      } catch (e) {
-        console.error('[LA] Failed to sync push token:', e);
-      }
-    });
+    window._activeLA = { gameId: scopedGameId, plugin: LiveActivity };
 
     showToast(appT('live_follow_ios'), "ok");
   } catch (e) {
