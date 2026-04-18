@@ -303,3 +303,60 @@ de21880  fix: correct age group header colors in light mode
 | `inferProjectedPath()` | ~(search) |
 | Localization strings (EN) | 72–312 |
 
+
+---
+
+## Update - 2026-04-18
+
+### Current marketing HEAD
+- `572d401` - `fix: use resolved club id for admin masters fallback`
+
+### Live fixes completed today
+
+1. **Hydres admin auth club-context bug**
+- Fixed stale club-context resolution during admin login.
+- Result: Hydres admin login now evaluates against `hydres-quebec` instead of a previously saved club.
+
+2. **Multi-age scorer unlock**
+- Fixed scorer password unlock to validate against the full selected age-group scope, not just the current tournament context.
+- Result: `Open Scorer` shows again in multi-age scorer mode when the selected groups share the scorer password.
+
+3. **Hydres single Masters setup**
+- Hydres payload redeployed under single team key `masters`.
+- Club/app logic now supports `singleMastersTeam`.
+- Spectator app now infers single-Masters mode from live `team=masters` data if `club-info` does not expose the flag.
+- Admin panel now does the same inference and uses the resolved club id correctly.
+- Result: Hydres now shows a single `Masters` selector instead of `Masters Women` / `Masters Men`.
+
+4. **Scores tab dark-mode cap pill contrast**
+- Fixed unreadable cap pills on white-cap score cards in Chrome dark mode.
+
+5. **Roster > My Players dark-mode readability**
+- Fixed dark-on-dark stat tiles in My Players for iPhone dark mode / native dark presentations.
+- Stat tiles now stay light with readable labels and blue numbers.
+
+### Important live behavior note
+- The worker currently serves a live `masters` payload for Hydres, but `club-info?club=hydres-quebec` still does **not** expose `singleMastersTeam`.
+- App/admin now contain fallback inference to handle this, but the cleaner long-term fix is to update the worker/club-info response to include the flag directly.
+
+### Follow-ups
+
+1. **Worker cleanup**
+- Add `singleMastersTeam` to the worker `club-info` / club-settings response path so Hydres and future single-masters clubs do not rely on frontend inference.
+
+2. **Native sync / build**
+- Latest web fixes after the previous wrapper sync include:
+  - Hydres single-Masters app/admin handling
+  - cap pill dark-mode contrast fix
+  - My Players dark-mode readability fix
+- Wrapper repo needs a fresh sync before the next iOS/Android build if those fixes must ship natively.
+
+3. **Native QA**
+- Re-test on iPhone dark mode:
+  - `Roster` > `My Players`
+  - `Scores` cap pills
+  - Hydres selector in app/admin as needed
+
+4. **Admin cleanup later**
+- `admin.html` still contains some old mojibake/encoding artifacts in copy strings.
+- Not blocking functionally, but worth a cleanup pass later.
