@@ -2405,6 +2405,14 @@ function buildLocationLink(location) {
   </span>`;
 }
 
+function buildLocationVenueOnly(location) {
+  if (!location) return '';
+  return `<span class="location-venue location-venue-inline">
+    <svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;opacity:0.7"><path d="M6 0C3.24 0 1 2.24 1 5c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.5A1.5 1.5 0 1 1 6 3.5 1.5 1.5 0 0 1 6 6.5z" fill="currentColor"/></svg>
+    <span>${escHtml(location)}</span>
+  </span>`;
+}
+
 /**
  * Sort key for roster cap numbers.
  * Field players (2–25+) sort numerically first.
@@ -3660,7 +3668,7 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '', extraActionHt
       </div>
       <div class="score-detail-summary-info">
         <div><strong>Time</strong><span>${escHtml(game.date || formatDateGroupLabel(game.dateISO) || '')}${game.time ? ` ${escHtml(game.time)}` : ''}</span></div>
-        <div><strong>Location</strong><span>${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : 'TBD'}</span></div>
+        <div><strong>Location</strong><span>${TOURNAMENT.location ? buildLocationVenueOnly(TOURNAMENT.location) : 'TBD'}</span></div>
       </div>
       <div class="score-detail-summary-scoreline">
         <div class="team-block"><div class="team-name">${escHtml(teamName)}</div><div class="team-score">${Number.isInteger(score.team) ? score.team : Number(score.team || 0).toFixed(1)}</div></div>
@@ -6653,7 +6661,7 @@ function buildScoresListCard(g, viewerOnly = false, ageGroupLabel = '') {
     ? `${escHtml(g.time)}${(g.date || g.dateISO) ? ` · ${escHtml(g.date || formatDateGroupLabel(g.dateISO))}` : ''}`
     : escHtml(g.date || (g.dateISO ? formatDateGroupLabel(g.dateISO) : 'Time TBD'));
   const capIcon = g.cap === 'Dark' ? '🔵' : g.cap === 'White' ? '⚪' : '';
-  const locationHtml = TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : '';
+  const locationHtml = TOURNAMENT.location ? buildLocationVenueOnly(TOURNAMENT.location) : '';
   const liveChip = isGameLive(gid) ? `<span class="scores-status-chip live">Live</span>` : '';
   const finalChip = s.gameState === 'final' || _getResultForGame(g)
     ? `<span class="scores-status-chip final">Final</span>` : '';
