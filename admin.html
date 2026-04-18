@@ -2661,10 +2661,25 @@
       return new URLSearchParams(window.location.search).get('invite') || '';
     }
 
+    function _getClubIdFromUrl() {
+      return new URLSearchParams(window.location.search).get('club') || '';
+    }
+
+    function _resolveAdminClubId(inviteClubId) {
+      const urlClubId = _getClubIdFromUrl();
+      return inviteClubId
+        || urlClubId
+        || localStorage.getItem('ebadmin-clubId')
+        || (typeof fbGetClubId === 'function' ? fbGetClubId() : '')
+        || 'my-club';
+    }
+
     function _buildAdminReturnUrl() {
       const url = new URL(window.location.origin + window.location.pathname);
       const inviteToken = _getInviteTokenFromUrl();
+      const clubId = _getClubIdFromUrl();
       if (inviteToken) url.searchParams.set('invite', inviteToken);
+      if (clubId) url.searchParams.set('club', clubId);
       return url.toString();
     }
 
@@ -2712,8 +2727,8 @@
       S.authMode = mode;
 
       const inviteClubId = await _redeemInviteIfPresent(user);
-      const savedClubId = inviteClubId || localStorage.getItem('ebadmin-clubId') || 'my-club';
-      if (inviteClubId) localStorage.setItem('ebadmin-clubId', inviteClubId);
+      const savedClubId = _resolveAdminClubId(inviteClubId);
+      localStorage.setItem('ebadmin-clubId', savedClubId);
       if (typeof fbSetClubId === 'function') fbSetClubId(savedClubId);
 
       if (typeof fbCheckAdminAccess === 'function') {
@@ -3441,11 +3456,8 @@
 
       // Phase 3: restore club ID and load cloud tournament list from Firestore
       // We MUST do this before loadClubSettings() so the api() helper has the correct club context.
-      if (!localStorage.getItem('ebadmin-clubId')) {
-        const clubId = typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club';
-        localStorage.setItem('ebadmin-clubId', clubId);
-      }
-      const savedClubId = localStorage.getItem('ebadmin-clubId');
+      const savedClubId = _resolveAdminClubId(null);
+      localStorage.setItem('ebadmin-clubId', savedClubId);
       if (savedClubId && typeof fbSetClubId === 'function') fbSetClubId(savedClubId);
 
       // Load club settings (type, name, branding, logo) first so S.clubType and
