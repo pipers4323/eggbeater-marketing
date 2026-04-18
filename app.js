@@ -3229,7 +3229,7 @@ function buildEventLog(events, currentPeriod = 0, gameId = null) {
         : normalizeOpponentName(_findGameByRef(gameId)?.opponent || 'Opp');
       const eventId = _eventIdFor(ev);
       const rowKey = `${String(gameId).replace(/[^a-zA-Z0-9_-]/g, '_')}__${eventId}`;
-      const deleteAction = state.scoreDetailTab === 'play' && isScorerUnlockedForTournament(TOURNAMENT)
+      const deleteAction = isScorerUnlockedForTournament(TOURNAMENT)
         ? `<button class="event-delete-btn" onclick="event.stopPropagation();deletePlayByPlayEvent(${JSON.stringify(_gameRef(gameId))},${JSON.stringify(eventId)})">Delete</button>`
         : '';
       html += `<div class="event-swipe-row" id="event-row-${rowKey}" ontouchstart="startEventSwipe(event,${JSON.stringify(rowKey)})" ontouchend="endEventSwipe(event,${JSON.stringify(rowKey)})">
