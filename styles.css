@@ -2758,6 +2758,8 @@ h2 {
   border-bottom: 1px solid var(--gray-100);
   font-size: 0.85rem;
 }
+.history-game-row-clickable { cursor: pointer; }
+.history-game-row-clickable:hover { background: var(--gray-50); }
 
 .history-game-row:last-child { border-bottom: none; }
 
@@ -2780,6 +2782,12 @@ h2 {
 .hg-meta {
   font-size: 0.76rem;
   color: var(--gray-400);
+  flex-shrink: 0;
+}
+.hg-score {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: var(--gray-600);
   flex-shrink: 0;
 }
 
@@ -6590,6 +6598,8 @@ details[open] .help-chevron { transform: rotate(180deg); }
 }
 [data-theme="dark"] .hg-result.win { color: #4ade80; }
 [data-theme="dark"] .hg-result.loss { color: #f87171; }
+[data-theme="dark"] .hg-score { color: #9ca3af; }
+[data-theme="dark"] .history-game-row-clickable:hover { background: rgba(255,255,255,0.03); }
 
 /* ── Coming Soon Card ──────────────────────────────────────────────────── */
 [data-theme="dark"] .coming-soon-card {

@@ -2067,6 +2067,8 @@ const state = {
   scorerDetailsOpen:{},
   scoreDetail:      null,
   scoreDetailTab:   'summary',
+  historyDetail:    null,
+  historyDetailTab: 'summary',
   roster:           [],     // [{ cap, first, last }] — editable via Roster tab
   currentTab:       'schedule',
   viewerMode:       true,       // true = viewing live scores without scorer login (default for spectators)
@@ -6238,6 +6240,97 @@ function setScoreDetailTab(tab) {
   renderScoresTab();
 }
 
+function openHistoryGameDetail(tournamentId, gameIndex) {
+  state.historyDetail = { tournamentId, gameIndex };
+  state.historyDetailTab = 'summary';
+  renderHistoryTab();
+  requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+}
+
+function closeHistoryGameDetail() {
+  state.historyDetail = null;
+  state.historyDetailTab = 'summary';
+  renderHistoryTab();
+}
+
+function setHistoryDetailTab(tab) {
+  state.historyDetailTab = tab === 'play' ? 'play' : 'summary';
+  renderHistoryTab();
+}
+
+function _historyGamesSource() {
+  const history = getHistoryForActiveTeam().filter(h => h.id !== TOURNAMENT.id);
+  const virtualT = _getVirtualHistoryEntry();
+  return virtualT ? [virtualT, ...history] : history;
+}
+
+function _getHistoryDetailContext() {
+  const ctx = state.historyDetail;
+  if (!ctx) return null;
+  const tournament = _historyGamesSource().find(h => h.id === ctx.tournamentId);
+  const game = tournament?.games?.[ctx.gameIndex];
+  if (!tournament || !game) return null;
+  return { tournament, game, gameIndex: ctx.gameIndex };
+}
+
+function _historyGameScoreData(tournament, game) {
+  const ls = game.liveScore || {};
+  const events = Array.isArray(ls.events)
+    ? ls.events
+    : (Array.isArray(ls.goals) ? ls.goals.map(g2 => ({ type: g2.side === 'team' ? 'goal' : 'opp_goal', ...g2 })) : []);
+  const recomputed = events.length ? recomputeScores(events) : null;
+  const teamScore = typeof game.teamScore === 'number' ? game.teamScore
+    : (game.teamScore !== '' && game.teamScore != null ? Number(game.teamScore) : null);
+  const oppScore = typeof game.oppScore === 'number' ? game.oppScore
+    : (game.oppScore !== '' && game.oppScore != null ? Number(game.oppScore) : null);
+  return {
+    team: recomputed ? recomputed.team : (typeof ls.team === 'number' ? ls.team : (teamScore ?? 0)),
+    opp: recomputed ? recomputed.opp : (typeof ls.opp === 'number' ? ls.opp : (oppScore ?? 0)),
+    clock: ls.clock || '',
+    period: ls.period || 0,
+    gameState: (game.result || ls.gameState === 'final') ? 'final' : (ls.gameState || 'pre'),
+    events,
+    timerRunning: false,
+    timerSecondsLeft: 0,
+    teamTimeoutsUsed: ls.teamTimeoutsUsed || [],
+    oppTimeoutsUsed: ls.oppTimeoutsUsed || [],
+  };
+}
+
+function buildHistoryGameDetailView(ctx) {
+  const { tournament, game } = ctx;
+  const score = _historyGameScoreData(tournament, game);
+  const gameView = {
+    ...game,
+    date: game.date || tournament.dates || '',
+    gameNum: game.gameNum || game.id || '',
+  };
+  const ageGroupLabel = tournament.name || '';
+  return `
+    <div class="scores-detail-shell history-detail-shell">
+      <div class="scores-detail-topbar">
+        <button class="scores-detail-back" onclick="closeHistoryGameDetail()">← Back to History</button>
+        ${ageGroupLabel ? `<span class="scores-detail-pill">${escHtml(ageGroupLabel)}</span>` : ''}
+      </div>
+      <div class="scores-detail-hero">
+        <div class="scores-detail-hero-top">
+          <div>
+            <div class="scores-detail-kicker">${escHtml(tournament.name || 'Game Details')}</div>
+            <div class="scores-detail-title">${escHtml(_teamDisplayNameForGame(gameView, TOURNAMENT.clubName || 'Team'))} vs ${escHtml(normalizeOpponentName(game.opponent || 'TBD'))}</div>
+          </div>
+          ${game.gameNum ? `<div class="scores-detail-game-num">${escHtml(game.gameNum)}</div>` : ''}
+        </div>
+      </div>
+      <div class="scores-detail-tabs">
+        <button class="scores-detail-tab ${state.historyDetailTab !== 'play' ? 'active' : ''}" onclick="setHistoryDetailTab('summary')">Summary</button>
+        <button class="scores-detail-tab ${state.historyDetailTab === 'play' ? 'active' : ''}" onclick="setHistoryDetailTab('play')">Play-by-Play</button>
+      </div>
+      ${state.historyDetailTab === 'play'
+        ? `<div class="score-detail-play card tab-card">${score.events.some(e => e.type !== 'game_state') ? buildEventLog(score.events, score.period || 4, gameView) : `<div class="score-detail-empty">No play-by-play events recorded.</div>`}</div>`
+        : `<div class="score-detail-summary-host">${_buildScoreDetailSummary(gameView, score, ageGroupLabel)}</div>`}
+    </div>`;
+}
+
 function getScoreCardTab(gameId) {
   const key = _gameRef(gameId);
   return state.scoreCardTabs?.[key] === 'play' ? 'play' : 'summary';
@@ -8332,10 +8425,10 @@ function buildHistoryCard(t, options = {}) {
       </div>` : '';
 
     return `
-      <div class="history-game-row">
+      <div class="history-game-row history-game-row-clickable" onclick="openHistoryGameDetail('${escHtml(t.id)}', ${t.games.indexOf(g)})">
         ${g.gameNum ? `<span class="hg-num">${escHtml(g.gameNum)}</span>` : ''}
         <span class="hg-vs">vs ${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}</span>
-        <span class="hg-meta">${escHtml(scoreLabel)}</span>
+        ${scoreLabel ? `<span class="hg-score">${escHtml(scoreLabel)}</span>` : ''}
         ${g.points != null ? `<span class="hg-pts">+${g.points}</span>` : ''}
         <span class="hg-result ${rc}">${rl}</span>
       </div>
@@ -8439,6 +8532,14 @@ function renderHistoryTab() {
 
   // Multi-team render
   if (slots.length > 1 && !_inMultiRender) { _renderHistoryMulti(slots); return; }
+
+  const historyDetailCtx = _getHistoryDetailContext();
+  if (state.historyDetail && historyDetailCtx) {
+    const viewEl = document.getElementById('view-history');
+    if (viewEl) viewEl.innerHTML = buildHistoryGameDetailView(historyDetailCtx);
+    return;
+  }
+  if (state.historyDetail && !historyDetailCtx) state.historyDetail = null;
 
   // Single-team: ensure static HTML structure exists (may have been replaced by multi-render)
   if (!_inMultiRender && slots.length === 1) {
