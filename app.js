@@ -3478,6 +3478,145 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '') {
     </div>`;
 }
 
+function _buildScoreDetailScorerPanel(game, s) {
+  const gid = escHtml(_gameRef(game));
+  const teamDisplayName = _teamDisplayNameForGame(game, TOURNAMENT.clubName || appT('scorer_team_label'));
+  const cs = getClockSettings(gid);
+  const _isHalves = cs.periodMode === 'halves';
+  const GS_OPTS = _isHalves ? [
+    { key:'start', label:'▶ Start' },
+    { key:'q1', label:'H1' },
+    { key:'half', label:'½ Time' },
+    { key:'q3', label:'H2' },
+    { key:'shootout', label:'🎯 SO' },
+    { key:'final', label:'🏁 End' },
+  ] : [
+    { key:'start', label:'▶ Start' },
+    { key:'q1', label:'Q1' },
+    { key:'q2', label:'Q2' },
+    { key:'half', label:'½ Time' },
+    { key:'q3', label:'Q3' },
+    { key:'q4', label:'Q4' },
+    { key:'shootout', label:'🎯 SO' },
+    { key:'final', label:'🏁 End' },
+  ];
+  const TOGGLE_KEYS = new Set(['start', 'shootout', 'final']);
+  const preBtn = (s.gameState && s.gameState !== 'pre')
+    ? `<button class="gs-btn gs-btn-pre" onclick="resetToPreGame('${gid}')" title="Reset to Pre-Game">↩ Pre</button>`
+    : '';
+  const gsBar = preBtn + GS_OPTS.map(o => {
+    const active = s.gameState === o.key ? ' gs-active' : '';
+    let handler;
+    if (o.key === 'start') handler = `startScoring('${gid}')`;
+    else if (TOGGLE_KEYS.has(o.key)) handler = `toggleGameState('${gid}','${o.key}')`;
+    else handler = `setGameState('${gid}','${o.key}')`;
+    return `<button class="gs-btn${active}" onclick="${handler}">${o.label}</button>`;
+  }).join('');
+  const timerSecsLeft = (() => {
+    if (s.timerRunning && s.timerStartedAt) {
+      const elapsed = (Date.now() - s.timerStartedAt) / 1000;
+      return Math.max(0, (s.timerSecondsLeft || 0) - elapsed);
+    }
+    return s.timerSecondsLeft || 0;
+  })();
+  const phaseLabel = (() => {
+    if (s.timerPhase) return _phaseLabel(s.timerPhase);
+    if (s.gameState && s.gameState !== 'pre') return s.gameState.toUpperCase();
+    return '';
+  })();
+  const isBreakPhase = s.timerPhase === 'break12' || s.timerPhase === 'break34' || s.timerPhase === 'halftime';
+  const teamTOUsed = s.teamTimeoutsUsed || [];
+  const oppTOUsed  = s.oppTimeoutsUsed || [];
+  const timingRow = `
+    <div class="auto-clock-wrap">
+      <div class="auto-clock-phase">${phaseLabel}</div>
+      <div class="auto-clock-time" id="game-clock-${gid}">${fmtClock(timerSecsLeft)}</div>
+      <div class="auto-clock-controls">
+        ${isBreakPhase ? `<span class="auto-clock-break-label">${s.timerPhase === 'halftime' ? escHtml(appT('scorer_halftime_break')) : escHtml(appT('scorer_quarter_break'))} — ${escHtml(appT('scorer_next_quarter_ready'))}</span>` : `
+          ${s.timerRunning
+            ? `<button class="auto-clock-btn auto-clock-pause" onclick="pauseGameTimer('${gid}')">⏸ ${escHtml(appT('scorer_pause'))}</button>`
+            : `<button class="auto-clock-btn auto-clock-resume" onclick="${s.gameState === 'pre' ? `startScoring('${gid}')` : `resumeGameTimer('${gid}')`}">▶ ${escHtml(s.gameState === 'pre' ? appT('scorer_start') : appT('scorer_resume'))}</button>`
+          }
+          <button class="auto-clock-btn auto-clock-reset" onclick="resetGameClock('${gid}')">↺ ${escHtml(appT('scorer_reset'))}</button>
+        `}
+      </div>
+      ${cs.timeoutsPerTeam > 0 ? `
+      <div class="auto-clock-to-row">
+        ${(cs.timeoutLengths||[]).map(m => {
+          const used = teamTOUsed.includes(m);
+          return `<span class="auto-clock-to-chip${used?' auto-clock-to-used':''}">${used?'✓':'◉'} ${fmtTOLabel(m)}</span>`;
+        }).join('')}
+        <span class="auto-clock-to-sep">·</span>
+        ${(cs.timeoutLengths||[]).map(m => {
+          const used = oppTOUsed.includes(m);
+          return `<span class="auto-clock-to-chip auto-clock-to-opp${used?' auto-clock-to-used':''}">${used?'✓':'◉'} Opp ${fmtTOLabel(m)}</span>`;
+        }).join('')}
+      </div>` : ''}
+    </div>`;
+  return `
+    <div class="score-detail-scorer card tab-card">
+      <div class="score-detail-section-title">Scoring Controls</div>
+      <div class="scoring-section score-detail-scoring-section">
+        <div class="gs-bar">${gsBar}</div>
+        ${timingRow}
+        <div class="live-scoreboard">
+          <div class="ls-team">
+            <span class="ls-label">${escHtml(teamDisplayName)}</span>
+            <span class="ls-score ls-score-team">${Number.isInteger(s.team) ? s.team : s.team.toFixed(1)}</span>
+          </div>
+          <span class="ls-sep">—</span>
+          <div class="ls-team ls-team-opp">
+            <span class="ls-label">${escHtml(normalizeOpponentName(game.opponent || 'Opp'))}</span>
+            <span class="ls-score ls-score-opp">${Number.isInteger(s.opp) ? s.opp : s.opp.toFixed(1)}</span>
+          </div>
+        </div>
+        <div class="ls-actions-row">
+          <button class="ls-undo-btn" onclick="undoLastEvent('${gid}')">↩ ${escHtml(appT('scorer_undo'))}</button>
+          <button class="ls-share-btn" onclick="shareBoxScore('${gid}')">📤 ${escHtml(appT('scorer_share_box_score'))}</button>
+        </div>
+        ${s.gameState === 'shootout' ? `
+        <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:6px 10px;margin-bottom:6px;text-align:center">
+          <span style="font-weight:700;color:#92400e">🎯 ${escHtml(appT('scorer_shootout_mode'))}</span>
+          <span style="color:#78350f;font-size:0.8rem;display:block;margin-top:2px">${escHtml(appT('scorer_shootout_hint'))}</span>
+        </div>` : ''}
+        <div class="score-btns-row">
+          <button class="score-btn score-btn-team" onclick="openEventPicker('${gid}','goal')">${s.gameState === 'shootout' ? `🎯 ${escHtml(appT('scorer_team_so_goal'))}` : `+ ${escHtml(appT('scorer_goal'))}`}</button>
+          <button class="score-btn score-btn-opp" onclick="recordEventDirect('${gid}','opp_goal')">${s.gameState === 'shootout' ? `🎯 ${escHtml(appT('scorer_opp_so_goal'))}` : `+ ${escHtml(appT('scorer_opp_goal'))}`}</button>
+        </div>
+        ${s.gameState === 'shootout' ? `
+        <div class="score-btns-row" style="margin-top:4px">
+          <button class="score-btn" style="background:#fff1f2;color:#be123c;border-color:#fda4af" onclick="openEventPicker('${gid}','so_miss')">❌ ${escHtml(appT('scorer_team_so_miss'))}</button>
+          <button class="score-btn" style="background:#fff1f2;color:#be123c;border-color:#fda4af" onclick="recordEventDirect('${gid}','opp_so_miss')">❌ ${escHtml(appT('scorer_opp_so_miss'))}</button>
+        </div>` : ''}
+        <div class="stat-btns-row">
+          <button class="stat-btn stat-assist" onclick="openEventPicker('${gid}','assist')">${escHtml(appT('scorer_assist'))}</button>
+          <button class="stat-btn stat-steal" onclick="openEventPicker('${gid}','steal')">${escHtml(appT('scorer_steal'))}</button>
+          <button class="stat-btn stat-sprint" onclick="openEventPicker('${gid}','sprint_won')">${escHtml(appT('scorer_sprint_won'))}</button>
+          <button class="stat-btn stat-field-block" onclick="openEventPicker('${gid}','field_block')">${escHtml(appT('scorer_field_block'))}</button>
+          <button class="stat-btn stat-attempt" onclick="openEventPicker('${gid}','shot_miss')">${escHtml(appT('scorer_attempt'))}</button>
+        </div>
+        <div class="stat-btns-row">
+          <button class="stat-btn stat-turnover" onclick="openEventPicker('${gid}','turnover')">${escHtml(appT('scorer_turnover'))}</button>
+          <button class="stat-btn stat-exclusion" onclick="openEventPicker('${gid}','exclusion')">${escHtml(appT('scorer_excl'))}</button>
+          <button class="stat-btn stat-earned-excl" onclick="openEventPicker('${gid}','earned_excl')">${escHtml(appT('scorer_earned_excl'))}</button>
+          <button class="stat-btn stat-opp-steal" onclick="recordEventDirect('${gid}','opp_steal')">${escHtml(appT('scorer_opp_steal'))}</button>
+          <button class="stat-btn stat-opp-attempt" onclick="recordEventDirect('${gid}','opp_shot_miss')">${escHtml(appT('scorer_opp_attempt'))}</button>
+          <button class="stat-btn stat-opp-excl" onclick="recordEventDirect('${gid}','opp_exclusion')">${escHtml(appT('scorer_opp_excl'))}</button>
+        </div>
+        ${s.gameState !== 'shootout' ? `
+        <div class="stat-btns-row">
+          <button class="stat-btn stat-goal-5m" onclick="openEventPicker('${gid}','goal_5m')">🎯 ${escHtml(appT('scorer_5m'))}</button>
+          <button class="stat-btn stat-attempt-5m" onclick="openEventPicker('${gid}','miss_5m')">❌ ${escHtml(appT('scorer_5m_attempt'))}</button>
+          <button class="stat-btn stat-goal-5m" onclick="recordEventDirect('${gid}','opp_goal_5m')">🎯 ${escHtml(appT('scorer_opp_5m'))}</button>
+          <button class="stat-btn stat-attempt-5m" onclick="recordEventDirect('${gid}','opp_miss_5m')">❌ ${escHtml(appT('scorer_opp_5m_attempt'))}</button>
+        </div>` : ''}
+        <div class="stat-btns-row">
+          <button class="stat-btn stat-save" onclick="openEventPicker('${gid}','save')">🧤 ${escHtml(appT('scorer_gk_save'))}</button>
+        </div>
+      </div>
+    </div>`;
+}
+
 // Build the box score summary table HTML
 function buildBoxScoreHtml(events, oppName) {
   const nonState = events.filter(e => e.type !== 'game_state');
@@ -6069,7 +6208,7 @@ function _withScoreTournamentContext(groupKey, fn) {
 }
 
 function openScoreDetail(gameId, groupKey = '', ageGroupLabel = '', viewerOnly = false) {
-  state.scoreDetail = { gameId, groupKey, ageGroupLabel, viewerOnly: !!viewerOnly };
+  state.scoreDetail = { gameId, groupKey, ageGroupLabel, viewerOnly: !!viewerOnly, scorerMode: false };
   state.scoreDetailTab = 'summary';
   renderScoresTab();
   requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
@@ -6078,7 +6217,10 @@ function openScoreDetail(gameId, groupKey = '', ageGroupLabel = '', viewerOnly =
 function openScorerDetail(gameId, groupKey = '', ageGroupLabel = '') {
   if (!state.scorerDetailsOpen) state.scorerDetailsOpen = {};
   state.scorerDetailsOpen[gameId] = true;
-  openScoreDetail(gameId, groupKey, ageGroupLabel, false);
+  state.scoreDetail = { gameId, groupKey, ageGroupLabel, viewerOnly: false, scorerMode: true };
+  state.scoreDetailTab = 'summary';
+  renderScoresTab();
+  requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
 }
 
 function closeScoreDetail() {
@@ -6089,6 +6231,12 @@ function closeScoreDetail() {
 
 function setScoreDetailTab(tab) {
   state.scoreDetailTab = tab === 'play' ? 'play' : 'summary';
+  renderScoresTab();
+}
+
+function enableScoreDetailScorer() {
+  if (!state.scoreDetail) return;
+  state.scoreDetail.scorerMode = true;
   renderScoresTab();
 }
 
@@ -6201,12 +6349,10 @@ function buildScoreDetailView(ctx) {
           ? buildScoreDetailPlayByPlay(game)
           : `<div class="score-detail-summary-host">
               ${_buildScoreDetailSummary(game, s, ageGroupLabel)}
-              ${(!viewerOnly && canScore)
-                ? `<details class="score-detail-controls-wrap">
-                    <summary>Scoring Controls</summary>
-                    <div class="score-detail-controls-host">${buildGameCard(game, false, true, ageGroupLabel)}</div>
-                  </details>`
+              ${(!viewerOnly && canScore && !ctx.scorerMode)
+                ? `<div class="score-detail-summary-action"><button class="scores-open-scorer-btn" onclick="enableScoreDetailScorer()">✏️ ${escHtml(appT('scorer_open'))}</button></div>`
                 : ''}
+              ${(!viewerOnly && canScore && ctx.scorerMode) ? _buildScoreDetailScorerPanel(game, s) : ''}
             </div>`}
       </div>`;
   });

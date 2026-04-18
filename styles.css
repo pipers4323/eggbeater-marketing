@@ -1690,6 +1690,17 @@ h2 {
   overflow: hidden;
 }
 
+.score-detail-summary-host {
+  display: grid;
+  gap: 12px;
+}
+
+.score-detail-summary-action {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 4px;
+}
+
 .score-detail-summary-meta,
 .score-detail-summary-info,
 .score-detail-summary-scoreline,
@@ -1899,6 +1910,18 @@ h2 {
   padding: 0 14px 14px;
 }
 
+.score-detail-scorer.card.tab-card {
+  padding: 16px;
+}
+
+.score-detail-scoring-section {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
 .score-detail-play .event-period-header {
   font-size: 1rem;
   font-weight: 800;
@@ -1998,6 +2021,7 @@ h2 {
 }
 
 [data-theme="dark"] .score-detail-summary.card.tab-card,
+[data-theme="dark"] .score-detail-scorer.card.tab-card,
 [data-theme="dark"] .score-detail-controls-wrap,
 [data-theme="dark"] .score-detail-play.card.tab-card {
   background: #161b22;
