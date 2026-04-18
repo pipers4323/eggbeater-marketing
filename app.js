@@ -1741,9 +1741,19 @@ function _isBogusHistoryEntry(entry) {
   const dates = String(entry.dates || '').trim();
   const games = Array.isArray(entry.games) ? entry.games : [];
 
-  if (!games.length && !location && !dates) return true;
+  if (!games.length) return true;
+  if (!games.some(g =>
+    g?.result
+    || g?.score
+    || typeof g?.teamScore === 'number'
+    || typeof g?.oppScore === 'number'
+    || typeof g?.ourScore === 'number'
+    || typeof g?.theirScore === 'number'
+    || (Array.isArray(g?.liveScore?.events) && g.liveScore.events.length)
+  )) return true;
   if (name === 'stay tuned!' || name === 'tournament 2026') return true;
   if (notes.includes('coming soon') || notes.includes('stay tuned')) return true;
+  if (!location && !dates) return true;
   return false;
 }
 
