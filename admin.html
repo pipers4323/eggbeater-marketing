@@ -13936,8 +13936,9 @@
         if (data.joinPassword !== undefined) {
           S.tournament.joinPassword = data.joinPassword;
         }
+        const clubId = localStorage.getItem('ebadmin-clubId') || _resolveAdminClubId(null);
         const singleMastersTeam = (!!data.enableMasters && !!data.mastersOnly)
-          ? (!!data.singleMastersTeam || await detectAdminSingleMastersTeamClub(S._clubId))
+          ? (!!data.singleMastersTeam || await detectAdminSingleMastersTeamClub(clubId))
           : false;
         S._clubPrograms = {
           enableMasters: !!data.enableMasters,
