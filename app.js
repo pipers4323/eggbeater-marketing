@@ -3327,9 +3327,12 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '') {
   const events = (score.events || []).filter(e => e.type !== 'game_state');
   const teamName = _teamDisplayNameForGame(game, TOURNAMENT.clubName || appT('scorer_team_label'));
   const oppName = normalizeOpponentName(game.opponent || 'Opp');
-  const statusLabel = score.gameState === 'final'
+  const periodBaseLabel = score.gameState === 'final'
     ? 'Final'
     : (PERIOD_LABELS[score.period] || (isGameLive(_gameRef(game)) ? 'Live' : 'Scheduled'));
+  const statusLabel = score.clock && score.gameState && score.gameState !== 'pre' && score.gameState !== 'final'
+    ? `${periodBaseLabel} · ${score.clock}`
+    : periodBaseLabel;
   const periodsSeen = new Set([1, 2, 3, 4]);
   const periodScores = {};
   const teamStats = { saves: 0, powerGoals: 0, powerOpps: 0, penGoals: 0, penAttempts: 0, sprints: 0, steals: 0, blocks: 0 };
@@ -7904,9 +7907,11 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       ? new Date(s._broadcastAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : '';
     const periodStr = PERIOD_LABELS[s.period] || '';
+    const liveClock = s.clock || '';
     return `<div class="live-score-bar">
       <span class="lsb-scores">${escHtml(teamDisplayName)}&nbsp;<strong>${Number.isInteger(s.team) ? s.team : s.team.toFixed(1)}</strong>&nbsp;—&nbsp;<strong>${Number.isInteger(s.opp) ? s.opp : s.opp.toFixed(1)}</strong>&nbsp;${escHtml(g.opponent||'Opp')}</span>
       ${periodStr ? `<span class="lsb-period">${periodStr}</span>` : ''}
+      ${liveClock ? `<span class="lsb-clock">${escHtml(liveClock)}</span>` : ''}
       ${updatedAt ? `<span class="lsb-updated">↻ ${updatedAt}</span>` : ''}
     </div>`;
   })() : '';
@@ -8088,7 +8093,9 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
 
   // ── Viewer section (read-only) ─────────────────────────────────────────────
   const periodLabel = s.gameState && s.gameState !== 'pre'
-    ? (s.gameState === 'final' ? 'Final' : (PERIOD_LABELS[s.period] || ''))
+    ? (s.gameState === 'final'
+        ? 'Final'
+        : `${PERIOD_LABELS[s.period] || 'Live'}${s.clock ? ` · ${s.clock}` : ''}`)
     : '';
   const viewerSection = `
     <div class="scoring-section scoring-viewer">
