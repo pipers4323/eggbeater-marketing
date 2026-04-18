@@ -1732,6 +1732,15 @@ function _historyEntryHasRealResults(entry) {
 
 function _isBogusHistoryEntry(entry) {
   if (!entry) return true;
+  const games = Array.isArray(entry.games) ? entry.games : [];
+  const hasResolvedGame = games.some(g =>
+    !!g?.result
+    || !!g?.score
+    || (g?.liveScore && (g.liveScore.gameState || (Array.isArray(g.liveScore.events) && g.liveScore.events.length)))
+  );
+  if (games.length && !hasResolvedGame && !Number(entry.wins || 0) && !Number(entry.losses || 0) && !Number(entry.ties || 0) && !Number(entry.totalPoints || 0)) {
+    return true;
+  }
   if (_historyEntryMatchesCurrentTournament(entry)) return true;
   if (_historyEntryHasRealResults(entry)) return false;
 
@@ -1739,7 +1748,6 @@ function _isBogusHistoryEntry(entry) {
   const notes = String(entry.notes || '').trim().toLowerCase();
   const location = String(entry.location || '').trim();
   const dates = String(entry.dates || '').trim();
-  const games = Array.isArray(entry.games) ? entry.games : [];
 
   if (!games.length) return true;
   if (!games.some(g =>
