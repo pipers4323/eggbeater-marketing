@@ -2049,6 +2049,17 @@ function _applyAutoFinalResult(gameOrRef, score, explicitGroupKey = '') {
   return true;
 }
 
+function _hydrateDerivedResultsFromLiveScores() {
+  let changed = false;
+  for (const [key, score] of Object.entries(state.liveScores || {})) {
+    const parsed = _parseGameRef(key);
+    const gameRef = key.includes(':') ? key : parsed.gameId;
+    const groupKey = score?.ageGroup || parsed.groupKey || '';
+    if (_applyAutoFinalResult(gameRef, score, groupKey)) changed = true;
+  }
+  return changed;
+}
+
 // ─── STATE ────────────────────────────────────────────────────────────────────
 
 const state = {
@@ -2694,6 +2705,7 @@ function checkTournamentChange() {
   }
 
   _hydrateOfficialResultsFromTournament();
+  _hydrateDerivedResultsFromLiveScores();
 
   localStorage.setItem(STORE.TOURNAMENT_ID, TOURNAMENT.id);
   localStorage.setItem(STORE.SNAPSHOT, JSON.stringify(TOURNAMENT));
@@ -10318,13 +10330,11 @@ async function loadTeamData(teamKey) {
       window.TOURNAMENT    = tournament;
       window.HISTORY_SEED  = history || [];
       // Clear cached roster and history so fresh data from server is used.
-      // seedHistory() only appends — it never removes stale entries, so old data
-      // from a previous fallback key (e.g. 680-drivers) would persist forever without this.
+      // Keep tournament history/results intact on refresh; only clear roster caches here.
       localStorage.removeItem(STORE.ROSTER);
       localStorage.removeItem(STORE.ROSTER + '-A');
       localStorage.removeItem(STORE.ROSTER + '-B');
       localStorage.removeItem(STORE.ROSTER + '-C');
-      localStorage.removeItem(STORE.HISTORY);
     }
 
     // Apply branding from the team data payload (preferred source)
