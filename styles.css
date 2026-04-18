@@ -1695,6 +1695,21 @@ h2 {
   gap: 12px;
 }
 
+.score-card-detail {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.score-card-detail-tabs {
+  margin-bottom: 2px;
+}
+
+.score-card-detail .score-detail-summary.card.tab-card,
+.score-card-detail .score-detail-play.card.tab-card {
+  margin: 0;
+}
+
 .score-detail-summary-action {
   display: flex;
   justify-content: flex-end;

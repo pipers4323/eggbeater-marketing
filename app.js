@@ -6237,6 +6237,17 @@ function setScoreDetailTab(tab) {
   renderScoresTab();
 }
 
+function getScoreCardTab(gameId) {
+  const key = _gameRef(gameId);
+  return state.scoreCardTabs?.[key] === 'play' ? 'play' : 'summary';
+}
+
+function setScoreCardTab(gameId, tab) {
+  if (!state.scoreCardTabs) state.scoreCardTabs = {};
+  state.scoreCardTabs[_gameRef(gameId)] = tab === 'play' ? 'play' : 'summary';
+  renderScoresTab();
+}
+
 function enableScoreDetailScorer() {
   if (!state.scoreDetail) return;
   state.scoreDetail.scorerMode = true;
@@ -6321,6 +6332,30 @@ function buildScoreDetailPlayByPlay(g) {
       ${hasEvents
         ? buildEventLog(events, s.period, g)
         : `<div class="score-detail-empty">No play-by-play events yet.</div>`}
+      </div>`;
+}
+
+function buildEmbeddedScoreCardDetail(game, viewerOnly = false, ageGroupLabel = '') {
+  const s = getLiveScore(game);
+  const canScore = !TOURNAMENT.scoringPassword || isScorerUnlockedForTournament(TOURNAMENT);
+  const tab = getScoreCardTab(game);
+  const gid = escHtml(_gameRef(game));
+  const scorerOpenArgs = `${escHtml(_gameIdOnly(game))},'${escHtml(_contextGroupKey(game))}','${escHtml(ageGroupLabel || '')}'`;
+
+  return `
+    <div class="score-card-detail">
+      <div class="scores-detail-tabs score-card-detail-tabs">
+        <button class="scores-detail-tab ${tab !== 'play' ? 'active' : ''}" onclick="setScoreCardTab('${gid}','summary')">Summary</button>
+        <button class="scores-detail-tab ${tab === 'play' ? 'active' : ''}" onclick="setScoreCardTab('${gid}','play')">Play-by-Play</button>
+      </div>
+      ${tab === 'play'
+        ? buildScoreDetailPlayByPlay(game)
+        : `<div class="score-detail-summary-host">
+            ${_buildScoreDetailSummary(game, s, ageGroupLabel)}
+            ${(!viewerOnly && canScore)
+              ? `<div class="score-detail-summary-action"><button class="scores-open-scorer-btn" onclick="openScorerDetail(${scorerOpenArgs})">✏️ ${escHtml(appT('scorer_open'))}</button></div>`
+              : ''}
+          </div>`}
     </div>`;
 }
 
@@ -8007,118 +8042,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
   // Scorer mode: show full controls only if no password is set, or password is unlocked
   const canScore = !TOURNAMENT.scoringPassword || isScorerUnlockedForTournament(TOURNAMENT);
 
-  // ── Scorer section (full controls) ────────────────────────────────────────
-  const isActiveGame = s.gameState && s.gameState !== 'pre';
-  const scorerManuallyOpen = !!state.scorerDetailsOpen?.[gid];
-  const scorerShouldOpen = isActiveGame || scorerManuallyOpen;
-  const scorerSection = `
-    <details class="scorer-details" ${scorerShouldOpen ? 'open' : ''} ontoggle="_onScorerToggle(this,'${gid}')">
-      <summary class="scorer-summary">
-        ${scorerShouldOpen ? `▼ ${escHtml(appT('scorer_controls'))}` : `▶ ${escHtml(appT('scorer_open'))}`}
-      </summary>
-    <div class="scoring-section">
-      <div class="gs-bar">${gsBar}</div>
-      ${timingRow}
-      <div class="live-scoreboard">
-        <div class="ls-team">
-          <span class="ls-label">${escHtml(teamDisplayName)}</span>
-          <span class="ls-score ls-score-team">${Number.isInteger(s.team) ? s.team : s.team.toFixed(1)}</span>
-        </div>
-        <span class="ls-sep">—</span>
-        <div class="ls-team ls-team-opp">
-          <span class="ls-label">${escHtml(normalizeOpponentName(g.opponent || 'Opp'))}</span>
-          <span class="ls-score ls-score-opp">${Number.isInteger(s.opp) ? s.opp : s.opp.toFixed(1)}</span>
-        </div>
-      </div>
-      <div class="ls-actions-row">
-        <button class="ls-undo-btn" onclick="undoLastEvent('${gid}')">↩ ${escHtml(appT('scorer_undo'))}</button>
-        <button class="ls-share-btn" onclick="shareBoxScore('${gid}')">📤 ${escHtml(appT('scorer_share_box_score'))}</button>
-      </div>
-      ${s.gameState === 'shootout' ? `
-      <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:6px 10px;margin-bottom:6px;text-align:center">
-        <span style="font-weight:700;color:#92400e">🎯 ${escHtml(appT('scorer_shootout_mode'))}</span>
-        <span style="color:#78350f;font-size:0.8rem;display:block;margin-top:2px">${escHtml(appT('scorer_shootout_hint'))}</span>
-      </div>` : ''}
-      <div class="score-btns-row">
-        <button class="score-btn score-btn-team" onclick="openEventPicker('${gid}','goal')">${s.gameState === 'shootout' ? `🎯 ${escHtml(appT('scorer_team_so_goal'))}` : `+ ${escHtml(appT('scorer_goal'))}`}</button>
-        <button class="score-btn score-btn-opp"  onclick="recordEventDirect('${gid}','opp_goal')">${s.gameState === 'shootout' ? `🎯 ${escHtml(appT('scorer_opp_so_goal'))}` : `+ ${escHtml(appT('scorer_opp_goal'))}`}</button>
-      </div>
-      ${s.gameState === 'shootout' ? `
-      <div class="score-btns-row" style="margin-top:4px">
-        <button class="score-btn" style="background:#fff1f2;color:#be123c;border-color:#fda4af" onclick="openEventPicker('${gid}','so_miss')">❌ ${escHtml(appT('scorer_team_so_miss'))}</button>
-        <button class="score-btn" style="background:#fff1f2;color:#be123c;border-color:#fda4af" onclick="recordEventDirect('${gid}','opp_so_miss')">❌ ${escHtml(appT('scorer_opp_so_miss'))}</button>
-      </div>` : ''}
-      <div class="stat-btns-row">
-        <button class="stat-btn stat-assist"       onclick="openEventPicker('${gid}','assist')">${escHtml(appT('scorer_assist'))}</button>
-        <button class="stat-btn stat-steal"        onclick="openEventPicker('${gid}','steal')">${escHtml(appT('scorer_steal'))}</button>
-        <button class="stat-btn stat-sprint"       onclick="openEventPicker('${gid}','sprint_won')">${escHtml(appT('scorer_sprint_won'))}</button>
-        <button class="stat-btn stat-field-block"  onclick="openEventPicker('${gid}','field_block')">${escHtml(appT('scorer_field_block'))}</button>
-        <button class="stat-btn stat-attempt"      onclick="openEventPicker('${gid}','shot_miss')">${escHtml(appT('scorer_attempt'))}</button>
-      </div>
-      <div class="stat-btns-row">
-        <button class="stat-btn stat-turnover"     onclick="openEventPicker('${gid}','turnover')">${escHtml(appT('scorer_turnover'))}</button>
-        <button class="stat-btn stat-exclusion"    onclick="openEventPicker('${gid}','exclusion')">${escHtml(appT('scorer_excl'))}</button>
-        <button class="stat-btn stat-earned-excl"  onclick="openEventPicker('${gid}','earned_excl')">${escHtml(appT('scorer_earned_excl'))}</button>
-        <button class="stat-btn stat-opp-steal"    onclick="recordEventDirect('${gid}','opp_steal')">${escHtml(appT('scorer_opp_steal'))}</button>
-        <button class="stat-btn stat-opp-attempt"  onclick="recordEventDirect('${gid}','opp_shot_miss')">${escHtml(appT('scorer_opp_attempt'))}</button>
-        <button class="stat-btn stat-opp-excl"     onclick="recordEventDirect('${gid}','opp_exclusion')">${escHtml(appT('scorer_opp_excl'))}</button>
-      </div>
-      ${s.gameState !== 'shootout' ? `
-      <div class="stat-btns-row">
-        <button class="stat-btn stat-goal-5m"     onclick="openEventPicker('${gid}','goal_5m')">🎯 ${escHtml(appT('scorer_5m'))}</button>
-        <button class="stat-btn stat-attempt-5m"  onclick="openEventPicker('${gid}','miss_5m')">❌ ${escHtml(appT('scorer_5m_attempt'))}</button>
-        <button class="stat-btn stat-goal-5m"     onclick="recordEventDirect('${gid}','opp_goal_5m')">🎯 ${escHtml(appT('scorer_opp_5m'))}</button>
-        <button class="stat-btn stat-attempt-5m"  onclick="recordEventDirect('${gid}','opp_miss_5m')">❌ ${escHtml(appT('scorer_opp_5m_attempt'))}</button>
-      </div>` : ''}
-      <div class="stat-btns-row">
-        <button class="stat-btn stat-save"  onclick="openEventPicker('${gid}','save')">🧤 ${escHtml(appT('scorer_gk_save'))}</button>
-      </div>
-      ${(cs.timeoutLengths||[]).map(m => {
-        const teamUsed = (s.teamTimeoutsUsed||[]).includes(m);
-        const oppUsed  = (s.oppTimeoutsUsed||[]).includes(m);
-        const lbl = fmtTOLabel(m);
-        return `<div class="stat-btns-row stat-btns-row-to">
-          <button class="stat-btn stat-timeout${teamUsed?' stat-btn-used':''}"
-                  onclick="callTeamTimeout('${gid}',${m})"
-                  ${teamUsed?'disabled':''}>${teamUsed?'✓':' ⏱'} ${lbl} T/O</button>
-          <button class="stat-btn stat-opp-timeout${oppUsed?' stat-btn-used':''}"
-                  onclick="callOppTimeout('${gid}',${m})"
-                  ${oppUsed?'disabled':''}>${oppUsed?'✓':'⏱'} Opp ${lbl}</button>
-        </div>`;
-      }).join('')}
-      ${eventLogHtml}
-      ${boxScoreHtml}
-    </div>
-    </details>`;
-
-  // ── Viewer section (read-only) ─────────────────────────────────────────────
-  const periodLabel = s.gameState && s.gameState !== 'pre'
-    ? (s.gameState === 'final'
-        ? 'Final'
-        : `${PERIOD_LABELS[s.period] || 'Live'}${s.clock ? ` · ${s.clock}` : ''}`)
-    : '';
-  const viewerSection = `
-    <div class="scoring-section scoring-viewer">
-      ${periodLabel ? `<div class="viewer-state-bar">${periodLabel}</div>` : ''}
-      ${(s.team > 0 || s.opp > 0 || s.gameState !== 'pre') ? `
-        <div class="live-scoreboard viewer-scoreboard">
-          <div class="ls-team">
-            <span class="ls-label">${escHtml(teamDisplayName)}</span>
-            <span class="ls-score ls-score-team">${s.team}</span>
-          </div>
-          <span class="ls-sep">—</span>
-          <div class="ls-team ls-team-opp">
-            <span class="ls-label">${escHtml(normalizeOpponentName(g.opponent || 'Opp'))}</span>
-            <span class="ls-score ls-score-opp">${s.opp}</span>
-          </div>
-        </div>` : ''}
-      ${eventLogHtml}
-      ${hasEvents ? `
-        <div class="bs-actions-row">
-          <button class="bs-share-btn" onclick="shareBoxScore('${gid}')">📤 ${appT('common_share')}</button>
-        </div>` : ''}
-      ${boxScoreHtml}
-    </div>`;
+  const embeddedDetail = buildEmbeddedScoreCardDetail(g, viewerOnly || !canScore, ageGroupLabel);
 
   return `
     <div class="game-card ${cardClass} ${capBgClass}">
@@ -8132,7 +8056,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
       ${locationRow}
       ${pts !== null ? `<div class="game-info-row"><span class="points-badge">+${pts} bracket pts</span></div>` : ''}
 
-      ${(viewerOnly || !canScore) ? viewerSection : scorerSection}
+      ${embeddedDetail}
 
       ${canScore ? `
       <div class="result-row result-row-5">
