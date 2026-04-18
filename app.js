@@ -3672,7 +3672,12 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '', extraActionHt
       </div>
       <div class="score-detail-summary-scoreline">
         <div class="team-block"><div class="team-name">${escHtml(teamName)}</div><div class="team-score">${Number.isInteger(score.team) ? score.team : Number(score.team || 0).toFixed(1)}</div></div>
-        <div class="score-sep">-</div>
+        <div class="score-sep-block">
+          ${score.gameState && score.gameState !== 'pre'
+            ? `<div class="score-sep-state">${escHtml(statusLabel)}</div>`
+            : ''}
+          <div class="score-sep">-</div>
+        </div>
         <div class="team-block"><div class="team-name">${escHtml(oppName)}</div><div class="team-score">${Number.isInteger(score.opp) ? score.opp : Number(score.opp || 0).toFixed(1)}</div></div>
       </div>
       ${showScoringTable ? `<div class="score-detail-scoring-table">
