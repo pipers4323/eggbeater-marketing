@@ -4960,6 +4960,29 @@ function _phaseLabel(phase) {
   return { q1:'Q1', break12:'Quarter Break', q2:'Q2', halftime:'Half Time', q3:'Q3', break34:'Quarter Break', q4:'Q4', done:'Final', h1:'H1', h2:'H2' }[phase] || phase?.toUpperCase() || '';
 }
 
+function _promptFinalizeOnClockEnd(gameId) {
+  const s = getLiveScore(gameId);
+  if (!s) return;
+  const game = (TOURNAMENT.games || []).find(g => _gameRef(g) === _gameRef(gameId));
+  const teamName = _teamDisplayNameForGame(game || {}, TOURNAMENT.clubName || appT('scorer_team_label'));
+  const oppName = normalizeOpponentName(game?.opponent || 'Opp');
+  const scoreLine = `${teamName} ${Number(s.team || 0)} - ${Number(s.opp || 0)} ${oppName}`;
+  const phaseLabel = _phaseLabel(s.timerPhase || 'q4');
+  try { switchTab('scores'); } catch {}
+  try { openScorerDetail(gameId); } catch {}
+  setTimeout(() => {
+    const confirmed = window.confirm(`${phaseLabel} has ended.\n\nSubmit final score now?\n\n${scoreLine}`);
+    if (confirmed) {
+      setGameState(gameId, 'final');
+    } else {
+      showToast('Clock expired. Submit Final Score & End Game when ready.');
+      renderGamesList();
+      renderNextGameCard();
+      if (state.currentTab === 'scores') renderScoresTab();
+    }
+  }, 0);
+}
+
 function _handleClockExpired(gameId) {
   const s = getLiveScore(gameId);
   const cs = getClockSettings(gameId);
@@ -4974,8 +4997,7 @@ function _handleClockExpired(gameId) {
   if (next === 'done') {
     _setLiveScore(gameId, s);
     saveLiveScores();
-    setGameState(gameId, 'final');
-    showToast('🏁 Game over!');
+    _promptFinalizeOnClockEnd(gameId);
     return;
   }
 
