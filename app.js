@@ -1783,7 +1783,48 @@ function _findGameByRef(gameOrRef, explicitGroupKey = '') {
   return getTournamentGames().find(g => String(g.id) === String(gameId)) || null;
 }
 
+function _getLiveScoreForGame(gameOrRef, explicitGroupKey = '') {
+  const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
+  return state.liveScores[scopedKey] || state.liveScores[_gameIdOnly(gameOrRef)] || null;
+}
+
+function _getAuthoritativeLiveResult(gameOrRef, explicitGroupKey = '') {
+  const score = _getLiveScoreForGame(gameOrRef, explicitGroupKey);
+  if (!score) return null;
+
+  const direct = _inferFinalResultFromScore(score);
+  if (direct) return direct;
+
+  const hasMeaningfulLiveData =
+    (Array.isArray(score.events) && score.events.some(ev => ev.type !== 'game_state')) ||
+    Number(score.team || 0) !== 0 ||
+    Number(score.opp || 0) !== 0;
+  if (!hasMeaningfulLiveData) return null;
+
+  const game = _findGameByRef(gameOrRef, explicitGroupKey);
+  const start = game ? parseGameTime(game.dateISO, game.time) : null;
+  const isPastExpectedWindow = start ? (Date.now() - start.getTime()) > ((CONFIG.EVENT_DURATION_MIN || 90) * 60000) : false;
+  const stillLive = !!isGameLive(_gameRef(gameOrRef, explicitGroupKey));
+  if (!stillLive && isPastExpectedWindow) {
+    if (typeof score.team === 'number' && typeof score.opp === 'number') {
+      if (score.team > score.opp) return 'W';
+      if (score.team < score.opp) return 'L';
+    }
+  }
+
+  return null;
+}
+
 function _getResultForGame(gameOrRef, explicitGroupKey = '') {
+  const liveDerived = _getAuthoritativeLiveResult(gameOrRef, explicitGroupKey);
+  if (liveDerived) {
+    const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
+    if (state.results[scopedKey] !== liveDerived) {
+      state.results[scopedKey] = liveDerived;
+      _saveResults();
+    }
+    return liveDerived;
+  }
   const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
   if (state.results[scopedKey] != null) return state.results[scopedKey];
   const rawKey = _gameIdOnly(gameOrRef);
