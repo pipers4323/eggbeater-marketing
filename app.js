@@ -3394,41 +3394,42 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '') {
     .slice(0, 3);
 
   const teamOff = buildLeaderRows(teamPlayers, 'off');
-  const oppOff = buildLeaderRows(oppPlayers, 'off');
   const teamDef = buildLeaderRows(teamPlayers, 'def');
-  const oppDef = buildLeaderRows(oppPlayers, 'def');
 
   const saveRatioTeam = `${teamStats.saves}/${teamStats.saves + (score.opp || 0)}`;
-  const saveRatioOpp = `${oppStats.saves}/${oppStats.saves + (score.team || 0)}`;
   const powerPlayTeam = `${teamStats.powerGoals}/${teamStats.powerOpps}`;
-  const powerPlayOpp = `${oppStats.powerGoals}/${oppStats.powerOpps}`;
   const pensTeam = `${teamStats.penGoals}/${teamStats.penAttempts}`;
-  const pensOpp = `${oppStats.penGoals}/${oppStats.penAttempts}`;
   const scoringGridCols = `minmax(140px, 1.6fr) repeat(${periodColumns.length + 1}, minmax(32px, 0.5fr))`;
 
-  const compareRow = (label, leftRaw, rightRaw, leftDisplay, rightDisplay) => {
-    const max = Math.max(leftRaw, rightRaw, 1);
-    const leftPct = (leftRaw / max) * 100;
-    const rightPct = (rightRaw / max) * 100;
-    return `<div class="score-detail-compare-row">
-      <div class="score-detail-compare-head">
-        <span>${escHtml(leftDisplay)}</span>
+  const statValue = (made, attempts = null) => {
+    if (attempts == null) return Number(made || 0);
+    if (!attempts) return 0;
+    return Number(made || 0) / Number(attempts || 1);
+  };
+
+  const statRow = (label, rawValue, displayValue) => {
+    let pct = 0;
+    if (label === 'Scoring' || label === 'Sprints Won' || label === 'Saves') {
+      pct = Math.min(100, Number(rawValue || 0) * 10);
+    } else {
+      pct = Math.min(100, Number(rawValue || 0) * 100);
+    }
+    return `<div class="score-detail-compare-row team-only">
+      <div class="score-detail-compare-head team-only">
         <span>${escHtml(label)}</span>
-        <span>${escHtml(rightDisplay)}</span>
+        <span>${escHtml(displayValue)}</span>
       </div>
-      <div class="score-detail-compare-bars">
-        <span class="score-detail-bar score-detail-bar-left"><span style="width:${leftPct}%"></span></span>
-        <span class="score-detail-bar score-detail-bar-right"><span style="width:${rightPct}%"></span></span>
+      <div class="score-detail-compare-bars team-only">
+        <span class="score-detail-bar score-detail-bar-left"><span style="width:${pct}%"></span></span>
       </div>
     </div>`;
   };
 
-  const leaderSection = (title, leftRows, rightRows, formatter) => `
-    <div class="score-detail-leaders">
+  const leaderSection = (title, rows, formatter) => `
+    <div class="score-detail-leaders team-only">
       <div class="score-detail-section-title">${escHtml(title)}</div>
-      <div class="score-detail-leader-grid">
-        <div>${leftRows.map(r => `<div class="score-detail-leader-row"><strong>${escHtml(r.name)}</strong><span>${escHtml(formatter(r))}</span></div>`).join('') || '<div class="score-detail-leader-row muted">—</div>'}</div>
-        <div>${rightRows.map(r => `<div class="score-detail-leader-row"><strong>${escHtml(r.name)}</strong><span>${escHtml(formatter(r))}</span></div>`).join('') || '<div class="score-detail-leader-row muted">—</div>'}</div>
+      <div class="score-detail-leader-grid team-only">
+        <div>${rows.map(r => `<div class="score-detail-leader-row"><strong>${escHtml(r.name)}</strong><span>${escHtml(formatter(r))}</span></div>`).join('') || '<div class="score-detail-leader-row muted">—</div>'}</div>
       </div>
     </div>`;
 
@@ -3468,16 +3469,16 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '') {
           <span>${Number.isInteger(score.opp) ? score.opp : Number(score.opp || 0).toFixed(1)}</span>
         </div>
       </div>
-      <div class="score-detail-compare">
-        ${compareRow('Scoring', Number(score.team || 0), Number(score.opp || 0), String(score.team || 0), String(score.opp || 0))}
-        ${compareRow('Save Ratio', teamStats.saves + (score.opp || 0), oppStats.saves + (score.team || 0), saveRatioTeam, saveRatioOpp)}
-        ${compareRow('Power Plays', teamStats.powerOpps || teamStats.powerGoals, oppStats.powerOpps || oppStats.powerGoals, powerPlayTeam, powerPlayOpp)}
-        ${compareRow('Penalties', teamStats.penAttempts || teamStats.penGoals, oppStats.penAttempts || oppStats.penGoals, pensTeam, pensOpp)}
-        ${compareRow('Sprints Won', teamStats.sprints, oppStats.sprints, String(teamStats.sprints), String(oppStats.sprints))}
-        ${compareRow('Saves', teamStats.saves, oppStats.saves, String(teamStats.saves), String(oppStats.saves))}
+      <div class="score-detail-compare team-only">
+        ${statRow('Scoring', Number(score.team || 0), String(score.team || 0))}
+        ${statRow('Save Ratio', statValue(teamStats.saves, teamStats.saves + (score.opp || 0)), saveRatioTeam)}
+        ${statRow('Power Plays', statValue(teamStats.powerGoals, teamStats.powerOpps), powerPlayTeam)}
+        ${statRow('Penalties', statValue(teamStats.penGoals, teamStats.penAttempts), pensTeam)}
+        ${statRow('Sprints Won', teamStats.sprints, String(teamStats.sprints))}
+        ${statRow('Saves', teamStats.saves, String(teamStats.saves))}
       </div>
-      ${leaderSection('Offensive Leaders', teamOff, oppOff, r => `${r.goals}G${r.assists ? ` · ${r.assists}A` : ''}`)}
-      ${leaderSection('Defensive Leaders', teamDef, oppDef, r => `${r.steals} STL${(r.blocks + r.saves) ? ` · ${r.blocks + r.saves} DEF` : ''}`)}
+      ${leaderSection('Offensive Leaders', teamOff, r => `${r.goals}G${r.assists ? ` · ${r.assists}A` : ''}`)}
+      ${leaderSection('Defensive Leaders', teamDef, r => `${r.steals} STL${(r.blocks + r.saves) ? ` · ${r.blocks + r.saves} DEF` : ''}`)}
     </div>`;
 }
 

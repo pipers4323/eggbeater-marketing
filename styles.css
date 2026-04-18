@@ -1943,6 +1943,18 @@ h2 {
   gap: 10px;
 }
 
+.score-detail-compare.team-only {
+  gap: 8px;
+}
+
+.score-detail-compare-head.team-only {
+  grid-template-columns: 1fr auto;
+}
+
+.score-detail-compare-bars.team-only {
+  grid-template-columns: 1fr;
+}
+
 .score-detail-bar {
   height: 9px;
   border-radius: 999px;
@@ -1972,6 +1984,10 @@ h2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
+}
+
+.score-detail-leader-grid.team-only {
+  grid-template-columns: 1fr;
 }
 
 .score-detail-leader-row {
