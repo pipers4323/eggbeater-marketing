@@ -1714,6 +1714,41 @@ h2 {
   margin-top: 12px;
 }
 
+@media (min-width: 1100px) {
+  .score-card-detail {
+    max-width: 980px;
+    margin: 14px auto 0;
+  }
+
+  .score-card-detail-toolbar,
+  .score-card-detail-tabs,
+  .score-card-detail .score-detail-summary.card.tab-card,
+  .score-card-detail .score-detail-play.card.tab-card {
+    max-width: 980px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .score-card-detail .score-detail-summary-info {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr);
+  }
+
+  .score-card-detail .score-detail-summary-scoreline {
+    grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+  }
+
+  .score-card-detail .score-detail-scoring-row {
+    grid-template-columns: minmax(160px, 1.2fr) repeat(5, minmax(42px, 0.42fr));
+  }
+
+  .score-card-detail .score-detail-compare.team-only,
+  .score-card-detail .score-detail-leaders.team-only {
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
 .score-card-detail-tabs {
   margin-bottom: 2px;
 }
