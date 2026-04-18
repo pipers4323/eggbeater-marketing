@@ -8324,7 +8324,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
     capBadge
   ].filter(Boolean).join('');
   const locationRow = showLocation && TOURNAMENT.location
-    ? `<div class="game-location-row">${buildLocationLink(TOURNAMENT.location)}</div>`
+    ? `<div class="game-location-row">${buildLocationVenueOnly(TOURNAMENT.location)}</div>`
     : '';
 
   const btn = (cls, val, label, p) => {
