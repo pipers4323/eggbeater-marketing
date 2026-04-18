@@ -331,6 +331,7 @@ const APP_I18N = {
     scorer_sprint_won: 'Sprint Won',
     scorer_field_block: 'Field Block',
     scorer_attempt: 'Attempt',
+    scorer_turnover: 'Turnover',
     scorer_excl: 'Excl',
     scorer_earned_excl: 'Earned Excl',
     scorer_opp_steal: 'Opp Steal',
@@ -352,6 +353,7 @@ const APP_I18N = {
     event_goal_6v5: 'GOAL (6v5)',
     event_goal_5m: 'GOAL (5m)',
     event_shot_attempt: 'SHOT ATTEMPT',
+    event_turnover: 'TURNOVER',
     event_attempt_5m: 'ATTEMPT (5m)',
     event_so_goal: 'SO GOAL',
     event_so_miss: 'SO MISS',
@@ -682,6 +684,7 @@ const APP_I18N = {
     scorer_sprint_won: 'Sprint ganado',
     scorer_field_block: 'Bloqueo de campo',
     scorer_attempt: 'Intento',
+    scorer_turnover: 'Pérdida',
     scorer_excl: 'Exclusión',
     scorer_earned_excl: 'Exclusión provocada',
     scorer_opp_steal: 'Robo rival',
@@ -703,6 +706,7 @@ const APP_I18N = {
     event_goal_6v5: 'GOL (6v5)',
     event_goal_5m: 'GOL (5m)',
     event_shot_attempt: 'INTENTO',
+    event_turnover: 'PÉRDIDA',
     event_attempt_5m: 'INTENTO (5m)',
     event_so_goal: 'GOL DE PENALES',
     event_so_miss: 'FALLO DE PENALES',
@@ -1033,6 +1037,7 @@ const APP_I18N = {
     scorer_sprint_won: 'Sprint gagné',
     scorer_field_block: 'Contre de champ',
     scorer_attempt: 'Tentative',
+    scorer_turnover: 'Balle perdue',
     scorer_excl: 'Excl',
     scorer_earned_excl: 'Excl provoquée',
     scorer_opp_steal: 'Interception adverse',
@@ -1054,6 +1059,7 @@ const APP_I18N = {
     event_goal_6v5: 'BUT (6v5)',
     event_goal_5m: 'BUT (5m)',
     event_shot_attempt: 'TENTATIVE',
+    event_turnover: 'BALLE PERDUE',
     event_attempt_5m: 'TENTATIVE (5m)',
     event_so_goal: 'BUT TAB',
     event_so_miss: 'RATE TAB',
@@ -2606,13 +2612,14 @@ function archiveTournament(snapshot, results, bracketResults, liveScores) {
       const player = ev.player || ev.scorer;
       if (!player) continue;
       if (!playerStats[player]) {
-    playerStats[player] = { goals: 0, assists: 0, steals: 0, sprintWins: 0, exclusions: 0, gamesPlayed: 0 };
+      playerStats[player] = { goals: 0, assists: 0, steals: 0, turnovers: 0, sprintWins: 0, exclusions: 0, gamesPlayed: 0 };
       }
       playersInGame.add(player);
       const action = (ev.action || ev.type || '').toLowerCase();
-      if (action === 'goal' || action === 'scored')     playerStats[player].goals++;
-      else if (action === 'assist')                       playerStats[player].assists++;
+    if (action === 'goal' || action === 'scored')     playerStats[player].goals++;
+    else if (action === 'assist')                       playerStats[player].assists++;
     else if (action === 'steal')                        playerStats[player].steals++;
+    else if (action === 'turnover')                     playerStats[player].turnovers++;
     else if (action === 'sprint_won')                   playerStats[player].sprintWins++;
       else if (action === 'exclusion' || action === 'ejection') playerStats[player].exclusions++;
     }
@@ -2887,6 +2894,7 @@ function getLiveScore(gameId) {
     delete s.goals;
   }
   if (!s.events)      s.events      = [];
+  s.events.forEach((ev, idx) => _eventIdFor(ev, idx));
   if (!s.gameState)   s.gameState   = 'pre';
   if (s.period == null) s.period    = 0;
   const pristineTiming = !s.timingLocked
@@ -3091,6 +3099,15 @@ function recomputeScores(events) {
   return { team, opp };
 }
 
+function _eventIdFor(ev, idx = 0) {
+  if (!ev) return '';
+  if (!ev.id) {
+    const baseTs = ev.ts || Date.now();
+    ev.id = `ev_${baseTs}_${idx}_${Math.random().toString(36).slice(2, 7)}`;
+  }
+  return ev.id;
+}
+
 /** Fire a heavy haptic (iOS Taptic Engine) or a double-pulse vibration (Android/web)
  *  when our team scores a goal — gives parents watching live a physical jolt of joy. */
 function _hapticGoal() {
@@ -3151,7 +3168,7 @@ function buildEventLog(events, currentPeriod = 0, gameId = null) {
   }
 
   const WP_BALL = '<span class="wp-ball">🏐</span>';
-  const TYPE_ICONS = { goal:WP_BALL, opp_goal:WP_BALL, goal_5m:WP_BALL, opp_goal_5m:WP_BALL, shot_miss:'❌', opp_shot_miss:'❌', miss_5m:'❌', opp_miss_5m:'❌', so_goal:WP_BALL, opp_so_goal:WP_BALL, so_miss:'❌', opp_so_miss:'❌', assist:'🤝', steal:'🧤', sprint_won:'⚡', opp_sprint_won:'⚡', exclusion:'❌', opp_exclusion:'❌', brutality:'🟥', timeout:'⏱', opp_timeout:'⏱', save:'🧤', block:'🧤' };
+  const TYPE_ICONS = { goal:WP_BALL, opp_goal:WP_BALL, goal_5m:WP_BALL, opp_goal_5m:WP_BALL, shot_miss:'❌', opp_shot_miss:'❌', miss_5m:'❌', opp_miss_5m:'❌', so_goal:WP_BALL, opp_so_goal:WP_BALL, so_miss:'❌', opp_so_miss:'❌', assist:'🤝', steal:'🧤', turnover:'↩️', sprint_won:'⚡', opp_sprint_won:'⚡', exclusion:'❌', opp_exclusion:'❌', brutality:'🟥', timeout:'⏱', opp_timeout:'⏱', save:'🧤', block:'🧤' };
   const TYPE_LABEL = {
     goal:          ev => ev.sixOnFive ? appT('event_goal_6v5') : appT('event_goal'),
     opp_goal:      ()  => appT('event_goal'),
@@ -3167,6 +3184,7 @@ function buildEventLog(events, currentPeriod = 0, gameId = null) {
     opp_so_miss:   ()  => appT('event_so_miss'),
     assist:        ()  => appT('event_assist'),
     steal:         ev  => ev.forcedBallUnder ? appT('event_steal_fbu') : appT('event_steal'),
+    turnover:      ()  => appT('event_turnover'),
     sprint_won:    ()  => appT('event_sprint_won'),
     opp_sprint_won:()  => appT('event_opp_sprint_won'),
     opp_steal:     ()  => appT('event_opp_steal'),
@@ -3209,7 +3227,14 @@ function buildEventLog(events, currentPeriod = 0, gameId = null) {
       const teamName = isTeam
         ? _teamDisplayNameForGame(gameId, TOURNAMENT.clubName || appT('scorer_team_label'))
         : normalizeOpponentName(_findGameByRef(gameId)?.opponent || 'Opp');
-      html += `<div class="event-row event-${isTeam?'team':'opp'}">
+      const eventId = _eventIdFor(ev);
+      const rowKey = `${String(gameId).replace(/[^a-zA-Z0-9_-]/g, '_')}__${eventId}`;
+      const deleteAction = state.scoreDetailTab === 'play' && isScorerUnlockedForTournament(TOURNAMENT)
+        ? `<button class="event-delete-btn" onclick="event.stopPropagation();deletePlayByPlayEvent(${JSON.stringify(_gameRef(gameId))},${JSON.stringify(eventId)})">Delete</button>`
+        : '';
+      html += `<div class="event-swipe-row" id="event-row-${rowKey}" ontouchstart="startEventSwipe(event,${JSON.stringify(rowKey)})" ontouchend="endEventSwipe(event,${JSON.stringify(rowKey)})">
+        ${deleteAction}
+        <div class="event-row event-${isTeam?'team':'opp'}" onclick="maybeCloseEventSwipe(${JSON.stringify(rowKey)})">
         <div class="event-main">
           <span class="event-type">${escHtml(typeLabel)}</span>
           <span class="event-team-name">${escHtml(teamName)}</span>
@@ -3217,6 +3242,7 @@ function buildEventLog(events, currentPeriod = 0, gameId = null) {
         <div class="event-sub">
           <span class="event-clock">${escHtml(ev.clock||'—')}</span>
           <span class="event-player">${escHtml(playerName)}</span>
+        </div>
         </div>
       </div>`;
     }
@@ -3230,6 +3256,63 @@ function _clockSortValue(clock) {
   const match = String(clock || '').match(/^(\d+):(\d{2})$/);
   if (!match) return Number.MAX_SAFE_INTEGER;
   return (parseInt(match[1], 10) * 60) + parseInt(match[2], 10);
+}
+
+let _eventSwipeStart = null;
+
+function _closeAllEventSwipeRows(exceptKey = '') {
+  document.querySelectorAll('.event-swipe-row.swiped').forEach(row => {
+    if (exceptKey && row.id === `event-row-${exceptKey}`) return;
+    row.classList.remove('swiped');
+  });
+}
+
+function startEventSwipe(evt, rowKey) {
+  const touch = evt.touches?.[0];
+  if (!touch) return;
+  _eventSwipeStart = { rowKey, x: touch.clientX, y: touch.clientY };
+}
+
+function endEventSwipe(evt, rowKey) {
+  const touch = evt.changedTouches?.[0];
+  if (!_eventSwipeStart || _eventSwipeStart.rowKey !== rowKey || !touch) return;
+  const dx = touch.clientX - _eventSwipeStart.x;
+  const dy = touch.clientY - _eventSwipeStart.y;
+  _eventSwipeStart = null;
+  if (Math.abs(dx) < 36 || Math.abs(dx) < Math.abs(dy)) return;
+  const row = document.getElementById(`event-row-${rowKey}`);
+  if (!row) return;
+  if (dx > 0) {
+    _closeAllEventSwipeRows(rowKey);
+    row.classList.add('swiped');
+  } else {
+    row.classList.remove('swiped');
+  }
+}
+
+function maybeCloseEventSwipe(rowKey) {
+  const row = document.getElementById(`event-row-${rowKey}`);
+  if (row?.classList.contains('swiped')) row.classList.remove('swiped');
+}
+
+function deletePlayByPlayEvent(gameId, eventId) {
+  const s = getLiveScore(gameId);
+  if (!Array.isArray(s.events) || !s.events.length) return;
+  const idx = s.events.findIndex((ev, i) => _eventIdFor(ev, i) === eventId);
+  if (idx === -1) return;
+  const removed = s.events[idx];
+  s.events.splice(idx, 1);
+  if (removed?.type === 'game_state') {
+    const prev = [...s.events].reverse().find(e => e.type === 'game_state');
+    s.gameState = prev?.gameState || 'pre';
+    s.period = PERIOD_FOR_STATE[s.gameState] ?? 0;
+  }
+  const recomputed = recomputeScores(s.events);
+  s.team = recomputed.team;
+  s.opp = recomputed.opp;
+  _setLiveScore(gameId, s);
+  afterScore(gameId);
+  showToast('Event deleted', 'ok');
 }
 
 function _isTeamGoalType(type) {
@@ -3553,6 +3636,7 @@ function shareBoxScore(gameId) {
     opp_so_miss:   ()  => 'SO MISS',
     assist:        ()  => 'ASSIST',
     steal:         ev  => ev.forcedBallUnder ? 'STEAL (FBU)' : 'STEAL',
+    turnover:      ()  => 'TURNOVER',
     sprint_won:    ()  => 'SPRINT WON',
     opp_sprint_won:()  => 'OPP SPRINT WON',
     opp_steal:     ()  => 'OPP STEAL',
@@ -3599,10 +3683,11 @@ function shareBoxScore(gameId) {
     if (ev.type === 'timeout')  { ttls++; continue; }
     if (ev.side !== 'team')     continue;
     const k = ev.cap || ev.name || '?';
-    if (!playerMap[k]) playerMap[k] = { cap:ev.cap||'', name:ev.name||'', G:0, A:0, Stl:0, SW:0, Excl:0, EE:0, Sv:0 };
+    if (!playerMap[k]) playerMap[k] = { cap:ev.cap||'', name:ev.name||'', G:0, A:0, Stl:0, TO:0, SW:0, Excl:0, EE:0, Sv:0 };
     if (ev.type==='goal')                              playerMap[k].G++;
     if (ev.type==='assist')                            playerMap[k].A++;
     if (ev.type==='steal')                             playerMap[k].Stl++;
+    if (ev.type==='turnover')                          playerMap[k].TO++;
     if (ev.type==='sprint_won')                        playerMap[k].SW++;
     if (ev.type==='exclusion'||ev.type==='brutality')  playerMap[k].Excl++;
     if (ev.type==='earned_excl')                       playerMap[k].EE++;
@@ -3822,6 +3907,7 @@ function buildBoxScoreText(gameId) {
     opp_so_miss:   ()  => 'SO MISS',
     assist:        ()  => 'ASSIST',
     steal:         ev  => ev.forcedBallUnder ? 'STEAL (FBU)' : 'STEAL',
+    turnover:      ()  => 'TURNOVER',
     sprint_won:    ()  => 'SPRINT WON',
     opp_sprint_won:()  => 'OPP SPRINT WON',
     opp_steal:     ()  => 'OPP STEAL',
@@ -3883,10 +3969,11 @@ function buildBoxScoreText(gameId) {
     if (ev.type === 'opp_timeout') { oppTtls++; continue; }
     if (ev.side !== 'team')     continue;
     const k = ev.cap || ev.name || '?';
-    if (!playerMap[k]) playerMap[k] = { cap:ev.cap||'', name:ev.name||'', G:0, A:0, Stl:0, SW:0, Excl:0, EE:0, Sv:0 };
+    if (!playerMap[k]) playerMap[k] = { cap:ev.cap||'', name:ev.name||'', G:0, A:0, Stl:0, TO:0, SW:0, Excl:0, EE:0, Sv:0 };
     if (ev.type==='goal')                              playerMap[k].G++;
     if (ev.type==='assist')                            playerMap[k].A++;
     if (ev.type==='steal')                             playerMap[k].Stl++;
+    if (ev.type==='turnover')                          playerMap[k].TO++;
     if (ev.type==='sprint_won')                        playerMap[k].SW++;
     if (ev.type==='exclusion'||ev.type==='brutality')  playerMap[k].Excl++;
     if (ev.type==='earned_excl')                       playerMap[k].EE++;
@@ -4780,6 +4867,7 @@ function openEventPicker(gameId, eventType) {
       goal:         'Who scored?',
       assist:       'Who assisted?',
       steal:        'Who got the steal?',
+      turnover:     'Who committed the turnover?',
       sprint_won:   'Who won the sprint?',
       field_block:  'Who got the field block?',
       exclusion:    'Who was excluded?',
@@ -7817,6 +7905,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
         <button class="stat-btn stat-attempt"      onclick="openEventPicker('${gid}','shot_miss')">${escHtml(appT('scorer_attempt'))}</button>
       </div>
       <div class="stat-btns-row">
+        <button class="stat-btn stat-turnover"     onclick="openEventPicker('${gid}','turnover')">${escHtml(appT('scorer_turnover'))}</button>
         <button class="stat-btn stat-exclusion"    onclick="openEventPicker('${gid}','exclusion')">${escHtml(appT('scorer_excl'))}</button>
         <button class="stat-btn stat-earned-excl"  onclick="openEventPicker('${gid}','earned_excl')">${escHtml(appT('scorer_earned_excl'))}</button>
         <button class="stat-btn stat-opp-steal"    onclick="recordEventDirect('${gid}','opp_steal')">${escHtml(appT('scorer_opp_steal'))}</button>

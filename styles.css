@@ -1911,6 +1911,37 @@ h2 {
   border-bottom: 1px solid var(--gray-200);
 }
 
+.score-detail-play .event-swipe-row {
+  position: relative;
+  overflow: hidden;
+}
+
+.score-detail-play .event-swipe-row .event-row {
+  position: relative;
+  z-index: 1;
+  background: inherit;
+  transition: transform 0.18s ease;
+  padding: 12px 0;
+}
+
+.score-detail-play .event-swipe-row.swiped .event-row {
+  transform: translateX(92px);
+}
+
+.score-detail-play .event-delete-btn {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 84px;
+  border: 0;
+  background: #dc2626;
+  color: white;
+  font-size: 0.86rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .score-detail-play .event-main,
 .score-detail-play .event-sub {
   display: flex;
@@ -1935,6 +1966,12 @@ h2 {
 .score-detail-play .event-sub .event-player,
 .score-detail-play .event-main .event-team-name {
   text-align: right;
+}
+
+.stat-turnover {
+  background: #fff7ed;
+  border-color: #fdba74;
+  color: #9a3412;
 }
 
 .score-detail-empty {
@@ -1996,9 +2033,14 @@ h2 {
 [data-theme="dark"] .score-detail-scoring-row.head,
 [data-theme="dark"] .score-detail-play .event-clock,
 [data-theme="dark"] .score-detail-play .event-player,
+[data-theme="dark"] .score-detail-play .event-delete-btn,
 [data-theme="dark"] .score-detail-leader-row.muted,
 [data-theme="dark"] .score-detail-compare-head span:nth-child(2) {
   color: #9da7b3;
+}
+
+[data-theme="dark"] .score-detail-play .event-delete-btn {
+  color: #fff;
 }
 
 [data-theme="dark"] .scores-list-meta,
