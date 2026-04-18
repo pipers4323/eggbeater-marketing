@@ -360,3 +360,95 @@ de21880  fix: correct age group header colors in light mode
 4. **Admin cleanup later**
 - `admin.html` still contains some old mojibake/encoding artifacts in copy strings.
 - Not blocking functionally, but worth a cleanup pass later.
+
+
+---
+
+## Update - 2026-04-18 (Live scoring / summary / recovery)
+
+### Current heads
+- Marketing: `6ddbc9e` - `fix: keep summary clock synced live`
+- Wrapper: `a5c7c4e` - `chore: sync native bundle with live score summary updates`
+- Worker/backend: `dca1540` - durable scored-game storage, official sheet sync, recovery endpoints
+
+### Completed today
+
+1. **Durable scored-game source of truth**
+- Live-scored games now persist to durable worker storage instead of relying only on expiring live-score keys.
+- Client `team-data` merge now restores scored games in clean/incognito sessions.
+- Goal: prevent Schedule/History disagreement and loss of final scores after scorer-device/browser loss.
+
+2. **Official sheet result ingestion**
+- Worker now matches bracket-wizard sheet rows back to games.
+- Official final sheet scores can update durable scored-game records and tournament snapshots.
+- Applied to current Cal Cup examples such as 680 and Santa Cruz.
+
+3. **Admin recovery UI**
+- Added scored-games recovery/admin actions in `admin.html`:
+  - scored-games list
+  - sync official sheet results
+  - rebuild history from scored games
+  - promote final / reopen / reset scored game
+
+4. **History cleanup**
+- Fixed bogus `Other Tournaments` duplicate/empty shell entries.
+- Root cause was stale local archived shells with no real results.
+- Filtering and storage sanitization now purge those entries.
+
+5. **Scores / Summary / Play-by-Play UI refresh**
+- `Scores` now uses the clean `Summary` / `Play-by-Play` game view instead of the old noisy embedded box-score card.
+- `History` games open into the same summary/play-by-play detail flow.
+- Live games in `Schedule` now open directly into the `Scores` summary view.
+
+6. **Scorer / scoring workflow fixes**
+- `Open Scorer` click path fixed.
+- Added turnover event support and delete-from-play-by-play / in-card event log.
+- Added scorer finalization actions.
+- Added goal subtype `Counter` for team goals.
+- Added turnover subtype `Inside 2m`.
+- If there is exactly one goalie, `GK Save` now records directly without prompting.
+
+7. **Live summary and score-view polish**
+- Summary center state now shows the live period/clock above the dash.
+- Summary clock now ticks live with scorer time.
+- Halftime now shows as `Half Time`.
+- Removed map buttons from `Scores` / summary views; location is venue text only.
+- Fixed location pin + venue text to stay on one line.
+- Enlarged live quarter/clock label.
+- Relaxed over-aggressive desktop width cap while keeping readability.
+- Removed useless pre-game summary body.
+
+### Important current behavior
+- Web is current at marketing `6ddbc9e`.
+- Native wrapper is synced at `a5c7c4e` and is the correct build source for the next iOS build.
+- Old lost play-by-play cannot be reconstructed unless recovered from an original scorer device; only final/result data can be restored after the fact.
+
+### Follow-ups
+
+1. **Verify new native build**
+- Confirm the build from wrapper `a5c7c4e` includes:
+  - clean `Summary` / `Play-by-Play` UI
+  - live ticking summary clock
+  - scorer open fix
+  - delete support in play-by-play and in-card event log
+  - map buttons removed from `Scores`
+  - summary location pin inline
+
+2. **Live scoring reliability QA**
+- During the next scored game, verify end-to-end:
+  - scorer device writes durable scored-game record
+  - clean/incognito spectator session restores live/final state
+  - finalized game leaves `Schedule` and appears in `History`
+  - official sheet sync updates the final score when applicable
+
+3. **Recovery workflow QA**
+- In admin, test:
+  - `Sync Official Sheet Results`
+  - `Rebuild History from Scored Games`
+  - `Promote Final`
+  - `Reopen`
+  - `Reset`
+- Goal: verify operations work without manual code/data patching.
+
+4. **Future improvement**
+- If desired later, add a cleaner explicit worker-side archive/recovery view instead of depending on local spectator history shells at all.
