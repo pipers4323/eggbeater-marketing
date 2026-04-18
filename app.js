@@ -1460,6 +1460,23 @@ function getActiveTeamLabel() {
   return getTeamLabel(getActiveTeam()) || 'Eggbeater';
 }
 
+function _teamDisplayNameForGame(gameOrRef, fallbackName = '') {
+  const game = (gameOrRef && typeof gameOrRef === 'object') ? gameOrRef : _findGameByRef(gameOrRef);
+  const groupKey = _contextGroupKey(gameOrRef, game?._groupKey || '');
+  const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
+  const baseName = String(tournament.clubName || TOURNAMENT?.clubName || fallbackName || appT('scorer_team_label')).trim();
+  const validTeams = getValidTeamLettersForGroup(groupKey);
+  const teamLetter = String(game?.team || '').trim().toUpperCase();
+  if (!baseName) return appT('scorer_team_label');
+  if (!teamLetter || validTeams.length <= 1) return baseName;
+  const rawLabel = String(tournament.teamLabels?.[teamLetter] || '').trim();
+  if (!rawLabel) return `${baseName} ${teamLetter}`.trim();
+  const normalizedBase = baseName.toLowerCase();
+  const normalizedRaw = rawLabel.toLowerCase();
+  if (normalizedRaw === normalizedBase || normalizedRaw.startsWith(normalizedBase + ' ')) return rawLabel;
+  return `${baseName} ${rawLabel}`.trim();
+}
+
 // ── Per-age-group A/B/C preference storage ────────────────────────────────────
 // Stored as { '12u-girls': ['A','B'], '16u-boys': ['B'] } in ebwp-team-letters.
 // A child playing on both A and B within the same age group can have both selected.
@@ -2743,9 +2760,7 @@ function _buildLUScore(gameId) {
   const game     = _findGameByRef(gameId);
   // Age group: resolve from TEAM_CACHE so the correct group is used even with multiple selected
   const _agLabel = _resolveGameAgeGroup(gameId);
-  // Team name: "Big Splash A" format — club name + team letter
-  const _club    = localStorage.getItem('ebwp-club-name') || getAppClubId() || '';
-  const _tName   = game ? (`${_club}${game.team ? ' ' + game.team : ''}`).trim() : '';
+  const _tName   = _teamDisplayNameForGame(gameId, localStorage.getItem('ebwp-club-name') || getAppClubId() || '');
   return {
     ...score,
     teamName:  _tName || '',
@@ -7467,7 +7482,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
   // ── Live scoring / box score section ──────────────────────────────────────
   const s   = getLiveScore(g);
   const gid = escHtml(_gameRef(g));
-  const teamDisplayName = TOURNAMENT.clubName || appT('scorer_team_label');
+  const teamDisplayName = _teamDisplayNameForGame(g, TOURNAMENT.clubName || appT('scorer_team_label'));
 
   // Live broadcast indicator (shown when another device is actively scoring)
   const STALE_MS = 30 * 60 * 1000; // 30 min — after this, treat as stale
@@ -10695,11 +10710,17 @@ async function pollLiveScores() {
         && getTournamentGames().length > 0) {
       const _laPrefsA = getLAPrefs();
       const _favsA = getFavGroups();
-      const liveGames = getTournamentGames().filter(g => isGameLive(g.id));
-      const autoGame = liveGames.find(g => _favsA.includes(g.team) && _laPrefsA[g.team] !== false)
-        || (liveGames.length > 0 && !liveGames.some(g => _favsA.includes(g.team) && _laPrefsA[g.team] === false) ? liveGames[0] : null);
+      const liveGames = getTournamentGames().filter(g => isGameLive(_gameRef(g)));
+      const autoGame = liveGames.find(g => {
+        const groupKey = _contextGroupKey(g, g._groupKey || '');
+        return _favsA.includes(groupKey) && _laPrefsA[groupKey] !== false;
+      }) || (liveGames.length > 0 && !liveGames.some(g => {
+        const groupKey = _contextGroupKey(g, g._groupKey || '');
+        return _favsA.includes(groupKey) && _laPrefsA[groupKey] === false;
+      }) ? liveGames[0] : null);
       if (autoGame) {
-        EggbeaterLiveUpdate.sync(autoGame.id, _buildLUScore(autoGame.id));
+        const autoGameRef = _gameRef(autoGame);
+        EggbeaterLiveUpdate.sync(autoGameRef, _buildLUScore(autoGameRef));
       } else {
         EggbeaterLiveUpdate.stop();
       }
