@@ -8277,7 +8277,7 @@ function renderNextGameCard() {
           <div class="next-meta">
             <span>🕐 ${escHtml(g.time)} &nbsp;·&nbsp; ${escHtml(g.date || g.dateISO)}</span>
             ${g.pool ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap)} Caps</span>` : '')}
-            ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
+            ${(g.location || TOURNAMENT.location) ? buildLocationLink(g.location || TOURNAMENT.location) : ''}
           </div>
         </div>
       </div>`;
@@ -8509,7 +8509,7 @@ function buildScheduleCard(g) {
       <div class="sched-meta">
         <span>🕐 ${escHtml(g.time || 'TBD')}${(g.date || g.dateISO) ? ' · ' + escHtml(g.date || formatDateGroupLabel(g.dateISO)) : ''}</span>
         ${g.pool ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
-        ${TOURNAMENT.location ? buildLocationLink(TOURNAMENT.location) : ''}
+        ${(g.location || TOURNAMENT.location) ? buildLocationLink(g.location || TOURNAMENT.location) : ''}
       </div>
     </div>`;
 }
