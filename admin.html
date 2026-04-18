@@ -5191,6 +5191,9 @@
       { key: 'masters-women', label: 'Masters Women' },
       { key: 'masters-men', label: 'Masters Men' },
     ];
+    const ADMIN_TEAMS_CLUB_MASTERS_SINGLE = [
+      { key: 'masters', label: 'Masters' },
+    ];
     const ADMIN_TEAMS_CLUB = [...ADMIN_TEAMS_CLUB_YOUTH, ...ADMIN_TEAMS_CLUB_MASTERS];
 
     const ADMIN_TEAMS_HS = [
@@ -5211,9 +5214,23 @@
       return !!S._clubPrograms?.enableMasters && !!S._clubPrograms?.mastersOnly;
     }
 
+    async function detectAdminSingleMastersTeamClub(clubId) {
+      if (!clubId) return false;
+      try {
+        const res = await fetch(`${WORKER}/team-data?team=masters&club=${encodeURIComponent(clubId)}`);
+        return res.ok;
+      } catch {
+        return false;
+      }
+    }
+
+    function isSingleMastersTeamClub() {
+      return isMastersOnlyClub() && !!S._clubPrograms?.singleMastersTeam;
+    }
+
     function getAdminTeams() {
       if (S.clubType === 'highschool') return ADMIN_TEAMS_HS;
-      if (isMastersOnlyClub()) return ADMIN_TEAMS_CLUB_MASTERS;
+      if (isMastersOnlyClub()) return isSingleMastersTeamClub() ? ADMIN_TEAMS_CLUB_MASTERS_SINGLE : ADMIN_TEAMS_CLUB_MASTERS;
       if (isMastersEnabledForClub()) return ADMIN_TEAMS_CLUB;
       return ADMIN_TEAMS_CLUB_YOUTH;
     }
@@ -7377,7 +7394,7 @@
                    onchange="const mo=document.getElementById('club-masters-only'); if(mo){ mo.disabled=!this.checked; if(!this.checked) mo.checked=false; }"
                    style="margin-top:2px;width:16px;height:16px;accent-color:var(--royal)">
             <span style="font-size:0.88rem;line-height:1.35">
-              <strong>Enable Masters Men and Masters Women</strong><br>
+              <strong>Enable Masters programs</strong><br>
               <span style="color:var(--g500)">Adds adult-program age group pills to admin and spectator views.</span>
             </span>
           </label>
@@ -7387,7 +7404,7 @@
                    style="margin-top:2px;width:16px;height:16px;accent-color:var(--royal)">
             <span style="font-size:0.88rem;line-height:1.35">
               <strong>Masters only</strong><br>
-              <span style="color:var(--g500)">Hides all youth age groups and shows only Masters Men/Women.</span>
+              <span style="color:var(--g500)">Hides all youth age groups and shows only Masters teams.</span>
             </span>
           </label>
         </div>` : ''}
@@ -11711,7 +11728,7 @@
 
     // ─── GLOBAL ACTIONS (all age groups at once) ──────────────────────────────────
 
-    const ALL_TEAM_KEYS = ['10u-boys', '10u-girls', '10u-coed', '12u-coed', '12u-girls', '12u-boys', '14u-girls', '14u-boys', '16u-girls', '16u-boys', '18u-girls', '18u-boys', 'masters-women', 'masters-men'];
+    const ALL_TEAM_KEYS = ['10u-boys', '10u-girls', '10u-coed', '12u-coed', '12u-girls', '12u-boys', '14u-girls', '14u-boys', '16u-girls', '16u-boys', '18u-girls', '18u-boys', 'masters', 'masters-women', 'masters-men'];
     const ALL_HS_TEAM_KEYS = ['boys-varsity', 'boys-jv', 'girls-varsity', 'girls-jv'];
 
     function getAllTeamKeys() {
@@ -13883,15 +13900,17 @@
       try {
         const enableMasters = !!document.getElementById('club-enable-masters')?.checked;
         const mastersOnly = enableMasters && !!document.getElementById('club-masters-only')?.checked;
+        const singleMastersTeam = enableMasters && mastersOnly && !!S._clubPrograms?.singleMastersTeam;
         const res = await api('PUT', '/admin/club-settings', {
           clubName: S.tournament.clubName || '',
           clubType: S.clubType || 'club',
           joinPassword: S.tournament.joinPassword || '',
           enableMasters,
           mastersOnly,
+          singleMastersTeam,
         });
         if (!res.ok) throw new Error('Save failed: ' + res.status);
-        S._clubPrograms = { enableMasters, mastersOnly };
+        S._clubPrograms = { enableMasters, mastersOnly, singleMastersTeam };
         renderTab();
         if (statusEl) statusEl.innerHTML = '<span style="color:var(--green)">✅ Club settings saved</span>';
       } catch (e) {
@@ -13917,9 +13936,13 @@
         if (data.joinPassword !== undefined) {
           S.tournament.joinPassword = data.joinPassword;
         }
+        const singleMastersTeam = (!!data.enableMasters && !!data.mastersOnly)
+          ? (!!data.singleMastersTeam || await detectAdminSingleMastersTeamClub(S._clubId))
+          : false;
         S._clubPrograms = {
           enableMasters: !!data.enableMasters,
           mastersOnly: !!data.enableMasters && !!data.mastersOnly,
+          singleMastersTeam,
         };
         // Load branding for THIS club (fresh from KV, not stale state)
         S._branding = {
@@ -15902,3 +15925,6 @@
 </body>
 
 </html>
+
+
+
