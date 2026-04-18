@@ -3043,7 +3043,9 @@ function recordEventForPlayer(gameId, eventType, cap, name, extra = false) {
     cap: cap || '', name: name || '',
     clock: _pendingClock || s.clock || '', period: s.period || 0,
     sixOnFive: (isGoal && opts.sixOnFive && !inShootout) ? true : false,
+    counter: actualType === 'goal' ? !!opts.counter : false,
     forcedBallUnder: actualType === 'steal' ? !!opts.forcedBallUnder : false,
+    inside2m: actualType === 'turnover' ? !!opts.inside2m : false,
     sprintWon: actualType === 'sprint_won',
     ts: Date.now(),
   };
@@ -3172,7 +3174,7 @@ function buildEventLog(events, currentPeriod = 0, gameId = null) {
   const WP_BALL = '<span class="wp-ball">🏐</span>';
   const TYPE_ICONS = { goal:WP_BALL, opp_goal:WP_BALL, goal_5m:WP_BALL, opp_goal_5m:WP_BALL, shot_miss:'❌', opp_shot_miss:'❌', miss_5m:'❌', opp_miss_5m:'❌', so_goal:WP_BALL, opp_so_goal:WP_BALL, so_miss:'❌', opp_so_miss:'❌', assist:'🤝', steal:'🧤', turnover:'↩️', sprint_won:'⚡', opp_sprint_won:'⚡', exclusion:'❌', opp_exclusion:'❌', brutality:'🟥', timeout:'⏱', opp_timeout:'⏱', save:'🧤', block:'🧤' };
   const TYPE_LABEL = {
-    goal:          ev => ev.sixOnFive ? appT('event_goal_6v5') : appT('event_goal'),
+    goal:          ev => ev.counter ? 'GOAL (Counter)' : (ev.sixOnFive ? appT('event_goal_6v5') : appT('event_goal')),
     opp_goal:      ()  => appT('event_goal'),
     goal_5m:       ()  => appT('event_goal_5m'),
     opp_goal_5m:   ()  => appT('event_goal_5m'),
@@ -3186,7 +3188,7 @@ function buildEventLog(events, currentPeriod = 0, gameId = null) {
     opp_so_miss:   ()  => appT('event_so_miss'),
     assist:        ()  => appT('event_assist'),
     steal:         ev  => ev.forcedBallUnder ? appT('event_steal_fbu') : appT('event_steal'),
-    turnover:      ()  => appT('event_turnover'),
+    turnover:      ev  => ev.inside2m ? 'TURNOVER (Inside 2m)' : appT('event_turnover'),
     sprint_won:    ()  => appT('event_sprint_won'),
     opp_sprint_won:()  => appT('event_opp_sprint_won'),
     opp_steal:     ()  => appT('event_opp_steal'),
@@ -3325,7 +3327,7 @@ function _isOppGoalType(type) {
   return ['opp_goal', 'opp_goal_5m', 'opp_so_goal'].includes(type);
 }
 
-function _buildScoreDetailSummary(game, score, ageGroupLabel = '') {
+function _buildScoreDetailSummary(game, score, ageGroupLabel = '', extraActionHtml = '') {
   const events = (score.events || []).filter(e => e.type !== 'game_state');
   const teamName = _teamDisplayNameForGame(game, TOURNAMENT.clubName || appT('scorer_team_label'));
   const oppName = normalizeOpponentName(game.opponent || 'Opp');
@@ -3397,6 +3399,9 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '') {
 
   const teamOff = buildLeaderRows(teamPlayers, 'off');
   const teamDef = buildLeaderRows(teamPlayers, 'def');
+  const hasTeamStatEvents = events.some(ev => ev.side === 'team');
+  const showScoringTable = score.gameState !== 'pre' || events.length > 0 || Number(score.team || 0) > 0 || Number(score.opp || 0) > 0;
+  const showStatBreakdown = showScoringTable && hasTeamStatEvents;
 
   const saveRatioTeam = `${teamStats.saves}/${teamStats.saves + (score.opp || 0)}`;
   const powerPlayTeam = `${teamStats.powerGoals}/${teamStats.powerOpps}`;
@@ -3442,7 +3447,10 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '') {
           <div class="score-detail-summary-kicker">${escHtml(ageGroupLabel || TOURNAMENT.name || 'Match Details')}</div>
           <div class="score-detail-summary-status">${escHtml(statusLabel)}</div>
         </div>
-        ${game.gameNum ? `<div class="scores-detail-game-num">${escHtml(game.gameNum)}</div>` : ''}
+        <div class="score-detail-summary-head-actions">
+          ${game.gameNum ? `<div class="scores-detail-game-num">${escHtml(game.gameNum)}</div>` : ''}
+          ${extraActionHtml || ''}
+        </div>
       </div>
       <div class="score-detail-summary-info">
         <div><strong>Time</strong><span>${escHtml(game.date || formatDateGroupLabel(game.dateISO) || '')}${game.time ? ` ${escHtml(game.time)}` : ''}</span></div>
@@ -3453,7 +3461,7 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '') {
         <div class="score-sep">-</div>
         <div class="team-block"><div class="team-name">${escHtml(oppName)}</div><div class="team-score">${Number.isInteger(score.opp) ? score.opp : Number(score.opp || 0).toFixed(1)}</div></div>
       </div>
-      <div class="score-detail-scoring-table">
+      ${showScoringTable ? `<div class="score-detail-scoring-table">
         <div class="score-detail-scoring-head">Scoring</div>
         <div class="score-detail-scoring-row head" style="grid-template-columns:${scoringGridCols}">
           <span></span>
@@ -3470,17 +3478,17 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '') {
           ${periodColumns.map(col => `<span>${col.opp}</span>`).join('')}
           <span>${Number.isInteger(score.opp) ? score.opp : Number(score.opp || 0).toFixed(1)}</span>
         </div>
-      </div>
-      <div class="score-detail-compare team-only">
+      </div>` : ''}
+      ${showStatBreakdown ? `<div class="score-detail-compare team-only">
         ${statRow('Scoring', Number(score.team || 0), String(score.team || 0))}
         ${statRow('Save Ratio', statValue(teamStats.saves, teamStats.saves + (score.opp || 0)), saveRatioTeam)}
         ${statRow('Power Plays', statValue(teamStats.powerGoals, teamStats.powerOpps), powerPlayTeam)}
         ${statRow('Penalties', statValue(teamStats.penGoals, teamStats.penAttempts), pensTeam)}
         ${statRow('Sprints Won', teamStats.sprints, String(teamStats.sprints))}
         ${statRow('Saves', teamStats.saves, String(teamStats.saves))}
-      </div>
-      ${leaderSection('Offensive Leaders', teamOff, r => `${r.goals}G${r.assists ? ` · ${r.assists}A` : ''}`)}
-      ${leaderSection('Defensive Leaders', teamDef, r => `${r.steals} STL${(r.blocks + r.saves) ? ` · ${r.blocks + r.saves} DEF` : ''}`)}
+      </div>` : ''}
+      ${showStatBreakdown ? leaderSection('Offensive Leaders', teamOff, r => `${r.goals}G${r.assists ? ` · ${r.assists}A` : ''}`) : ''}
+      ${showStatBreakdown ? leaderSection('Defensive Leaders', teamDef, r => `${r.steals} STL${(r.blocks + r.saves) ? ` · ${r.blocks + r.saves} DEF` : ''}`) : ''}
     </div>`;
 }
 
@@ -3767,7 +3775,7 @@ function shareBoxScore(gameId) {
   const evs  = s.events || [];
 
   const TYPE_TEXT = {
-    goal:          ev => ev.sixOnFive ? 'GOAL (6v5)' : 'GOAL',
+    goal:          ev => ev.counter ? 'GOAL (Counter)' : (ev.sixOnFive ? 'GOAL (6v5)' : 'GOAL'),
     opp_goal:      ()  => 'GOAL',
     goal_5m:       ()  => 'GOAL (5m)',
     opp_goal_5m:   ()  => 'GOAL (5m)',
@@ -3781,7 +3789,7 @@ function shareBoxScore(gameId) {
     opp_so_miss:   ()  => 'SO MISS',
     assist:        ()  => 'ASSIST',
     steal:         ev  => ev.forcedBallUnder ? 'STEAL (FBU)' : 'STEAL',
-    turnover:      ()  => 'TURNOVER',
+    turnover:      ev => ev.inside2m ? 'TURNOVER (Inside 2m)' : 'TURNOVER',
     sprint_won:    ()  => 'SPRINT WON',
     opp_sprint_won:()  => 'OPP SPRINT WON',
     opp_steal:     ()  => 'OPP STEAL',
@@ -4038,7 +4046,7 @@ function buildBoxScoreText(gameId) {
   const evs  = s.events || [];
 
   const TYPE_TEXT = {
-    goal:          ev => ev.sixOnFive ? 'GOAL (6v5)' : 'GOAL',
+    goal:          ev => ev.counter ? 'GOAL (Counter)' : (ev.sixOnFive ? 'GOAL (6v5)' : 'GOAL'),
     opp_goal:      ()  => 'GOAL',
     goal_5m:       ()  => 'GOAL (5m)',
     opp_goal_5m:   ()  => 'GOAL (5m)',
@@ -4052,7 +4060,7 @@ function buildBoxScoreText(gameId) {
     opp_so_miss:   ()  => 'SO MISS',
     assist:        ()  => 'ASSIST',
     steal:         ev  => ev.forcedBallUnder ? 'STEAL (FBU)' : 'STEAL',
-    turnover:      ()  => 'TURNOVER',
+    turnover:      ev => ev.inside2m ? 'TURNOVER (Inside 2m)' : 'TURNOVER',
     sprint_won:    ()  => 'SPRINT WON',
     opp_sprint_won:()  => 'OPP SPRINT WON',
     opp_steal:     ()  => 'OPP STEAL',
@@ -5023,21 +5031,48 @@ function openEventPicker(gameId, eventType) {
 
     const titleEl = $('roster-modal-title');
     const row6v5  = $('roster-6v5-row');
-    const cb      = $('roster-6v5-checkbox');
     const list    = $('roster-modal-list');
-    const extraLabel = document.querySelector('#roster-6v5-row .roster-6v5-label span');
-    const showExtraToggle = realType === 'goal' || realType === 'steal';
+    const extraOptions = [];
+    if (realType === 'goal') {
+      extraOptions.push(
+        { key: 'sixOnFive', label: '6-on-5 power play goal', checked: isSixOnFive, group: 'goal-mode' },
+        { key: 'counter', label: 'Counter', checked: false, group: 'goal-mode' }
+      );
+    } else if (realType === 'steal') {
+      extraOptions.push({ key: 'forcedBallUnder', label: 'Forced Ball Under', checked: false });
+    } else if (realType === 'turnover') {
+      extraOptions.push({ key: 'inside2m', label: 'Inside 2m', checked: false });
+    }
 
     if (titleEl) titleEl.textContent = TITLES[realType] || 'Select Player';
-    if (row6v5)  row6v5.classList.toggle('hidden', !showExtraToggle);
-    if (extraLabel) extraLabel.textContent = realType === 'steal' ? 'Forced Ball Under' : '6-on-5 power play goal';
-    if (cb)      cb.checked = isSixOnFive;
+    if (row6v5) {
+      row6v5.classList.toggle('hidden', !extraOptions.length);
+      row6v5.innerHTML = extraOptions.map(opt => `
+        <label class="roster-6v5-label">
+          <input type="checkbox" id="roster-extra-${opt.key}" class="roster-6v5-checkbox"${opt.checked ? ' checked' : ''}${opt.group ? ` data-exclusive-group="${opt.group}"` : ''}>
+          <span>${escHtml(opt.label)}</span>
+        </label>`).join('');
+      row6v5.querySelectorAll('[data-exclusive-group]').forEach(el => {
+        el.addEventListener('change', () => {
+          if (!el.checked) return;
+          row6v5.querySelectorAll(`[data-exclusive-group="${el.getAttribute('data-exclusive-group')}"]`).forEach(other => {
+            if (other !== el) other.checked = false;
+          });
+        });
+      });
+    }
 
     // For saves, show only goalkeepers; for everything else show full roster
     const goalieOnly    = realType === 'save';
     const displayRoster = goalieOnly
       ? sortedRoster(roster).filter(p => isGoalie(p.cap))
       : sortedRoster(roster);
+
+    if (realType === 'save' && displayRoster.length === 1) {
+      const player = displayRoster[0];
+      recordEventForPlayer(gameId, 'save', player.cap, `${player.first} ${player.last}`);
+      return;
+    }
 
     list.innerHTML = '';
     if (realType === 'sprint_won') {
@@ -5059,10 +5094,12 @@ function openEventPicker(gameId, eventType) {
         <span class="roster-cap">${player.cap ? '#'+escHtml(player.cap) : 'GK'}</span>
         <span class="roster-name">${escHtml(player.first)} ${escHtml(player.last)}</span>`;
       btn.addEventListener('click', () => {
-        const extraChecked = $('roster-6v5-checkbox')?.checked || _pickerSixOnFive;
-        const extra = _pickerType === 'steal'
-          ? { forcedBallUnder: !!extraChecked }
-          : { sixOnFive: !!extraChecked };
+        const extra = {
+          sixOnFive: !!$('roster-extra-sixOnFive')?.checked || _pickerSixOnFive,
+          counter: !!$('roster-extra-counter')?.checked,
+          forcedBallUnder: !!$('roster-extra-forcedBallUnder')?.checked,
+          inside2m: !!$('roster-extra-inside2m')?.checked,
+        };
         recordEventForPlayer(gameId, _pickerType, player.cap, `${player.first} ${player.last}`, extra);
         closeEventPicker();
       });
@@ -5086,8 +5123,8 @@ function closeEventPicker() {
   document.body.classList.remove('modal-open');
   _closeModal('roster-modal');
   _pickerGameId = null;
-  const cb = $('roster-6v5-checkbox');
-  if (cb) cb.checked = false;
+  const row = $('roster-6v5-row');
+  if (row) row.innerHTML = '';
 }
 function closeRosterPicker() { closeEventPicker(); }
 
@@ -6434,7 +6471,10 @@ function buildEmbeddedScoreCardDetail(game, viewerOnly = false, ageGroupLabel = 
   const canScore = !TOURNAMENT.scoringPassword || isScorerUnlockedForTournament(TOURNAMENT);
   const tab = getScoreCardTab(game);
   const gid = escHtml(_gameRef(game));
-  const scorerOpenArgs = `${escHtml(_gameIdOnly(game))},'${escHtml(_contextGroupKey(game))}','${escHtml(ageGroupLabel || '')}'`;
+  const scorerOpenArgs = `${JSON.stringify(_gameRef(game))},${JSON.stringify(_contextGroupKey(game))},${JSON.stringify(ageGroupLabel || '')}`;
+  const scorerAction = (!viewerOnly && canScore)
+    ? `<button class="scores-open-scorer-btn score-detail-inline-scorer-btn" onclick="event.stopPropagation();openScorerDetail(${scorerOpenArgs})">✏️ ${escHtml(appT('scorer_open'))}</button>`
+    : '';
 
   return `
     <div class="score-card-detail">
@@ -6445,10 +6485,7 @@ function buildEmbeddedScoreCardDetail(game, viewerOnly = false, ageGroupLabel = 
       ${tab === 'play'
         ? buildScoreDetailPlayByPlay(game)
         : `<div class="score-detail-summary-host">
-            ${_buildScoreDetailSummary(game, s, ageGroupLabel)}
-            ${(!viewerOnly && canScore)
-              ? `<div class="score-detail-summary-action"><button class="scores-open-scorer-btn" onclick="openScorerDetail(${scorerOpenArgs})">✏️ ${escHtml(appT('scorer_open'))}</button></div>`
-              : ''}
+            ${_buildScoreDetailSummary(game, s, ageGroupLabel, scorerAction)}
           </div>`}
     </div>`;
 }
@@ -6480,10 +6517,7 @@ function buildScoreDetailView(ctx) {
         ${state.scoreDetailTab === 'play'
           ? buildScoreDetailPlayByPlay(game)
           : `<div class="score-detail-summary-host">
-              ${_buildScoreDetailSummary(game, s, ageGroupLabel)}
-              ${(!viewerOnly && canScore && !ctx.scorerMode)
-                ? `<div class="score-detail-summary-action"><button class="scores-open-scorer-btn" onclick="enableScoreDetailScorer()">✏️ ${escHtml(appT('scorer_open'))}</button></div>`
-                : ''}
+              ${_buildScoreDetailSummary(game, s, ageGroupLabel, (!viewerOnly && canScore && !ctx.scorerMode) ? `<button class="scores-open-scorer-btn score-detail-inline-scorer-btn" onclick="enableScoreDetailScorer()">✏️ ${escHtml(appT('scorer_open'))}</button>` : '')}
               ${(!viewerOnly && canScore && ctx.scorerMode) ? _buildScoreDetailScorerPanel(game, s) : ''}
             </div>`}
       </div>`;
@@ -12466,7 +12500,7 @@ function _buildLastEventStr(gameId) {
   const sc = `${s.team || 0}-${s.opp || 0}`;
   const pl = [ev.cap ? `#${ev.cap}` : '', ev.name || ''].filter(Boolean).join(' ');
   switch (ev.type) {
-    case 'goal':       return `🟡 ${pl || 'Goal'} scored${ev.sixOnFive ? ' (6 on 5)' : ''} · ${q}${t} · ${sc}`;
+    case 'goal':       return `🟡 ${pl || 'Goal'} scored${ev.counter ? ' (Counter)' : (ev.sixOnFive ? ' (6 on 5)' : '')} · ${q}${t} · ${sc}`;
     case 'goal_5m':    return `🟡 ${pl || 'Penalty'} scored (5m) · ${q}${t} · ${sc}`;
     case 'opp_goal':   return `🟡 Opponent scored · ${q}${t} · ${sc}`;
     case 'opp_goal_5m':return `🟡 Opponent penalty (5m) · ${q}${t} · ${sc}`;

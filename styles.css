@@ -1728,6 +1728,12 @@ h2 {
   gap: 8px;
 }
 
+.score-card-detail .score-detail-summary-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .score-card-detail .score-detail-summary-kicker,
 .score-card-detail .score-detail-summary-status {
   font-size: 0.84rem;
@@ -1797,6 +1803,18 @@ h2 {
   display: flex;
   justify-content: flex-end;
   padding: 0 4px;
+}
+
+.score-detail-summary-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.score-detail-inline-scorer-btn {
+  white-space: nowrap;
 }
 
 .score-detail-summary-meta,
@@ -2224,6 +2242,11 @@ h2 {
     grid-template-columns: 1fr;
   }
 
+  .score-detail-summary-head-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .score-detail-summary-scoreline {
     grid-template-columns: 1fr;
   }
@@ -2235,6 +2258,37 @@ h2 {
   .score-detail-scoring-row {
     grid-template-columns: minmax(120px, 1.6fr) repeat(5, minmax(26px, 0.5fr));
     font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .score-card-detail {
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .score-card-detail .score-detail-summary-meta,
+  .score-card-detail .score-detail-summary-info,
+  .score-card-detail .score-detail-summary-scoreline,
+  .score-card-detail .score-detail-scoring-table,
+  .score-card-detail .score-detail-compare,
+  .score-card-detail .score-detail-leaders {
+    padding: 8px 10px;
+  }
+
+  .score-card-detail .score-detail-summary-scoreline .team-name {
+    font-size: 0.92rem;
+  }
+
+  .score-card-detail .score-detail-summary-scoreline .team-score,
+  .score-card-detail .score-detail-summary-scoreline .score-sep {
+    font-size: clamp(1.5rem, 7vw, 2rem);
+  }
+
+  .score-card-detail .score-detail-scoring-row {
+    gap: 4px;
+    padding: 5px 0;
+    font-size: 0.76rem;
   }
 }
 
@@ -4392,6 +4446,8 @@ body.modal-open { overflow: hidden; }
   padding: 10px 18px;
   background: var(--amber-light);
   border-bottom: 1px solid rgba(0,0,0,.06);
+  display: grid;
+  gap: 8px;
 }
 .roster-6v5-label {
   display: flex;
