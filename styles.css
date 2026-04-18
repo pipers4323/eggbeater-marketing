@@ -1715,6 +1715,84 @@ h2 {
   margin: 0;
 }
 
+.score-card-detail .score-detail-summary-meta,
+.score-card-detail .score-detail-summary-info,
+.score-card-detail .score-detail-summary-scoreline,
+.score-card-detail .score-detail-scoring-table,
+.score-card-detail .score-detail-compare,
+.score-card-detail .score-detail-leaders {
+  padding: 10px 14px;
+}
+
+.score-card-detail .score-detail-summary-meta {
+  gap: 8px;
+}
+
+.score-card-detail .score-detail-summary-kicker,
+.score-card-detail .score-detail-summary-status {
+  font-size: 0.84rem;
+}
+
+.score-card-detail .score-detail-summary-info {
+  gap: 8px;
+}
+
+.score-card-detail .score-detail-summary-info strong,
+.score-card-detail .score-detail-section-title,
+.score-card-detail .score-detail-scoring-head {
+  margin-bottom: 4px;
+  font-size: 0.74rem;
+}
+
+.score-card-detail .score-detail-summary-info span {
+  font-size: 0.88rem;
+}
+
+.score-card-detail .score-detail-summary-scoreline {
+  gap: 10px;
+}
+
+.score-card-detail .score-detail-summary-scoreline .team-name {
+  font-size: 1rem;
+  margin-bottom: 2px;
+}
+
+.score-card-detail .score-detail-summary-scoreline .team-score,
+.score-card-detail .score-detail-summary-scoreline .score-sep {
+  font-size: clamp(1.9rem, 4vw, 2.5rem);
+}
+
+.score-card-detail .score-detail-scoring-row {
+  gap: 6px;
+  padding: 6px 0;
+  font-size: 0.84rem;
+}
+
+.score-card-detail .score-detail-compare {
+  gap: 10px;
+}
+
+.score-card-detail .score-detail-compare-head {
+  font-size: 0.82rem;
+}
+
+.score-card-detail .score-detail-compare-bars {
+  gap: 8px;
+}
+
+.score-card-detail .score-detail-bar {
+  height: 7px;
+}
+
+.score-card-detail .score-detail-leader-grid {
+  gap: 12px;
+}
+
+.score-card-detail .score-detail-leader-row {
+  padding: 6px 0;
+  font-size: 0.84rem;
+}
+
 .score-detail-summary-action {
   display: flex;
   justify-content: flex-end;
