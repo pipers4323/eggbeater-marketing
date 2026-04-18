@@ -8056,63 +8056,63 @@ html.native-android .next-game-card.cap-white-bg .directions-btn * {
   color: #ffffff !important;
 }
 
-html.native-ios .game-card.cap-white-bg .live-score-bar,
-html.native-ios .game-card.cap-white-bg .viewer-scoreboard,
-html.native-ios .game-card.cap-white-bg .box-score,
-html.native-android .game-card.cap-white-bg .live-score-bar,
-html.native-android .game-card.cap-white-bg .viewer-scoreboard,
-html.native-android .game-card.cap-white-bg .box-score {
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .live-score-bar,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .viewer-scoreboard,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .box-score,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .live-score-bar,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .viewer-scoreboard,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .box-score {
   background: #1f2937 !important;
   border-color: #334155 !important;
   color: #ffffff !important;
 }
 
-html.native-ios .game-card.cap-white-bg .viewer-scoreboard,
-html.native-android .game-card.cap-white-bg .viewer-scoreboard {
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .viewer-scoreboard,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .viewer-scoreboard {
   border: 1px solid #334155 !important;
   border-radius: 12px !important;
   padding: 12px 10px !important;
 }
 
-html.native-ios .game-card.cap-white-bg .box-score .bs-header-row,
-html.native-ios .game-card.cap-white-bg .box-score .bs-row,
-html.native-ios .game-card.cap-white-bg .box-score .bs-section-label,
-html.native-ios .game-card.cap-white-bg .box-score .bs-total-row,
-html.native-android .game-card.cap-white-bg .box-score .bs-header-row,
-html.native-android .game-card.cap-white-bg .box-score .bs-row,
-html.native-android .game-card.cap-white-bg .box-score .bs-section-label,
-html.native-android .game-card.cap-white-bg .box-score .bs-total-row {
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-header-row,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-row,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-section-label,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-total-row,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-header-row,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-row,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-section-label,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-total-row {
   background: transparent !important;
   border-color: #334155 !important;
 }
 
-html.native-ios .game-card.cap-white-bg .ls-label,
-html.native-ios .game-card.cap-white-bg .ls-sep,
-html.native-ios .game-card.cap-white-bg .ls-score,
-html.native-ios .game-card.cap-white-bg .ls-score-team,
-html.native-ios .game-card.cap-white-bg .ls-score-opp,
-html.native-ios .game-card.cap-white-bg .lsb-scores,
-html.native-ios .game-card.cap-white-bg .lsb-updated,
-html.native-ios .game-card.cap-white-bg .box-score .bs-player,
-html.native-ios .game-card.cap-white-bg .box-score .bs-col-hdr,
-html.native-ios .game-card.cap-white-bg .box-score .bs-stat,
-html.native-android .game-card.cap-white-bg .ls-label,
-html.native-android .game-card.cap-white-bg .ls-sep,
-html.native-android .game-card.cap-white-bg .ls-score,
-html.native-android .game-card.cap-white-bg .ls-score-team,
-html.native-android .game-card.cap-white-bg .ls-score-opp,
-html.native-android .game-card.cap-white-bg .lsb-scores,
-html.native-android .game-card.cap-white-bg .lsb-updated,
-html.native-android .game-card.cap-white-bg .box-score .bs-player,
-html.native-android .game-card.cap-white-bg .box-score .bs-col-hdr,
-html.native-android .game-card.cap-white-bg .box-score .bs-stat {
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .ls-label,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .ls-sep,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .ls-score,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .ls-score-team,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .ls-score-opp,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .lsb-scores,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .lsb-updated,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-player,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-col-hdr,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-stat,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .ls-label,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .ls-sep,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .ls-score,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .ls-score-team,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .ls-score-opp,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .lsb-scores,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .lsb-updated,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-player,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-col-hdr,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-stat {
   color: #ffffff !important;
 }
 
-html.native-ios .game-card.cap-white-bg .lsb-period,
-html.native-ios .game-card.cap-white-bg .box-score .bs-stat.has-stat,
-html.native-android .game-card.cap-white-bg .lsb-period,
-html.native-android .game-card.cap-white-bg .box-score .bs-stat.has-stat {
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .lsb-period,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-stat.has-stat,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .lsb-period,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .box-score .bs-stat.has-stat {
   color: #fca5a5 !important;
 }
 
@@ -8160,55 +8160,55 @@ html.native-android .settings-item-label[style*="var(--royal)"] {
 
 /* Native scorer panel rescue:
    white-card readability rules must not bleed into the dark inner scoring panel. */
-html.native-ios .game-card.cap-white-bg .scoring-section .auto-clock-wrap,
-html.native-ios .game-card.cap-white-bg .scoring-section .live-scoreboard,
-html.native-ios .game-card.cap-white-bg .scoring-section .box-score,
-html.native-android .game-card.cap-white-bg .scoring-section .auto-clock-wrap,
-html.native-android .game-card.cap-white-bg .scoring-section .live-scoreboard,
-html.native-android .game-card.cap-white-bg .scoring-section .box-score {
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .auto-clock-wrap,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .live-scoreboard,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .box-score,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .auto-clock-wrap,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .live-scoreboard,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .box-score {
   background: #0f172a !important;
   border-color: #334155 !important;
   color: #f8fafc !important;
 }
 
-html.native-ios .game-card.cap-white-bg .scoring-section .auto-clock-phase,
-html.native-ios .game-card.cap-white-bg .scoring-section .auto-clock-time,
-html.native-ios .game-card.cap-white-bg .scoring-section .auto-clock-break-label,
-html.native-ios .game-card.cap-white-bg .scoring-section .auto-clock-to-chip,
-html.native-ios .game-card.cap-white-bg .scoring-section .auto-clock-to-sep,
-html.native-ios .game-card.cap-white-bg .scoring-section .ls-label,
-html.native-ios .game-card.cap-white-bg .scoring-section .ls-score,
-html.native-ios .game-card.cap-white-bg .scoring-section .ls-sep,
-html.native-ios .game-card.cap-white-bg .scoring-section .bs-player,
-html.native-ios .game-card.cap-white-bg .scoring-section .bs-col-hdr,
-html.native-ios .game-card.cap-white-bg .scoring-section .bs-stat,
-html.native-ios .game-card.cap-white-bg .scoring-section .bs-section-label,
-html.native-ios .game-card.cap-white-bg .scoring-section .bs-footer-line,
-html.native-android .game-card.cap-white-bg .scoring-section .auto-clock-phase,
-html.native-android .game-card.cap-white-bg .scoring-section .auto-clock-time,
-html.native-android .game-card.cap-white-bg .scoring-section .auto-clock-break-label,
-html.native-android .game-card.cap-white-bg .scoring-section .auto-clock-to-chip,
-html.native-android .game-card.cap-white-bg .scoring-section .auto-clock-to-sep,
-html.native-android .game-card.cap-white-bg .scoring-section .ls-label,
-html.native-android .game-card.cap-white-bg .scoring-section .ls-score,
-html.native-android .game-card.cap-white-bg .scoring-section .ls-sep,
-html.native-android .game-card.cap-white-bg .scoring-section .bs-player,
-html.native-android .game-card.cap-white-bg .scoring-section .bs-col-hdr,
-html.native-android .game-card.cap-white-bg .scoring-section .bs-stat,
-html.native-android .game-card.cap-white-bg .scoring-section .bs-section-label,
-html.native-android .game-card.cap-white-bg .scoring-section .bs-footer-line {
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .auto-clock-phase,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .auto-clock-time,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .auto-clock-break-label,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .auto-clock-to-chip,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .auto-clock-to-sep,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .ls-label,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .ls-score,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .ls-sep,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .bs-player,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .bs-col-hdr,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .bs-stat,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .bs-section-label,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .bs-footer-line,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .auto-clock-phase,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .auto-clock-time,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .auto-clock-break-label,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .auto-clock-to-chip,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .auto-clock-to-sep,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .ls-label,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .ls-score,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .ls-sep,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .bs-player,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .bs-col-hdr,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .bs-stat,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .bs-section-label,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .bs-footer-line {
   color: #f8fafc !important;
 }
 
-html.native-ios .game-card.cap-white-bg .scoring-section .score-btn-team,
-html.native-android .game-card.cap-white-bg .scoring-section .score-btn-team {
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .score-btn-team,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .score-btn-team {
   background: #0b63ce !important;
   color: #ffffff !important;
   border-color: #0b63ce !important;
 }
 
-html.native-ios .game-card.cap-white-bg .scoring-section .score-btn-opp,
-html.native-android .game-card.cap-white-bg .scoring-section .score-btn-opp {
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .score-btn-opp,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .score-btn-opp {
   background: #e5e7eb !important;
   color: #111827 !important;
   border-color: #d1d5db !important;
@@ -8231,14 +8231,14 @@ html.native-android .bracket-result-btn {
   font-size: 0.82rem;
 }
 
-html.native-ios .game-card.cap-white-bg .scoring-section .gs-btn,
-html.native-ios .game-card.cap-white-bg .scoring-section .stat-btn,
-html.native-ios .game-card.cap-white-bg .scoring-section .ls-undo-btn,
-html.native-ios .game-card.cap-white-bg .scoring-section .ls-share-btn,
-html.native-android .game-card.cap-white-bg .scoring-section .gs-btn,
-html.native-android .game-card.cap-white-bg .scoring-section .stat-btn,
-html.native-android .game-card.cap-white-bg .scoring-section .ls-undo-btn,
-html.native-android .game-card.cap-white-bg .scoring-section .ls-share-btn {
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .gs-btn,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .stat-btn,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .ls-undo-btn,
+html.native-ios[data-theme="dark"] .game-card.cap-white-bg .scoring-section .ls-share-btn,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .gs-btn,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .stat-btn,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .ls-undo-btn,
+html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .ls-share-btn {
   opacity: 1 !important;
   filter: none !important;
 }
