@@ -1691,6 +1691,35 @@ function getHistoryForActiveTeam() {
   });
 }
 
+function _historyEntryMatchesCurrentTournament(entry) {
+  if (!entry || !TOURNAMENT) return false;
+  if (entry.id && TOURNAMENT.id && entry.id === TOURNAMENT.id) return true;
+
+  const sameName = (entry.name || '').trim() && (entry.name || '').trim() === (TOURNAMENT.name || '').trim();
+  const sameDates = (entry.dates || '').trim() && (entry.dates || '').trim() === (TOURNAMENT.dates || '').trim();
+  const sameLocation = (entry.location || '').trim() && (entry.location || '').trim() === (TOURNAMENT.location || '').trim();
+  if (!(sameName && sameDates && sameLocation)) return false;
+
+  const currentGames = Array.isArray(TOURNAMENT.games) ? TOURNAMENT.games : [];
+  const entryGames = Array.isArray(entry.games) ? entry.games : [];
+  if (!entryGames.length || !currentGames.length) return true;
+
+  return entryGames.some((eg) => currentGames.some((cg) =>
+    String(eg?.opponent || '').trim() === String(cg?.opponent || '').trim()
+    && String(eg?.dateISO || '').trim() === String(cg?.dateISO || '').trim()
+    && String(eg?.time || '').trim() === String(cg?.time || '').trim()
+  ));
+}
+
+function _pruneCurrentTournamentHistoryDuplicates() {
+  const history = getHistory();
+  if (!Array.isArray(history) || !history.length) return false;
+  const next = history.filter(entry => !_historyEntryMatchesCurrentTournament(entry));
+  if (next.length === history.length) return false;
+  localStorage.setItem(STORE.HISTORY, JSON.stringify(next));
+  return true;
+}
+
 /** Create a history-like object from games in the active tournament that have results. */
 function _getVirtualHistoryEntry() {
   const games = getTournamentGames().filter(g => _getResultForGame(g));
@@ -8691,6 +8720,7 @@ function _renderPossibleMulti(slots) {
 }
 
 function renderHistoryTab() {
+  _pruneCurrentTournamentHistoryDuplicates();
   if (!spectatorHasFeature('spectator_stats')) {
     const viewEl = document.getElementById('view-history');
     if (viewEl) viewEl.innerHTML = renderSpectatorNudge('history');
