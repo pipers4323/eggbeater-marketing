@@ -7999,7 +7999,7 @@
         admins.push({ uid, name: name, email: '' });
         const putRes = await api('PUT', '/admin/club-admins', { adminUIDs: admins });
         if (!putRes.ok) throw new Error('Failed to save');
-        if (typeof fbAddClubAdmin === 'function') await fbAddClubAdmin(typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club', uid);
+        if (typeof fbAddClubAdmin === 'function') await fbAddClubAdmin(_resolveAdminClubId(null), uid);
         uidInput.value = '';
         nameInput.value = '';
         showStatus(adminFormat('admins_added', { name: name ? `: ${name}` : '' }), 'ok');
@@ -8017,7 +8017,7 @@
         const admins = _cachedAdmins.filter(a => a.uid !== uid);
         const putRes = await api('PUT', '/admin/club-admins', { adminUIDs: admins });
         if (!putRes.ok) throw new Error('Failed to save');
-        if (typeof fbRemoveClubAdmin === 'function') await fbRemoveClubAdmin(typeof fbGetClubId === 'function' ? fbGetClubId() : 'my-club', uid);
+        if (typeof fbRemoveClubAdmin === 'function') await fbRemoveClubAdmin(_resolveAdminClubId(null), uid);
         showStatus(adminT('admins_removed'), 'ok');
         loadClubAdmins();
       } catch (e) {
