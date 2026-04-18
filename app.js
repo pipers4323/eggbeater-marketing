@@ -3535,6 +3535,7 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '', extraActionHt
   const events = (score.events || []).filter(e => e.type !== 'game_state');
   const teamName = _teamDisplayNameForGame(game, TOURNAMENT.clubName || appT('scorer_team_label'));
   const oppName = normalizeOpponentName(game.opponent || 'Opp');
+  const isPregame = (score.gameState || 'pre') === 'pre' && !events.length && !Number(score.team || 0) && !Number(score.opp || 0);
   const periodBaseLabel = score.gameState === 'final'
     ? 'Final'
     : (PERIOD_LABELS[score.period] || (isGameLive(_gameRef(game)) ? 'Live' : 'Scheduled'));
@@ -3606,6 +3607,7 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '', extraActionHt
   const hasTeamStatEvents = events.some(ev => ev.side === 'team');
   const showScoringTable = score.gameState !== 'pre' || events.length > 0 || Number(score.team || 0) > 0 || Number(score.opp || 0) > 0;
   const showStatBreakdown = showScoringTable && hasTeamStatEvents;
+  if (isPregame) return '';
 
   const saveRatioTeam = `${teamStats.saves}/${teamStats.saves + (score.opp || 0)}`;
   const powerPlayTeam = `${teamStats.powerGoals}/${teamStats.powerOpps}`;
@@ -3700,6 +3702,7 @@ function _buildScoreDetailScorerPanel(game, s) {
   const gid = escHtml(_gameRef(game));
   const teamDisplayName = _teamDisplayNameForGame(game, TOURNAMENT.clubName || appT('scorer_team_label'));
   const cs = getClockSettings(gid);
+  const isFinal = s.gameState === 'final';
   const _isHalves = cs.periodMode === 'halves';
   const GS_OPTS = _isHalves ? [
     { key:'start', label:'▶ Start' },
@@ -3791,6 +3794,14 @@ function _buildScoreDetailScorerPanel(game, s) {
         <div class="ls-actions-row">
           <button class="ls-undo-btn" onclick="undoLastEvent('${gid}')">↩ ${escHtml(appT('scorer_undo'))}</button>
           <button class="ls-share-btn" onclick="shareBoxScore('${gid}')">📤 ${escHtml(appT('scorer_share_box_score'))}</button>
+        </div>
+        <div class="score-finalize-row">
+          <button class="score-finalize-btn${isFinal ? ' is-final' : ''}" onclick="${isFinal ? `resetToPreGame('${gid}')` : `setGameState('${gid}','final')`}">
+            ${isFinal ? '↩ Reopen Game' : '🏁 Submit Final Score & End Game'}
+          </button>
+          <div class="score-finalize-note">
+            ${isFinal ? 'Game is marked final.' : `Current score: ${escHtml(teamDisplayName)} ${Number(s.team) || 0} - ${Number(s.opp) || 0} ${escHtml(normalizeOpponentName(game.opponent || 'Opp'))}`}
+          </div>
         </div>
         ${s.gameState === 'shootout' ? `
         <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:6px 10px;margin-bottom:6px;text-align:center">
@@ -6704,9 +6715,11 @@ function buildEmbeddedScoreCardDetail(game, viewerOnly = false, ageGroupLabel = 
   const scorerAction = (!viewerOnly && canScore)
     ? `<button class="scores-open-scorer-btn score-detail-inline-scorer-btn" data-game-id="${escHtml(_gameRef(game))}" data-group-key="${escHtml(_contextGroupKey(game))}" data-age-group-label="${escHtml(ageGroupLabel || '')}" onclick="return handleOpenScorerButtonClick(event, this)">✏️ ${escHtml(appT('scorer_open'))}</button>`
     : '';
+  const summaryHtml = _buildScoreDetailSummary(game, s, ageGroupLabel);
 
   return `
     <div class="score-card-detail">
+      ${scorerAction ? `<div class="score-card-detail-toolbar">${scorerAction}</div>` : ''}
       <div class="scores-detail-tabs score-card-detail-tabs">
         <button class="scores-detail-tab ${tab !== 'play' ? 'active' : ''}" onclick="setScoreCardTab('${gid}','summary')">Summary</button>
         <button class="scores-detail-tab ${tab === 'play' ? 'active' : ''}" onclick="setScoreCardTab('${gid}','play')">Play-by-Play</button>
@@ -6714,7 +6727,7 @@ function buildEmbeddedScoreCardDetail(game, viewerOnly = false, ageGroupLabel = 
       ${tab === 'play'
         ? buildScoreDetailPlayByPlay(game)
         : `<div class="score-detail-summary-host">
-            ${_buildScoreDetailSummary(game, s, ageGroupLabel, scorerAction)}
+            ${summaryHtml}
           </div>`}
     </div>`;
 }
@@ -6730,6 +6743,7 @@ function buildScoreDetailView(ctx) {
     const scorerPanel = (!viewerOnly && canScore && ctx.scorerMode)
       ? _buildScoreDetailScorerPanel(game, s)
       : '';
+    const summaryHtml = _buildScoreDetailSummary(game, s, ageGroupLabel);
     return `
       <div class="scores-detail-shell">
         <div class="scores-detail-topbar">
@@ -6742,7 +6756,10 @@ function buildScoreDetailView(ctx) {
               <div class="scores-detail-kicker">${escHtml(TOURNAMENT.name || 'Game Details')}</div>
               <div class="scores-detail-title">${escHtml(_teamDisplayNameForGame(game, TOURNAMENT.clubName || 'Team'))} vs ${escHtml(normalizeOpponentName(game.opponent || 'TBD'))}</div>
             </div>
-            ${game.gameNum ? `<div class="scores-detail-game-num">${escHtml(game.gameNum)}</div>` : ''}
+            <div class="scores-detail-hero-actions">
+              ${summaryAction}
+              ${game.gameNum ? `<div class="scores-detail-game-num">${escHtml(game.gameNum)}</div>` : ''}
+            </div>
           </div>
         </div>
         <div class="scores-detail-tabs">
@@ -6753,7 +6770,7 @@ function buildScoreDetailView(ctx) {
           ? buildScoreDetailPlayByPlay(game)
           : `<div class="score-detail-summary-host">
               ${scorerPanel}
-              ${_buildScoreDetailSummary(game, s, ageGroupLabel, summaryAction)}
+              ${summaryHtml}
             </div>`}
       </div>`;
   });

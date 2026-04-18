@@ -741,18 +741,19 @@ body {
   border-color: var(--royal);
 }
 .scores-open-scorer-btn {
-  background: var(--royal);
-  border: 1px solid var(--royal);
+  background: linear-gradient(180deg, #1d4ed8 0%, #143fae 100%);
+  border: 1px solid #143fae;
   color: white;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 800;
-  padding: 7px 12px;
+  padding: 9px 14px;
   border-radius: 999px;
   cursor: pointer;
   transition: all 0.15s;
   margin-left: 6px;
   vertical-align: middle;
-  box-shadow: 0 2px 8px rgba(var(--royal-rgb), 0.2);
+  box-shadow: 0 6px 18px rgba(var(--royal-rgb), 0.28);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.14);
 }
 .scores-open-scorer-btn:hover {
   background: var(--royal-dark);
@@ -1656,26 +1657,33 @@ h2 {
 .scores-detail-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 10px;
   margin: 14px 0 12px;
 }
 
 .scores-detail-tab {
-  border: 1px solid var(--gray-200);
-  background: white;
-  color: var(--gray-500);
+  border: 1.5px solid #c9d4ea;
+  background: rgba(255,255,255,0.98);
+  color: var(--gray-700);
   border-radius: 12px;
-  padding: 11px 12px;
+  padding: 12px 14px;
   font-size: 0.86rem;
   font-weight: 800;
   cursor: pointer;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .scores-detail-tab.active {
-  background: var(--royal);
-  border-color: var(--royal);
+  background: linear-gradient(180deg, #1d4ed8 0%, #143fae 100%);
+  border-color: #143fae;
   color: white;
-  box-shadow: 0 8px 18px rgba(20,64,176,.18);
+  box-shadow: 0 10px 22px rgba(20,64,176,.24);
+}
+
+.scores-detail-tab:not(.active):hover {
+  border-color: #9fb7e9;
+  transform: translateY(-1px);
 }
 
 .score-detail-summary-host .event-log {
@@ -1732,6 +1740,12 @@ h2 {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.score-card-detail-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 2px 0 10px;
 }
 
 .score-card-detail .score-detail-summary-kicker,
@@ -1806,6 +1820,14 @@ h2 {
 }
 
 .score-detail-summary-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.scores-detail-hero-actions {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -2043,7 +2065,9 @@ h2 {
 }
 
 .score-detail-scorer.card.tab-card {
-  padding: 16px;
+  padding: 14px;
+  border: 1px solid #d8e3f7;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
 }
 
 .score-detail-scoring-section {
@@ -2247,6 +2271,11 @@ h2 {
     justify-content: flex-start;
   }
 
+  .scores-detail-hero-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .score-detail-summary-scoreline {
     grid-template-columns: 1fr;
   }
@@ -2285,6 +2314,10 @@ h2 {
     font-size: clamp(1.5rem, 7vw, 2rem);
   }
 
+  .score-card-detail-toolbar {
+    margin-bottom: 8px;
+  }
+
   .score-card-detail .score-detail-scoring-row {
     gap: 4px;
     padding: 5px 0;
@@ -2293,6 +2326,39 @@ h2 {
 }
 
 /* ── Result Buttons ──────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .scores-detail-tabs {
+    gap: 8px;
+  }
+
+  .scores-detail-tab {
+    padding: 11px 10px;
+    font-size: 0.82rem;
+  }
+
+  .score-detail-scorer.card.tab-card {
+    padding: 12px;
+  }
+
+  .score-btn {
+    font-size: 0.8rem;
+    padding: 13px 8px;
+  }
+
+  .stat-btns-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .auto-clock-time {
+    font-size: 2.7rem;
+  }
+
+  .scores-open-scorer-btn {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+}
 .result-row {
   display: flex;
   gap: 6px;
@@ -3668,20 +3734,22 @@ h2 {
 }
 
 .score-btns-row {
-  display: flex;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .score-btn {
   flex: 1;
-  padding: 13px 0;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  padding: 14px 10px;
+  border-radius: 10px;
+  font-size: 0.86rem;
   font-weight: 700;
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
   transition: opacity 0.12s;
   -webkit-tap-highlight-color: transparent;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.14);
 }
 
 .score-btn:active { opacity: 0.75; transform: scale(0.97); }
@@ -3983,21 +4051,21 @@ body.modal-open { overflow: hidden; }
 /* ── Game State Bar ──────────────────────────────────────────────────────── */
 .gs-bar {
   display: flex;
-  gap: 3px;
-  margin-bottom: 7px;
-  flex-wrap: nowrap;
+  gap: 5px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
 }
 
 .gs-btn {
-  flex: 1;
-  padding: 4px 1px;
-  border-radius: 5px;
-  font-size: 0.58rem;
+  flex: 1 1 54px;
+  padding: 6px 5px;
+  border-radius: 8px;
+  font-size: 0.66rem;
   font-weight: 700;
   letter-spacing: 0.1px;
-  border: 1.5px solid var(--gray-200);
-  background: var(--gray-50);
-  color: var(--gray-400);
+  border: 1.5px solid #d6dce8;
+  background: #f8fafc;
+  color: #4b5563;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   text-align: center;
@@ -4008,8 +4076,8 @@ body.modal-open { overflow: hidden; }
 .gs-btn:active { opacity: 0.75; }
 
 .gs-btn.gs-active {
-  background: var(--royal);
-  border-color: var(--royal);
+  background: linear-gradient(180deg, #1d4ed8 0%, #143fae 100%);
+  border-color: #143fae;
   color: white;
 }
 
@@ -4092,17 +4160,17 @@ body.modal-open { overflow: hidden; }
 
 /* ── Stat Buttons Row ────────────────────────────────────────────────────── */
 .stat-btns-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 5px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .stat-btn {
-  flex: 1;
-  padding: 9px 2px;
-  border-radius: 5px;
-  font-size: 0.68rem;
+  min-width: 0;
+  padding: 10px 6px;
+  border-radius: 9px;
+  font-size: 0.72rem;
   font-weight: 700;
   border: 1.5px solid var(--gray-200);
   background: var(--gray-50);
@@ -4147,11 +4215,13 @@ body.modal-open { overflow: hidden; }
 
 /* ── Auto-running Game Clock ─────────────────────────────────────────────── */
 .auto-clock-wrap {
-  background: #0f172a;
-  border-radius: 10px;
-  padding: 10px 14px 8px;
-  margin-bottom: 8px;
+  background: linear-gradient(180deg, #111827 0%, #0f172a 100%);
+  border: 1px solid #23314d;
+  border-radius: 14px;
+  padding: 12px 14px 10px;
+  margin-bottom: 10px;
   text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 .auto-clock-phase {
@@ -4164,7 +4234,7 @@ body.modal-open { overflow: hidden; }
 }
 
 .auto-clock-time {
-  font-size: 3.4rem;
+  font-size: 3.05rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: #f1f5f9;
@@ -7585,6 +7655,39 @@ html.native-android[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-gr
   gap: 12px;
   margin: 4px 0 12px 0;
 }
+
+.score-finalize-row {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
+.score-finalize-btn {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(180deg, #15803d 0%, #166534 100%);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(21, 128, 61, 0.2);
+}
+
+.score-finalize-btn.is-final {
+  background: #eef2ff;
+  color: #1e3a8a;
+  border: 1px solid #c7d2fe;
+  box-shadow: none;
+}
+
+.score-finalize-note {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #64748b;
+  text-align: center;
+}
 .ls-undo-btn, .ls-share-btn {
   background: var(--gray-100);
   border: 1px solid var(--gray-200);
@@ -8422,3 +8525,4 @@ html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section 
   opacity: 1 !important;
   filter: none !important;
 }
+
