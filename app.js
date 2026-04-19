@@ -1507,15 +1507,29 @@ function getTournamentForGroup(groupKey) {
 function inferTeamLettersFromTournament(tournament) {
   if (!tournament) return [];
   const letters = new Set();
+  const explicitTeams = Array.isArray(tournament.teams)
+    ? tournament.teams
+        .map(v => String(v || '').trim().toUpperCase())
+        .filter(v => ['A', 'B', 'C'].includes(v))
+    : [];
+  const explicitTeamSet = new Set(explicitTeams);
   const addLetter = (value) => {
     const normalized = String(value || '').trim().toUpperCase();
     if (['A', 'B', 'C'].includes(normalized)) letters.add(normalized);
   };
   if (tournament.enableCTeam) ['A', 'B', 'C'].forEach(addLetter);
-  if (Array.isArray(tournament.teams)) tournament.teams.forEach(addLetter);
-  Object.keys(tournament.teamLabels || {}).forEach(addLetter);
+  explicitTeams.forEach(addLetter);
+  if (explicitTeamSet.size) {
+    Object.keys(tournament.teamLabels || {}).forEach(letter => {
+      if (explicitTeamSet.has(String(letter || '').trim().toUpperCase())) addLetter(letter);
+    });
+  } else {
+    Object.keys(tournament.teamLabels || {}).forEach(addLetter);
+  }
   if (tournament.roster && !Array.isArray(tournament.roster) && typeof tournament.roster === 'object') {
-    Object.keys(tournament.roster).forEach(addLetter);
+    Object.keys(tournament.roster).forEach(letter => {
+      if (!explicitTeamSet.size || explicitTeamSet.has(String(letter || '').trim().toUpperCase())) addLetter(letter);
+    });
   }
   if (Array.isArray(tournament.games)) {
     tournament.games.forEach(g => addLetter(g?.team));
@@ -1529,11 +1543,16 @@ function inferTeamLettersFromTournament(tournament) {
 function getValidTeamLettersForGroup(groupKey) {
   const tournament = getTournamentForGroup(groupKey);
   if (!tournament) return [];
+  const explicitTeams = Array.isArray(tournament.teams)
+    ? tournament.teams
+        .map(v => String(v || '').trim().toUpperCase())
+        .filter(v => ['A', 'B', 'C'].includes(v))
+    : [];
+  if (tournament.singleTeam === true) return [];
+  if (explicitTeams.length > 1) return [...explicitTeams];
   const inferred = inferTeamLettersFromTournament(tournament);
   if (inferred.length > 1) return inferred;
-  if (tournament.singleTeam === true) return [];
   if (tournament.enableCTeam) return ['A', 'B', 'C'];
-  if (Array.isArray(tournament.teams) && tournament.teams.length > 1) return [...tournament.teams];
   return inferred;
 }
 function getEffectiveTeamLettersForGroup(groupKey, customMap = null) {
@@ -2812,7 +2831,11 @@ function getPoolRecord() {
 // ─── HISTORY ──────────────────────────────────────────────────────────────────
 
 function getHistory() {
-  if (_historyOverride !== null) return _historyOverride;
+  if (_historyOverride !== null) {
+    return Array.isArray(_historyOverride)
+      ? _historyOverride.filter(entry => !_isBogusHistoryEntry(entry))
+      : [];
+  }
   try {
     const parsed = JSON.parse(localStorage.getItem(STORE.HISTORY) || '[]');
     if (!Array.isArray(parsed)) return [];
@@ -9482,7 +9505,7 @@ function renderHistoryTab() {
   }
   const listEl  = $('history-list');
   const emptyEl = $('history-empty');
-  const history = getHistoryForActiveTeam().filter(h => h.id !== TOURNAMENT.id);
+  const history = getHistoryForActiveTeam().filter(h => !_historyEntryMatchesCurrentTournament(h));
   const virtualT = _getVirtualHistoryEntry();
   const seasonEntries = virtualT ? [virtualT, ...history] : history;
   listEl.innerHTML = '';
@@ -9859,6 +9882,10 @@ function seedHistory() {
   const history = getHistory();
   let changed = false;
   for (const entry of HISTORY_SEED) {
+    if (_isBogusHistoryEntry(entry)) {
+      changed = true;
+      continue;
+    }
     const idx = history.findIndex(h => h.id === entry.id);
     if (idx >= 0) {
       // Always overwrite seed entries so updates (like added points) propagate
