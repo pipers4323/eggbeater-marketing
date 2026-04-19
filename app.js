@@ -7160,6 +7160,14 @@ async function initVolumeButtonShortcut() {
   }
 }
 
+function _clubLogoDownloadUrl() {
+  const raw = String(state.clubInfo?.logo || '').trim();
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return getAppClubId()
+    ? `${PUSH_SERVER_URL}/club-logo?club=${encodeURIComponent(getAppClubId())}`
+    : '';
+}
+
 async function syncVolumeButtonShortcut() {
   if (!window.Capacitor?.isNativePlatform?.() || window.Capacitor?.getPlatform?.() !== 'ios') return;
   const plugin = getVolumeButtonPlugin();
@@ -12079,16 +12087,33 @@ function notifyScorePush(gameId, eventType) {
 /** Poll worker for live scores pushed by other devices. */
 async function pollLiveScores() {
   try {
-    const tid = encodeURIComponent(TOURNAMENT.id || '');
-    const res = await fetch(`${PUSH_SERVER_URL}/live-scores?t=${tid}`, { cache: 'no-store' });
-    if (!res.ok) return;
-    const remote = await res.json();
+    const tournamentIds = [...new Set(
+      getSelectedTeams()
+        .map(teamKey => TEAM_CACHE[teamKey]?.tournament?.id)
+        .concat(TOURNAMENT?.id || null)
+        .filter(Boolean)
+    )];
+    if (!tournamentIds.length) return;
+
+    const remotePayloads = await Promise.all(
+      tournamentIds.map(async tournamentId => {
+        try {
+          const tid = encodeURIComponent(tournamentId);
+          const res = await fetch(`${PUSH_SERVER_URL}/live-scores?t=${tid}`, { cache: 'no-store' });
+          if (!res.ok) return {};
+          return await res.json();
+        } catch {
+          return {};
+        }
+      })
+    );
 
     let changed = false;
     const myGames = getMyGames();
     const changedGameIds = []; // track which games updated for aria-live announcement
 
-    for (const [gameId, remoteScore] of Object.entries(remote)) {
+    for (const remote of remotePayloads) {
+      for (const [gameId, remoteScore] of Object.entries(remote || {})) {
       const scopedKey = _scopedGameKey(gameId, remoteScore.ageGroup || remoteScore.score?.ageGroup || '');
       const local = state.liveScores[scopedKey] || state.liveScores[gameId] || {};
       const localScorerOwnsGame = isScorerUnlocked()
@@ -12127,6 +12152,7 @@ async function pollLiveScores() {
       _applyAutoFinalResult(gameId, state.liveScores[scopedKey], scoreAgeGroup);
       changedGameIds.push(scopedKey);
       changed = true;
+      }
     }
 
     // Auto-start Live Activity (iOS) for favorited teams when their game goes live
@@ -13052,8 +13078,9 @@ async function _syncWidgetsAll() {
         time:  x.game.time || '',
       }));
 
+      const clubLogoUrl = _clubLogoDownloadUrl();
       writes = [
-        { key: 'club_name',            data: clubName || 'Eggbeater Water Polo' },
+        { key: 'club_name',            data: clubName || 'Eggbeater Water Polo', logoUrlHome: clubLogoUrl || undefined },
         { key: 'stats_widget_data',    data: JSON.stringify({ players: statsPlayers }) },
         { key: 'schedule_widget_data', data: JSON.stringify({ games: scheduleGames }) },
       ];
@@ -13631,9 +13658,7 @@ async function toggleLiveActivity(gameId) {
       }
     });
 
-    const clubLogoUrl = getAppClubId()
-      ? `${PUSH_SERVER_URL}/club-logo?club=${encodeURIComponent(getAppClubId())}`
-      : '';
+    const clubLogoUrl = _clubLogoDownloadUrl();
 
     await LiveActivity.startActivity({
       homeTeam:      game ? (`${localStorage.getItem('ebwp-club-name') || getAppClubId() || ''}${game.team ? ' ' + game.team : ''}`).trim() : "Home",
