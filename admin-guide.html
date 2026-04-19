@@ -600,7 +600,7 @@ kbd {
       <p><strong>Current recommended tournament flow:</strong> Ask the tournament director for the hosted tournament package or T-Score share code first. That path carries the full tournament structure more cleanly, especially for divisions, crossover games, and rebracketing. Use Bracket Sheet Sync as the fallback when the event is only distributing a Google Sheet.</p>
     </div>
 
-    <p>If you do receive a Google Sheet from the tournament director, you can still pull your team's schedule directly from it &mdash; no copy-pasting required. The app re-checks the sheet on a schedule and updates your games automatically if anything changes.</p>
+    <p>If you do receive a Google Sheet from the tournament director, you can still pull your team's schedule directly from it &mdash; no copy-pasting required. The app re-checks the sheet on a schedule and now updates <strong>games, official final scores, resolved next opponents, venue, and cap color</strong> from that sheet when the data becomes available.</p>
 
     <div class="callout callout-tip" style="margin:14px 0 10px">
       <div class="callout-icon">💡</div>
@@ -621,7 +621,7 @@ kbd {
     </div>
     <div class="kv-row" style="align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
       <span class="kv-label" style="min-width:90px;padding-top:2px">Step 4</span>
-      <span class="kv-value"><strong>Review your games</strong><br>The app scans the schedule columns (Date / Location / Time / White / Blue) and finds every row containing your team name. It automatically sets cap color based on which column your team appears in &mdash; White cap if you're in the White column, Dark if you're in the Blue column. Review the list and tap <em>Continue →</em>.</span>
+      <span class="kv-value"><strong>Review your games</strong><br>The app scans the schedule columns (Date / Location / Time / White / Blue) and finds every row containing your team name. It automatically sets cap color based on which column your team appears in &mdash; White cap if you're in the White column, Dark if you're in the Blue column. That same white/blue logic is reused later when the sheet resolves the next bracket game. Review the list and tap <em>Continue</em>.</span>
     </div>
     <div class="kv-row" style="align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
       <span class="kv-label" style="min-width:90px;padding-top:2px">Step 5</span>
@@ -629,7 +629,7 @@ kbd {
     </div>
     <div class="kv-row" style="align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
       <span class="kv-label" style="min-width:90px;padding-top:2px">Step 6</span>
-      <span class="kv-value"><strong>Set the auto-sync interval</strong><br>Choose how often the app should re-check the sheet for changes &mdash; every 5, 10, or 30 minutes, or manual only. Tournament directors sometimes update game times or locations the morning of the event; auto-sync means spectators always see the latest schedule.</span>
+      <span class="kv-value"><strong>Set the auto-sync interval</strong><br>Choose how often the app should re-check the sheet for changes &mdash; every 5, 10, or 30 minutes, or manual only. Tournament directors sometimes update game times, locations, final scores, or resolved bracket opponents the morning of the event; auto-sync keeps schedule, history, and next-game cards aligned with the official sheet.</span>
     </div>
     <div class="kv-row" style="align-items:flex-start;padding:10px 0">
       <span class="kv-label" style="min-width:90px;padding-top:2px">Step 7</span>
@@ -662,7 +662,7 @@ kbd {
     <h3>📱 What Spectators See — Live Activities, Widgets &amp; More</h3>
     <p>These features are automatic — once you deploy games, spectators get access to all of them with no extra setup on the admin side.</p>
     <ul>
-      <li><strong>Live Activities (iPhone)</strong> &mdash; During a live-scored game, the score appears on the iPhone lock screen and in the Dynamic Island with team logos, a running clock, and a live event feed. Auto-starts when scoring begins, auto-ends on Final.</li>
+      <li><strong>Live Activities (iPhone)</strong> &mdash; During a live-scored game, the score appears on the iPhone lock screen and in the Dynamic Island with team logos, a running clock, and a live event feed. Auto-starts when scoring begins, stays in sync with remote updates, and auto-ends on Final.</li>
       <li><strong>Live Updates (Android 16)</strong> &mdash; A persistent notification chip shows the current score (e.g. "Q2 7&ndash;5") and updates on every poll tick. Requires Android 16+ with notification permission granted.</li>
       <li><strong>Home Screen Widgets</strong> &mdash; Spectators can add Score, Schedule, and Stats widgets to their home screen on both iOS and Android. Widgets update automatically as games progress.</li>
       <li><strong>Calendar Subscribe</strong> &mdash; Spectators subscribe once to the WebCal feed and all games appear in their calendar app, auto-updating as the bracket resolves. See <a href="#calendar-feed" style="color:var(--royal)">Calendar Subscribe Feed</a> above.</li>
@@ -1011,6 +1011,18 @@ kbd {
     <h3>History &amp; MaxPreps (High School)</h3>
     <p>If your organization type is set to "High School," you get a <strong>History</strong> tab for tracking season-by-season tournament results. Import results directly from MaxPreps by pasting the schedule page URL, or add them manually. History data powers the multi-season record displayed to spectators.</p>
   </div>
+
+  <div class="card">
+    <h3>Scored Game Recovery &amp; Official Results</h3>
+    <p>The admin <strong>History</strong> tools now work from durable scored-game records, not just browser-local history. Use them when a scorer closes a game incorrectly, a final score changes on the official sheet, or a tournament needs to be rebuilt cleanly.</p>
+    <ul>
+      <li><strong>Scored Games list</strong> &mdash; review every durable scored game for the selected team</li>
+      <li><strong>Sync Official Sheet Results</strong> &mdash; pull final scores from the tournament sheet into scored games and history</li>
+      <li><strong>Rebuild History from Scored Games</strong> &mdash; regenerate tournament history from durable scored-game records</li>
+      <li><strong>Promote Final / Reopen / Reset / Restore</strong> &mdash; correct bad closeouts without losing the durable source record</li>
+      <li><strong>Needs Finalization</strong> &mdash; expired games that still require a scorer or admin to submit the final score</li>
+    </ul>
+  </div>
 </div>
 
 <!-- ═══════════════ 14. TIPS & FAQ ═══════════════ -->
@@ -1040,7 +1052,7 @@ kbd {
 
     <div class="kv-row" style="flex-direction:column;gap:2px">
       <span class="kv-label">Q: What happens if I archive a tournament by accident?</span>
-      <span class="kv-value">A: You can clone it from the archive to restore the full tournament structure, or activate it again from the tournament selector.</span>
+      <span class="kv-value">A: You can clone it from the archive to restore the full tournament structure, activate it again from the tournament selector, or rebuild the tournament history from durable scored games if the archive content is wrong.</span>
     </div>
 
     <div class="kv-row" style="flex-direction:column;gap:2px">

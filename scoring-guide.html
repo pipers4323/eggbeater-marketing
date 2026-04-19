@@ -540,21 +540,21 @@ code {
 
   <div class="card">
     <h3>What you see in Scorer Mode</h3>
-    <p>Once logged in, the Scores tab shows a card for every upcoming and in-progress game. Games are grouped by date and sorted by scheduled start time. Each card shows:</p>
+    <p>Once logged in, the Scores tab shows a card for every upcoming and in-progress game. Tap <strong>Open Scorer</strong> to switch that game into scorer view. The scorer view is different from the spectator view on purpose:</p>
     <ul>
-      <li><strong>Game number</strong> &mdash; e.g., Game 14</li>
-      <li><strong>Teams</strong> &mdash; your team vs. opponent, with cap colors</li>
-      <li><strong>Scheduled time and location</strong></li>
-      <li><strong>Current score and period</strong> &mdash; once the game is started</li>
-      <li><strong>A <span class="btn-demo">Score</span> button</strong> &mdash; tap to open the full scoring panel for that game</li>
+      <li><strong>Scorer view</strong> &mdash; large clock controls, scoring buttons, and an <strong>inline play-by-play log</strong> grouped by quarter so you can catch mistakes immediately</li>
+      <li><strong>Spectator view</strong> &mdash; a cleaner <strong>Summary</strong> and <strong>Play-by-Play</strong> tab layout for families following remotely</li>
+      <li><strong>Recorded confirmation</strong> &mdash; each action shows a small success toast so scorers know the tap landed</li>
+      <li><strong>Current score and period</strong> &mdash; shown live at the top of the scorer panel</li>
+      <li><strong>Finalize controls</strong> &mdash; available in scorer view only, with score correction before final submission</li>
     </ul>
   </div>
 
   <div class="card">
     <h3>Game status indicators</h3>
     <div class="kv-row">
-      <span class="kv-label">Pre-Game</span>
-      <span class="kv-value">Game hasn't started yet. Clock shows the full quarter length (e.g., 7:00 or 8:00).</span>
+      <span class="kv-label">Ready</span>
+      <span class="kv-value">Game has not started yet. Open Scorer, confirm the teams, and wait for the whistle before starting the clock.</span>
     </div>
     <div class="kv-row">
       <span class="kv-label">🔴 LIVE</span>
@@ -580,12 +580,12 @@ code {
       <p>Locate the game card for the match you're about to score. Games are sorted by start time so your next game is always near the top.</p>
     </div>
     <div class="step">
-      <h3>Tap the Score button</h3>
-      <p>Tap the blue <span class="btn-demo">Score</span> button on the game card. The full scoring panel opens, filling most of your screen.</p>
+      <h3>Tap Open Scorer</h3>
+      <p>Tap the blue <span class="btn-demo">Open Scorer</span> button on the game card. The scorer panel opens with the score controls first and the inline play-by-play log directly underneath.</p>
     </div>
     <div class="step">
-      <h3>Confirm the teams before the whistle</h3>
-      <p>You'll see the two teams, a game clock, and all the event buttons. Take a moment to confirm the correct game is open &mdash; check the game number and opponent name at the top of the panel. Then you're ready to go.</p>
+      <h3>Confirm the game before the whistle</h3>
+      <p>You'll see the teams, clock, scoring controls, and the inline play-by-play grouped by quarter. Confirm the opponent, cap color, and roster before you start. Once the whistle goes, you can keep scoring and error-correcting from the same screen.</p>
     </div>
   </div>
 
@@ -604,39 +604,39 @@ code {
 
   <div class="card">
     <h3>How the game clock works</h3>
-    <p>Eggbeater has a built-in countdown clock for each quarter. It runs automatically once you tap <strong>Start</strong> and ticks down on its own &mdash; you don't need to babysit it. The clock is used to time-stamp events in the play-by-play log; it runs independently of the physical scoreboard at the pool.</p>
-    <p style="margin-top:8px">The clock display sits near the top of the scoring panel, showing minutes and seconds remaining in the current period (e.g., <strong>7:00</strong> at the start of Q1).</p>
+    <p>Eggbeater has a built-in countdown clock for each quarter. Start it at the opening whistle and pause it only when you need to catch up or re-sync. The timestamps in the play-by-play are reference timing, not the official pool clock.</p>
+    <p style="margin-top:8px">When the clock reaches <strong>0:00</strong>, it now <strong>stops automatically and holds the current period</strong>. The app does <strong>not</strong> auto-advance the quarter anymore. This gives the scorer time to finish stats before starting the next period or finalizing the game.</p>
   </div>
 
   <div class="card">
     <h3>Clock buttons explained</h3>
     <div class="kv-row">
       <span class="kv-label"><span class="btn-demo green">▶ Start</span></span>
-      <span class="kv-value"><strong>Begins the automatic countdown</strong> for the current quarter. Tap this when the referee blows the whistle to start play. The clock ticks down on its own &mdash; you don't need to touch it again until the quarter ends or there's a significant stoppage.</span>
+      <span class="kv-value"><strong>Begins the automatic countdown</strong> for the current quarter. Tap this when the referee blows the whistle to start play.</span>
     </div>
     <div class="kv-row">
-      <span class="kv-label"><span class="btn-demo amber">⏸ Stop</span></span>
-      <span class="kv-value">Pauses the countdown. Use this for extended stoppages &mdash; an injury timeout, equipment issue, or to re-sync with the pool clock. Tap <strong>▶ Start</strong> again to resume.</span>
+      <span class="kv-label"><span class="btn-demo amber">Pause</span></span>
+      <span class="kv-value">Pauses the countdown. Use this for long stoppages, score corrections, or anytime you need to catch up on stats. Tap <strong>Start</strong> again to resume.</span>
     </div>
     <div class="kv-row">
-      <span class="kv-label"><span class="btn-demo ghost">↩ Pre</span></span>
-      <span class="kv-value"><strong>Returns the game to Pre-Game (not-started) state.</strong> This is an undo for accidentally starting a game too early. All events and the score are cleared, and the clock resets to the full quarter length. Only use Pre <em>before</em> meaningful play has begun.</span>
+      <span class="kv-label"><span class="btn-demo ghost">Volume Button (iPhone)</span></span>
+      <span class="kv-value">On iPhone native builds, pressing a volume button while scorer view is open toggles <strong>Pause / Resume</strong>. This is the fastest option when the game is moving too quickly for screen taps.</span>
     </div>
     <div class="kv-row">
       <span class="kv-label"><span class="btn-demo ghost">⟳ Reset</span></span>
-      <span class="kv-value">Resets the clock to the full quarter length without changing the period or score. Useful if the physical clock was reset at the pool and you need to re-sync mid-quarter.</span>
+      <span class="kv-value">Resets the clock to the full quarter length without changing the period or score. Useful only when you need to re-sync the app clock to the pool clock.</span>
     </div>
   </div>
 
   <div class="callout callout-warn">
     <span class="callout-icon">⚠️</span>
-    <p><strong>Pre clears all events and the score.</strong> If Q1 is already underway with goals recorded, using Pre will wipe everything &mdash; the game reverts to 0&ndash;0 and not-started. To simply pause play mid-quarter without losing data, use <strong>Stop</strong> instead.</p>
+    <p><strong>0:00 does not advance the game for you.</strong> When a quarter ends, review the inline play-by-play, catch up on any missing stats, then use the explicit next-step button such as <strong>Start Q2</strong>, <strong>Start Half Time</strong>, <strong>Start Q3</strong>, <strong>Start Q4</strong>, or <strong>Finalize Game</strong>.</p>
   </div>
 
   <div class="card">
     <h3>Keeping the clock roughly in sync</h3>
     <p>Water polo clocks stop frequently &mdash; on goals, exclusions, timeouts, and ball out of bounds. You don't need to stop and start the Eggbeater clock for every single whistle. Most scorers let the Eggbeater clock run continuously through normal stoppages. The time-stamps on events are reference points, not official timing.</p>
-    <p style="margin-top:8px">If you fall significantly behind or ahead of the pool clock, tap <strong>Stop</strong>, adjust if needed, then tap <strong>▶ Start</strong> when play resumes.</p>
+    <p style="margin-top:8px">If you fall significantly behind or ahead of the pool clock, tap <strong>Pause</strong>, adjust if needed, then tap <strong>Start</strong> when play resumes.</p>
   </div>
 </div>
 
@@ -794,22 +794,22 @@ code {
       <span style="font-size:.8rem;color:var(--g400);align-self:center">&rarr;</span>
       <span class="period-chip">Final / OT / Shootout</span>
     </div>
-    <p style="margin-top:10px">You advance manually by tapping the <span class="btn-demo">End Quarter</span> button when a period is over. The app will ask you to confirm before advancing to the next period.</p>
+    <p style="margin-top:10px">You advance manually using the explicit next-step button that appears after the quarter expires. The app holds the current quarter until you are ready, then shows the correct action such as <span class="btn-demo">Start Q2</span>, <span class="btn-demo">Start Half Time</span>, <span class="btn-demo">Start Q3</span>, <span class="btn-demo">Start Q4</span>, or <span class="btn-demo">Finalize Game</span>.</p>
   </div>
 
   <div class="card">
     <h3>Quarter break checklist</h3>
     <ul>
       <li>Wait for the referee's final whistle ending the quarter.</li>
-      <li>If the app clock is still running, tap <span class="btn-demo amber">⏸ Stop</span>.</li>
-      <li>Tap <span class="btn-demo">End Q1</span> (or whichever quarter just ended). The app moves to the break state and the clock resets.</li>
-      <li>When teams are back in the water and the referee is ready to begin, tap <span class="btn-demo green">▶ Start</span> to begin the next quarter's countdown.</li>
+      <li>Let the clock stop at <strong>0:00</strong> or tap <span class="btn-demo amber">Pause</span> if you need to freeze it early.</li>
+      <li>Use the inline play-by-play to add or delete any missed events before advancing.</li>
+      <li>Tap the explicit next-step button for the next period only when the scorer is ready.</li>
     </ul>
   </div>
 
   <div class="card">
     <h3>Halftime</h3>
-    <p>After Q2, tapping <span class="btn-demo">End Q2</span> puts the game into <strong>Half</strong> state. The clock resets to the full Q3 length. Halftime is typically a few minutes &mdash; don't tap <strong>▶ Start</strong> until both teams are back in the water and the referee signals to begin Q3.</p>
+    <p>After Q2 expires, the app shows <strong>Half Time</strong> and holds there until you tap <span class="btn-demo">Start Q3</span>. Do not advance until the teams are back in the water and the referee is ready.</p>
   </div>
 </div>
 
@@ -890,22 +890,22 @@ code {
 
   <div class="steps">
     <div class="step">
-      <h3>Advance past the last period</h3>
-      <p>When the final whistle blows, stop the clock and tap the <span class="btn-demo">End Q4</span> (or End OT / End Shootout) button. Select <strong>Final</strong> when prompted. The game status changes to <strong>Final</strong> in the scoring panel.</p>
+      <h3>Let the game expire, then review</h3>
+      <p>When the final whistle blows, the clock stops at <strong>0:00</strong> and the panel stays on the current period. Use that moment to review the inline play-by-play and score before you close out the game.</p>
     </div>
     <div class="step">
-      <h3>Review the box score</h3>
-      <p>Take a moment to look over the play-by-play and confirm the score looks right. If you spot a missed goal or an incorrect event, you can still delete or add entries at this stage. Once you're satisfied, proceed.</p>
+      <h3>Review the inline play-by-play</h3>
+      <p>Check the grouped event log and confirm the score looks right. If you spot a missed goal or incorrect stat, add or delete it before finalizing. This is the main reason scorer view keeps the play-by-play inline.</p>
     </div>
     <div class="step">
-      <h3>Tap "Finalize Game"</h3>
-      <p>Tap the <span class="btn-demo">Finalize Game</span> button. The score is locked, the game moves off the Scores tab into the History tab, and a final-score notification fires to all spectator devices. The game is complete &mdash; great work!</p>
+      <h3>Use Submit Final Score &amp; End Game</h3>
+      <p>Tap the green <span class="btn-demo">Submit Final Score &amp; End Game</span> button. The confirmation sheet lets you <strong>correct the score before submitting</strong>. Once confirmed, the game moves to History, notifications fire, and the official final is saved.</p>
     </div>
   </div>
 
   <div class="callout callout-warn">
     <span class="callout-icon">⚠️</span>
-    <p>Once finalized, the game is marked final in the system. If a correction is needed afterward, ask your club admin &mdash; they can reopen the game from the Admin panel.</p>
+    <p>Once finalized, the game is marked final in the system. If a correction is needed afterward, ask your club admin &mdash; they can reopen the game, reset it, or rebuild history from durable scored-game data if needed.</p>
   </div>
 </div>
 

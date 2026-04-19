@@ -626,9 +626,9 @@ code {
     <h3>Your Home Screen</h3>
     <p>The Schedule tab is the first thing you see when you open the app. It shows everything about the current tournament:</p>
     <ul>
-      <li><strong>Next Game Card</strong> &mdash; Highlighted at the top with the upcoming game's opponent, time, location, and cap color. When a game is live, this card shows the current score with a pulsing red LIVE badge.</li>
-      <li><strong>Game List</strong> &mdash; All games in the tournament grouped by date. Each game card shows the opponent, time, location, pool, and whether you're wearing white or dark caps.</li>
-      <li><strong>Directions</strong> &mdash; Each game card shows the venue name with three direction buttons below it: <strong>Apple Maps</strong>, <strong>Google Maps</strong>, and <strong>Waze</strong>. Tap whichever navigation app you prefer to get turn-by-turn directions straight to the pool.</li>
+      <li><strong>Next Game Card</strong> &mdash; Highlighted at the top with the upcoming game's opponent, time, location, and cap color. When a bracket sheet resolves the next opponent, this card updates automatically from the official tournament sheet.</li>
+      <li><strong>Game List</strong> &mdash; All games in the tournament grouped by date. Each game card shows the opponent, time, location, pool, and cap color. Tapping a live game takes you straight into the score summary.</li>
+      <li><strong>Directions</strong> &mdash; Schedule cards keep the Apple Maps, Google Maps, and Waze buttons so you can navigate directly to the pool.</li>
     </ul>
   </div>
 
@@ -656,10 +656,11 @@ code {
     <ul>
       <li>A pulsing <strong style="color:var(--red)">&#x1f534; LIVE</strong> badge appears on the game card and on the Scores tab icon</li>
       <li>The <strong>Next Game</strong> card on the Schedule tab shows the live score and current quarter</li>
-      <li>Tap the <strong>Scores</strong> tab to see the full box score with individual player stats</li>
-      <li>The <strong>event log</strong> shows a play-by-play of every goal, assist, ejection, and save</li>
+      <li>Tap the <strong>Scores</strong> tab to open the game detail, with a <strong>Summary</strong> tab and a separate <strong>Play-by-Play</strong> tab</li>
+      <li>The <strong>Summary</strong> view shows the scoreline, quarter/clock, quarter breakdown, and player leaders</li>
+      <li>The <strong>Play-by-Play</strong> tab shows the live event feed grouped by quarter</li>
     </ul>
-    <p style="margin-top:8px">Scores update automatically every 10 seconds. You don't need to refresh.</p>
+    <p style="margin-top:8px">Scores update automatically. If a game looks stale, use <strong>Force Refresh</strong> at the bottom of Schedule.</p>
   </div>
 
   <div class="card">
@@ -736,7 +737,7 @@ code {
 
   <div class="card">
     <h3>Bracket Tab</h3>
-    <p>Open the <strong>Bracket</strong> tab to see where your team is headed after pool play. Based on your current record, the app projects which bracket path you'll play in &mdash; Gold, Silver, or Bronze &mdash; and shows your possible next opponent, game time, and location.</p>
+    <p>Open the <strong>Bracket</strong> tab to see where your team is headed after pool play. Early on, the app may show a projected path based on current results. Once the official tournament sheet resolves the bracket, the <strong>Schedule</strong> tab updates to the concrete next game with the official opponent, venue, time, and cap color.</p>
   </div>
 
   <div class="card">
@@ -759,7 +760,7 @@ code {
 
   <div class="card">
     <h3>History Tab</h3>
-    <p>The <strong>History</strong> tab shows all past tournament results for your age group. At the top you'll see the season record with overall wins, losses, and win percentage. Below that, each tournament is listed with:</p>
+    <p>The <strong>History</strong> tab shows past tournament results for the currently selected age group. At the top you'll see the season record with overall wins, losses, and win percentage. Below that, each tournament is listed with:</p>
     <ul>
       <li>Tournament name and dates</li>
       <li>Record (e.g., 3W-1L)</li>
@@ -787,10 +788,11 @@ code {
     <ol>
       <li>Tap <strong>Connect</strong></li>
       <li>Sign in with your Google account</li>
-      <li>Choose which Google Calendar to add games to</li>
+      <li>Choose which Google Calendar to use</li>
+      <li>Select <strong>which of your followed teams</strong> should sync to that calendar</li>
       <li>Games appear on your calendar automatically with opponent, time, and location</li>
     </ol>
-    <p style="margin-top:8px">The app syncs every 20 minutes. You can also tap <strong>Sync Now</strong> to update immediately. Tap <strong>Change</strong> to switch calendars or disconnect.</p>
+    <p style="margin-top:8px">The app syncs every 20 minutes. You can also tap <strong>Sync Now</strong> to update immediately, or use <strong>Teams</strong> later to change which followed teams stay in sync.</p>
   </div>
 
   <div class="callout callout-success">
