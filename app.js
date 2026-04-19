@@ -5477,7 +5477,7 @@ function openEventPicker(gameId, eventType) {
       steal:        'Who got the steal?',
       shot_miss:    'Who took the shot?',
       miss_5m:      'Who took the 5m?',
-      turnover:     'Who committed the turnover?',
+      turnover:     'Turnover',
       sprint_won:   'Who won the sprint?',
       field_block:  'Who got the field block?',
       exclusion:    'Who was excluded?',
@@ -5517,6 +5517,27 @@ function openEventPicker(gameId, eventType) {
           });
         });
       });
+    }
+
+    if (realType === 'turnover') {
+      list.innerHTML = '';
+      const doneBtn = document.createElement('button');
+      doneBtn.className = 'roster-player-btn roster-player-btn-opp';
+      doneBtn.innerHTML = `
+        <span class="roster-cap">OK</span>
+        <span class="roster-name">Record turnover</span>`;
+      doneBtn.addEventListener('click', () => {
+        const extra = {
+          inside2m: !!$('roster-extra-inside2m')?.checked,
+        };
+        recordEventForPlayer(gameId, 'turnover', '', '', extra);
+        closeEventPicker();
+      });
+      list.appendChild(doneBtn);
+      $('roster-modal').classList.remove('hidden');
+      document.body.classList.add('modal-open');
+      _openModal('roster-modal');
+      return;
     }
 
     // For saves, show only goalkeepers; for everything else show full roster
@@ -13128,6 +13149,10 @@ async function toggleLiveActivity(gameId) {
       }
     });
 
+    const clubLogoUrl = getAppClubId()
+      ? `${PUSH_SERVER_URL}/club-logo?club=${encodeURIComponent(getAppClubId())}`
+      : '';
+
     await LiveActivity.startActivity({
       homeTeam:      game ? (`${localStorage.getItem('ebwp-club-name') || getAppClubId() || ''}${game.team ? ' ' + game.team : ''}`).trim() : "Home",
       awayTeam:      game?.opponent || "Away",
@@ -13139,7 +13164,7 @@ async function toggleLiveActivity(gameId) {
       // Native iOS countdown — non-zero timerEnd makes SwiftUI tick the clock automatically
       timerEnd:      score.timerRunning && _laRemaining > 0 ? (Date.now() / 1000 + _laRemaining) : 0,
       // Use HTTPS worker URL for logo — base64 data: URLs don't load in AsyncImage
-      homeLogoUrl:   state.clubInfo?.logo ? `${PUSH_SERVER_URL}/club-logo?club=${encodeURIComponent(getAppClubId())}` : '',
+      homeLogoUrl:   clubLogoUrl,
       awayLogoUrl:   '',   // opponent logo not yet stored
       primaryColor:  primaryColor,
       secondaryColor: secondaryColor,
