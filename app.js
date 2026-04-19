@@ -1696,7 +1696,9 @@ function _historyEntryTeamLetter(teamLabel) {
 
 function getHistoryForActiveTeam() {
   const history = getHistory();
-  const all = history;
+  const groupKey = _activeAgeGroup || getSelectedTeam() || getSelectedTeams()[0] || '';
+  const seedIds = new Set((TEAM_CACHE[groupKey]?.history || []).map(entry => String(entry?.id || '')).filter(Boolean));
+  const all = !groupKey ? history : history.filter(entry => _historyEntryMatchesGroup(entry, groupKey, seedIds));
 
   if (!isMultiTeam()) return all;
   const team = getActiveTeam();
@@ -2539,6 +2541,25 @@ function showUndoToast(msg, onUndo, opts = {}) {
       try { onUndo?.(); } catch (err) { console.warn('undo failed:', err?.message || err); }
     },
   });
+}
+
+function _historyEntryMatchesGroup(entry, groupKey, seedIds = new Set()) {
+  if (!entry || !groupKey) return true;
+  const normalizedGroup = String(groupKey || '').trim().toLowerCase();
+  const groupLabel = String(TEAM_OPTIONS.find(t => t.key === groupKey)?.label || '').trim().toLowerCase();
+  if (seedIds.has(String(entry.id || ''))) return true;
+  if (String(entry._groupKey || '').trim().toLowerCase() === normalizedGroup) return true;
+  if (String(entry.teamKey || '').trim().toLowerCase() === normalizedGroup) return true;
+  if (groupLabel) {
+    const subtitle = String(entry.subtitle || '').trim().toLowerCase();
+    const team = String(entry.team || '').trim().toLowerCase();
+    if (subtitle === groupLabel || team === groupLabel) return true;
+  }
+  const games = Array.isArray(entry.games) ? entry.games : [];
+  return games.some(g =>
+    String(g?._groupKey || '').trim().toLowerCase() === normalizedGroup
+    || String(g?.liveScore?.ageGroup || '').trim().toLowerCase() === normalizedGroup
+  );
 }
 
 function _showRecordedToast(label = 'Recorded') {
@@ -8628,6 +8649,15 @@ async function forceAppRefresh(btn) {
   location.replace(base + '?_r=' + Date.now());
 }
 
+function _sameScheduledGame(a, b) {
+  if (!a || !b) return false;
+  const norm = (v) => String(v || '').trim().toLowerCase();
+  return norm(a.opponent) === norm(b.opponent)
+    && norm(a.dateISO || a.date) === norm(b.dateISO || b.date)
+    && norm(a.time) === norm(b.time)
+    && norm(a.location) === norm(b.location);
+}
+
 function openLiveGameFromSchedule(gameOrRef, ageGroupLabel = '') {
   const game = _findGameByRef(gameOrRef);
   if (!game) return;
@@ -8890,7 +8920,11 @@ function renderGamesList() {
   const nextObj    = findNextGameOrProjected();
   const nextGameId = nextObj?.type === 'pool' ? nextObj.game?.id : null;
   const nextDateKey = nextObj?.type === 'pool' ? (nextObj.game?.dateISO || nextObj.game?.date) : null;
-  const listGames  = upcomingGames.filter(g => g.id !== nextGameId);
+  const listGames  = upcomingGames.filter(g => {
+    if (g.id === nextGameId) return false;
+    if (nextObj?.type !== 'pool' || !nextObj.game) return true;
+    return !_sameScheduledGame(g, nextObj.game);
+  });
 
   if (!listGames.length) { listEl.innerHTML = ''; return; }
 
