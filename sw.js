@@ -6,8 +6,8 @@
  *   notifies parents when new games are added to the schedule
  */
 
-const CACHE = 'ebwp-v163';
-const VER   = '?v=255';   // bump alongside index.html script tags on every deploy
+const CACHE = 'ebwp-v164';
+const VER   = '?v=256';   // bump alongside index.html script tags on every deploy
 const ASSETS = [
   '/',
   '/index.html',
@@ -145,7 +145,14 @@ async function _replayPendingScores() {
           headers: replayHeaders,
           body: JSON.stringify(entry.payload),
         });
-        if (!res.ok) throw new Error('fail');
+        if (!res.ok) {
+          if (res.status === 400 || res.status === 401) {
+            const dtx = db.transaction('pending-scores', 'readwrite');
+            dtx.objectStore('pending-scores').delete(entry.id);
+            continue;
+          }
+          throw new Error('fail');
+        }
         const dtx = db.transaction('pending-scores', 'readwrite');
         dtx.objectStore('pending-scores').delete(entry.id);
       } catch {

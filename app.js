@@ -1929,6 +1929,13 @@ function _normalizeSlotValue(val) {
   return String(val || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
+function _sameScheduledTimeSlot(a, b) {
+  if (!a || !b) return false;
+  const sameDate = _normalizeSlotValue(a.dateISO || a.date) === _normalizeSlotValue(b.dateISO || b.date);
+  const sameTime = _normalizeSlotValue(a.time) === _normalizeSlotValue(b.time);
+  return sameDate && sameTime;
+}
+
 function _sameScheduledSlot(a, b) {
   if (!a || !b) return false;
   const sameDate = _normalizeSlotValue(a.dateISO || a.date) === _normalizeSlotValue(b.dateISO || b.date);
@@ -1937,8 +1944,22 @@ function _sameScheduledSlot(a, b) {
   return sameDate && sameTime && sameOpponent;
 }
 
-function _shouldPreserveLocalLiveScore(localScore, remoteScore) {
+function _isActiveLocalScorerScore(localScore, gameOrRef, explicitGroupKey = '') {
   if (!localScore || localScore._remote) return false;
+  if (!_hasMeaningfulLiveScoreData(localScore)) return false;
+  if (!localScore.gameState || localScore.gameState === 'pre' || localScore.gameState === 'final') return false;
+  if (!_isScorerUnlockedForGame(gameOrRef, explicitGroupKey)) return false;
+  const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
+  const rawKey = _gameIdOnly(gameOrRef);
+  const myGames = getMyGames();
+  return myGames.has(scopedKey) || myGames.has(rawKey);
+}
+
+function _shouldPreserveLocalLiveScore(localScore, remoteScore, gameOrRef = null, explicitGroupKey = '') {
+  if (!localScore || localScore._remote) return false;
+  if (gameOrRef && _isActiveLocalScorerScore(localScore, gameOrRef, explicitGroupKey)) {
+    return true;
+  }
   if (!_hasMeaningfulLiveScoreData(localScore)) return false;
   if (localScore.gameState === 'final' && remoteScore?.gameState === 'final') {
     return _meaningfulEventCount(localScore) > _meaningfulEventCount(remoteScore);
@@ -1954,6 +1975,9 @@ function _findMatchingLocalDraftForGame(game, explicitGroupKey = '') {
     if (!_hasMeaningfulLiveScoreData(score)) continue;
     if (_gameIdOnly(key) === String(game?.id || '')) continue;
     if (_sameScheduledSlot(score, game)) return { key, score };
+    if (_sameScheduledTimeSlot(score, game) && _isActiveLocalScorerScore(score, key, groupKey)) {
+      return { key, score };
+    }
   }
   return null;
 }
@@ -1961,7 +1985,7 @@ function _findMatchingLocalDraftForGame(game, explicitGroupKey = '') {
 function _adoptLocalDraftForOfficialGame(game, explicitGroupKey = '') {
   const scopedKey = _scopedGameKey(game, explicitGroupKey || game?._groupKey || '');
   const existing = state.liveScores[scopedKey];
-  if (_shouldPreserveLocalLiveScore(existing, null)) {
+  if (_shouldPreserveLocalLiveScore(existing, null, game, explicitGroupKey || game?._groupKey || '')) {
     _attachScoreContext(existing, game, explicitGroupKey);
     return existing;
   }
@@ -2052,7 +2076,7 @@ function _hydrateOfficialResultsFromTournament() {
         opp: officialOpp,
         gameState: 'final',
       };
-      if (_shouldPreserveLocalLiveScore(preservedLocal, remoteOfficialScore)) return;
+      if (_shouldPreserveLocalLiveScore(preservedLocal, remoteOfficialScore, g, explicitGroupKey || g._groupKey || '')) return;
       const nextScore = {
         ...(state.liveScores[scopedKey] || {}),
         ...(g.liveScore || {}),
@@ -2325,7 +2349,7 @@ function _mergeTournamentWithScoredGames(tournament, scoredGames, explicitGroupK
     const scored = scoredGames[String(g.id)];
     if (!scored) return explicitGroupKey && !g._groupKey ? { ...g, _groupKey: explicitGroupKey } : g;
     const preservedLocal = _adoptLocalDraftForOfficialGame(g, explicitGroupKey || g._groupKey || '');
-    if (_shouldPreserveLocalLiveScore(preservedLocal, scored.score)) {
+    if (_shouldPreserveLocalLiveScore(preservedLocal, scored.score, g, explicitGroupKey || g._groupKey || '')) {
       return {
         ...g,
         _groupKey: explicitGroupKey || g._groupKey || '',
@@ -2367,7 +2391,7 @@ function _mergeScoredGamesIntoLocalState(scoredGames, explicitGroupKey = '') {
     };
     _attachScoreContext(nextScore, currentGame || gameId, explicitGroupKey || scored.teamKey || scored.score.ageGroup || '');
     const prevScore = state.liveScores[scopedKey];
-    if (_shouldPreserveLocalLiveScore(prevScore, nextScore)) continue;
+    if (_shouldPreserveLocalLiveScore(prevScore, nextScore, currentGame || scopedKey, explicitGroupKey || scored.teamKey || scored.score.ageGroup || '')) continue;
     if (JSON.stringify(prevScore || null) !== JSON.stringify(nextScore)) {
       state.liveScores[scopedKey] = nextScore;
       changed = true;
@@ -12244,7 +12268,14 @@ async function _syncPendingScores() {
           headers: replayHeaders,
           body:    JSON.stringify(entry.payload),
         });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
+        if (!res.ok) {
+          if (res.status === 400 || res.status === 401) {
+            const dtx = db.transaction('pending-scores', 'readwrite');
+            dtx.objectStore('pending-scores').delete(entry.id);
+            continue;
+          }
+          throw new Error('HTTP ' + res.status);
+        }
         // Success — remove from queue
         const dtx = db.transaction('pending-scores', 'readwrite');
         dtx.objectStore('pending-scores').delete(entry.id);
@@ -12345,16 +12376,21 @@ function broadcastGameReset(gameId) {
 
 /** Fire-and-forget APNs push to spectators when a score event happens. */
 function notifyScorePush(gameId, eventType) {
+  // Temporarily disable direct score-push fanout from the scorer client.
+  // Live viewers already update from /live-scores polling, and the notify-score
+  // auth path is still noisy in multi-team tournament contexts.
+  return;
   const scopedKey = _scopedGameKey(gameId);
   const score = state.liveScores[scopedKey];
   if (!score || score.gameState === 'pre' || score.gameState === 'final') return;
   const game = _findGameByRef(gameId);
   const clubId = (typeof getAppClubId === 'function' ? getAppClubId() : null) || 'my-club';
   const teamKey = _contextGroupKey(gameId) || ((typeof getSelectedTeam === 'function') ? getSelectedTeam() : TEAM_OPTIONS[0].key);
+  const tournament = getTournamentForGroup(teamKey) || TOURNAMENT || {};
   try {
     const headers = { 'Content-Type': 'application/json' };
     // Include scoring password if available
-    const scorePw = TOURNAMENT.scoringPassword || '';
+    const scorePw = tournament.scoringPassword || '';
     if (scorePw) headers['X-Score-Password'] = scorePw;
     fetch(`${PUSH_SERVER_URL}/notify-score`, {
       method: 'POST',
@@ -12366,6 +12402,7 @@ function notifyScorePush(gameId, eventType) {
         teamScore: score.team || 0,
         oppScore: score.opp || 0,
         opponent: game?.opponent || 'Opponent',
+        tournamentId: tournament.id || score.tournamentId || '',
         event: eventType,
       }),
     }).catch(() => {});
@@ -12416,7 +12453,7 @@ async function pollLiveScores() {
       const { deviceId, tournamentId, gameId: _gid, broadcastAt, ...scoreData } = remoteScore;
       const scoreAgeGroup = remoteScore.ageGroup || scoreData.ageGroup || '';
       _attachScoreContext(scoreData, gameId, scoreAgeGroup);
-      if (_shouldPreserveLocalLiveScore(local, scoreData)) continue;
+      if (_shouldPreserveLocalLiveScore(local, scoreData, scopedKey, scoreAgeGroup)) continue;
 
       // Haptic for spectator viewers when team scores (remote team score went up)
       const prevTeam = local.team || 0;
