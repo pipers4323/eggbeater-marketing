@@ -1427,6 +1427,7 @@ const STORE = {
   HISTORY:          'ebwp-history',
   CALENDAR_ID:      'ebwp-calendar-id',
   CALENDAR_NAME:    'ebwp-calendar-name',
+  CALENDAR_TEAM_KEYS:'ebwp-calendar-team-keys',
   ROSTER:           'ebwp-roster',
   GROUPME_BOT_ID:   'ebwp-groupme-bot-id',
   MY_PLAYER:        'ebwp-my-player',       // legacy single followed player
@@ -2277,6 +2278,7 @@ const state = {
   tokenExpiry:      null,
   selectedCalId:    null,
   selectedCalName:  null,
+  selectedCalTeamKeys: [],
   syncActive:       false,
     syncIntervalId:   null,
     lastSyncTime:     null,
@@ -2497,6 +2499,10 @@ function showUndoToast(msg, onUndo, opts = {}) {
       try { onUndo?.(); } catch (err) { console.warn('undo failed:', err?.message || err); }
     },
   });
+}
+
+function _showRecordedToast(label = 'Recorded') {
+  showToast(`✓ ${label}`, 'ok', { timeoutMs: 900 });
 }
 
 function scheduleUndoableAction(msg, apply, opts = {}) {
@@ -2983,6 +2989,7 @@ async function checkTournamentChange() {
   // Restore calendar settings
   state.selectedCalId   = localStorage.getItem(STORE.CALENDAR_ID)   || null;
   state.selectedCalName = localStorage.getItem(STORE.CALENDAR_NAME) || null;
+  state.selectedCalTeamKeys = getCalendarSyncTeamKeys();
   if (state.selectedCalId) state.syncActive = true;
 }
 
@@ -3373,6 +3380,7 @@ function recordEventForPlayer(gameId, eventType, cap, name, extra = false) {
   _setLiveScore(gameId, s);
   if (isTeamGoal) _hapticGoal(); // celebrate! 🎉
   afterScore(gameId);
+  if (actualType !== 'game_state') _showRecordedToast('Recorded');
 }
 
 // Record a direct (no-player) event: opp_goal, timeout, opp_timeout, opp_exclusion
@@ -3400,6 +3408,7 @@ function _doRecordDirect(gameId, eventType) {
   s.events.push(ev);
   _setLiveScore(gameId, s);
   afterScore(gameId);
+  if (actualType !== 'game_state') _showRecordedToast('Recorded');
 }
 
 // Recompute team + opp scores from event list (handles regular goals and SO goals)
@@ -6008,17 +6017,86 @@ async function listCalendars() {
     .sort((a, b) => (b.primary ? 1 : 0) - (a.primary ? 1 : 0));
 }
 
-function buildEventPayload(game, isPool = true) {
+function _calendarSyncKey(teamKey, gameId) {
+  return `${teamKey || 'team'}:${gameId || 'game'}`;
+}
+
+function _buildProjectedPathForTournament(tournament, games) {
+  const paths = tournament?.bracket?.paths;
+  if (!paths?.length || !games?.length) return null;
+  if (!paths.some(p => p.qualifyMinWins != null || p.qualifyMaxWins != null)) {
+    return _inferImportedPath(paths, games);
+  }
+  const completedGames = games.filter(g => _getResultForGame(g, g._groupKey || ''));
+  if (!completedGames.length) return null;
+  const wins = completedGames.filter(g => isWin(_getResultForGame(g, g._groupKey || ''))).length;
+  for (const path of paths) {
+    const minW = path.qualifyMinWins ?? 0;
+    const maxW = path.qualifyMaxWins ?? 99;
+    if (wins >= minW && wins <= maxW) return path;
+  }
+  return paths[0] || null;
+}
+
+function findNextGameOrProjectedForTeam(teamKey) {
+  const cache = TEAM_CACHE[teamKey];
+  const tournament = cache?.tournament;
+  if (!tournament) return null;
+  if (_isTournamentPastWindow(tournament, new Date())) return null;
+  const games = getScopedTournamentGames(teamKey);
+  const unplayedGames = games.filter(g => !_getResultForGame(g, teamKey));
+  const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
+  const withTime = unplayedGames.filter(g => {
+    const t = parseGameTime(g.dateISO, g.time);
+    return t && t > new Date(Date.now() - 90 * 60 * 1000);
+  });
+  const pool = withTime.length > 0 ? withTime : unplayedGames;
+  const nextPool = pool.sort((a, b) => {
+    const ta = parseGameTime(a.dateISO, a.time), tb = parseGameTime(b.dateISO, b.time);
+    if (ta && tb) return ta - tb;
+    if (ta) return -1;
+    if (tb) return 1;
+    return gameNumVal(a) - gameNumVal(b);
+  })[0];
+  if (nextPool) return { game: nextPool, type: 'pool' };
+  const projected = _buildProjectedPathForTournament(tournament, games);
+  if (!projected) return null;
+  for (const step of (projected.steps || [])) {
+    const stepKey = `${projected.id}-${step.gameNum}`;
+    if (!state.bracketResults[stepKey]) return { game: step, type: 'bracket', pathLabel: projected.label };
+  }
+  return null;
+}
+
+function getCalendarSyncContexts() {
+  const requestedKeys = state.selectedCalTeamKeys?.length ? state.selectedCalTeamKeys : getCalendarSyncTeamKeys();
+  return requestedKeys.map(teamKey => {
+    const tournament = TEAM_CACHE[teamKey]?.tournament || (getSelectedTeams()[0] === teamKey ? TOURNAMENT : null);
+    if (!tournament || tournament.upcomingMode) return null;
+    return {
+      teamKey,
+      tournament,
+      label: TEAM_OPTIONS.find(opt => opt.key === teamKey)?.label || teamKey,
+      games: getScopedTournamentGames(teamKey),
+      nextInfo: findNextGameOrProjectedForTeam(teamKey),
+    };
+  }).filter(Boolean);
+}
+
+function buildEventPayload(game, isPool = true, tournament = TOURNAMENT, teamKey = '') {
   const start = parseGameTime(game.dateISO, game.time);
   if (!start) return null;
   const end = new Date(start.getTime() + CONFIG.EVENT_DURATION_MIN * 60000);
+  const teamLabel = TEAM_OPTIONS.find(opt => opt.key === teamKey)?.label || 'Team';
+  const syncKey = _calendarSyncKey(teamKey, game.id || game.gameNum || '');
 
   const title = isPool
-    ? `Team vs ${game.opponent || 'TBD'} — ${TOURNAMENT.name}`
-    : `Team ${game.desc} (Projected) — ${TOURNAMENT.name}`;
+    ? `${teamLabel} vs ${game.opponent || 'TBD'} — ${tournament.name}`
+    : `${teamLabel} ${game.desc} (Projected) — ${tournament.name}`;
 
   const lines = [
-    `Tournament: ${TOURNAMENT.name}`,
+    `Tournament: ${tournament.name}`,
+    `Team: ${teamLabel}`,
     `Date: ${game.date || game.dateISO}`,
     game.pool     ? `Pool: ${game.pool}`         : null,
     game.gameNum  ? `Game: ${game.gameNum}`      : null,
@@ -6037,8 +6115,11 @@ function buildEventPayload(game, isPool = true) {
     extendedProperties: {
       private: {
         [CONFIG.EVENT_TAG]: 'true',
+        clubId: getAppClubId() || '',
+        teamKey: teamKey || '',
+        syncKey,
         gameId: game.id || game.gameNum || '',
-        tournamentId: TOURNAMENT.id,
+        tournamentId: tournament.id,
       },
     },
   };
@@ -6046,52 +6127,41 @@ function buildEventPayload(game, isPool = true) {
 
 async function syncToCalendar() {
   if (!state.selectedCalId || !state.accessToken) return;
+  const contexts = getCalendarSyncContexts();
+  if (!contexts.length) {
+    showToast('Select at least one team to sync', 'warn');
+    return;
+  }
 
   updateSyncBadge('syncing');
   renderSyncCard(); // show spinner
 
   try {
-    // Fetch existing tagged events for this tournament
+    const clubId = getAppClubId() || '';
+    const tournamentIds = Array.from(new Set(contexts.map(ctx => ctx.tournament?.id).filter(Boolean)));
+    // Fetch existing tagged events for this club so multi-team sync can reconcile stale events.
     const existingRes = await calFetch(
       `/calendars/${encodeURIComponent(state.selectedCalId)}/events` +
       `?privateExtendedProperty=${encodeURIComponent(CONFIG.EVENT_TAG + '=true')}` +
-      `&privateExtendedProperty=${encodeURIComponent('tournamentId=' + TOURNAMENT.id)}` +
-      `&maxResults=50&singleEvents=true`
+      `&privateExtendedProperty=${encodeURIComponent('clubId=' + clubId)}` +
+      `&maxResults=250&singleEvents=true`
     );
     const existingEvents = existingRes.items || [];
-    const existingByGameId = {};
+    const existingBySyncKey = {};
     for (const ev of existingEvents) {
-      const gId = ev.extendedProperties?.private?.gameId;
-      if (gId) existingByGameId[gId] = ev;
+      const privateProps = ev.extendedProperties?.private || {};
+      if (tournamentIds.length && privateProps.tournamentId && !tournamentIds.includes(privateProps.tournamentId)) continue;
+      const syncKey = privateProps.syncKey || _calendarSyncKey(privateProps.teamKey || '', privateProps.gameId || '');
+      if (syncKey) existingBySyncKey[syncKey] = ev;
     }
 
     let created = 0, updated = 0, skipped = 0;
-
-    // Sync all pool play games
-    for (const game of getTournamentGames()) {
-      const payload = buildEventPayload(game, true);
-      if (!payload) { skipped++; continue; }
-      const existing = existingByGameId[game.id];
-      if (existing) {
-        await calFetch(`/calendars/${encodeURIComponent(state.selectedCalId)}/events/${existing.id}`,
-          { method: 'PUT', body: JSON.stringify(payload) });
-        updated++;
-      } else {
-        await calFetch(`/calendars/${encodeURIComponent(state.selectedCalId)}/events`,
-          { method: 'POST', body: JSON.stringify(payload) });
-        created++;
-      }
-      delete existingByGameId[game.id];
-    }
-
-    // Sync next projected bracket step (as a tentative "possible" event)
-    const nextInfo = findNextGameOrProjected();
-    if (nextInfo?.type === 'bracket') {
-      const bGame = nextInfo.game;
-      const bId   = `bracket-${bGame.gameNum}`;
-      const payload = buildEventPayload({ ...bGame, id: bId, dateISO: bGame.dateISO, time: bGame.time }, false);
-      if (payload) {
-        const existing = existingByGameId[bId];
+    for (const ctx of contexts) {
+      for (const game of ctx.games) {
+        const payload = buildEventPayload(game, true, ctx.tournament, ctx.teamKey);
+        if (!payload) { skipped++; continue; }
+        const syncKey = payload.extendedProperties?.private?.syncKey;
+        const existing = existingBySyncKey[syncKey];
         if (existing) {
           await calFetch(`/calendars/${encodeURIComponent(state.selectedCalId)}/events/${existing.id}`,
             { method: 'PUT', body: JSON.stringify(payload) });
@@ -6101,12 +6171,31 @@ async function syncToCalendar() {
             { method: 'POST', body: JSON.stringify(payload) });
           created++;
         }
-        delete existingByGameId[bId];
+        delete existingBySyncKey[syncKey];
+      }
+      if (ctx.nextInfo?.type === 'bracket') {
+        const bGame = ctx.nextInfo.game;
+        const bId = `bracket-${ctx.teamKey}-${bGame.gameNum || bGame.id || 'next'}`;
+        const payload = buildEventPayload({ ...bGame, id: bId, dateISO: bGame.dateISO, time: bGame.time }, false, ctx.tournament, ctx.teamKey);
+        if (payload) {
+          const syncKey = payload.extendedProperties?.private?.syncKey;
+          const existing = existingBySyncKey[syncKey];
+          if (existing) {
+            await calFetch(`/calendars/${encodeURIComponent(state.selectedCalId)}/events/${existing.id}`,
+              { method: 'PUT', body: JSON.stringify(payload) });
+            updated++;
+          } else {
+            await calFetch(`/calendars/${encodeURIComponent(state.selectedCalId)}/events`,
+              { method: 'POST', body: JSON.stringify(payload) });
+            created++;
+          }
+          delete existingBySyncKey[syncKey];
+        }
       }
     }
 
     // Delete stale events (old bracket projections, removed games)
-    for (const stale of Object.values(existingByGameId)) {
+    for (const stale of Object.values(existingBySyncKey)) {
       await calFetch(`/calendars/${encodeURIComponent(state.selectedCalId)}/events/${stale.id}`,
         { method: 'DELETE' });
     }
@@ -6166,10 +6255,11 @@ function renderCalendarChooser(calendars) {
       state.selectedCalName = cal.summary;
       localStorage.setItem(STORE.CALENDAR_ID,   cal.id);
       localStorage.setItem(STORE.CALENDAR_NAME, cal.summary);
-      state.syncActive = true;
-      // Return to schedule tab and sync
-      switchTab('schedule');
-      requestToken(() => syncToCalendar());
+      openCalendarTeamSyncModal(() => {
+        state.syncActive = true;
+        switchTab('schedule');
+        requestToken(() => syncToCalendar());
+      });
     });
     list.appendChild(item);
   });
@@ -6177,6 +6267,90 @@ function renderCalendarChooser(calendars) {
 
 function cancelCalendarChoice() {
   switchTab('schedule');
+}
+
+let _pendingCalendarSyncTeamKeys = [];
+let _calendarSyncConfirmAction = null;
+
+function _calendarSyncTeamLabel(teamKey) {
+  return TEAM_OPTIONS.find(opt => opt.key === teamKey)?.label || teamKey;
+}
+
+function _ensureCalendarTeamSyncModal() {
+  if (document.getElementById('calendar-team-sync-modal')) return;
+  const host = document.createElement('div');
+  host.id = 'calendar-team-sync-modal';
+  host.className = 'roster-modal hidden';
+  host.innerHTML = `
+    <div class="roster-modal-backdrop" onclick="closeCalendarTeamSyncModal()"></div>
+    <div class="roster-modal-sheet calendar-team-sync-sheet">
+      <div class="roster-modal-header">
+        <span class="roster-modal-title">Calendar Teams</span>
+        <button class="roster-modal-close" onclick="closeCalendarTeamSyncModal()" aria-label="Close">X</button>
+      </div>
+      <div class="calendar-team-sync-body">
+        <div class="calendar-team-sync-copy">Choose which selected teams should sync to this calendar.</div>
+        <div id="calendar-team-sync-list" class="calendar-team-sync-list"></div>
+        <div class="calendar-team-sync-actions">
+          <button class="scoring-pw-btn-cancel" onclick="closeCalendarTeamSyncModal()" style="background:transparent;color:var(--gray-500);border:none;font-size:0.9rem;font-weight:700;cursor:pointer">Cancel</button>
+          <button class="score-finalize-btn" onclick="applyCalendarTeamSyncSelection()">Save Teams</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(host);
+}
+
+function renderCalendarTeamSyncModal() {
+  const list = document.getElementById('calendar-team-sync-list');
+  if (!list) return;
+  const selectedKeys = getSelectedTeams();
+  list.innerHTML = selectedKeys.map(teamKey => {
+    const checked = _pendingCalendarSyncTeamKeys.includes(teamKey) ? 'checked' : '';
+    return `
+      <label class="calendar-team-sync-option">
+        <input type="checkbox" ${checked} onchange="toggleCalendarTeamSyncOption('${escAttr(teamKey)}')">
+        <span>${escHtml(_calendarSyncTeamLabel(teamKey))}</span>
+      </label>`;
+  }).join('');
+}
+
+function openCalendarTeamSyncModal(onConfirm = null) {
+  _ensureCalendarTeamSyncModal();
+  _calendarSyncConfirmAction = typeof onConfirm === 'function' ? onConfirm : null;
+  _pendingCalendarSyncTeamKeys = getCalendarSyncTeamKeys();
+  if (!_pendingCalendarSyncTeamKeys.length) _pendingCalendarSyncTeamKeys = [...getSelectedTeams()];
+  renderCalendarTeamSyncModal();
+  document.getElementById('calendar-team-sync-modal')?.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  _openModal('calendar-team-sync-modal');
+}
+
+function closeCalendarTeamSyncModal() {
+  document.getElementById('calendar-team-sync-modal')?.classList.add('hidden');
+  document.body.classList.remove('modal-open');
+  _closeModal('calendar-team-sync-modal');
+}
+
+function toggleCalendarTeamSyncOption(teamKey) {
+  if (_pendingCalendarSyncTeamKeys.includes(teamKey)) {
+    _pendingCalendarSyncTeamKeys = _pendingCalendarSyncTeamKeys.filter(key => key !== teamKey);
+  } else {
+    _pendingCalendarSyncTeamKeys = [..._pendingCalendarSyncTeamKeys, teamKey];
+  }
+  renderCalendarTeamSyncModal();
+}
+
+function applyCalendarTeamSyncSelection() {
+  if (!_pendingCalendarSyncTeamKeys.length) {
+    showToast('Select at least one team', 'warn');
+    return;
+  }
+  setCalendarSyncTeamKeys(_pendingCalendarSyncTeamKeys);
+  closeCalendarTeamSyncModal();
+  renderSyncCard();
+  const confirmAction = _calendarSyncConfirmAction;
+  _calendarSyncConfirmAction = null;
+  if (confirmAction) confirmAction();
 }
 
 // ─── SYNC BADGE (header) ──────────────────────────────────────────────────────
@@ -8482,6 +8656,8 @@ function renderNextGameCard() {
 
 function renderSyncCard() {
   const section = $('sync-section');
+  const syncTeams = getCalendarSyncTeamKeys();
+  const teamSummary = syncTeams.map(_calendarSyncTeamLabel).join(', ');
 
   if (!state.syncActive) {
     // Show "Sync to Calendar" invite
@@ -8493,7 +8669,7 @@ function renderSyncCard() {
           </svg>
           <div class="sync-invite-text">
             <strong>Add to Google Calendar</strong>
-            <span>Sync all games to your calendar</span>
+            <span>Choose which selected teams sync to your calendar</span>
           </div>
         </div>
         <button class="btn-sync-connect" onclick="startCalendarSetup()">Connect</button>
@@ -8507,10 +8683,12 @@ function renderSyncCard() {
       <div class="sync-status-card">
         <div class="sync-status-inner">
           <span class="sync-cal-name">📅 ${escHtml(state.selectedCalName || 'Calendar')}</span>
+          <span class="sync-time">Teams: ${escHtml(teamSummary || 'None selected')}</span>
           <span class="sync-time">Last sync: ${timeStr}</span>
         </div>
         <div class="sync-btn-row">
           <button class="btn-sync-now" onclick="requestToken(() => syncToCalendar())">Sync Now</button>
+          <button class="btn-sync-change" onclick="openCalendarTeamSyncModal()" title="Choose synced teams">Teams</button>
           <button class="btn-sync-change" onclick="disconnectCalendar()" title="Change or disconnect calendar">Change</button>
         </div>
       </div>`;
@@ -8524,12 +8702,14 @@ function disconnectCalendar() {
   state.syncActive      = false;
   state.selectedCalId   = null;
   state.selectedCalName = null;
+  state.selectedCalTeamKeys = [];
   state.lastSyncTime    = null;
   state.syncIntervalId  = null;
   state.accessToken     = null;
   state.tokenExpiry     = null;
   localStorage.removeItem(STORE.CALENDAR_ID);
   localStorage.removeItem(STORE.CALENDAR_NAME);
+  localStorage.removeItem(_calendarTeamKeysKey());
   renderSyncCard();
   showToast('Calendar disconnected — tap Connect to choose a new one');
 }
@@ -10788,6 +10968,11 @@ function _teamKeysKey() {
   return clubId ? `ebwp-team-keys-${clubId}` : 'ebwp-team-keys';
 }
 
+function _calendarTeamKeysKey() {
+  const clubId = getAppClubId();
+  return clubId ? `${STORE.CALENDAR_TEAM_KEYS}-${clubId}` : STORE.CALENDAR_TEAM_KEYS;
+}
+
 function getSelectedTeams() {
   const validKeys = TEAM_OPTIONS.map(t => t.key);
   try {
@@ -10818,6 +11003,23 @@ function setSelectedTeams(keys) {
   if (keys.length) localStorage.setItem('ebwp-team-key', keys[0]); // compat
   // Sync to Firestore if a spectator is signed in (Phase 1)
   if (typeof fbSavePrefs === 'function') fbSavePrefs();
+}
+
+function getCalendarSyncTeamKeys() {
+  const selected = getSelectedTeams();
+  try {
+    const parsed = JSON.parse(localStorage.getItem(_calendarTeamKeysKey()) || '[]');
+    const filtered = Array.isArray(parsed) ? parsed.filter(key => selected.includes(key)) : [];
+    if (filtered.length) return filtered;
+  } catch {}
+  return [...selected];
+}
+
+function setCalendarSyncTeamKeys(keys) {
+  const selected = new Set(getSelectedTeams());
+  const clean = Array.from(new Set((keys || []).filter(key => selected.has(key))));
+  localStorage.setItem(_calendarTeamKeysKey(), JSON.stringify(clean));
+  state.selectedCalTeamKeys = [...clean];
 }
 
 // ── Favorite age groups (Phase 5A) ────────────────────────────────────────────
