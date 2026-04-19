@@ -3235,6 +3235,8 @@ function setGameState(gameId, gstate) {
     s.needsFinalizationAt = null;
     s.finalizationConfirmedAt = s.finalizationConfirmedAt || new Date().toISOString();
   }
+  s.timerExpired = false;
+  s.timerAdvanceTo = null;
   s.gameState = gstate;
   const newPeriod = PERIOD_FOR_STATE[gstate];
   if (newPeriod != null) s.period = newPeriod;
@@ -3263,6 +3265,8 @@ function reopenFinalizedGame(gameId) {
   s.gameState = _phaseGameState(fallbackPhase) || 'q4';
   s.timerRunning = false;
   s.timerStartedAt = null;
+  s.timerExpired = false;
+  s.timerAdvanceTo = null;
   s.needsFinalization = true;
   s.needsFinalizationAt = s.needsFinalizationAt || new Date().toISOString();
   _setLiveScore(gameId, s);
@@ -3282,6 +3286,8 @@ function toggleGameState(gameId, gstate) {
     s.gameState    = 'pre';
     s.period       = 0;
     s.timerRunning = false; // stop clock ticker so LA/chip stops updating
+    s.timerExpired = false;
+    s.timerAdvanceTo = null;
     _setLiveScore(gameId, s);
     afterScore(gameId);
   } else {
@@ -3297,6 +3303,8 @@ function resetToPreGame(gameId) {
   s.gameState    = 'pre';
   s.period       = 0;
   s.timerRunning = false; // stop clock ticker so LA/chip stops updating
+  s.timerExpired = false;
+  s.timerAdvanceTo = null;
   s.needsFinalization = false;
   s.needsFinalizationAt = null;
   _setLiveScore(gameId, s);
@@ -3888,32 +3896,37 @@ function _buildScoreDetailScorerPanel(game, s) {
     if (s.gameState && s.gameState !== 'pre') return s.gameState.toUpperCase();
     return '';
   })();
-  const isBreakPhase = s.timerPhase === 'break12' || s.timerPhase === 'break34' || s.timerPhase === 'halftime';
+  const pendingAdvance = s.timerAdvanceTo || ((s.timerExpired || (!s.timerRunning && timerSecsLeft <= 0)) ? _nextPhase(s.timerPhase || 'q1', cs) : '');
+  const advanceLabel = pendingAdvance ? _phaseAdvanceLabel(pendingAdvance) : '';
+  const advanceHint = pendingAdvance ? _phaseAdvanceHint(pendingAdvance) : '';
   const teamTOUsed = s.teamTimeoutsUsed || [];
   const oppTOUsed  = s.oppTimeoutsUsed || [];
   const timingRow = `
-    <div class="auto-clock-wrap">
+    <div class="auto-clock-wrap${s.timerExpired ? ' is-expired' : ''}">
       <div class="auto-clock-phase">${phaseLabel}</div>
       <div class="auto-clock-time" id="game-clock-${gid}">${fmtClock(timerSecsLeft)}</div>
-      <div class="auto-clock-controls">
-        ${isBreakPhase ? `<span class="auto-clock-break-label">${s.timerPhase === 'halftime' ? escHtml(appT('scorer_halftime_break')) : escHtml(appT('scorer_quarter_break'))} — ${escHtml(appT('scorer_next_quarter_ready'))}</span>` : `
-          ${s.timerRunning
-            ? `<button class="auto-clock-btn auto-clock-pause" onclick="pauseGameTimer('${gid}')">⏸ ${escHtml(appT('scorer_pause'))}</button>`
-            : `<button class="auto-clock-btn auto-clock-resume" onclick="${s.gameState === 'pre' ? `startScoring('${gid}')` : `resumeGameTimer('${gid}')`}">▶ ${escHtml(s.gameState === 'pre' ? appT('scorer_start') : appT('scorer_resume'))}</button>`
-          }
-          <button class="auto-clock-btn auto-clock-reset" onclick="resetGameClock('${gid}')">↺ ${escHtml(appT('scorer_reset'))}</button>
-        `}
+      ${s.timerExpired ? `<div class="auto-clock-expired-note">${escHtml(advanceHint)}</div>` : ''}
+      <div class="auto-clock-controls auto-clock-controls-primary">
+        ${s.timerRunning
+          ? `<button class="auto-clock-btn auto-clock-pause auto-clock-btn-lg" onclick="pauseGameTimer('${gid}')">Pause Clock</button>`
+          : `<button class="auto-clock-btn auto-clock-resume auto-clock-btn-lg" onclick="${s.gameState === 'pre' ? `startScoring('${gid}')` : `resumeGameTimer('${gid}')`}">${escHtml(s.gameState === 'pre' ? 'Start Clock' : 'Resume Clock')}</button>`
+        }
+        ${pendingAdvance ? `<button class="auto-clock-btn auto-clock-advance auto-clock-btn-lg" onclick="advanceClockPhase('${gid}')">${escHtml(advanceLabel)}</button>` : ''}
+      </div>
+      <div class="auto-clock-controls auto-clock-controls-secondary">
+        <button class="auto-clock-btn auto-clock-reset" onclick="resetGameClock('${gid}')">Reset Clock</button>
+        ${pendingAdvance === 'done' ? `<button class="auto-clock-btn auto-clock-finalize" onclick="openFinalizeGameModal('${gid}','manual')">Review Final Score</button>` : ''}
       </div>
       ${cs.timeoutsPerTeam > 0 ? `
       <div class="auto-clock-to-row">
         ${(cs.timeoutLengths||[]).map(m => {
           const used = teamTOUsed.includes(m);
-          return `<span class="auto-clock-to-chip${used?' auto-clock-to-used':''}">${used?'✓':'◉'} ${fmtTOLabel(m)}</span>`;
+          return `<span class="auto-clock-to-chip${used?' auto-clock-to-used':''}">${used?'Done':'TO'} ${fmtTOLabel(m)}</span>`;
         }).join('')}
-        <span class="auto-clock-to-sep">·</span>
+        <span class="auto-clock-to-sep">|</span>
         ${(cs.timeoutLengths||[]).map(m => {
           const used = oppTOUsed.includes(m);
-          return `<span class="auto-clock-to-chip auto-clock-to-opp${used?' auto-clock-to-used':''}">${used?'✓':'◉'} Opp ${fmtTOLabel(m)}</span>`;
+          return `<span class="auto-clock-to-chip auto-clock-to-opp${used?' auto-clock-to-used':''}">${used?'Done':'TO'} Opp ${fmtTOLabel(m)}</span>`;
         }).join('')}
       </div>` : ''}
     </div>`;
@@ -5085,6 +5098,25 @@ function _phaseLabel(phase) {
   return { q1:'Q1', break12:'Quarter Break', q2:'Q2', halftime:'Half Time', q3:'Q3', break34:'Quarter Break', q4:'Q4', done:'Final', h1:'H1', h2:'H2' }[phase] || phase?.toUpperCase() || '';
 }
 
+function _phaseAdvanceLabel(next) {
+  return {
+    break12: 'Start Quarter Break',
+    break34: 'Start Quarter Break',
+    halftime: 'Start Half Time',
+    q2: 'Start Q2',
+    q3: 'Start Q3',
+    q4: 'Start Q4',
+    h2: 'Start H2',
+    done: 'Finalize Game',
+  }[next] || 'Advance';
+}
+
+function _phaseAdvanceHint(next) {
+  return next === 'done'
+    ? 'Clock expired. Review the score, make any corrections, then finalize the game.'
+    : `Clock expired. Catch up on stats, then tap ${_phaseAdvanceLabel(next)} when ready.`;
+}
+
 function _promptFinalizeOnClockEnd(gameId) {
   const s = getLiveScore(gameId);
   if (!s) return;
@@ -5108,42 +5140,56 @@ function _handleClockExpired(gameId) {
   const cur  = s.timerPhase || 'q1';
   const next = _nextPhase(cur, cs);
 
-  s.timerRunning     = false;
-  s.timerStartedAt   = null;
+  s.timerRunning = false;
+  s.timerStartedAt = null;
   s.timerSecondsLeft = 0;
-  s._clockExpiring   = false;
+  s.clock = '0:00';
+  s._clockExpiring = false;
+  s.timerExpired = true;
+  s.timerAdvanceTo = next;
+
+  _setLiveScore(gameId, s);
+  saveLiveScores();
 
   if (next === 'done') {
-    _setLiveScore(gameId, s);
-    saveLiveScores();
     _promptFinalizeOnClockEnd(gameId);
     return;
   }
 
-  s.timerPhase       = next;
-  s.timerSecondsLeft = _phaseSeconds(next, cs);
+  afterScore(gameId);
+  showToast(_phaseAdvanceHint(next));
+}
 
-  const isBreak = next === 'break12' || next === 'break34' || next === 'halftime';
-  if (isBreak) {
-    // Auto-start break/halftime countdown
-    s.timerRunning   = true;
-    s.timerStartedAt = Date.now();
-    _setLiveScore(gameId, s);
-    saveLiveScores();
-    ensureClockTicker();
-    const gs = _phaseGameState(next);
-    if (gs) setGameState(gameId, gs);
-    else { renderGamesList(); renderNextGameCard(); if (state.currentTab === 'scores') renderScoresTab(); }
-    showToast(next === 'halftime' ? '⏸ Halftime!' : (next === 'h1' || next === 'h2' ? '⏸ Half break' : '⏸ Quarter break'));
-  } else {
-    // New quarter — advance state, wait for scorer to tap ▶
-    _setLiveScore(gameId, s);
-    saveLiveScores();
-    const gs = _phaseGameState(next);
-    if (gs) setGameState(gameId, gs);
-    else { renderGamesList(); renderNextGameCard(); if (state.currentTab === 'scores') renderScoresTab(); }
-    showToast(`⏱ ${_phaseLabel(next)} — tap ▶ to start`);
+function advanceClockPhase(gameId) {
+  const s = getLiveScore(gameId);
+  if (!s) return;
+  const cs = getClockSettings(gameId);
+  const next = s.timerAdvanceTo || _nextPhase(s.timerPhase || 'q1', cs);
+  if (!next) return;
+  if (next === 'done') {
+    _promptFinalizeOnClockEnd(gameId);
+    return;
   }
+  s.timerExpired = false;
+  s.timerAdvanceTo = null;
+  s.timerPhase = next;
+  s.timerSecondsLeft = _phaseSeconds(next, cs);
+  s.clock = fmtClock(s.timerSecondsLeft);
+  s.timerRunning = true;
+  s.timerStartedAt = Date.now();
+  s._clockExpiring = false;
+  const gs = _phaseGameState(next);
+  if (gs) {
+    s.gameState = gs;
+    const newPeriod = PERIOD_FOR_STATE[gs];
+    if (newPeriod != null) s.period = newPeriod;
+    s.events.push({ type: 'game_state', gameState: gs, clock: s.clock || '', period: s.period, ts: Date.now() });
+  }
+  _setLiveScore(gameId, s);
+  saveLiveScores();
+  ensureClockTicker();
+  afterScore(gameId);
+  showToast(`${_phaseAdvanceLabel(next)} started`);
 }
 
 function startScoring(gameId) {
@@ -5177,6 +5223,8 @@ function startScoring(gameId) {
   s.timerRunning   = true;
   s.timerStartedAt = Date.now();
   s._clockExpiring = false;
+  s.timerExpired = false;
+  s.timerAdvanceTo = null;
 
   _setLiveScore(gameId, s);
   saveLiveScores();
@@ -5240,13 +5288,13 @@ function resumeGameTimer(gameId) {
   if ((s.timerSecondsLeft || 0) <= 0) return;
   s.timerRunning   = true;
   s.timerStartedAt = Date.now();
+  s.timerExpired = false;
+  s.timerAdvanceTo = null;
   _setLiveScore(gameId, s);
   saveLiveScores();
   ensureClockTicker();
   _pushLAClockState(gameId); // tell LA to start native countdown with new timerEnd
-  renderGamesList();
-  renderNextGameCard();
-  if (state.currentTab === 'scores') renderScoresTab();
+  afterScore(gameId);
 }
 
 function resetGameClock(gameId, phaseOverride = null, autoStart = false) {
@@ -5265,6 +5313,8 @@ function resetGameClock(gameId, phaseOverride = null, autoStart = false) {
   s.timerStartedAt   = null;
   s.timerSecondsLeft = _phaseSeconds(phase, cs);
   s._clockExpiring   = false;
+  s.timerExpired = false;
+  s.timerAdvanceTo = null;
   if (autoStart && !['halftime','break12','break34'].includes(phase)) {
     s.timerRunning = true;
     s.timerStartedAt = Date.now();
@@ -5275,9 +5325,7 @@ function resetGameClock(gameId, phaseOverride = null, autoStart = false) {
   // Update display immediately
   const el = document.getElementById('game-clock-' + gameId);
   if (el) el.textContent = fmtClock(s.timerSecondsLeft);
-  renderGamesList();
-  renderNextGameCard();
-  if (state.currentTab === 'scores') renderScoresTab();
+  afterScore(gameId);
   showUndoToast('Clock reset', () => {
     if (!previous) return;
     _setLiveScore(gameId, previous);
@@ -5383,20 +5431,45 @@ function _ensureFinalizeGameModal() {
     <div class="roster-modal-backdrop" onclick="closeFinalizeGameModal()"></div>
     <div class="roster-modal-sheet finalize-game-sheet">
       <div class="roster-modal-header">
-        <span class="roster-modal-title">🏁 Finalize Game</span>
-        <button class="roster-modal-close" onclick="closeFinalizeGameModal()" aria-label="Close">✕</button>
+        <span class="roster-modal-title">Finalize Game</span>
+        <button class="roster-modal-close" onclick="closeFinalizeGameModal()" aria-label="Close">X</button>
       </div>
       <div class="finalize-game-body">
-        <div class="finalize-game-copy">Confirm the final score before ending the game.</div>
+        <div class="finalize-game-copy">Confirm the final score before ending the game. You can correct the score here if needed.</div>
         <div id="finalize-game-scoreline" class="finalize-game-scoreline"></div>
+        <div class="finalize-game-score-edit">
+          <div class="finalize-score-team">
+            <div id="finalize-game-team-name" class="finalize-score-name"></div>
+            <div class="finalize-score-stepper">
+              <button type="button" class="finalize-score-step" onclick="adjustFinalizeScore('team', -1)">-</button>
+              <input id="finalize-game-team-input" class="finalize-score-input" type="number" min="0" step="1" inputmode="numeric" />
+              <button type="button" class="finalize-score-step" onclick="adjustFinalizeScore('team', 1)">+</button>
+            </div>
+          </div>
+          <div class="finalize-score-team">
+            <div id="finalize-game-opp-name" class="finalize-score-name"></div>
+            <div class="finalize-score-stepper">
+              <button type="button" class="finalize-score-step" onclick="adjustFinalizeScore('opp', -1)">-</button>
+              <input id="finalize-game-opp-input" class="finalize-score-input" type="number" min="0" step="1" inputmode="numeric" />
+              <button type="button" class="finalize-score-step" onclick="adjustFinalizeScore('opp', 1)">+</button>
+            </div>
+          </div>
+        </div>
         <div id="finalize-game-meta" class="finalize-game-meta"></div>
         <div class="finalize-game-actions">
           <button class="scoring-pw-btn-cancel" onclick="closeFinalizeGameModal()" style="background:transparent;color:var(--gray-500);border:none;font-size:0.9rem;font-weight:700;cursor:pointer">Keep Editing</button>
-          <button class="score-finalize-btn" onclick="confirmFinalizeGame()">🏁 Submit Final Score & End Game</button>
+          <button class="score-finalize-btn" onclick="confirmFinalizeGame()">Submit Final Score & End Game</button>
         </div>
       </div>
     </div>`;
   document.body.appendChild(host);
+}
+
+function adjustFinalizeScore(side, delta) {
+  const input = document.getElementById(side === 'opp' ? 'finalize-game-opp-input' : 'finalize-game-team-input');
+  if (!input) return;
+  const next = Math.max(0, (parseInt(input.value, 10) || 0) + delta);
+  input.value = String(next);
 }
 
 function openFinalizeGameModal(gameId, source = 'manual') {
@@ -5415,11 +5488,19 @@ function openFinalizeGameModal(gameId, source = 'manual') {
   const teamName = _teamDisplayNameForGame(game, TOURNAMENT.clubName || appT('scorer_team_label'));
   const oppName = normalizeOpponentName(game.opponent || 'Opp');
   const scoreLine = `${teamName} ${Number(score.team || 0)} - ${Number(score.opp || 0)} ${oppName}`;
-  const meta = `${_phaseLabel(score.timerPhase || (score.period ? `q${score.period}` : 'q4'))} · ${getCurrentClockStr(gid)} · ${(Array.isArray(score.events) ? score.events.filter(ev => ev && ev.type !== 'game_state').length : 0)} events`;
+  const meta = `${_phaseLabel(score.timerPhase || (score.period ? `q${score.period}` : 'q4'))} | ${getCurrentClockStr(gid)} | ${(Array.isArray(score.events) ? score.events.filter(ev => ev && ev.type !== 'game_state').length : 0)} events`;
   const scorelineEl = document.getElementById('finalize-game-scoreline');
   const metaEl = document.getElementById('finalize-game-meta');
+  const teamNameEl = document.getElementById('finalize-game-team-name');
+  const oppNameEl = document.getElementById('finalize-game-opp-name');
+  const teamInput = document.getElementById('finalize-game-team-input');
+  const oppInput = document.getElementById('finalize-game-opp-input');
   if (scorelineEl) scorelineEl.textContent = scoreLine;
   if (metaEl) metaEl.textContent = meta;
+  if (teamNameEl) teamNameEl.textContent = teamName;
+  if (oppNameEl) oppNameEl.textContent = oppName;
+  if (teamInput) teamInput.value = String(Number(score.team || 0));
+  if (oppInput) oppInput.value = String(Number(score.opp || 0));
   document.getElementById('finalize-game-modal')?.classList.remove('hidden');
   document.body.classList.add('modal-open');
   _openModal('finalize-game-modal');
@@ -5435,8 +5516,14 @@ function confirmFinalizeGame() {
   const gid = _pendingFinalizeGameId;
   if (!gid) return closeFinalizeGameModal();
   const score = getLiveScore(gid);
+  const teamInput = document.getElementById('finalize-game-team-input');
+  const oppInput = document.getElementById('finalize-game-opp-input');
+  score.team = Math.max(0, parseInt(teamInput?.value || `${score.team || 0}`, 10) || 0);
+  score.opp = Math.max(0, parseInt(oppInput?.value || `${score.opp || 0}`, 10) || 0);
   score.needsFinalization = false;
   score.needsFinalizationAt = null;
+  score.timerExpired = false;
+  score.timerAdvanceTo = null;
   score.finalizationConfirmedAt = new Date().toISOString();
   score.finalizedBy = 'scorer';
   score.finalizedSource = _pendingFinalizeSource || 'manual';
@@ -5446,7 +5533,7 @@ function confirmFinalizeGame() {
   setGameState(gid, 'final');
 }
 
-// ─── EVENT PICKER MODAL ───────────────────────────────────────────────────────
+// ??? EVENT PICKER MODAL ???????????????????????????????????????????????????????
 
 let _pickerGameId   = null;
 let _pickerType     = 'goal';
