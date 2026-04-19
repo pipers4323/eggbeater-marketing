@@ -1708,6 +1708,29 @@ h2 {
   gap: 12px;
 }
 
+.score-detail-summary-host-scorer {
+  gap: 10px;
+}
+
+.score-detail-play-inline.card.tab-card {
+  padding: 14px 14px 16px;
+}
+
+.score-detail-inline-log-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.score-detail-inline-log-copy {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--gray-500);
+  text-align: right;
+}
+
 .score-card-detail {
   display: grid;
   gap: 10px;

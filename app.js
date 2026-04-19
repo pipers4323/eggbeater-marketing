@@ -7301,6 +7301,22 @@ function buildScoreDetailPlayByPlay(g) {
       </div>`;
 }
 
+function buildScoreDetailScorerInlineLog(g) {
+  const s = getLiveScore(g);
+  const events = s.events || [];
+  const hasEvents = events.some(e => e.type !== 'game_state');
+  return `
+    <div class="score-detail-play score-detail-play-inline card tab-card">
+      <div class="score-detail-inline-log-head">
+        <div class="score-detail-section-title">Play-by-Play</div>
+        <div class="score-detail-inline-log-copy">Newest actions first · grouped by quarter · swipe to delete</div>
+      </div>
+      ${hasEvents
+        ? buildEventLog(events, s.period, g)
+        : `<div class="score-detail-empty">No play-by-play events yet.</div>`}
+    </div>`;
+}
+
 function buildEmbeddedScoreCardDetail(game, viewerOnly = false, ageGroupLabel = '') {
   const s = getLiveScore(game);
   const canScore = !TOURNAMENT.scoringPassword || isScorerUnlockedForTournament(TOURNAMENT);
@@ -7339,6 +7355,9 @@ function buildScoreDetailView(ctx) {
     const scorerPanel = (!viewerOnly && canScore && ctx.scorerMode)
       ? _buildScoreDetailScorerPanel(game, s)
       : '';
+    const scorerInlineLog = (!viewerOnly && canScore && ctx.scorerMode)
+      ? buildScoreDetailScorerInlineLog(game)
+      : '';
     const summaryHtml = _buildScoreDetailSummary(game, s, ageGroupLabel);
     const finalizeBanner = (!viewerOnly && canScore && !ctx.scorerMode)
       ? _buildNeedsFinalizationBanner(game, s, { hideScorerBtn: true, ageGroupLabel })
@@ -7361,17 +7380,21 @@ function buildScoreDetailView(ctx) {
             </div>
           </div>
         </div>
-        <div class="scores-detail-tabs">
-          <button class="scores-detail-tab ${state.scoreDetailTab !== 'play' ? 'active' : ''}" onclick="setScoreDetailTab('summary')">Summary</button>
-          <button class="scores-detail-tab ${state.scoreDetailTab === 'play' ? 'active' : ''}" onclick="setScoreDetailTab('play')">Play-by-Play</button>
-        </div>
-        ${state.scoreDetailTab === 'play'
-          ? buildScoreDetailPlayByPlay(game)
-          : `<div class="score-detail-summary-host">
-              ${finalizeBanner}
+        ${ctx.scorerMode
+          ? `<div class="score-detail-summary-host score-detail-summary-host-scorer">
               ${scorerPanel}
-              ${summaryHtml}
-            </div>`}
+              ${scorerInlineLog}
+            </div>`
+          : `<div class="scores-detail-tabs">
+              <button class="scores-detail-tab ${state.scoreDetailTab !== 'play' ? 'active' : ''}" onclick="setScoreDetailTab('summary')">Summary</button>
+              <button class="scores-detail-tab ${state.scoreDetailTab === 'play' ? 'active' : ''}" onclick="setScoreDetailTab('play')">Play-by-Play</button>
+            </div>
+            ${state.scoreDetailTab === 'play'
+              ? buildScoreDetailPlayByPlay(game)
+              : `<div class="score-detail-summary-host">
+                  ${finalizeBanner}
+                  ${summaryHtml}
+                </div>`}`}
       </div>`;
   });
 }
