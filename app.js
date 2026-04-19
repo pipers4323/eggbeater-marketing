@@ -1953,6 +1953,7 @@ function _saveResults() {
 
 function _hydrateOfficialResultsFromTournament() {
   let changed = false;
+  let scoreChanged = false;
   const seen = new Set();
   const applyGames = (games, explicitGroupKey = '') => {
     if (!Array.isArray(games)) return;
@@ -1965,6 +1966,25 @@ function _hydrateOfficialResultsFromTournament() {
         state.results[scopedKey] = g.result;
         changed = true;
       }
+      const officialTeam = typeof g.teamScore === 'number' ? g.teamScore : (g.liveScore && typeof g.liveScore.team === 'number' ? g.liveScore.team : null);
+      const officialOpp = typeof g.oppScore === 'number' ? g.oppScore : (g.liveScore && typeof g.liveScore.opp === 'number' ? g.liveScore.opp : null);
+      if (officialTeam == null || officialOpp == null) return;
+      const nextScore = {
+        ...(state.liveScores[scopedKey] || {}),
+        ...(g.liveScore || {}),
+        ageGroup: explicitGroupKey || g._groupKey || state.liveScores[scopedKey]?.ageGroup || '',
+        team: officialTeam,
+        opp: officialOpp,
+        gameState: 'final',
+        period: g.liveScore?.period || state.liveScores[scopedKey]?.period || 4,
+        clock: g.liveScore?.clock || state.liveScores[scopedKey]?.clock || '0:00',
+        timerRunning: false,
+        needsFinalization: false,
+      };
+      if (JSON.stringify(state.liveScores[scopedKey] || null) !== JSON.stringify(nextScore)) {
+        state.liveScores[scopedKey] = nextScore;
+        scoreChanged = true;
+      }
     });
   };
 
@@ -1972,6 +1992,7 @@ function _hydrateOfficialResultsFromTournament() {
   Object.entries(TEAM_CACHE || {}).forEach(([groupKey, cache]) => applyGames(cache?.tournament?.games || [], groupKey));
 
   if (changed) _saveResults();
+  if (scoreChanged) saveLiveScores();
 }
 
 function _warnIntegrity(message, detail = '') {
