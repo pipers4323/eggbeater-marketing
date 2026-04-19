@@ -2167,19 +2167,22 @@ h2 {
 .score-detail-play .event-row {
   display: grid;
   gap: 2px;
+  width: 100%;
   padding: 12px 0;
   border-bottom: 1px solid var(--gray-200);
+  box-sizing: border-box;
 }
 
 .score-detail-play .event-swipe-row {
   position: relative;
   overflow: hidden;
+  background: #fff;
 }
 
 .score-detail-play .event-swipe-row .event-row {
   position: relative;
   z-index: 1;
-  background: inherit;
+  background: #fff;
   transition: transform 0.18s ease;
   padding: 12px 0;
 }
@@ -2200,6 +2203,7 @@ h2 {
   font-size: 0.86rem;
   font-weight: 800;
   cursor: pointer;
+  z-index: 0;
 }
 
 .score-detail-play .event-main,

@@ -2841,7 +2841,13 @@ function _renderTournamentCompleteCard() {
 function parseGameTime(dateISO, timeStr) {
   if (!dateISO || !timeStr || timeStr === 'TBD') return null;
   try {
-    const [timePart, ampm] = timeStr.split(' ');
+    const normalized = String(timeStr || '')
+      .replace(/[\u00A0\u202F]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/^(\d{1,2}:\d{2})(am|pm)$/i, '$1 $2');
+    const [timePart, ampmRaw] = normalized.split(' ');
+    const ampm = String(ampmRaw || '').toUpperCase();
     const [hStr, mStr] = timePart.split(':');
     let h = parseInt(hStr, 10);
     const m = parseInt(mStr || '0', 10);
@@ -2855,7 +2861,13 @@ function parseGameTime(dateISO, timeStr) {
 
 function _isUpcomingOrCurrentProjectedStep(step, now = new Date()) {
   const t = parseGameTime(step?.dateISO, step?.time);
-  if (!t) return true;
+  if (!t) {
+    const stepDate = String(step?.dateISO || '').trim();
+    const today = toISOLocal(now).slice(0, 10);
+    if (stepDate && stepDate < today) return false;
+    if (stepDate === today && step?.time) return false;
+    return true;
+  }
   return t.getTime() > (now.getTime() - 90 * 60 * 1000);
 }
 
@@ -2874,6 +2886,12 @@ function findNextGameOrProjected() {
   if (_isTournamentPastWindow(TOURNAMENT, now)) return null;
   const games = getTournamentGames();
   const unplayedGames = games.filter(g => !_getResultForGame(g));
+  const unresolvedPastRealGame = unplayedGames.some(g => {
+    if (String(g?.id || '').startsWith('projected-next:')) return false;
+    const t = parseGameTime(g.dateISO, g.time);
+    return !!(t && t <= new Date(now.getTime() - 90 * 60 * 1000));
+  });
+  if (unresolvedPastRealGame) return null;
 
   // 1. Next upcoming pool play game by clock time
   // Keep showing a game as "next" until 90 min past its start time (covers typical game duration)
@@ -3386,6 +3404,9 @@ function _setLiveScore(gameId, score) {
     ...score,
     ageGroup: score?.ageGroup || _contextGroupKey(gameId),
   };
+  delete nextScore._remote;
+  delete nextScore._deviceId;
+  delete nextScore._broadcastAt;
   _attachScoreContext(nextScore, gameId);
   state.liveScores[scopedKey] = nextScore;
 }
@@ -6268,6 +6289,13 @@ function findNextGameOrProjectedForTeam(teamKey) {
   if (_isTournamentPastWindow(tournament, new Date())) return null;
   const games = getScopedTournamentGames(teamKey);
   const unplayedGames = games.filter(g => !_getResultForGame(g, teamKey));
+  const now = new Date();
+  const unresolvedPastRealGame = unplayedGames.some(g => {
+    if (String(g?.id || '').startsWith('projected-next:')) return false;
+    const t = parseGameTime(g.dateISO, g.time);
+    return !!(t && t <= new Date(now.getTime() - 90 * 60 * 1000));
+  });
+  if (unresolvedPastRealGame) return null;
   const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
   const withTime = unplayedGames.filter(g => {
     const t = parseGameTime(g.dateISO, g.time);
@@ -6284,7 +6312,6 @@ function findNextGameOrProjectedForTeam(teamKey) {
   if (nextPool) return { game: nextPool, type: 'pool' };
   const projected = _buildProjectedPathForTournament(tournament, games);
   if (!projected) return null;
-  const now = new Date();
   for (const step of (projected.steps || [])) {
     const stepKey = `${projected.id}-${step.gameNum}`;
     if (!state.bracketResults[stepKey] && _isUpcomingOrCurrentProjectedStep(step, now)) {
@@ -7523,19 +7550,21 @@ function buildScoresListCard(g, viewerOnly = false, ageGroupLabel = '') {
 }
 
 function buildScoreDetailPlayByPlay(g) {
-  const s = getLiveScore(g);
+  const gameRef = _gameRef(g);
+  const s = getLiveScore(gameRef);
   const events = s.events || [];
   const hasEvents = events.some(e => e.type !== 'game_state');
   return `
     <div class="score-detail-play card tab-card">
       ${hasEvents
-        ? buildEventLog(events, s.period, g)
+        ? buildEventLog(events, s.period, gameRef)
         : `<div class="score-detail-empty">No play-by-play events yet.</div>`}
       </div>`;
 }
 
 function buildScoreDetailScorerInlineLog(g) {
-  const s = getLiveScore(g);
+  const gameRef = _gameRef(g);
+  const s = getLiveScore(gameRef);
   const events = s.events || [];
   const hasEvents = events.some(e => e.type !== 'game_state');
   return `
@@ -7545,7 +7574,7 @@ function buildScoreDetailScorerInlineLog(g) {
         <div class="score-detail-inline-log-copy">Newest actions first · grouped by quarter · swipe to delete</div>
       </div>
       ${hasEvents
-        ? buildEventLog(events, s.period, g)
+        ? buildEventLog(events, s.period, gameRef)
         : `<div class="score-detail-empty">No play-by-play events yet.</div>`}
     </div>`;
 }
@@ -12026,12 +12055,13 @@ async function broadcastLiveScore(gameId) {
   // Strip private tracking fields before sending
   const { _remote, _broadcastAt, _deviceId, ...cleanScore } = score;
   const ageGroup = _contextGroupKey(gameId) || cleanScore.ageGroup || getSelectedTeam() || '';
-  const scorePw = TOURNAMENT.scoringPassword || '';
+  const tournament = getTournamentForGroup(ageGroup) || TOURNAMENT || {};
+  const scorePw = tournament.scoringPassword || '';
   const payload = {
     gameId: _gameIdOnly(gameId),
     clubId:       getAppClubId() || '',
     ageGroup,
-    tournamentId: TOURNAMENT.id || '',
+    tournamentId: tournament.id || cleanScore.tournamentId || '',
     deviceId:     getDeviceId(),
     score:        { ...cleanScore, ageGroup },
     _scorePw:     scorePw, // stored in offline queue so SW can authenticate replays
@@ -12044,7 +12074,11 @@ async function broadcastLiveScore(gameId) {
       headers,
       body:    JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) {
+      console.warn('[live-score] sync rejected', res.status, ageGroup, payload.tournamentId, payload.gameId);
+      showToast('⚠️ Could not sync that score update yet.', 'warn');
+      return;
+    }
   } catch (e) {
     // Queue for later sync
     _queuePendingScore(payload);
