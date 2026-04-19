@@ -7528,7 +7528,9 @@ function renderScoresTab() {
         .map(g => ({ ...g, _groupKey: groupKey }));
       const today = _localDateStr();
       // Filter out games with results (they move to history) and games from past days
-const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResultForGame(g));
+const active = _dedupeScheduledGames(
+  games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResultForGame(g))
+);
 
       // Slot label — lean header row (not a full card wrapper)
       const slotLabel = _groupSectionLabelFor(groupKey, letter);
@@ -7582,7 +7584,7 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
   if (TOURNAMENT.scoringPassword && !isScorerUnlocked()) {
 
     const games = getTournamentGames();
-    const activeGames = games.filter(g => !_getResultForGame(g));
+    const activeGames = _dedupeScheduledGames(games.filter(g => !_getResultForGame(g)));
     const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
     const _gt2 = g => { const t = parseGameTime(g.dateISO, g.time); return t ? t.getTime() : (g.dateISO ? new Date(g.dateISO + 'T00:00:00').getTime() : Infinity); };
     activeGames.sort((a, b) => {
@@ -7644,7 +7646,7 @@ const active = games.filter(g => (!g.dateISO || g.dateISO >= today) && !_getResu
   }
 
   // Group games by date — filter out completed games (they appear in History tab)
-  const activeGames = games.filter(g => !_getResultForGame(g));
+  const activeGames = _dedupeScheduledGames(games.filter(g => !_getResultForGame(g)));
 
   if (!activeGames.length) {
     el.innerHTML = dirHtml + `<div class="card tab-card">
@@ -8658,6 +8660,35 @@ function _sameScheduledGame(a, b) {
     && norm(a.location) === norm(b.location);
 }
 
+function _scheduledGameRichness(g) {
+  if (!g) return -1;
+  const s = getLiveScore(g) || {};
+  let score = 0;
+  if (g.pool) score += 40;
+  if (g.cap) score += 20;
+  if (g.location) score += 15;
+  if (g.gameNum) score += 10;
+  if (s.events?.length) score += 100 + s.events.length;
+  if (s.gameState && s.gameState !== 'pre') score += 50;
+  if (s._remote) score += 5;
+  return score;
+}
+
+function _dedupeScheduledGames(games = []) {
+  const deduped = [];
+  for (const g of games) {
+    const idx = deduped.findIndex(existing => _sameScheduledGame(existing, g));
+    if (idx === -1) {
+      deduped.push(g);
+      continue;
+    }
+    if (_scheduledGameRichness(g) > _scheduledGameRichness(deduped[idx])) {
+      deduped[idx] = g;
+    }
+  }
+  return deduped;
+}
+
 function openLiveGameFromSchedule(gameOrRef, ageGroupLabel = '') {
   const game = _findGameByRef(gameOrRef);
   if (!game) return;
@@ -9011,8 +9042,9 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
     g.pool ? `<span class="icon-label">${swimmerEmoji()} ${escHtml(g.pool)}</span>` : '',
     capBadge
   ].filter(Boolean).join('');
-  const locationRow = showLocation && TOURNAMENT.location
-    ? `<div class="game-location-row">${buildLocationVenueOnly(TOURNAMENT.location)}</div>`
+  const gameLocation = g.location || TOURNAMENT.location;
+  const locationRow = showLocation && gameLocation
+    ? `<div class="game-location-row">${buildLocationVenueOnly(gameLocation)}</div>`
     : '';
 
   const btn = (cls, val, label, p) => {
