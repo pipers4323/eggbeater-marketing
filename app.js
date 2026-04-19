@@ -6831,6 +6831,7 @@ function _withScoreTournamentContext(groupKey, fn) {
 function openScoreDetail(gameId, groupKey = '', ageGroupLabel = '', viewerOnly = false) {
   state.scoreDetail = { gameId, groupKey, ageGroupLabel, viewerOnly: !!viewerOnly, scorerMode: false };
   state.scoreDetailTab = 'summary';
+  syncVolumeButtonShortcut();
   if (state.currentTab !== 'scores') switchTab('scores');
   renderScoresTab();
   requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
@@ -6841,6 +6842,7 @@ function openScorerDetail(gameId, groupKey = '', ageGroupLabel = '') {
   state.scorerDetailsOpen[gameId] = true;
   state.scoreDetail = { gameId, groupKey, ageGroupLabel, viewerOnly: false, scorerMode: true };
   state.scoreDetailTab = 'summary';
+  syncVolumeButtonShortcut();
   if (state.currentTab !== 'scores') switchTab('scores');
   renderScoresTab();
   requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
@@ -6876,12 +6878,62 @@ function handleToggleLiveButtonClick(evt, btn) {
 function closeScoreDetail() {
   state.scoreDetail = null;
   state.scoreDetailTab = 'summary';
+  syncVolumeButtonShortcut();
   renderScoresTab();
 }
 
 function setScoreDetailTab(tab) {
   state.scoreDetailTab = tab === 'play' ? 'play' : 'summary';
   renderScoresTab();
+}
+
+let _volumeButtonListener = null;
+let _volumeButtonListening = false;
+
+function getVolumeButtonPlugin() {
+  return window.Capacitor?.Plugins?.VolumeButton ||
+    (window.Capacitor?.nativePromise
+      ? {
+          startListening: (o) => window.Capacitor.nativePromise('VolumeButton', 'startListening', o || {}),
+          stopListening: (o) => window.Capacitor.nativePromise('VolumeButton', 'stopListening', o || {}),
+          addListener: (...args) => window.Capacitor.Plugins?.VolumeButton?.addListener?.(...args),
+        }
+      : null);
+}
+
+async function initVolumeButtonShortcut() {
+  if (!window.Capacitor?.isNativePlatform?.() || window.Capacitor?.getPlatform?.() !== 'ios') return;
+  const plugin = getVolumeButtonPlugin();
+  if (!plugin?.addListener || _volumeButtonListener) return;
+  try {
+    _volumeButtonListener = await plugin.addListener('volumeButtonPressed', () => {
+      const detail = state.scoreDetail;
+      if (!detail?.scorerMode || detail.viewerOnly) return;
+      const gid = detail.gameId;
+      if (!gid || !isScorerUnlocked()) return;
+      const s = getLiveScore(gid);
+      if (!s || s.timerExpired || s.needsFinalization || s.gameState === 'final') return;
+      if (s.timerRunning) pauseGameTimer(gid);
+      else if ((s.timerSecondsLeft || 0) > 0) resumeGameTimer(gid);
+    });
+  } catch (err) {
+    console.warn('[volume-shortcut] listener setup failed', err);
+  }
+}
+
+async function syncVolumeButtonShortcut() {
+  if (!window.Capacitor?.isNativePlatform?.() || window.Capacitor?.getPlatform?.() !== 'ios') return;
+  const plugin = getVolumeButtonPlugin();
+  if (!plugin) return;
+  const shouldListen = !!(state.scoreDetail?.scorerMode && !state.scoreDetail?.viewerOnly && isScorerUnlocked());
+  if (shouldListen === _volumeButtonListening) return;
+  try {
+    if (shouldListen) await plugin.startListening({});
+    else await plugin.stopListening({});
+    _volumeButtonListening = shouldListen;
+  } catch (err) {
+    console.warn('[volume-shortcut] sync failed', err);
+  }
 }
 
 function openHistoryGameDetail(tournamentId, gameIndex) {
@@ -6989,6 +7041,7 @@ function setScoreCardTab(gameId, tab) {
 function enableScoreDetailScorer() {
   if (!state.scoreDetail) return;
   state.scoreDetail.scorerMode = true;
+  syncVolumeButtonShortcut();
   renderScoresTab();
 }
 
@@ -9827,6 +9880,7 @@ function init() {
   } else if (platform === 'android') {
     document.documentElement.classList.add('native-android');
   }
+  initVolumeButtonShortcut();
 
   // Hide native splash screen — in remote URL mode launchAutoHide doesn't fire reliably
   try {
@@ -11406,6 +11460,7 @@ function submitScoringPassword() {
     localStorage.setItem('ebwp-scorer-tournament',  primaryId);
     state.viewerMode = false;
     closeScoringPasswordModal();
+    syncVolumeButtonShortcut();
     showToast('🔓 Scorer mode unlocked!', 'ok');
     renderGamesList();
     if (state.currentTab === 'scores') renderScoresTab();
@@ -11429,6 +11484,7 @@ function lockScoring() {
     }
   }
   document.querySelector('.app-header')?.classList.remove('scoring-active');
+  syncVolumeButtonShortcut();
   showToast('🔒 Scorer mode locked');
   updateLiveDot();
   renderGamesList();
