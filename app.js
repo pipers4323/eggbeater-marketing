@@ -3745,14 +3745,16 @@ function buildEventLog(events, currentPeriod = 0, gameId = null) {
       const eventId = _eventIdFor(ev);
       const rowKey = `${String(gameId).replace(/[^a-zA-Z0-9_-]/g, '_')}__${eventId}`;
       const deleteAction = isScorerUnlockedForTournament(TOURNAMENT)
-        ? `<button class="event-delete-btn" onclick="event.stopPropagation();deletePlayByPlayEvent(${JSON.stringify(_gameRef(gameId))},${JSON.stringify(eventId)})">Delete</button>`
+        ? `<button class="event-delete-inline" onclick="event.stopPropagation();deletePlayByPlayEvent(${JSON.stringify(_gameRef(gameId))},${JSON.stringify(eventId)})">Delete</button>`
         : '';
-      html += `<div class="event-swipe-row" id="event-row-${rowKey}" ontouchstart="startEventSwipe(event,${JSON.stringify(rowKey)})" ontouchend="endEventSwipe(event,${JSON.stringify(rowKey)})">
-        ${deleteAction}
+      html += `<div class="event-swipe-row" id="event-row-${rowKey}">
         <div class="event-row event-${isTeam?'team':'opp'}" onclick="maybeCloseEventSwipe(${JSON.stringify(rowKey)})">
         <div class="event-main">
-          <span class="event-type">${escHtml(typeLabel)}</span>
-          <span class="event-team-name">${escHtml(teamName)}</span>
+          <div class="event-main-copy">
+            <span class="event-type">${escHtml(typeLabel)}</span>
+            <span class="event-team-name">${escHtml(teamName)}</span>
+          </div>
+          ${deleteAction}
         </div>
         <div class="event-sub">
           <span class="event-clock">${escHtml(ev.clock||'—')}</span>

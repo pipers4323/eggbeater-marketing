@@ -2183,27 +2183,7 @@ h2 {
   position: relative;
   z-index: 1;
   background: #fff;
-  transition: transform 0.18s ease;
   padding: 12px 0;
-}
-
-.score-detail-play .event-swipe-row.swiped .event-row {
-  transform: translateX(92px);
-}
-
-.score-detail-play .event-delete-btn {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 84px;
-  border: 0;
-  background: #dc2626;
-  color: white;
-  font-size: 0.86rem;
-  font-weight: 800;
-  cursor: pointer;
-  z-index: 0;
 }
 
 .score-detail-play .event-main,
@@ -2212,6 +2192,24 @@ h2 {
   justify-content: space-between;
   gap: 16px;
   align-items: baseline;
+}
+
+.score-detail-play .event-main-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.score-detail-play .event-delete-inline {
+  border: 1px solid #fecaca;
+  background: #fff5f5;
+  color: #b91c1c;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .score-detail-play .event-type,
