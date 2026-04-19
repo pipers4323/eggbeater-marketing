@@ -2759,6 +2759,12 @@ function parseGameTime(dateISO, timeStr) {
   } catch { return null; }
 }
 
+function _isUpcomingOrCurrentProjectedStep(step, now = new Date()) {
+  const t = parseGameTime(step?.dateISO, step?.time);
+  if (!t) return true;
+  return t.getTime() > (now.getTime() - 90 * 60 * 1000);
+}
+
 function toISOLocal(date) {
   const pad = n => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}` +
@@ -2801,7 +2807,7 @@ function findNextGameOrProjected() {
 
   for (const step of (projected.steps || [])) {
     const stepKey = `${projected.id}-${step.gameNum}`;
-    if (!state.bracketResults[stepKey]) {
+    if (!state.bracketResults[stepKey] && _isUpcomingOrCurrentProjectedStep(step, now)) {
       return { game: step, type: 'bracket', pathLabel: projected.label };
     }
   }
@@ -6126,9 +6132,12 @@ function findNextGameOrProjectedForTeam(teamKey) {
   if (nextPool) return { game: nextPool, type: 'pool' };
   const projected = _buildProjectedPathForTournament(tournament, games);
   if (!projected) return null;
+  const now = new Date();
   for (const step of (projected.steps || [])) {
     const stepKey = `${projected.id}-${step.gameNum}`;
-    if (!state.bracketResults[stepKey]) return { game: step, type: 'bracket', pathLabel: projected.label };
+    if (!state.bracketResults[stepKey] && _isUpcomingOrCurrentProjectedStep(step, now)) {
+      return { game: step, type: 'bracket', pathLabel: projected.label };
+    }
   }
   return null;
 }
