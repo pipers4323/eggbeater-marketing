@@ -1876,6 +1876,11 @@ function _gameRef(gameOrRef, explicitGroupKey = '') {
   return _scopedGameKey(gameOrRef, explicitGroupKey);
 }
 
+function _isScorerUnlockedForGame(gameOrRef, explicitGroupKey = '') {
+  const tournament = getTournamentForGroup(_contextGroupKey(gameOrRef, explicitGroupKey)) || TOURNAMENT || {};
+  return isScorerUnlockedForTournament(tournament);
+}
+
 function _findGameByRef(gameOrRef, explicitGroupKey = '') {
   const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
   const gameId = _gameIdOnly(gameOrRef);
@@ -3745,7 +3750,7 @@ function buildEventLog(events, currentPeriod = 0, gameId = null) {
       const eventId = _eventIdFor(ev);
       const rowKey = `${String(gameId).replace(/[^a-zA-Z0-9_-]/g, '_')}__${eventId}`;
       const deleteAction = isScorerUnlockedForTournament(TOURNAMENT)
-        ? `<button class="event-delete-inline" onclick="event.stopPropagation();deletePlayByPlayEvent(${JSON.stringify(_gameRef(gameId))},${JSON.stringify(eventId)})">Delete</button>`
+        ? `<button class="event-delete-inline" data-game-ref="${escHtml(_gameRef(gameId))}" data-event-id="${escHtml(eventId)}" onclick="event.stopPropagation();return handleDeletePlayByPlayEventClick(this)">Delete</button>`
         : '';
       html += `<div class="event-swipe-row" id="event-row-${rowKey}">
         <div class="event-row event-${isTeam?'team':'opp'}" onclick="maybeCloseEventSwipe(${JSON.stringify(rowKey)})">
@@ -3767,6 +3772,15 @@ function buildEventLog(events, currentPeriod = 0, gameId = null) {
   }
   html += '</div>';
   return html;
+}
+
+function handleDeletePlayByPlayEventClick(btn) {
+  if (!btn) return false;
+  const gameRef = btn.getAttribute('data-game-ref') || '';
+  const eventId = btn.getAttribute('data-event-id') || '';
+  if (!gameRef || !eventId) return false;
+  deletePlayByPlayEvent(gameRef, eventId);
+  return false;
 }
 
 function _clockSortValue(clock) {
@@ -7551,9 +7565,9 @@ function buildScoresListCard(g, viewerOnly = false, ageGroupLabel = '') {
     </div>`;
 }
 
-function buildScoreDetailPlayByPlay(g) {
+function buildScoreDetailPlayByPlay(g, liveScore = null) {
   const gameRef = _gameRef(g);
-  const s = getLiveScore(gameRef);
+  const s = liveScore || getLiveScore(gameRef);
   const events = s.events || [];
   const hasEvents = events.some(e => e.type !== 'game_state');
   return `
@@ -7564,20 +7578,98 @@ function buildScoreDetailPlayByPlay(g) {
       </div>`;
 }
 
-function buildScoreDetailScorerInlineLog(g) {
+function buildScorerInlineEventLog(events, currentPeriod = 0, gameId = null) {
+  const nonState = (events || []).filter(e => e && e.type !== 'game_state');
+  if (!nonState.length) {
+    return `<div class="score-detail-empty">No play-by-play events yet.</div>`;
+  }
+  const groups = {};
+  for (const ev of nonState) {
+    const p = ev.period ?? 0;
+    if (!groups[p]) groups[p] = [];
+    groups[p].push(ev);
+  }
+  const TYPE_LABEL = {
+    goal:          ev => ev.counter ? 'GOAL (Counter)' : (ev.sixOnFive ? appT('event_goal_6v5') : appT('event_goal')),
+    opp_goal:      ()  => appT('event_goal'),
+    goal_5m:       ()  => appT('event_goal_5m'),
+    opp_goal_5m:   ()  => appT('event_goal_5m'),
+    shot_miss:     ()  => appT('event_shot_attempt'),
+    opp_shot_miss: ()  => appT('event_shot_attempt'),
+    miss_5m:       ()  => appT('event_attempt_5m'),
+    opp_miss_5m:   ()  => appT('event_attempt_5m'),
+    so_goal:       ()  => appT('event_so_goal'),
+    opp_so_goal:   ()  => appT('event_so_goal'),
+    so_miss:       ()  => appT('event_so_miss'),
+    opp_so_miss:   ()  => appT('event_so_miss'),
+    assist:        ()  => appT('event_assist'),
+    steal:         ev  => ev.forcedBallUnder ? appT('event_steal_fbu') : appT('event_steal'),
+    turnover:      ev  => ev.inside2m ? 'TURNOVER (Inside 2m)' : appT('event_turnover'),
+    sprint_won:    ()  => appT('event_sprint_won'),
+    opp_sprint_won:()  => appT('event_opp_sprint_won'),
+    opp_steal:     ()  => appT('event_opp_steal'),
+    exclusion:     ()  => appT('event_excl'),
+    opp_exclusion: ()  => appT('event_excl'),
+    brutality:     ()  => appT('event_brutal'),
+    timeout:       ()  => appT('event_timeout'),
+    opp_timeout:   ()  => appT('event_opp_timeout'),
+    save:          ()  => appT('event_save'),
+    block:         ()  => appT('event_save'),
+    field_block:   ()  => appT('event_field_block'),
+  };
+  const sortedPeriods = Object.entries(groups).sort((a, b) => Number(b[0]) - Number(a[0]));
+  return `<div class="scorer-inline-event-log">${
+    sortedPeriods.map(([period, evs]) => {
+      const label = _getPeriodLabel(parseInt(period, 10), gameId);
+      const sortedEvents = [...evs].sort((a, b) => {
+        if ((a.ts || 0) !== (b.ts || 0)) return (b.ts || 0) - (a.ts || 0);
+        const aClock = _clockSortValue(a.clock);
+        const bClock = _clockSortValue(b.clock);
+        if (aClock !== bClock) return aClock - bClock;
+        return String(a.type || '').localeCompare(String(b.type || ''));
+      });
+      return `<section class="scorer-inline-quarter ${parseInt(period, 10) === currentPeriod ? 'is-current' : ''}">
+        <div class="scorer-inline-quarter-head">${escHtml(label)}</div>
+        <div class="scorer-inline-quarter-body">
+          ${sortedEvents.map((ev, idx) => {
+            const isTeam = ev.side === 'team';
+            const typeLabel = (TYPE_LABEL[ev.type] || (() => ev.type))(ev);
+            const playerName = ev.cap
+              ? `${ev.cap}. ${ev.name || '(No Name Provided)'}`
+              : (ev.name || (isTeam ? appT('event_team_fallback') : appT('event_opp_fallback')));
+            const teamName = isTeam
+              ? _teamDisplayNameForGame(gameId, TOURNAMENT.clubName || appT('scorer_team_label'))
+              : normalizeOpponentName(_findGameByRef(gameId)?.opponent || 'Opp');
+            const eventId = _eventIdFor(ev, idx);
+            return `<div class="scorer-inline-event scorer-inline-event-${isTeam ? 'team' : 'opp'}">
+              <div class="scorer-inline-event-main">
+                <div class="scorer-inline-event-type">${escHtml(typeLabel)}</div>
+                <button class="event-delete-inline" data-game-ref="${escHtml(_gameRef(gameId))}" data-event-id="${escHtml(eventId)}" onclick="return handleDeletePlayByPlayEventClick(this)">Delete</button>
+              </div>
+              <div class="scorer-inline-event-sub">
+                <span class="scorer-inline-event-team">${escHtml(teamName)}</span>
+                <span class="scorer-inline-event-clock">${escHtml(ev.clock || '—')}</span>
+              </div>
+              <div class="scorer-inline-event-player">${escHtml(playerName)}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </section>`;
+    }).join('')
+  }</div>`;
+}
+
+function buildScoreDetailScorerInlineLog(g, liveScore = null) {
   const gameRef = _gameRef(g);
-  const s = getLiveScore(gameRef);
+  const s = liveScore || getLiveScore(gameRef);
   const events = s.events || [];
-  const hasEvents = events.some(e => e.type !== 'game_state');
   return `
     <div class="score-detail-play score-detail-play-inline card tab-card">
       <div class="score-detail-inline-log-head">
         <div class="score-detail-section-title">Play-by-Play</div>
-        <div class="score-detail-inline-log-copy">Newest actions first · grouped by quarter · swipe to delete</div>
+        <div class="score-detail-inline-log-copy">Newest actions first · grouped by quarter · inline delete</div>
       </div>
-      ${hasEvents
-        ? buildEventLog(events, s.period, gameRef)
-        : `<div class="score-detail-empty">No play-by-play events yet.</div>`}
+      ${buildScorerInlineEventLog(events, s.period, gameRef)}
     </div>`;
 }
 
@@ -7601,8 +7693,8 @@ function buildEmbeddedScoreCardDetail(game, viewerOnly = false, ageGroupLabel = 
         <button class="scores-detail-tab ${tab === 'play' ? 'active' : ''}" onclick="setScoreCardTab('${gid}','play')">Play-by-Play</button>
       </div>
       ${tab === 'play'
-        ? buildScoreDetailPlayByPlay(game)
-        : `<div class="score-detail-summary-host">
+      ? buildScoreDetailPlayByPlay(game, s)
+      : `<div class="score-detail-summary-host">
             ${summaryHtml}
           </div>`}
     </div>`;
@@ -7620,7 +7712,7 @@ function buildScoreDetailView(ctx) {
       ? _buildScoreDetailScorerPanel(game, s)
       : '';
     const scorerInlineLog = (!viewerOnly && canScore && ctx.scorerMode)
-      ? buildScoreDetailScorerInlineLog(game)
+      ? buildScoreDetailScorerInlineLog(game, s)
       : '';
     const summaryHtml = _buildScoreDetailSummary(game, s, ageGroupLabel);
     const finalizeBanner = (!viewerOnly && canScore && !ctx.scorerMode)
@@ -7654,7 +7746,7 @@ function buildScoreDetailView(ctx) {
               <button class="scores-detail-tab ${state.scoreDetailTab === 'play' ? 'active' : ''}" onclick="setScoreDetailTab('play')">Play-by-Play</button>
             </div>
             ${state.scoreDetailTab === 'play'
-              ? buildScoreDetailPlayByPlay(game)
+              ? buildScoreDetailPlayByPlay(game, s)
               : `<div class="score-detail-summary-host">
                   ${finalizeBanner}
                   ${summaryHtml}
@@ -12312,7 +12404,7 @@ async function pollLiveScores() {
       for (const [gameId, remoteScore] of Object.entries(remote || {})) {
       const scopedKey = _scopedGameKey(gameId, remoteScore.ageGroup || remoteScore.score?.ageGroup || '');
       const local = state.liveScores[scopedKey] || state.liveScores[gameId] || {};
-      const localScorerOwnsGame = isScorerUnlocked()
+      const localScorerOwnsGame = _isScorerUnlockedForGame(scopedKey, remoteScore.ageGroup || remoteScore.score?.ageGroup || '')
         && (myGames.has(scopedKey) || myGames.has(gameId))
         && !local._remote
         && !!local.gameState

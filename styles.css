@@ -1716,6 +1716,74 @@ h2 {
   padding: 14px 14px 16px;
 }
 
+.score-detail-play-inline .event-log {
+  display: block;
+  margin-top: 0;
+}
+
+.scorer-inline-event-log {
+  display: grid;
+  gap: 10px;
+}
+
+.scorer-inline-quarter {
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.scorer-inline-quarter-head {
+  padding: 10px 12px;
+  background: var(--gray-100);
+  color: var(--gray-800);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.scorer-inline-quarter.is-current .scorer-inline-quarter-head {
+  background: #e8f0ff;
+  color: var(--royal);
+}
+
+.scorer-inline-quarter-body {
+  display: grid;
+}
+
+.scorer-inline-event {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-top: 1px solid var(--gray-100);
+}
+
+.scorer-inline-quarter-body .scorer-inline-event:first-child {
+  border-top: 0;
+}
+
+.scorer-inline-event-main,
+.scorer-inline-event-sub {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.scorer-inline-event-type {
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--gray-900);
+}
+
+.scorer-inline-event-team,
+.scorer-inline-event-clock,
+.scorer-inline-event-player {
+  font-size: 0.92rem;
+  color: var(--gray-600);
+}
+
 .score-detail-inline-log-head {
   display: flex;
   align-items: baseline;
