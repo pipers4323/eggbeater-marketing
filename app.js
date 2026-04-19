@@ -1893,11 +1893,80 @@ function _getLiveScoreForGame(gameOrRef, explicitGroupKey = '') {
   return state.liveScores[scopedKey] || state.liveScores[_gameIdOnly(gameOrRef)] || null;
 }
 
+function _meaningfulEventCount(score) {
+  return Array.isArray(score?.events) ? score.events.filter(ev => ev && ev.type !== 'game_state').length : 0;
+}
+
 function _hasMeaningfulLiveScoreData(score) {
   if (!score) return false;
-  return (Array.isArray(score.events) && score.events.some(ev => ev.type !== 'game_state'))
+  return _meaningfulEventCount(score) > 0
     || Number(score.team || 0) !== 0
     || Number(score.opp || 0) !== 0;
+}
+
+function _attachScoreContext(score, gameOrRef, explicitGroupKey = '') {
+  if (!score) return score;
+  const game = _findGameByRef(gameOrRef, explicitGroupKey);
+  const tournament = getTournamentForGroup(_contextGroupKey(gameOrRef, explicitGroupKey)) || TOURNAMENT || {};
+  if (game) {
+    if (!score.opponent && game.opponent) score.opponent = game.opponent;
+    if (!score.time && game.time) score.time = game.time;
+    if (!score.dateISO && game.dateISO) score.dateISO = game.dateISO;
+    if (!score.date && game.date) score.date = game.date;
+    if (!score.location && game.location) score.location = game.location;
+  }
+  if (!score.gameId) score.gameId = _gameIdOnly(gameOrRef);
+  if (!score.tournamentId && tournament?.id) score.tournamentId = tournament.id;
+  return score;
+}
+
+function _normalizeSlotValue(val) {
+  return String(val || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function _sameScheduledSlot(a, b) {
+  if (!a || !b) return false;
+  const sameDate = _normalizeSlotValue(a.dateISO || a.date) === _normalizeSlotValue(b.dateISO || b.date);
+  const sameTime = _normalizeSlotValue(a.time) === _normalizeSlotValue(b.time);
+  const sameOpponent = _normalizeSlotValue(normalizeOpponentName(a.opponent || '')) === _normalizeSlotValue(normalizeOpponentName(b.opponent || ''));
+  return sameDate && sameTime && sameOpponent;
+}
+
+function _shouldPreserveLocalLiveScore(localScore, remoteScore) {
+  if (!localScore || localScore._remote) return false;
+  if (!_hasMeaningfulLiveScoreData(localScore)) return false;
+  if (localScore.gameState === 'final' && remoteScore?.gameState === 'final') {
+    return _meaningfulEventCount(localScore) > _meaningfulEventCount(remoteScore);
+  }
+  return localScore.gameState !== 'final';
+}
+
+function _findMatchingLocalDraftForGame(game, explicitGroupKey = '') {
+  const groupKey = explicitGroupKey || game?._groupKey || '';
+  for (const [key, score] of Object.entries(state.liveScores || {})) {
+    if (!score || score._remote) continue;
+    if ((score.ageGroup || '') !== groupKey) continue;
+    if (!_hasMeaningfulLiveScoreData(score)) continue;
+    if (_gameIdOnly(key) === String(game?.id || '')) continue;
+    if (_sameScheduledSlot(score, game)) return { key, score };
+  }
+  return null;
+}
+
+function _adoptLocalDraftForOfficialGame(game, explicitGroupKey = '') {
+  const scopedKey = _scopedGameKey(game, explicitGroupKey || game?._groupKey || '');
+  const existing = state.liveScores[scopedKey];
+  if (_shouldPreserveLocalLiveScore(existing, null)) {
+    _attachScoreContext(existing, game, explicitGroupKey);
+    return existing;
+  }
+  const match = _findMatchingLocalDraftForGame(game, explicitGroupKey);
+  if (!match) return existing || null;
+  const adopted = { ...match.score };
+  _attachScoreContext(adopted, game, explicitGroupKey);
+  state.liveScores[scopedKey] = adopted;
+  if (match.key !== scopedKey) delete state.liveScores[match.key];
+  return adopted;
 }
 
 function _getAuthoritativeLiveResult(gameOrRef, explicitGroupKey = '') {
@@ -1971,6 +2040,14 @@ function _hydrateOfficialResultsFromTournament() {
       const officialTeam = typeof g.teamScore === 'number' ? g.teamScore : (g.liveScore && typeof g.liveScore.team === 'number' ? g.liveScore.team : null);
       const officialOpp = typeof g.oppScore === 'number' ? g.oppScore : (g.liveScore && typeof g.liveScore.opp === 'number' ? g.liveScore.opp : null);
       if (officialTeam == null || officialOpp == null) return;
+      const preservedLocal = _adoptLocalDraftForOfficialGame(g, explicitGroupKey || g._groupKey || '');
+      const remoteOfficialScore = {
+        ...(g.liveScore || {}),
+        team: officialTeam,
+        opp: officialOpp,
+        gameState: 'final',
+      };
+      if (_shouldPreserveLocalLiveScore(preservedLocal, remoteOfficialScore)) return;
       const nextScore = {
         ...(state.liveScores[scopedKey] || {}),
         ...(g.liveScore || {}),
@@ -1983,6 +2060,7 @@ function _hydrateOfficialResultsFromTournament() {
         timerRunning: false,
         needsFinalization: false,
       };
+      _attachScoreContext(nextScore, g, explicitGroupKey || g._groupKey || '');
       if (JSON.stringify(state.liveScores[scopedKey] || null) !== JSON.stringify(nextScore)) {
         state.liveScores[scopedKey] = nextScore;
         scoreChanged = true;
@@ -2241,6 +2319,17 @@ function _mergeTournamentWithScoredGames(tournament, scoredGames, explicitGroupK
   const mergedGames = tournament.games.map((g) => {
     const scored = scoredGames[String(g.id)];
     if (!scored) return explicitGroupKey && !g._groupKey ? { ...g, _groupKey: explicitGroupKey } : g;
+    const preservedLocal = _adoptLocalDraftForOfficialGame(g, explicitGroupKey || g._groupKey || '');
+    if (_shouldPreserveLocalLiveScore(preservedLocal, scored.score)) {
+      return {
+        ...g,
+        _groupKey: explicitGroupKey || g._groupKey || '',
+        liveScore: preservedLocal,
+        teamScore: typeof preservedLocal.team === 'number' ? preservedLocal.team : (g.teamScore ?? g.liveScore?.team),
+        oppScore: typeof preservedLocal.opp === 'number' ? preservedLocal.opp : (g.oppScore ?? g.liveScore?.opp),
+        result: g.result || '',
+      };
+    }
     const merged = {
       ...g,
       _groupKey: explicitGroupKey || g._groupKey || '',
@@ -2250,6 +2339,7 @@ function _mergeTournamentWithScoredGames(tournament, scoredGames, explicitGroupK
       result: scored.result || g.result || '',
     };
     if (scored.opponent && !merged.opponent) merged.opponent = scored.opponent;
+    _attachScoreContext(merged.liveScore, merged, explicitGroupKey || g._groupKey || '');
     return merged;
   });
   return { ...tournament, games: mergedGames };
@@ -2261,6 +2351,8 @@ function _mergeScoredGamesIntoLocalState(scoredGames, explicitGroupKey = '') {
   for (const [gameId, scored] of Object.entries(scoredGames)) {
     if (!scored?.score) continue;
     const scopedKey = _scopedGameKey(gameId, explicitGroupKey || scored.teamKey || scored.score.ageGroup || '');
+    const currentGame = _findGameByRef(gameId, explicitGroupKey || scored.teamKey || scored.score.ageGroup || '');
+    if (currentGame) _adoptLocalDraftForOfficialGame(currentGame, explicitGroupKey || scored.teamKey || scored.score.ageGroup || '');
     const nextScore = {
       ...scored.score,
       ageGroup: explicitGroupKey || scored.teamKey || scored.score.ageGroup || '',
@@ -2268,7 +2360,9 @@ function _mergeScoredGamesIntoLocalState(scoredGames, explicitGroupKey = '') {
       _broadcastAt: scored.updatedAt || scored.finalizedAt || Date.now(),
       _deviceId: scored.sourceDeviceId || '',
     };
+    _attachScoreContext(nextScore, currentGame || gameId, explicitGroupKey || scored.teamKey || scored.score.ageGroup || '');
     const prevScore = state.liveScores[scopedKey];
+    if (_shouldPreserveLocalLiveScore(prevScore, nextScore)) continue;
     if (JSON.stringify(prevScore || null) !== JSON.stringify(nextScore)) {
       state.liveScores[scopedKey] = nextScore;
       changed = true;
@@ -3282,15 +3376,18 @@ function getLiveScore(gameId) {
     if (s.timeoutMins == null) s.timeoutMins = baseTiming.timeoutLengths[0] ?? 1;
   }
   if (scopedGroup && !s.ageGroup) s.ageGroup = scopedGroup;
+  _attachScoreContext(s, gameId, scopedGroup);
   return s;
 }
 
 function _setLiveScore(gameId, score) {
   const scopedKey = _scopedGameKey(gameId);
-  state.liveScores[scopedKey] = {
+  const nextScore = {
     ...score,
     ageGroup: score?.ageGroup || _contextGroupKey(gameId),
   };
+  _attachScoreContext(nextScore, gameId);
+  state.liveScores[scopedKey] = nextScore;
 }
 
 // ─── BOX SCORE EVENT RECORDING ────────────────────────────────────────────────
@@ -4007,6 +4104,16 @@ function _buildScoreDetailScorerPanel(game, s) {
         ${(cs.timeoutLengths||[]).map(m => {
           const used = oppTOUsed.includes(m);
           return `<span class="auto-clock-to-chip auto-clock-to-opp${used?' auto-clock-to-used':''}">${used?'Done':'TO'} Opp ${fmtTOLabel(m)}</span>`;
+        }).join('')}
+      </div>
+      <div class="auto-clock-controls auto-clock-controls-timeout">
+        ${(cs.timeoutLengths||[]).map(m => {
+          const used = teamTOUsed.includes(m);
+          return `<button class="auto-clock-btn auto-clock-timeout-btn${used ? ' auto-clock-timeout-used' : ''}" ${used ? 'disabled' : ''} onclick="callTeamTimeout('${gid}', ${JSON.stringify(m)})">Team TO ${fmtTOLabel(m)}</button>`;
+        }).join('')}
+        ${(cs.timeoutLengths||[]).map(m => {
+          const used = oppTOUsed.includes(m);
+          return `<button class="auto-clock-btn auto-clock-timeout-btn auto-clock-timeout-opp${used ? ' auto-clock-timeout-used' : ''}" ${used ? 'disabled' : ''} onclick="callOppTimeout('${gid}', ${JSON.stringify(m)})">Opp TO ${fmtTOLabel(m)}</button>`;
         }).join('')}
       </div>` : ''}
     </div>`;
@@ -5158,6 +5265,7 @@ function _getPhaseSeq(cs) {
 }
 
 function _phaseSeconds(phase, cs) {
+  if (phase === 'timeout' || phase === 'opp_timeout') return (cs.timeoutMins || 1) * 60;
   if (phase === 'break12' || phase === 'break34') return (cs.breakMins || 2) * 60;
   if (phase === 'halftime') return (cs.halftimeMins || 5) * 60;
   if (phase === 'h1' || phase === 'h2') return (cs.halfMins || 18) * 60;
@@ -5175,7 +5283,7 @@ function _phaseGameState(phase) {
 }
 
 function _phaseLabel(phase) {
-  return { q1:'Q1', break12:'Quarter Break', q2:'Q2', halftime:'Half Time', q3:'Q3', break34:'Quarter Break', q4:'Q4', done:'Final', h1:'H1', h2:'H2' }[phase] || phase?.toUpperCase() || '';
+  return { q1:'Q1', break12:'Quarter Break', q2:'Q2', halftime:'Half Time', q3:'Q3', break34:'Quarter Break', q4:'Q4', done:'Final', h1:'H1', h2:'H2', timeout:'Team Timeout', opp_timeout:'Opponent Timeout' }[phase] || phase?.toUpperCase() || '';
 }
 
 function _phaseAdvanceLabel(next) {
@@ -5218,6 +5326,22 @@ function _handleClockExpired(gameId) {
   const s = getLiveScore(gameId);
   const cs = getClockSettings(gameId);
   const cur  = s.timerPhase || 'q1';
+  if (cur === 'timeout' || cur === 'opp_timeout') {
+    s.timerRunning = false;
+    s.timerStartedAt = null;
+    s.timerSecondsLeft = 0;
+    s.clock = '0:00';
+    s._clockExpiring = false;
+    s.timerExpired = false;
+    s.timerAdvanceTo = null;
+    s.timerPhase = s.timeoutResumePhase || 'q1';
+    delete s.timeoutResumePhase;
+    _setLiveScore(gameId, s);
+    saveLiveScores();
+    afterScore(gameId);
+    showToast('Timeout complete');
+    return;
+  }
   const next = _nextPhase(cur, cs);
 
   s.timerRunning = false;
@@ -5441,8 +5565,22 @@ function callTeamTimeout(gameId, lengthMins) {
   }
 
   pauseGameTimer(gameId);
+  const latest = getLiveScore(gameId);
+  latest.timeoutResumePhase = latest.timerPhase || 'q1';
+  latest.timerPhase = 'timeout';
+  latest.timeoutMins = lengthMins;
+  latest.timerSecondsLeft = Math.round(lengthMins * 60);
+  latest.clock = fmtClock(latest.timerSecondsLeft);
+  latest.timerRunning = true;
+  latest.timerStartedAt = Date.now();
+  latest.timerExpired = false;
+  latest.timerAdvanceTo = null;
+  latest._clockExpiring = false;
+  latest.teamTimeoutsUsed = [...latest.teamTimeoutsUsed, lengthMins];
+  _setLiveScore(gameId, latest);
+  saveLiveScores();
+  ensureClockTicker();
   s.teamTimeoutsUsed = [...s.teamTimeoutsUsed, lengthMins];
-  _setLiveScore(gameId, s);
   _pendingClock = getCurrentClockStr(gameId);
   _doRecordDirect(gameId, 'timeout');
 }
@@ -5463,8 +5601,22 @@ function callOppTimeout(gameId, lengthMins) {
   }
 
   pauseGameTimer(gameId);
+  const latest = getLiveScore(gameId);
+  latest.timeoutResumePhase = latest.timerPhase || 'q1';
+  latest.timerPhase = 'opp_timeout';
+  latest.timeoutMins = lengthMins;
+  latest.timerSecondsLeft = Math.round(lengthMins * 60);
+  latest.clock = fmtClock(latest.timerSecondsLeft);
+  latest.timerRunning = true;
+  latest.timerStartedAt = Date.now();
+  latest.timerExpired = false;
+  latest.timerAdvanceTo = null;
+  latest._clockExpiring = false;
+  latest.oppTimeoutsUsed = [...latest.oppTimeoutsUsed, lengthMins];
+  _setLiveScore(gameId, latest);
+  saveLiveScores();
+  ensureClockTicker();
   s.oppTimeoutsUsed = [...s.oppTimeoutsUsed, lengthMins];
-  _setLiveScore(gameId, s);
   _pendingClock = getCurrentClockStr(gameId);
   _doRecordDirect(gameId, 'opp_timeout');
 }
@@ -7305,8 +7457,7 @@ function getScoreDetailContext() {
   const detail = state.scoreDetail;
   if (!detail?.gameId) return null;
   return _withScoreTournamentContext(detail.groupKey || '', () => {
-    const games = Array.isArray(TOURNAMENT.games) ? TOURNAMENT.games : [];
-    const game = games.find(g => _gameRef(g) === detail.gameId);
+    const game = _findGameByRef(detail.gameId, detail.groupKey || '');
     if (!game) return null;
     return {
       ...detail,
@@ -12136,6 +12287,8 @@ async function pollLiveScores() {
       // Strip worker meta fields; tag the score as remote with the source device
       const { deviceId, tournamentId, gameId: _gid, broadcastAt, ...scoreData } = remoteScore;
       const scoreAgeGroup = remoteScore.ageGroup || scoreData.ageGroup || '';
+      _attachScoreContext(scoreData, gameId, scoreAgeGroup);
+      if (_shouldPreserveLocalLiveScore(local, scoreData)) continue;
 
       // Haptic for spectator viewers when team scores (remote team score went up)
       const prevTeam = local.team || 0;

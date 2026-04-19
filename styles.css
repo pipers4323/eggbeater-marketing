@@ -4099,7 +4099,7 @@ h2 {
 .roster-modal-list {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 6px 0 100px; /* Increased bottom padding so goalie list isn't hidden by nav bar */
+  padding: 6px 0 calc(env(safe-area-inset-bottom, 0px) + 180px);
 }
 
 .roster-player-btn {
@@ -4443,6 +4443,10 @@ body.modal-open { overflow: hidden; }
   margin-bottom: 10px;
 }
 
+.auto-clock-controls-timeout {
+  margin-bottom: 12px;
+}
+
 .auto-clock-btn {
   padding: 8px 22px;
   border-radius: 20px;
@@ -4478,8 +4482,11 @@ body.modal-open { overflow: hidden; }
 .auto-clock-resume { background: #22c55e; color: white; }
 .auto-clock-advance { background: #2563eb; color: white; }
 .auto-clock-finalize { background: #dc2626; color: white; }
+.auto-clock-timeout-btn { background: #0f766e; color: white; }
+.auto-clock-timeout-opp { background: #7c3aed; color: white; }
+.auto-clock-timeout-used { opacity: 0.45; cursor: default; }
 .auto-clock-reset  { background: transparent; color: #cbd5e1; border: 1.5px solid #334155; font-size: 0.82rem; padding: 9px 14px; }
-.auto-clock-pause:active, .auto-clock-resume:active, .auto-clock-reset:active, .auto-clock-advance:active, .auto-clock-finalize:active { opacity: 0.8; }
+.auto-clock-pause:active, .auto-clock-resume:active, .auto-clock-reset:active, .auto-clock-advance:active, .auto-clock-finalize:active, .auto-clock-timeout-btn:active { opacity: 0.8; }
 
 /* Live clock chip on the schedule IN PROGRESS card */
 .next-live-clock {
