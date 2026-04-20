@@ -15039,9 +15039,10 @@ async function toggleLiveActivity(gameId) {
     return;
   }
 
-  // End any previous activity before starting a new one
+  // End any previous activity before starting a new one.
+  // Also ends orphaned LAs from previous app sessions (when _activeLA is null after reinstall).
+  try { await LiveActivity.endActivity({}); } catch {}
   if (window._activeLA) {
-    try { await LiveActivity.endActivity({}); } catch {}
     clearFollowedLiveGameId(window._activeLA.gameId);
     window._activeLA = null;
   }
