@@ -13007,6 +13007,7 @@ async function _mirrorScorerDraftToServer(gameOrRef, explicitGroupKey = '', extr
       deviceId: getDeviceId(),
       reason: extra.reason || 'draft',
       status: extra.status || session?.status || 'open',
+      updatedAt: Date.parse(session?.lastTouchedAt || '') || Date.now(),
     };
     const headers = { 'Content-Type': 'application/json' };
     const scorePw = (tournament.scoringPassword || '').trim();
