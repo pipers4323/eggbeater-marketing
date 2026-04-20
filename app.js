@@ -2428,10 +2428,12 @@ const state = {
   tscoreScores:     {},
   tscorePollTimer:  null,
   scorerDetailsOpen:{},
+  scorerSyncStatus: {},
   scoreDetail:      null,
   scoreDetailTab:   'summary',
   historyDetail:    null,
   historyDetailTab: 'summary',
+  recoveredScorerSessions: [],
   roster:           [],     // [{ cap, first, last }] — editable via Roster tab
   currentTab:       'schedule',
   viewerMode:       true,       // true = viewing live scores without scorer login (default for spectators)
@@ -3224,6 +3226,54 @@ function _saveScorerSessions(sessions) {
   localStorage.setItem(STORE.SCORER_SESSIONS, JSON.stringify(sessions || {}));
 }
 
+function _meaningfulScoreSnapshot(score) {
+  if (!score) return null;
+  const { _remote, _broadcastAt, _deviceId, ...clean } = score;
+  return clean;
+}
+
+function _setScorerSyncStatus(gameOrRef, explicitGroupKey = '', status = 'idle', extra = {}) {
+  const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
+  state.scorerSyncStatus[scopedKey] = {
+    status,
+    updatedAt: Date.now(),
+    ...extra,
+  };
+  _refreshScorerSyncStatusUI(gameOrRef, explicitGroupKey);
+}
+
+function _getScorerSyncStatus(gameOrRef, explicitGroupKey = '') {
+  return state.scorerSyncStatus[_scopedGameKey(gameOrRef, explicitGroupKey)] || null;
+}
+
+function _scorerSyncStatusLabel(statusObj) {
+  const status = statusObj?.status || 'idle';
+  if (status === 'acked') return { tone: 'ok', text: 'Saved' };
+  if (status === 'sending') return { tone: 'info', text: 'Saving…' };
+  if (status === 'queued') return { tone: 'warn', text: 'Queued — offline' };
+  if (status === 'retrying') return { tone: 'warn', text: 'Retrying sync…' };
+  if (status === 'rejected') return { tone: 'err', text: 'Sync rejected' };
+  if (status === 'failed') return { tone: 'err', text: 'Sync failed' };
+  if (status === 'pending') return { tone: 'warn', text: 'Finalize pending' };
+  if (status === 'local-final') return { tone: 'warn', text: 'Final saved locally' };
+  if (status === 'final-acked') return { tone: 'ok', text: 'Final saved' };
+  return { tone: 'muted', text: 'Not synced yet' };
+}
+
+function _renderScorerSyncStatusBadge(gameOrRef, explicitGroupKey = '') {
+  const statusMeta = _scorerSyncStatusLabel(_getScorerSyncStatus(gameOrRef, explicitGroupKey));
+  const elementId = `scorer-sync-status-${_gameIdOnly(gameOrRef)}`;
+  return `<div id="${elementId}" class="scorer-sync-status scorer-sync-status-${statusMeta.tone}">${escHtml(statusMeta.text)}</div>`;
+}
+
+function _refreshScorerSyncStatusUI(gameOrRef, explicitGroupKey = '') {
+  const el = document.getElementById(`scorer-sync-status-${_gameIdOnly(gameOrRef)}`);
+  if (!el) return;
+  const statusMeta = _scorerSyncStatusLabel(_getScorerSyncStatus(gameOrRef, explicitGroupKey));
+  el.className = `scorer-sync-status scorer-sync-status-${statusMeta.tone}`;
+  el.textContent = statusMeta.text;
+}
+
 function getFollowedLiveGameId() {
   return localStorage.getItem(STORE.LIVE_ACTIVITY_GAME) || '';
 }
@@ -3322,6 +3372,7 @@ function _upsertScorerSession(gameOrRef, explicitGroupKey = '', extra = {}) {
     ...extra,
   };
   _saveScorerSessions(sessions);
+  _persistScorerSessionToDB(gameOrRef, explicitGroupKey, extra);
   return sessions[sessionKey];
 }
 
@@ -3335,6 +3386,7 @@ function _closeScorerSession(gameOrRef, explicitGroupKey = '', status = 'closed'
     lastTouchedAt: new Date().toISOString(),
   };
   _saveScorerSessions(sessions);
+  _persistScorerSessionToDB(gameOrRef, explicitGroupKey, { status });
 }
 
 function _hasActiveScorerSession(gameOrRef, explicitGroupKey = '') {
@@ -3576,6 +3628,7 @@ function _setLiveScore(gameId, score) {
   delete nextScore._broadcastAt;
   _attachScoreContext(nextScore, gameId);
   state.liveScores[scopedKey] = nextScore;
+  if (!nextScore._remote) _persistScorerDraftToDB(gameId, nextScore.ageGroup || '');
 }
 
 // ─── BOX SCORE EVENT RECORDING ────────────────────────────────────────────────
@@ -4229,6 +4282,7 @@ function _buildScoreDetailSummary(game, score, ageGroupLabel = '', extraActionHt
 
 function _buildScoreDetailScorerPanel(game, s) {
   const gid = escHtml(_gameRef(game));
+  const groupKey = _contextGroupKey(game);
   const teamDisplayName = _teamDisplayNameForGame(game, TOURNAMENT.clubName || appT('scorer_team_label'));
   const cs = getClockSettings(gid);
   const isFinal = s.gameState === 'final';
@@ -4331,6 +4385,9 @@ function _buildScoreDetailScorerPanel(game, s) {
       <div class="scoring-section score-detail-scoring-section">
         <div class="gs-bar">${gsBar}</div>
         <div class="score-finalize-compact-wrap">${finalizeCompactBtn}</div>
+        <div class="score-detail-scorer-meta">
+          ${_renderScorerSyncStatusBadge(game, groupKey)}
+        </div>
         ${timingRow}
         <div class="live-scoreboard">
           <div class="ls-team">
@@ -5912,6 +5969,7 @@ function openFinalizeGameModal(gameId, source = 'manual') {
   _ensureFinalizeGameModal();
   _pendingFinalizeGameId = gid;
   _pendingFinalizeSource = source || 'manual';
+  _setScorerOutboxStatus(gid, _contextGroupKey(gid), 'finalize', 'pending');
   const nowIso = new Date().toISOString();
   score.finalizationPromptedAt = nowIso;
   score.finalizationPromptSource = _pendingFinalizeSource;
@@ -5961,6 +6019,10 @@ function confirmFinalizeGame() {
   score.finalizedSource = _pendingFinalizeSource || 'manual';
   _setLiveScore(gid, score);
   _closeScorerSession(gid, _contextGroupKey(gid), 'final');
+  _setScorerOutboxStatus(gid, _contextGroupKey(gid), 'finalize', 'local-final', {
+    team: score.team,
+    opp: score.opp,
+  });
   saveLiveScores();
   closeFinalizeGameModal();
   setGameState(gid, 'final');
@@ -7022,6 +7084,20 @@ function renderSettingsTab() {
 
   // Theme preference
   const themePref = getThemePref();
+  const recoveredDrafts = (state.recoveredScorerSessions || []).map(item => {
+    const ageLabel = TEAM_OPTIONS.find(t => t.key === _contextGroupKey(item.scopedKey))?.label || _contextGroupKey(item.scopedKey) || 'Team';
+    const label = [ageLabel, item.opponent ? `vs ${normalizeOpponentName(item.opponent)}` : '', item.time || '']
+      .filter(Boolean)
+      .join(' · ');
+    return `<div class="settings-item" onclick="switchTab('scores');openScorerDetail('${escHtml(item.scopedKey)}','${escHtml(_contextGroupKey(item.scopedKey))}','${escHtml(ageLabel)}')">
+      <span class="settings-item-icon">📝</span>
+      <div class="settings-item-text">
+        <div class="settings-item-label">${escHtml(label || 'Recovered draft')}</div>
+        <div class="settings-item-value">Resume unfinished scorer session</div>
+      </div>
+      <span style="color:var(--gray-300);font-size:1.1rem">›</span>
+    </div>`;
+  }).join('');
   function themePill(value, label) {
     const active = themePref === value;
     const style = active
@@ -7180,6 +7256,12 @@ function renderSettingsTab() {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
     </div>
+
+    ${recoveredDrafts ? `
+    <div class="settings-section" style="margin-bottom:30px">
+      <div class="settings-section-title">Recovered Scorer Drafts</div>
+      ${recoveredDrafts}
+    </div>` : ''}
 
   `;
 
@@ -10975,6 +11057,8 @@ function init() {
     // Now load team data with correct team keys
     await loadAllSelectedTeams();
     checkTournamentChange();
+    await _restoreScorerOutboxFromDB();
+    await _restoreScorerDraftsFromDB();
     seedHistory();
     state.roster = loadRoster(getSelectedTeam()); // refresh in-memory roster from fresh TOURNAMENT.roster
     renderHeader();
@@ -12480,6 +12564,11 @@ async function broadcastLiveScore(gameId) {
   };
   const headers = { 'Content-Type': 'application/json' };
   if (scorePw) headers['X-Score-Password'] = scorePw;
+  _setScorerOutboxStatus(gameId, ageGroup, 'live-score', 'sending', {
+    team: cleanScore.team ?? 0,
+    opp: cleanScore.opp ?? 0,
+    eventCount: _meaningfulEventCount(cleanScore),
+  });
   try {
     const res = await fetch(`${PUSH_SERVER_URL}/live-score`, {
       method:  'POST',
@@ -12488,11 +12577,22 @@ async function broadcastLiveScore(gameId) {
     });
     if (!res.ok) {
       console.warn('[live-score] sync rejected', res.status, ageGroup, payload.tournamentId, payload.gameId);
+      _setScorerOutboxStatus(gameId, ageGroup, 'live-score', (res.status === 400 || res.status === 401) ? 'rejected' : 'failed', {
+        httpStatus: res.status,
+      });
       showToast('⚠️ Could not sync that score update yet.', 'warn');
       return;
     }
+    _setScorerOutboxStatus(gameId, ageGroup, 'live-score', 'acked', {
+      team: cleanScore.team ?? 0,
+      opp: cleanScore.opp ?? 0,
+      eventCount: _meaningfulEventCount(cleanScore),
+    });
   } catch (e) {
     // Queue for later sync
+    _setScorerOutboxStatus(gameId, ageGroup, 'live-score', 'queued', {
+      reason: e?.message || 'offline',
+    });
     _queuePendingScore(payload);
   }
 }
@@ -12501,17 +12601,161 @@ async function broadcastLiveScore(gameId) {
 
 function _openScoreDB() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('ebwp-offline', 1);
+    const req = indexedDB.open('ebwp-offline', 2);
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('pending-scores'))
         db.createObjectStore('pending-scores', { keyPath: 'id', autoIncrement: true });
       if (!db.objectStoreNames.contains('tournament-cache'))
         db.createObjectStore('tournament-cache', { keyPath: 'key' });
+      if (!db.objectStoreNames.contains('scorer-sessions'))
+        db.createObjectStore('scorer-sessions', { keyPath: 'sessionKey' });
+      if (!db.objectStoreNames.contains('scorer-drafts'))
+        db.createObjectStore('scorer-drafts', { keyPath: 'sessionKey' });
+      if (!db.objectStoreNames.contains('scorer-outbox'))
+        db.createObjectStore('scorer-outbox', { keyPath: 'key' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
+}
+
+function _dbStoreGetAll(db, storeName) {
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function _dbStorePut(db, storeName, value) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).put(value);
+    tx.oncomplete = () => resolve(value);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function _persistScorerSessionToDB(gameOrRef, explicitGroupKey = '', extra = {}) {
+  try {
+    const session = _getScorerSession(gameOrRef, explicitGroupKey);
+    if (!session) return;
+    const db = await _openScoreDB();
+    await _dbStorePut(db, 'scorer-sessions', {
+      ...session,
+      sessionKey: _getScorerSessionKey(gameOrRef, explicitGroupKey),
+      savedAt: Date.now(),
+      ...extra,
+    });
+  } catch (e) {
+    console.warn('[scorer-db] persist session failed:', e.message);
+  }
+}
+
+async function _persistScorerDraftToDB(gameOrRef, explicitGroupKey = '', extra = {}) {
+  try {
+    const score = getLiveScore(gameOrRef);
+    if (!score) return;
+    const session = _getScorerSession(gameOrRef, explicitGroupKey) || _upsertScorerSession(gameOrRef, explicitGroupKey, { status: 'open' });
+    const db = await _openScoreDB();
+    await _dbStorePut(db, 'scorer-drafts', {
+      sessionKey: _getScorerSessionKey(gameOrRef, explicitGroupKey),
+      tournamentId: _getTournamentIdForGame(gameOrRef, explicitGroupKey),
+      groupKey: _contextGroupKey(gameOrRef, explicitGroupKey),
+      gameId: _gameIdOnly(gameOrRef),
+      scopedKey: _scopedGameKey(gameOrRef, explicitGroupKey),
+      score: _meaningfulScoreSnapshot(score),
+      session,
+      savedAt: Date.now(),
+      ...extra,
+    });
+  } catch (e) {
+    console.warn('[scorer-db] persist draft failed:', e.message);
+  }
+}
+
+async function _setScorerOutboxStatus(gameOrRef, explicitGroupKey = '', kind = 'live-score', status = 'queued', extra = {}) {
+  try {
+    const sessionKey = _getScorerSessionKey(gameOrRef, explicitGroupKey);
+    const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
+    _setScorerSyncStatus(gameOrRef, explicitGroupKey, status, { kind, ...extra });
+    const db = await _openScoreDB();
+    await _dbStorePut(db, 'scorer-outbox', {
+      key: `${sessionKey}::${kind}`,
+      sessionKey,
+      scopedKey,
+      groupKey: _contextGroupKey(gameOrRef, explicitGroupKey),
+      kind,
+      status,
+      updatedAt: Date.now(),
+      ...extra,
+    });
+  } catch (e) {
+    console.warn('[scorer-db] outbox update failed:', e.message);
+  }
+}
+
+async function _restoreScorerOutboxFromDB() {
+  try {
+    const db = await _openScoreDB();
+    const items = await _dbStoreGetAll(db, 'scorer-outbox');
+    if (!items.length) return;
+    const nextStatuses = { ...(state.scorerSyncStatus || {}) };
+    for (const item of items) {
+      const scopedKey = item.scopedKey || String(item.sessionKey || '').replace(/^[^:]+::/, '');
+      if (!scopedKey) continue;
+      const existing = nextStatuses[scopedKey];
+      if (existing && (existing.updatedAt || 0) > (item.updatedAt || 0)) continue;
+      nextStatuses[scopedKey] = {
+        status: item.status || 'idle',
+        updatedAt: item.updatedAt || Date.now(),
+        kind: item.kind || 'live-score',
+        tournamentId: item.tournamentId || '',
+      };
+    }
+    state.scorerSyncStatus = nextStatuses;
+  } catch (e) {
+    console.warn('[scorer-db] restore outbox failed:', e.message);
+  }
+}
+
+async function _restoreScorerDraftsFromDB() {
+  try {
+    const db = await _openScoreDB();
+    const drafts = await _dbStoreGetAll(db, 'scorer-drafts');
+    if (!drafts.length) return;
+    const restored = [];
+    for (const draft of drafts) {
+      const session = draft.session || {};
+      if ((session.status || 'open') !== 'open') continue;
+      const score = draft.score;
+      if (!_hasMeaningfulLiveScoreData(score)) continue;
+      const scopedKey = draft.scopedKey || _scopedGameKey(draft.gameId, draft.groupKey || '');
+      const current = state.liveScores[scopedKey];
+      if (_shouldPreserveLocalLiveScore(current, score, scopedKey, draft.groupKey || '')) continue;
+      if (current && _meaningfulEventCount(current) >= _meaningfulEventCount(score) && _hasMeaningfulLiveScoreData(current)) continue;
+      const nextScore = {
+        ...score,
+        ageGroup: draft.groupKey || score.ageGroup || '',
+      };
+      _attachScoreContext(nextScore, scopedKey, draft.groupKey || '');
+      state.liveScores[scopedKey] = nextScore;
+      restored.push({
+        sessionKey: draft.sessionKey,
+        scopedKey,
+        opponent: session.opponent || nextScore.opponent || '',
+        time: session.time || nextScore.time || '',
+      });
+    }
+    if (restored.length) {
+      state.recoveredScorerSessions = restored;
+      saveLiveScores();
+      showToast(`Recovered ${restored.length} unfinished scorer draft${restored.length > 1 ? 's' : ''}`, 'warn');
+    }
+  } catch (e) {
+    console.warn('[scorer-db] restore drafts failed:', e.message);
+  }
 }
 
 async function _queuePendingScore(payload) {
@@ -12522,6 +12766,9 @@ async function _queuePendingScore(payload) {
       payload,
       timestamp: Date.now(),
       retryCount: 0,
+    });
+    _setScorerOutboxStatus(payload.gameId, payload.ageGroup || '', 'live-score', 'queued', {
+      tournamentId: payload.tournamentId || '',
     });
     // Show offline banner
     _showOfflineBanner(true);
@@ -12566,6 +12813,9 @@ async function _syncPendingScores() {
           if (res.status === 400 || res.status === 401) {
             const dtx = db.transaction('pending-scores', 'readwrite');
             dtx.objectStore('pending-scores').delete(entry.id);
+            _setScorerOutboxStatus(entry.payload.gameId, entry.payload.ageGroup || '', 'live-score', 'rejected', {
+              httpStatus: res.status,
+            });
             continue;
           }
           throw new Error('HTTP ' + res.status);
@@ -12573,11 +12823,17 @@ async function _syncPendingScores() {
         // Success — remove from queue
         const dtx = db.transaction('pending-scores', 'readwrite');
         dtx.objectStore('pending-scores').delete(entry.id);
+        _setScorerOutboxStatus(entry.payload.gameId, entry.payload.ageGroup || '', 'live-score', 'acked', {
+          tournamentId: entry.payload.tournamentId || '',
+        });
         synced++;
       } catch {
         // Increment retry count
         const utx = db.transaction('pending-scores', 'readwrite');
         utx.objectStore('pending-scores').put({ ...entry, retryCount: entry.retryCount + 1 });
+        _setScorerOutboxStatus(entry.payload.gameId, entry.payload.ageGroup || '', 'live-score', 'retrying', {
+          retryCount: entry.retryCount + 1,
+        });
         break; // stop trying if still offline
       }
     }
