@@ -3985,11 +3985,13 @@ h2 {
 .score-btns-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .score-btn {
   flex: 1;
+  min-height: 52px;
   padding: 14px 10px;
   border-radius: 10px;
   font-size: 0.86rem;
@@ -4300,16 +4302,17 @@ body.modal-open { overflow: hidden; }
 /* ── Game State Bar ──────────────────────────────────────────────────────── */
 .gs-bar {
   display: flex;
-  gap: 5px;
-  margin-bottom: 10px;
+  gap: 6px;
+  margin-bottom: 8px;
   flex-wrap: wrap;
 }
 
 .gs-btn {
   flex: 1 1 54px;
-  padding: 6px 5px;
+  min-height: 36px;
+  padding: 7px 6px;
   border-radius: 8px;
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.1px;
   border: 1.5px solid #d6dce8;
@@ -4411,28 +4414,44 @@ body.modal-open { overflow: hidden; }
 .stat-btns-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  margin-top: 6px;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.stat-btns-row-1 {
+  grid-template-columns: 1fr;
+}
+
+.stat-btns-row-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stat-btns-row-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .stat-btn {
   min-width: 0;
-  padding: 10px 6px;
-  border-radius: 9px;
-  font-size: 0.72rem;
-  font-weight: 700;
+  min-height: 52px;
+  padding: 12px 8px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 800;
   border: 1.5px solid var(--gray-200);
   background: var(--gray-50);
   color: var(--gray-600);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: all 0.1s;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
 }
 
 .stat-btn:active { opacity: 0.75; transform: scale(0.96); }
 
 /* Goals → blue */
-.stat-goal-5m    { border-color: #a0b8e0; color: var(--royal); background: var(--royal-subtle); }
+.stat-goal-5m    { border-color: #93c5fd; color: #1d4ed8; background: #eff6ff; }
+.stat-goal-5m-opp { border-color: #c4b5fd; color: #6d28d9; background: #f5f3ff; }
 
 /* Attempts → amber/yellow */
 .stat-attempt     { border-color: #fcd34d; color: #92400e; background: #fefce8; }
@@ -4443,6 +4462,7 @@ body.modal-open { overflow: hidden; }
 .stat-assist { border-color: #86efac; color: #15803d; background: #f0fdf4; }
 .stat-steal { border-color: #86efac; color: #15803d; background: #f0fdf4; }
 .stat-sprint { border-color: #93c5fd; color: #1d4ed8; background: #eff6ff; }
+.stat-turnover { border-color: #cbd5e1; color: #334155; background: #f8fafc; }
 .stat-field-block { border-color: #fca5a5; color: #b91c1c; background: #fff1f2; }
 .stat-opp-steal { border-color: #cbd5e1; color: #475569; background: #f8fafc; }
 
@@ -4454,10 +4474,74 @@ body.modal-open { overflow: hidden; }
 
 /* T/O → neutral slate */
 .stat-timeout     { border-color: #9ca3af; color: #4b5563; background: #f3f4f6; }
+.stat-save        { border-color: #f9a8d4; color: #9d174d; background: #fdf2f8; }
+
+@media (max-width: 640px) {
+  .score-btns-row,
+  .stat-btns-row {
+    gap: 10px;
+  }
+
+  .score-btn {
+    min-height: 56px;
+    font-size: 0.86rem;
+    padding: 14px 10px;
+  }
+
+  .gs-bar {
+    gap: 7px;
+  }
+
+  .gs-btn {
+    flex: 1 1 62px;
+    min-height: 38px;
+    font-size: 0.7rem;
+  }
+
+  .stat-btn {
+    min-height: 56px;
+    font-size: 0.78rem;
+    line-height: 1.1;
+    padding: 12px 8px;
+  }
+
+  .stat-btns-row-2 .stat-btn {
+    font-size: 0.8rem;
+  }
+
+  .stat-btns-row-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .stat-btns-row-3 .stat-btn {
+    font-size: 0.74rem;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .auto-clock-controls {
+    gap: 8px;
+  }
+
+  .auto-clock-btn-lg {
+    min-width: 146px;
+    min-height: 50px;
+    font-size: 0.92rem;
+  }
+
+  .score-finalize-compact-wrap {
+    margin-bottom: 10px;
+  }
+
+  .score-finalize-compact-btn {
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 0.72rem;
+  }
+}
 .stat-opp-timeout { border-color: #9ca3af; color: #4b5563; background: #f3f4f6; }
 
-/* GK → red */
-.stat-save  { border-color: #fca5a5; color: #dc2626; background: #fff1f2; }
+/* GK Save */
 
 /* T/O row — long skinny like GK row */
 .stat-btns-row-to .stat-btn { padding: 5px 4px; font-size: 0.7rem; }
@@ -5082,6 +5166,11 @@ body.modal-open { overflow: hidden; }
   justify-content: center;
   padding: 12px 16px 24px;
 }
+.scores-refresh-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 12px 16px 8px;
+}
 .schedule-refresh-btn {
   display: flex;
   align-items: center;
@@ -5095,6 +5184,11 @@ body.modal-open { overflow: hidden; }
   color: var(--gray-400);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+}
+.schedule-refresh-btn.is-light {
+  color: #fff;
+  border-color: rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.08);
 }
 .schedule-refresh-btn:active { opacity: 0.6; }
 .schedule-refresh-btn:disabled { opacity: 0.5; cursor: default; }
@@ -7952,6 +8046,33 @@ html.native-android[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-gr
   justify-content: center;
   gap: 12px;
   margin: 4px 0 12px 0;
+}
+
+.score-finalize-compact-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin: -2px 0 8px;
+}
+
+.score-finalize-compact-btn {
+  border: 1px solid #ef4444;
+  border-radius: 10px;
+  min-height: 42px;
+  padding: 8px 14px;
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(220, 38, 38, 0.18);
+  letter-spacing: 0.02em;
+}
+
+.score-finalize-compact-btn.is-final {
+  background: #eef2ff;
+  color: #1e3a8a;
+  border-color: #c7d2fe;
+  box-shadow: none;
 }
 
 .score-finalize-row {

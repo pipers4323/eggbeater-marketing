@@ -3583,7 +3583,8 @@ function recordEventForPlayer(gameId, eventType, cap, name, extra = false) {
     sixOnFive: (isGoal && opts.sixOnFive && !inShootout) ? true : false,
     counter: actualType === 'goal' ? !!opts.counter : false,
     forcedBallUnder: actualType === 'steal' ? !!opts.forcedBallUnder : false,
-    inside2m: actualType === 'turnover' ? !!opts.inside2m : false,
+    inside2m: (actualType === 'turnover' || actualType === 'save') ? !!opts.inside2m : false,
+    exclusionKind: actualType === 'exclusion' ? (opts.exclusionKind || '') : '',
     sprintWon: actualType === 'sprint_won',
     ts: Date.now(),
   };
@@ -3603,21 +3604,22 @@ function recordEventForPlayer(gameId, eventType, cap, name, extra = false) {
 
 // Record a direct (no-player) event: opp_goal, timeout, opp_timeout, opp_exclusion
 // Always uses auto-clock — no manual prompt needed.
-function recordEventDirect(gameId, eventType) {
+function recordEventDirect(gameId, eventType, extra = null) {
   _pendingClock = getCurrentClockStr(gameId);
-  _doRecordDirect(gameId, eventType);
+  _doRecordDirect(gameId, eventType, extra);
 }
 
 // Internal — records immediately using _pendingClock (no prompt).
-function _doRecordDirect(gameId, eventType) {
+function _doRecordDirect(gameId, eventType, extra = null) {
   const s          = getLiveScore(gameId);
   const inShootout = s.gameState === 'shootout';
   const actualType = (inShootout && eventType === 'opp_goal') ? 'opp_so_goal' : eventType;
   const isOppSide  = actualType.startsWith('opp');
+  const opts = (extra && typeof extra === 'object') ? extra : {};
   const ev = {
     type: actualType, side: isOppSide ? 'opp' : 'team',
     cap: '', name: '', clock: _pendingClock || s.clock || '', period: s.period || 0,
-    sixOnFive: false, ts: Date.now(),
+    sixOnFive: false, forcedBallUnder: actualType === 'opp_steal' ? !!opts.forcedBallUnder : false, ts: Date.now(),
   };
   _pendingClock = '';
   if (actualType === 'opp_goal')    s.opp++;
@@ -3732,12 +3734,12 @@ function buildEventLog(events, currentPeriod = 0, gameId = null) {
     sprint_won:    ()  => appT('event_sprint_won'),
     opp_sprint_won:()  => appT('event_opp_sprint_won'),
     opp_steal:     ()  => appT('event_opp_steal'),
-    exclusion:     ()  => appT('event_excl'),
+    exclusion:     ev  => ev.exclusionKind === 'kickout' ? 'KICKOUT' : 'COMMON PENALTY',
     opp_exclusion: ()  => appT('event_excl'),
     brutality:     ()  => appT('event_brutal'),
     timeout:       ()  => appT('event_timeout'),
     opp_timeout:   ()  => appT('event_opp_timeout'),
-    save:          ()  => appT('event_save'),
+    save:          ev  => ev.inside2m ? 'SAVE (Inside 2m)' : appT('event_save'),
     block:         ()  => appT('event_save'),
     field_block:   ()  => appT('event_field_block'),
   };
@@ -4113,6 +4115,9 @@ function _buildScoreDetailScorerPanel(game, s) {
   const preBtn = (s.gameState && s.gameState !== 'pre')
     ? `<button class="gs-btn gs-btn-pre" onclick="resetToPreGame('${gid}')" title="Reset to Pre-Game">↩ Pre</button>`
     : '';
+  const finalizeCompactBtn = `<button class="score-finalize-compact-btn${isFinal ? ' is-final' : ''}" onclick="${isFinal ? `reopenFinalizedGame('${gid}')` : `openFinalizeGameModal('${gid}','manual')`}">
+    ${isFinal ? 'Reopen' : 'End Game'}
+  </button>`;
   const gsBar = preBtn + GS_OPTS.map(o => {
     const active = s.gameState === o.key ? ' gs-active' : '';
     let handler;
@@ -4137,6 +4142,7 @@ function _buildScoreDetailScorerPanel(game, s) {
   const pendingAdvance = s.timerAdvanceTo || ((s.timerExpired || (!s.timerRunning && timerSecsLeft <= 0)) ? _nextPhase(s.timerPhase || 'q1', cs) : '');
   const advanceLabel = pendingAdvance ? _phaseAdvanceLabel(pendingAdvance) : '';
   const advanceHint = pendingAdvance ? _phaseAdvanceHint(pendingAdvance) : '';
+  const sprintAdvance = pendingAdvance && _phaseNeedsSprintStart(pendingAdvance);
   const teamTOUsed = s.teamTimeoutsUsed || [];
   const oppTOUsed  = s.oppTimeoutsUsed || [];
   const timingRow = `
@@ -4147,9 +4153,9 @@ function _buildScoreDetailScorerPanel(game, s) {
       <div class="auto-clock-controls auto-clock-controls-primary">
         ${s.timerRunning
           ? `<button class="auto-clock-btn auto-clock-pause auto-clock-btn-lg" onclick="pauseGameTimer('${gid}')">Pause Clock</button>`
-          : `<button class="auto-clock-btn auto-clock-resume auto-clock-btn-lg" onclick="${s.gameState === 'pre' ? `startScoring('${gid}')` : `resumeGameTimer('${gid}')`}">${escHtml(s.gameState === 'pre' ? 'Start Clock' : 'Resume Clock')}</button>`
+          : `<button class="auto-clock-btn auto-clock-resume auto-clock-btn-lg" onclick="${s.gameState === 'pre' ? `openQuarterStartSprintPicker('${gid}')` : `resumeGameTimer('${gid}')`}">${escHtml(s.gameState === 'pre' ? 'Sprint Won' : 'Resume Clock')}</button>`
         }
-        ${pendingAdvance ? `<button class="auto-clock-btn auto-clock-advance auto-clock-btn-lg" onclick="advanceClockPhase('${gid}')">${escHtml(advanceLabel)}</button>` : ''}
+        ${pendingAdvance ? `<button class="auto-clock-btn auto-clock-advance auto-clock-btn-lg" onclick="${sprintAdvance ? `openQuarterStartSprintPicker('${gid}','${pendingAdvance}')` : `advanceClockPhase('${gid}')`}">${escHtml(sprintAdvance ? 'Sprint Won' : advanceLabel)}</button>` : ''}
       </div>
       <div class="auto-clock-controls auto-clock-controls-secondary">
         <button class="auto-clock-btn auto-clock-reset" onclick="resetGameClock('${gid}')">Reset Clock</button>
@@ -4184,6 +4190,7 @@ function _buildScoreDetailScorerPanel(game, s) {
       ${finalizeBanner}
       <div class="scoring-section score-detail-scoring-section">
         <div class="gs-bar">${gsBar}</div>
+        <div class="score-finalize-compact-wrap">${finalizeCompactBtn}</div>
         ${timingRow}
         <div class="live-scoreboard">
           <div class="ls-team">
@@ -4200,52 +4207,43 @@ function _buildScoreDetailScorerPanel(game, s) {
           <button class="ls-undo-btn" onclick="undoLastEvent('${gid}')">↩ ${escHtml(appT('scorer_undo'))}</button>
           <button class="ls-share-btn" onclick="shareBoxScore('${gid}')">📤 ${escHtml(appT('scorer_share_box_score'))}</button>
         </div>
-        <div class="score-finalize-row">
-          <button class="score-finalize-btn${isFinal ? ' is-final' : ''}" onclick="${isFinal ? `reopenFinalizedGame('${gid}')` : `openFinalizeGameModal('${gid}','manual')`}">
-            ${isFinal ? '↩ Reopen Game' : '🏁 Submit Final Score & End Game'}
-          </button>
-          <div class="score-finalize-note">
-            ${isFinal ? 'Game is marked final.' : `Current score: ${escHtml(teamDisplayName)} ${Number(s.team) || 0} - ${Number(s.opp) || 0} ${escHtml(normalizeOpponentName(game.opponent || 'Opp'))}`}
-          </div>
-        </div>
         ${s.gameState === 'shootout' ? `
         <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:6px 10px;margin-bottom:6px;text-align:center">
           <span style="font-weight:700;color:#92400e">🎯 ${escHtml(appT('scorer_shootout_mode'))}</span>
           <span style="color:#78350f;font-size:0.8rem;display:block;margin-top:2px">${escHtml(appT('scorer_shootout_hint'))}</span>
         </div>` : ''}
         <div class="score-btns-row">
-          <button class="score-btn score-btn-team" onclick="openEventPicker('${gid}','goal')">${s.gameState === 'shootout' ? `🎯 ${escHtml(appT('scorer_team_so_goal'))}` : `+ ${escHtml(appT('scorer_goal'))}`}</button>
-          <button class="score-btn score-btn-opp" onclick="recordEventDirect('${gid}','opp_goal')">${s.gameState === 'shootout' ? `🎯 ${escHtml(appT('scorer_opp_so_goal'))}` : `+ ${escHtml(appT('scorer_opp_goal'))}`}</button>
+          <button class="score-btn score-btn-team" onclick="openEventPicker('${gid}','goal')">${s.gameState === 'shootout' ? `🎯 ${escHtml(appT('scorer_team_so_goal'))}` : `Goal`}</button>
+          <button class="score-btn score-btn-opp" onclick="recordEventDirect('${gid}','opp_goal')">${s.gameState === 'shootout' ? `🎯 ${escHtml(appT('scorer_opp_so_goal'))}` : `Opp Goal`}</button>
         </div>
         ${s.gameState === 'shootout' ? `
         <div class="score-btns-row" style="margin-top:4px">
           <button class="score-btn" style="background:#fff1f2;color:#be123c;border-color:#fda4af" onclick="openEventPicker('${gid}','so_miss')">❌ ${escHtml(appT('scorer_team_so_miss'))}</button>
           <button class="score-btn" style="background:#fff1f2;color:#be123c;border-color:#fda4af" onclick="recordEventDirect('${gid}','opp_so_miss')">❌ ${escHtml(appT('scorer_opp_so_miss'))}</button>
-        </div>` : ''}
-        <div class="stat-btns-row">
-          <button class="stat-btn stat-assist" onclick="openEventPicker('${gid}','assist')">${escHtml(appT('scorer_assist'))}</button>
-          <button class="stat-btn stat-steal" onclick="openEventPicker('${gid}','steal')">${escHtml(appT('scorer_steal'))}</button>
-          <button class="stat-btn stat-sprint" onclick="openEventPicker('${gid}','sprint_won')">${escHtml(appT('scorer_sprint_won'))}</button>
-          <button class="stat-btn stat-field-block" onclick="openEventPicker('${gid}','field_block')">${escHtml(appT('scorer_field_block'))}</button>
-          <button class="stat-btn stat-attempt" onclick="openEventPicker('${gid}','shot_miss')">${escHtml(appT('scorer_attempt'))}</button>
+        </div>` : `
+        <div class="stat-btns-row stat-btns-row-2">
+          <button class="stat-btn stat-assist" onclick="openEventPicker('${gid}','assist')">Assist</button>
+          <button class="stat-btn stat-attempt" onclick="openEventPicker('${gid}','shot_miss')">Attempt</button>
         </div>
-        <div class="stat-btns-row">
-          <button class="stat-btn stat-turnover" onclick="openEventPicker('${gid}','turnover')">${escHtml(appT('scorer_turnover'))}</button>
-          <button class="stat-btn stat-exclusion" onclick="openEventPicker('${gid}','exclusion')">${escHtml(appT('scorer_excl'))}</button>
-          <button class="stat-btn stat-earned-excl" onclick="openEventPicker('${gid}','earned_excl')">${escHtml(appT('scorer_earned_excl'))}</button>
-          <button class="stat-btn stat-opp-steal" onclick="recordEventDirect('${gid}','opp_steal')">${escHtml(appT('scorer_opp_steal'))}</button>
-          <button class="stat-btn stat-opp-attempt" onclick="recordEventDirect('${gid}','opp_shot_miss')">${escHtml(appT('scorer_opp_attempt'))}</button>
-          <button class="stat-btn stat-opp-excl" onclick="recordEventDirect('${gid}','opp_exclusion')">${escHtml(appT('scorer_opp_excl'))}</button>
+        <div class="stat-btns-row stat-btns-row-3">
+          <button class="stat-btn stat-steal" onclick="openTeamStealMenu('${gid}')">Steal</button>
+          <button class="stat-btn stat-turnover" onclick="openTurnoverMenu('${gid}')">Turnover</button>
+          <button class="stat-btn stat-field-block" onclick="openEventPicker('${gid}','field_block')">Block</button>
         </div>
-        ${s.gameState !== 'shootout' ? `
-        <div class="stat-btns-row">
-          <button class="stat-btn stat-goal-5m" onclick="openEventPicker('${gid}','goal_5m')">🎯 ${escHtml(appT('scorer_5m'))}</button>
-          <button class="stat-btn stat-attempt-5m" onclick="openEventPicker('${gid}','miss_5m')">❌ ${escHtml(appT('scorer_5m_attempt'))}</button>
-          <button class="stat-btn stat-goal-5m" onclick="recordEventDirect('${gid}','opp_goal_5m')">🎯 ${escHtml(appT('scorer_opp_5m'))}</button>
-          <button class="stat-btn stat-attempt-5m" onclick="recordEventDirect('${gid}','opp_miss_5m')">❌ ${escHtml(appT('scorer_opp_5m_attempt'))}</button>
-        </div>` : ''}
-        <div class="stat-btns-row">
-          <button class="stat-btn stat-save" onclick="openEventPicker('${gid}','save')">🧤 ${escHtml(appT('scorer_gk_save'))}</button>
+        <div class="stat-btns-row stat-btns-row-2">
+          <button class="stat-btn stat-exclusion" onclick="openTeamExclusionMenu('${gid}')">Excl</button>
+          <button class="stat-btn stat-opp-attempt" onclick="openOppAttemptMenu('${gid}')">Opp Attempt</button>
+        </div>
+        <div class="stat-btns-row stat-btns-row-2">
+          <button class="stat-btn stat-opp-excl" onclick="openOppExclusionMenu('${gid}')">Opp Excl</button>
+          <button class="stat-btn stat-opp-steal" onclick="openOppStealMenu('${gid}')">Opp Steal</button>
+        </div>
+        <div class="stat-btns-row stat-btns-row-2">
+          <button class="stat-btn stat-goal-5m" onclick="openTeam5mMenu('${gid}')">5m</button>
+          <button class="stat-btn stat-goal-5m stat-goal-5m-opp" onclick="openOpp5mMenu('${gid}')">Opp 5m</button>
+        </div>`}
+        <div class="stat-btns-row stat-btns-row-1">
+          <button class="stat-btn stat-save" onclick="openEventPicker('${gid}','save')">GK Save</button>
         </div>
       </div>
     </div>`;
@@ -4413,12 +4411,12 @@ function shareBoxScore(gameId) {
     sprint_won:    ()  => 'SPRINT WON',
     opp_sprint_won:()  => 'OPP SPRINT WON',
     opp_steal:     ()  => 'OPP STEAL',
-    exclusion:     ()  => 'EXCL',
+    exclusion:     ev  => ev.exclusionKind === 'kickout' ? 'KICKOUT' : 'COMMON PENALTY',
     opp_exclusion: ()  => 'EXCL',
     brutality:     ()  => 'BRUTALITY',
     timeout:       ()  => 'TIMEOUT',
     opp_timeout:   ()  => 'OPP TIMEOUT',
-    save:          ()  => 'SAVE',
+    save:          ev  => ev.inside2m ? 'SAVE (Inside 2m)' : 'SAVE',
     block:         ()  => 'SAVE',
     field_block:   ()  => 'FIELD BLOCK',
   };
@@ -5360,6 +5358,10 @@ function _phaseAdvanceLabel(next) {
   }[next] || 'Advance';
 }
 
+function _phaseNeedsSprintStart(phase) {
+  return ['q1', 'q2', 'q3', 'q4', 'h1', 'h2'].includes(String(phase || ''));
+}
+
 function _phaseAdvanceHint(next) {
   return next === 'done'
     ? 'Clock expired. Review the score, make any corrections, then finalize the game.'
@@ -5381,6 +5383,48 @@ function _promptFinalizeOnClockEnd(gameId) {
   afterScore(gameId);
   showToast('Clock expired. Review and submit the final score.');
   setTimeout(() => openFinalizeGameModal(gameId, 'clock-expired'), 0);
+}
+
+function _startClockAtPhase(gameId, phaseOverride = null) {
+  const s  = getLiveScore(gameId);
+  const cs = getClockSettings(gameId);
+  const phase = phaseOverride || s.timerPhase || (cs.periodMode === 'halves' ? 'h1' : 'q1');
+  s.quarterMins = cs.quarterMins;
+  s.breakMins = cs.breakMins;
+  s.halfMins = cs.halftimeMins;
+  s.timeoutsPerTeam = cs.timeoutsPerTeam;
+  s.timeoutLengths = [...(cs.timeoutLengths || [])];
+  s.halfMinsPerHalf = cs.halfMins;
+  s.timingLocked = true;
+
+  if (!s.timerPhase || s.gameState === 'pre') {
+    s.teamTimeoutsLeft = cs.timeoutsPerTeam;
+    s.oppTimeoutsLeft  = cs.timeoutsPerTeam;
+    s.teamTimeoutIdx   = 0;
+    s.oppTimeoutIdx    = 0;
+  }
+
+  s.timerPhase = phase;
+  s.timerRunning = true;
+  s.timerStartedAt = Date.now();
+  s._clockExpiring = false;
+  s.timerExpired = false;
+  s.timerAdvanceTo = null;
+  s.timerSecondsLeft = _phaseSeconds(phase, cs);
+  s.clock = fmtClock(s.timerSecondsLeft);
+
+  const gs = _phaseGameState(phase);
+  if (gs) {
+    s.gameState = gs;
+    const newPeriod = PERIOD_FOR_STATE[gs];
+    if (newPeriod != null) s.period = newPeriod;
+    s.events.push({ type: 'game_state', gameState: gs, clock: s.clock || '', period: s.period, ts: Date.now() });
+  }
+
+  _setLiveScore(gameId, s);
+  saveLiveScores();
+  ensureClockTicker();
+  afterScore(gameId);
 }
 
 function _handleClockExpired(gameId) {
@@ -5435,70 +5479,23 @@ function advanceClockPhase(gameId) {
     _promptFinalizeOnClockEnd(gameId);
     return;
   }
-  s.timerExpired = false;
-  s.timerAdvanceTo = null;
-  s.timerPhase = next;
-  s.timerSecondsLeft = _phaseSeconds(next, cs);
-  s.clock = fmtClock(s.timerSecondsLeft);
-  s.timerRunning = true;
-  s.timerStartedAt = Date.now();
-  s._clockExpiring = false;
-  const gs = _phaseGameState(next);
-  if (gs) {
-    s.gameState = gs;
-    const newPeriod = PERIOD_FOR_STATE[gs];
-    if (newPeriod != null) s.period = newPeriod;
-    s.events.push({ type: 'game_state', gameState: gs, clock: s.clock || '', period: s.period, ts: Date.now() });
+  if (_phaseNeedsSprintStart(next)) {
+    openQuarterStartSprintPicker(gameId, next);
+    return;
   }
-  _setLiveScore(gameId, s);
-  saveLiveScores();
-  ensureClockTicker();
-  afterScore(gameId);
+  _startClockAtPhase(gameId, next);
   showToast(`${_phaseAdvanceLabel(next)} started`);
 }
 
 function startScoring(gameId) {
   const s  = getLiveScore(gameId);
   const cs = getClockSettings(gameId);
-  s.quarterMins = cs.quarterMins;
-  s.breakMins = cs.breakMins;
-  s.halfMins = cs.halftimeMins;
-  s.timeoutsPerTeam = cs.timeoutsPerTeam;
-  s.timeoutLengths = [...(cs.timeoutLengths || [])];
-  s.halfMinsPerHalf = cs.halfMins;
-  s.timingLocked = true;
-
-  // Determine which quarter we're starting
-  const phase = s.timerPhase || 'q1';
-  const isNewGame = !s.timerPhase || s.gameState === 'pre';
-
-  if (isNewGame) {
-    const csForStart = getClockSettings(gameId);
-    s.timerPhase = csForStart.periodMode === 'halves' ? 'h1' : 'q1';
-    s.teamTimeoutsLeft = cs.timeoutsPerTeam;
-    s.oppTimeoutsLeft  = cs.timeoutsPerTeam;
-    s.teamTimeoutIdx   = 0;
-    s.oppTimeoutIdx    = 0;
+  const phase = s.timerPhase || (cs.periodMode === 'halves' ? 'h1' : 'q1');
+  if (_phaseNeedsSprintStart(phase)) {
+    openQuarterStartSprintPicker(gameId, phase);
+    return;
   }
-
-  if (!s.timerSecondsLeft || s.timerSecondsLeft <= 0) {
-    s.timerSecondsLeft = _phaseSeconds(s.timerPhase, cs);
-  }
-
-  s.timerRunning   = true;
-  s.timerStartedAt = Date.now();
-  s._clockExpiring = false;
-  s.timerExpired = false;
-  s.timerAdvanceTo = null;
-
-  _setLiveScore(gameId, s);
-  saveLiveScores();
-  ensureClockTicker();
-
-  // Set game state for the current quarter
-  const gs = _phaseGameState(s.timerPhase);
-  if (gs && s.gameState !== gs) setGameState(gameId, gs);
-  else afterScore(gameId);
+  _startClockAtPhase(gameId, phase);
 }
 
 /**
@@ -5831,6 +5828,7 @@ function confirmFinalizeGame() {
 let _pickerGameId   = null;
 let _pickerType     = 'goal';
 let _pickerSixOnFive = false;
+let _pickerPresetExtra = null;
 
 function openEventPicker(gameId, eventType) {
   const _doOpenPicker = () => {
@@ -5879,6 +5877,8 @@ function openEventPicker(gameId, eventType) {
       extraOptions.push({ key: 'forcedBallUnder', label: 'Forced Ball Under', checked: false });
     } else if (realType === 'turnover') {
       extraOptions.push({ key: 'inside2m', label: 'Inside 2m', checked: false });
+    } else if (realType === 'save') {
+      extraOptions.push({ key: 'inside2m', label: 'Save inside 2m', checked: false });
     }
 
     if (titleEl) titleEl.textContent = TITLES[realType] || 'Select Player';
@@ -5928,20 +5928,8 @@ function openEventPicker(gameId, eventType) {
       ? (goalieRoster.length ? goalieRoster : sorted)
       : sorted;
 
-    if (realType === 'save' && goalieRoster.length === 1) {
-      const player = goalieRoster[0];
-      recordEventForPlayer(gameId, 'save', player.cap, `${player.first} ${player.last}`);
-      return;
-    }
-
     if (!displayRoster.length) {
       showToast('No roster loaded for this team yet.', 'warn');
-      return;
-    }
-
-    if (realType === 'save' && displayRoster.length === 1) {
-      const player = displayRoster[0];
-      recordEventForPlayer(gameId, 'save', player.cap, `${player.first} ${player.last}`);
       return;
     }
 
@@ -5970,6 +5958,7 @@ function openEventPicker(gameId, eventType) {
           counter: !!$('roster-extra-counter')?.checked,
           forcedBallUnder: !!$('roster-extra-forcedBallUnder')?.checked,
           inside2m: !!$('roster-extra-inside2m')?.checked,
+          ...(_pickerPresetExtra || {}),
         };
         recordEventForPlayer(gameId, _pickerType, player.cap, `${player.first} ${player.last}`, extra);
         closeEventPicker();
@@ -5986,6 +5975,140 @@ function openEventPicker(gameId, eventType) {
   _doOpenPicker();
 }
 
+function openQuarterStartSprintPicker(gameId, phaseOverride = null) {
+  const phase = phaseOverride || getLiveScore(gameId)?.timerAdvanceTo || getLiveScore(gameId)?.timerPhase || 'q1';
+  _pickerGameId = gameId;
+  _pickerType = 'sprint_won';
+  _pickerSixOnFive = false;
+  const titleEl = $('roster-modal-title');
+  const row6v5  = $('roster-6v5-row');
+  const list    = $('roster-modal-list');
+  if (titleEl) titleEl.textContent = 'Who won the sprint?';
+  if (row6v5) row6v5.innerHTML = '';
+  const roster = sortedRoster(getRosterPlayers(gameId));
+  list.innerHTML = '';
+  const oppBtn = document.createElement('button');
+  oppBtn.className = 'roster-player-btn roster-player-btn-opp';
+  oppBtn.innerHTML = `
+    <span class="roster-cap">OPP</span>
+    <span class="roster-name">Opponent won the sprint</span>`;
+  oppBtn.addEventListener('click', () => {
+    recordEventDirect(gameId, 'opp_sprint_won');
+    closeEventPicker();
+    _startClockAtPhase(gameId, phase);
+  });
+  list.appendChild(oppBtn);
+  roster.forEach(player => {
+    const btn = document.createElement('button');
+    btn.className = 'roster-player-btn';
+    btn.innerHTML = `
+      <span class="roster-cap">${player.cap ? '#'+escHtml(player.cap) : 'GK'}</span>
+      <span class="roster-name">${escHtml(player.first)} ${escHtml(player.last)}</span>`;
+    btn.addEventListener('click', () => {
+      recordEventForPlayer(gameId, 'sprint_won', player.cap, `${player.first} ${player.last}`);
+      closeEventPicker();
+      _startClockAtPhase(gameId, phase);
+    });
+    list.appendChild(btn);
+  });
+  $('roster-modal').classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  _openModal('roster-modal');
+}
+
+function openEventPickerWithPreset(gameId, eventType, presetExtra = {}) {
+  _pickerPresetExtra = { ...(presetExtra || {}) };
+  openEventPicker(gameId, eventType);
+}
+
+function openQuickActionMenu(gameId, title, options, { stopClock = false } = {}) {
+  if (stopClock) {
+    const s = getLiveScore(gameId);
+    if (s?.timerRunning) pauseGameTimer(gameId);
+  }
+  _pickerGameId = gameId;
+  _pickerType = 'direct';
+  _pickerSixOnFive = false;
+  const titleEl = $('roster-modal-title');
+  const row6v5  = $('roster-6v5-row');
+  const list    = $('roster-modal-list');
+  if (titleEl) titleEl.textContent = title;
+  if (row6v5) row6v5.innerHTML = '';
+  list.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = `roster-player-btn${opt.opp ? ' roster-player-btn-opp' : ''}`;
+    btn.innerHTML = `
+      <span class="roster-cap">${escHtml(opt.short || '•')}</span>
+      <span class="roster-name">${escHtml(opt.label)}</span>`;
+    btn.addEventListener('click', () => {
+      closeEventPicker();
+      opt.run();
+    });
+    list.appendChild(btn);
+  });
+  $('roster-modal').classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  _openModal('roster-modal');
+}
+
+function openTeamExclusionMenu(gameId) {
+  openQuickActionMenu(gameId, 'Exclusion', [
+    { short: 'CP', label: 'Common Penalty', run: () => openEventPickerWithPreset(gameId, 'exclusion', { exclusionKind: 'common_penalty' }) },
+    { short: 'KO', label: 'Kickout', run: () => openEventPickerWithPreset(gameId, 'exclusion', { exclusionKind: 'kickout' }) },
+  ]);
+}
+
+function openTeamStealMenu(gameId) {
+  openQuickActionMenu(gameId, 'Steal', [
+    { short: 'STL', label: 'Steal', run: () => openEventPicker(gameId, 'steal') },
+    { short: 'FBU', label: 'Steal (Forced Ball Under)', run: () => openEventPickerWithPreset(gameId, 'steal', { forcedBallUnder: true }) },
+  ]);
+}
+
+function openTurnoverMenu(gameId) {
+  openQuickActionMenu(gameId, 'Turnover', [
+    { short: 'TO', label: 'Turnover', run: () => recordEventForPlayer(gameId, 'turnover', '', '', { inside2m: false }) },
+    { short: '2M', label: 'Turnover (Inside 2m)', run: () => recordEventForPlayer(gameId, 'turnover', '', '', { inside2m: true }) },
+  ]);
+}
+
+function openOppExclusionMenu(gameId) {
+  openQuickActionMenu(gameId, 'Opp Excl', [
+    { short: 'EE', label: 'Earned Exclusion', run: () => openEventPicker(gameId, 'earned_excl') },
+    { short: 'OPP', label: 'Opp Exclusion', opp: true, run: () => recordEventDirect(gameId, 'opp_exclusion') },
+  ]);
+}
+
+function openOppStealMenu(gameId) {
+  openQuickActionMenu(gameId, 'Opp Steal', [
+    { short: 'STL', label: 'Opp Steal', opp: true, run: () => recordEventDirect(gameId, 'opp_steal') },
+    { short: 'FBU', label: 'Opp Steal (Forced Ball Under)', opp: true, run: () => recordEventDirect(gameId, 'opp_steal', { forcedBallUnder: true }) },
+  ]);
+}
+
+function openTeam5mMenu(gameId) {
+  openQuickActionMenu(gameId, '5m Penalty', [
+    { short: 'G', label: '5m Goal', run: () => openEventPicker(gameId, 'goal_5m') },
+    { short: 'A', label: '5m Attempt', run: () => openEventPicker(gameId, 'miss_5m') },
+  ], { stopClock: true });
+}
+
+function openOpp5mMenu(gameId) {
+  openQuickActionMenu(gameId, 'Opp 5m', [
+    { short: 'G', label: 'Opp 5m Goal', opp: true, run: () => recordEventDirect(gameId, 'opp_goal_5m') },
+    { short: 'A', label: 'Opp 5m Attempt', opp: true, run: () => recordEventDirect(gameId, 'opp_miss_5m') },
+    { short: 'SV', label: 'Opp 5m Attempt + GK Save', opp: true, run: () => { recordEventDirect(gameId, 'opp_miss_5m'); setTimeout(() => openEventPicker(gameId, 'save'), 0); } },
+  ], { stopClock: true });
+}
+
+function openOppAttemptMenu(gameId) {
+  openQuickActionMenu(gameId, 'Opp Attempt', [
+    { short: 'A', label: 'Opp Attempt', opp: true, run: () => recordEventDirect(gameId, 'opp_shot_miss') },
+    { short: 'SV', label: 'Opp Attempt + GK Save', opp: true, run: () => { recordEventDirect(gameId, 'opp_shot_miss'); setTimeout(() => openEventPicker(gameId, 'save'), 0); } },
+  ]);
+}
+
 // Backward-compat alias
 function openRosterPicker(gameId) { openEventPicker(gameId, 'goal'); }
 
@@ -5994,6 +6117,7 @@ function closeEventPicker() {
   document.body.classList.remove('modal-open');
   _closeModal('roster-modal');
   _pickerGameId = null;
+  _pickerPresetExtra = null;
   const row = $('roster-6v5-row');
   if (row) row.innerHTML = '';
 }
@@ -7631,13 +7755,13 @@ function buildScorerInlineEventLog(events, currentPeriod = 0, gameId = null) {
     turnover:      ev  => ev.inside2m ? 'TURNOVER (Inside 2m)' : appT('event_turnover'),
     sprint_won:    ()  => appT('event_sprint_won'),
     opp_sprint_won:()  => appT('event_opp_sprint_won'),
-    opp_steal:     ()  => appT('event_opp_steal'),
-    exclusion:     ()  => appT('event_excl'),
+    opp_steal:     ev  => ev.forcedBallUnder ? 'OPP STEAL (FBU)' : appT('event_opp_steal'),
+    exclusion:     ev  => ev.exclusionKind === 'kickout' ? 'KICKOUT' : 'COMMON PENALTY',
     opp_exclusion: ()  => appT('event_excl'),
     brutality:     ()  => appT('event_brutal'),
     timeout:       ()  => appT('event_timeout'),
     opp_timeout:   ()  => appT('event_opp_timeout'),
-    save:          ()  => appT('event_save'),
+    save:          ev  => ev.inside2m ? 'SAVE (Inside 2m)' : appT('event_save'),
     block:         ()  => appT('event_save'),
     field_block:   ()  => appT('event_field_block'),
   };
@@ -7722,6 +7846,29 @@ function buildEmbeddedScoreCardDetail(game, viewerOnly = false, ageGroupLabel = 
             ${summaryHtml}
           </div>`}
     </div>`;
+}
+
+function buildTabRefreshButtonHtml(target = 'schedule') {
+  return `<div class="${target}-refresh-wrap"><button class="schedule-refresh-btn is-light" onclick="forceAppRefresh(this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    ${appT('schedule_force_refresh')}</button></div>`;
+}
+
+function buildProjectedScoreCard(next) {
+  const g = next?.game;
+  if (!g) return '';
+  const timeStr = g.time && g.time !== 'TBD'
+    ? `🕐 ${escHtml(g.time)} · ${escHtml(g.date || g.dateISO)}`
+    : escHtml(g.date || g.dateISO || 'Time TBD');
+  return `<div class="game-card next-projected">
+    <div class="game-card-top">
+      <div class="game-vs">vs ${escHtml(normalizeOpponentName(g.desc || 'Bracket Game'))}</div>
+      ${g.gameNum ? `<div class="game-num-tag">${escHtml(g.gameNum)}</div>` : ''}
+    </div>
+    <div class="game-info-row game-info-row-primary">${escHtml(next.pathLabel || 'Projected Next')} · ${timeStr}</div>
+    ${bracketLocationDisplay(g.location) ? `<div class="game-location-row">${buildLocationVenueOnly(bracketLocationDisplay(g.location))}</div>` : ''}
+    <div class="game-info-row"><span class="points-badge">${escHtml(appFormat('next_based_on_record', { record: getPoolRecord() }))}</span></div>
+  </div>`;
 }
 
 function buildScoreDetailView(ctx) {
@@ -7890,6 +8037,7 @@ const active = _dedupeScheduledGames(
       _activeAgeGroup = null;
       if (cache) { window.TOURNAMENT = _savedT; window.HISTORY_SEED = _savedH; }
     }
+    html += buildTabRefreshButtonHtml('scores');
     html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
     el.innerHTML = dirHtml + html;
     return;
@@ -7908,10 +8056,13 @@ const active = _dedupeScheduledGames(
     });
 
     const anyLive = activeGames.some(g => isGameLive(_gameRef(g)));
+    const nextProjected = !activeGames.length ? findNextGameOrProjected() : null;
 
     let cardsHtml = '';
     if (!activeGames.length) {
-      cardsHtml = `<div class="card tab-card" style="text-align:center;padding:24px 16px">
+      cardsHtml = nextProjected?.type === 'bracket'
+        ? `<div class="games-section">${buildProjectedScoreCard(nextProjected)}</div>`
+        : `<div class="card tab-card" style="text-align:center;padding:24px 16px">
           <div style="font-size:2rem;margin-bottom:8px">${swimmerEmoji(teamKey)}</div>
           <div style="font-weight:700;margin-bottom:4px">No games scheduled yet</div>
           <div style="color:var(--gray-600);font-size:0.88rem">Check back on tournament day.</div>
@@ -7932,7 +8083,7 @@ const active = _dedupeScheduledGames(
     }
 
     _setLiveBanner(anyLive);
-    const _guideLink = `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
+    const _guideLink = `${buildTabRefreshButtonHtml('scores')}<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
     el.innerHTML = dirHtml + `
         <div class="viewer-tab-bar">
           <span class="viewer-tab-label">${anyLive ? '🔴 Live Scores' : '📺 Scores'}</span>
@@ -7964,10 +8115,14 @@ const active = _dedupeScheduledGames(
   const activeGames = _dedupeScheduledGames(games.filter(g => !_getResultForGame(g)));
 
   if (!activeGames.length) {
+    const projected = findNextGameOrProjected();
+    const projectedHtml = projected?.type === 'bracket'
+      ? `<div class="games-section">${buildProjectedScoreCard(projected)}</div>`
+      : '';
     el.innerHTML = dirHtml + `<div class="card tab-card">
       <div class="history-header-row"><h2>Box Scores</h2></div>
       <p class="empty-msg" style="padding:16px 0">All games complete — check the History tab for results.</p>
-    </div>`;
+    </div>${projectedHtml}${buildTabRefreshButtonHtml('scores')}`;
     return;
   }
 
@@ -8011,6 +8166,7 @@ const active = _dedupeScheduledGames(
     html += `</div>`;
   }
 
+  html += buildTabRefreshButtonHtml('scores');
   html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
   el.innerHTML = dirHtml + html;
 }
@@ -8860,11 +9016,7 @@ function renderScheduleTab() {
 
   // Refresh button at the bottom of the tab
   const rb = $('schedule-refresh-wrap');
-  if (rb) rb.innerHTML = `
-    <button class="schedule-refresh-btn" id="schedule-refresh-btn" onclick="forceAppRefresh(this)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-      ${appT('schedule_force_refresh')}
-    </button>`;
+  if (rb) rb.innerHTML = buildTabRefreshButtonHtml('schedule');
 
 }
 
@@ -8942,9 +9094,7 @@ function _renderScheduleMulti(slots) {
   }
 
   const rb = $('schedule-refresh-wrap');
-  if (rb) rb.innerHTML = `<button class="schedule-refresh-btn" id="schedule-refresh-btn" onclick="forceAppRefresh(this)">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-    ${appT('schedule_force_refresh')}</button>`;
+  if (rb) rb.innerHTML = buildTabRefreshButtonHtml('schedule');
 }
 
 /** Clears SW cache and reloads to pick up latest code + data. */
