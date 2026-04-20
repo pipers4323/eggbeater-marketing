@@ -1424,6 +1424,8 @@ const STORE = {
   RESULTS:          'ebwp-results',
   BRACKET_RESULTS:  'ebwp-bracket-results',
   LIVE_SCORES:      'ebwp-live-scores',
+  SCORER_SESSIONS:  'ebwp-scorer-sessions',
+  LIVE_ACTIVITY_GAME:'ebwp-live-activity-game',
   HISTORY:          'ebwp-history',
   CALENDAR_ID:      'ebwp-calendar-id',
   CALENDAR_NAME:    'ebwp-calendar-name',
@@ -1952,7 +1954,7 @@ function _isActiveLocalScorerScore(localScore, gameOrRef, explicitGroupKey = '')
   const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
   const rawKey = _gameIdOnly(gameOrRef);
   const myGames = getMyGames();
-  return myGames.has(scopedKey) || myGames.has(rawKey);
+  return _hasActiveScorerSession(gameOrRef, explicitGroupKey) || myGames.has(scopedKey) || myGames.has(rawKey);
 }
 
 function _shouldPreserveLocalLiveScore(localScore, remoteScore, gameOrRef = null, explicitGroupKey = '') {
@@ -1975,7 +1977,7 @@ function _findMatchingLocalDraftForGame(game, explicitGroupKey = '') {
     if (!_hasMeaningfulLiveScoreData(score)) continue;
     if (_gameIdOnly(key) === String(game?.id || '')) continue;
     if (_sameScheduledSlot(score, game)) return { key, score };
-    if (_sameScheduledTimeSlot(score, game) && _isActiveLocalScorerScore(score, key, groupKey)) {
+    if (_sameScheduledTimeSlot(score, game) && (_isActiveLocalScorerScore(score, key, groupKey) || _hasActiveScorerSession(key, groupKey))) {
       return { key, score };
     }
   }
@@ -3213,6 +3215,139 @@ function saveLiveScores() {
   localStorage.setItem(STORE.LIVE_SCORES, JSON.stringify(state.liveScores));
 }
 
+function _getScorerSessions() {
+  try { return JSON.parse(localStorage.getItem(STORE.SCORER_SESSIONS) || '{}'); }
+  catch { return {}; }
+}
+
+function _saveScorerSessions(sessions) {
+  localStorage.setItem(STORE.SCORER_SESSIONS, JSON.stringify(sessions || {}));
+}
+
+function getFollowedLiveGameId() {
+  return localStorage.getItem(STORE.LIVE_ACTIVITY_GAME) || '';
+}
+
+function setFollowedLiveGameId(gameOrRef, explicitGroupKey = '') {
+  localStorage.setItem(STORE.LIVE_ACTIVITY_GAME, _gameRef(gameOrRef, explicitGroupKey));
+}
+
+function clearFollowedLiveGameId(gameOrRef = null, explicitGroupKey = '') {
+  if (!gameOrRef) {
+    localStorage.removeItem(STORE.LIVE_ACTIVITY_GAME);
+    return;
+  }
+  const scopedKey = _gameRef(gameOrRef, explicitGroupKey);
+  if (getFollowedLiveGameId() === scopedKey) localStorage.removeItem(STORE.LIVE_ACTIVITY_GAME);
+}
+
+async function _ensureFollowedLiveActivity(gameId) {
+  if (!_isNativePlatform() || window.Capacitor?.getPlatform?.() !== 'ios') return false;
+  const scopedGameId = _gameRef(gameId);
+  const plugin = window.Capacitor?.Plugins?.LiveActivity ||
+    (window.Capacitor?.nativePromise
+      ? {
+          updateActivity: (o) => window.Capacitor.nativePromise('LiveActivity', 'updateActivity', o),
+        }
+      : null);
+  if (!plugin?.updateActivity) return false;
+  const score = getLiveScore(scopedGameId);
+  if (!score || !score.gameState || score.gameState === 'pre' || score.gameState === 'final' || score.gameState === 'so_w' || score.gameState === 'so_l') {
+    clearFollowedLiveGameId(scopedGameId);
+    return false;
+  }
+  const remaining = score.timerRunning
+    ? Math.max(0, (score.timerSecondsLeft || 0) - (Date.now() - (score.timerStartedAt || Date.now())) / 1000)
+    : 0;
+  try {
+    await plugin.updateActivity({
+      homeScore: score.team || 0,
+      awayScore: score.opp || 0,
+      clock: score.clock || fmtClock(score.timerSecondsLeft || 0),
+      quarter: String(score.period || 1),
+      lastEvent: _buildLastEventStr(scopedGameId),
+      homeLogoUrl: _clubLogoDownloadUrl(),
+      timerEnd: score.timerRunning && remaining > 0 ? (Date.now() / 1000 + remaining) : 0,
+    });
+    window._activeLA = { gameId: scopedGameId, plugin };
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function _getTournamentIdForGame(gameOrRef, explicitGroupKey = '') {
+  const tournament = getTournamentForGroup(_contextGroupKey(gameOrRef, explicitGroupKey)) || TOURNAMENT || {};
+  return String(tournament.id || '');
+}
+
+function _getScorerSessionKey(gameOrRef, explicitGroupKey = '') {
+  const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
+  const tournamentId = _getTournamentIdForGame(gameOrRef, explicitGroupKey);
+  return tournamentId ? `${tournamentId}::${scopedKey}` : scopedKey;
+}
+
+function _getScorerSession(gameOrRef, explicitGroupKey = '') {
+  const sessions = _getScorerSessions();
+  return sessions[_getScorerSessionKey(gameOrRef, explicitGroupKey)] || null;
+}
+
+function _upsertScorerSession(gameOrRef, explicitGroupKey = '', extra = {}) {
+  const game = _findGameByRef(gameOrRef, explicitGroupKey);
+  const score = getLiveScore(gameOrRef);
+  const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
+  const tournamentId = _getTournamentIdForGame(gameOrRef, explicitGroupKey);
+  const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
+  const sessionKey = _getScorerSessionKey(gameOrRef, explicitGroupKey);
+  const sessions = _getScorerSessions();
+  const nowIso = new Date().toISOString();
+  const previous = sessions[sessionKey] || {};
+  sessions[sessionKey] = {
+    ...previous,
+    tournamentId,
+    groupKey,
+    gameId: _gameIdOnly(gameOrRef),
+    scopedKey,
+    opponent: game?.opponent || previous.opponent || score?.opponent || '',
+    dateISO: game?.dateISO || previous.dateISO || score?.dateISO || '',
+    time: game?.time || previous.time || score?.time || '',
+    location: game?.location || previous.location || score?.location || '',
+    team: typeof score?.team === 'number' ? score.team : (previous.team ?? 0),
+    opp: typeof score?.opp === 'number' ? score.opp : (previous.opp ?? 0),
+    gameState: score?.gameState || previous.gameState || 'pre',
+    eventCount: _meaningfulEventCount(score),
+    status: extra.status || previous.status || 'open',
+    lastTouchedAt: nowIso,
+    openedAt: previous.openedAt || nowIso,
+    ...extra,
+  };
+  _saveScorerSessions(sessions);
+  return sessions[sessionKey];
+}
+
+function _closeScorerSession(gameOrRef, explicitGroupKey = '', status = 'closed') {
+  const sessionKey = _getScorerSessionKey(gameOrRef, explicitGroupKey);
+  const sessions = _getScorerSessions();
+  if (!sessions[sessionKey]) return;
+  sessions[sessionKey] = {
+    ...sessions[sessionKey],
+    status,
+    lastTouchedAt: new Date().toISOString(),
+  };
+  _saveScorerSessions(sessions);
+}
+
+function _hasActiveScorerSession(gameOrRef, explicitGroupKey = '') {
+  const session = _getScorerSession(gameOrRef, explicitGroupKey);
+  if (!session) return false;
+  if (session.status && session.status !== 'open') return false;
+  const score = getLiveScore(gameOrRef);
+  const meaningfulEvents = Math.max(Number(session.eventCount || 0), _meaningfulEventCount(score));
+  const activeState = score?.gameState || session.gameState || 'pre';
+  if (activeState === 'pre' || activeState === 'final') return false;
+  return meaningfulEvents > 0 || typeof score?.team === 'number' || typeof score?.opp === 'number';
+}
+
 // ─── MY-GAMES TRACKING ────────────────────────────────────────────────────────
 // The CF worker /live-scores response never includes deviceId, so we can't
 // tell our own broadcasts from a stranger's via the response alone.
@@ -3285,6 +3420,7 @@ function afterScore(gameId) {
   const gameRef = _gameRef(gameId);
   const scopedKey = _scopedGameKey(gameId);
   addMyGame(scopedKey); // remember we scored this game on this device
+  _upsertScorerSession(gameRef, _contextGroupKey(gameId), { status: 'open' });
   saveLiveScores();
   renderGamesList();
   renderNextGameCard(); // update LIVE badge on blue card
@@ -3301,6 +3437,7 @@ function afterScore(gameId) {
     if (window._activeLA?.gameId === gameRef) {
       const _laEnd = window.Capacitor?.Plugins?.LiveActivity;
       if (_laEnd) _laEnd.endActivity({}).catch(() => {});
+      clearFollowedLiveGameId(gameRef);
       window._activeLA = null;
       if (window._laAutoStarted) _laAutoStarted.delete(gameRef);
     }
@@ -3327,6 +3464,7 @@ function afterScore(gameId) {
           clock:     _las.clock || '0:00',
           quarter:   String(_las.period || 1),
           lastEvent: _buildLastEventStr(gameRef),
+          homeLogoUrl: _clubLogoDownloadUrl(),
           timerEnd:  _las.timerRunning && _remaining > 0 ? (Date.now() / 1000 + _remaining) : 0,
         }).catch(() => {});
       }
@@ -3495,6 +3633,7 @@ function reopenFinalizedGame(gameId) {
   s.needsFinalization = true;
   s.needsFinalizationAt = s.needsFinalizationAt || new Date().toISOString();
   _setLiveScore(gameId, s);
+  _upsertScorerSession(gameId, _contextGroupKey(gameId), { status: 'open' });
   afterScore(gameId);
   showToast('Game reopened');
 }
@@ -3533,6 +3672,7 @@ function resetToPreGame(gameId) {
   s.needsFinalization = false;
   s.needsFinalizationAt = null;
   _setLiveScore(gameId, s);
+  _closeScorerSession(gameId, _contextGroupKey(gameId), 'reset');
   afterScore(gameId);
   showUndoToast('Game reset to pre-game', () => {
     if (!previous) return;
@@ -5300,6 +5440,7 @@ function _tickAllClocks() {
           clock:     fmtTime,
           quarter:   String(s.period || 1),
           lastEvent: _buildLastEventStr(gameId),
+          homeLogoUrl: _clubLogoDownloadUrl(),
           // Native iOS countdown timer — Date.now()/1000 + remaining seconds = end timestamp
           timerEnd:  s.timerRunning && remaining > 0 ? (Date.now() / 1000 + remaining) : 0,
         }).catch(() => {});
@@ -5523,6 +5664,7 @@ function _pushLAClockState(gameId) {
     clock:     s.clock || fmtClock(s.timerSecondsLeft || 0),
     quarter:   String(s.period || 1),
     lastEvent: _buildLastEventStr(gameId),
+    homeLogoUrl: _clubLogoDownloadUrl(),
     // timerEnd non-zero → SwiftUI runs native countdown; 0 → shows frozen clockStr
     timerEnd:  s.timerRunning && remaining > 0 ? (Date.now() / 1000 + remaining) : 0,
   }).catch(() => {});
@@ -5818,6 +5960,7 @@ function confirmFinalizeGame() {
   score.finalizedBy = 'scorer';
   score.finalizedSource = _pendingFinalizeSource || 'manual';
   _setLiveScore(gid, score);
+  _closeScorerSession(gid, _contextGroupKey(gid), 'final');
   saveLiveScores();
   closeFinalizeGameModal();
   setGameState(gid, 'final');
@@ -7433,6 +7576,7 @@ function openScorerDetail(gameId, groupKey = '', ageGroupLabel = '') {
   state.scorerDetailsOpen[gameId] = true;
   state.scoreDetail = { gameId, groupKey, ageGroupLabel, viewerOnly: false, scorerMode: true };
   state.scoreDetailTab = 'summary';
+  _upsertScorerSession(gameId, groupKey, { status: 'open' });
   syncVolumeButtonShortcut();
   if (state.currentTab !== 'scores') switchTab('scores');
   renderScoresTab();
@@ -12592,7 +12736,7 @@ async function pollLiveScores() {
       const scopedKey = _scopedGameKey(gameId, remoteScore.ageGroup || remoteScore.score?.ageGroup || '');
       const local = state.liveScores[scopedKey] || state.liveScores[gameId] || {};
       const localScorerOwnsGame = _isScorerUnlockedForGame(scopedKey, remoteScore.ageGroup || remoteScore.score?.ageGroup || '')
-        && (myGames.has(scopedKey) || myGames.has(gameId))
+        && (_hasActiveScorerSession(scopedKey, remoteScore.ageGroup || remoteScore.score?.ageGroup || '') || myGames.has(scopedKey) || myGames.has(gameId))
         && !local._remote
         && !!local.gameState
         && local.gameState !== 'pre';
@@ -12616,6 +12760,7 @@ async function pollLiveScores() {
         if (window._activeLA?.gameId === scopedKey || window._activeLA?.gameId === gameId) {
           const _laPlugin = window.Capacitor?.Plugins?.LiveActivity;
           if (_laPlugin) _laPlugin.endActivity({}).catch(() => {});
+          clearFollowedLiveGameId(window._activeLA?.gameId || scopedKey);
           window._activeLA = null;
           _laAutoStarted.delete(scopedKey); // allow re-auto-start if game resumes
         }
@@ -12634,6 +12779,16 @@ async function pollLiveScores() {
 
     // Auto-start Live Activity (iOS) for favorited teams when their game goes live
     if (_isNativePlatform() && window.Capacitor?.getPlatform?.() === 'ios') {
+      const followedGameId = getFollowedLiveGameId();
+      if (followedGameId && !window._activeLA) {
+        const followedScore = state.liveScores[followedGameId] || state.liveScores[_gameIdOnly(followedGameId)];
+        if (followedScore && followedScore.gameState && followedScore.gameState !== 'pre' && followedScore.gameState !== 'final' && followedScore.gameState !== 'so_w' && followedScore.gameState !== 'so_l') {
+          const reattached = await _ensureFollowedLiveActivity(followedGameId);
+          if (!reattached) toggleLiveActivity(followedGameId).catch(() => {});
+        } else if (followedScore && (followedScore.gameState === 'final' || followedScore.gameState === 'so_w' || followedScore.gameState === 'so_l')) {
+          clearFollowedLiveGameId(followedGameId);
+        }
+      }
       const _laPrefsI = getLAPrefs();
       const _favsI = getFavGroups();
       const _games = getTournamentGames();
@@ -12694,6 +12849,7 @@ async function pollLiveScores() {
           const isEnded = ls.gameState === 'final' || ls.gameState === 'so_w' || ls.gameState === 'so_l';
           if (isEnded) {
             try { await laPlugin.endActivity({}); } catch {}
+            clearFollowedLiveGameId(laGameId);
             window._activeLA = null;
           } else {
             try {
@@ -12706,6 +12862,7 @@ async function pollLiveScores() {
                 clock:     ls.clock || '0:00',
                 quarter:   String(ls.period || 1),
                 lastEvent: _buildLastEventStr(laGameId),
+                homeLogoUrl: _clubLogoDownloadUrl(),
                 timerEnd:  ls.timerRunning && _lsRemaining > 0 ? (Date.now() / 1000 + _lsRemaining) : 0,
               });
             } catch (e) {
@@ -13574,7 +13731,9 @@ async function _syncWidgetsAll() {
       }
     } else {
       // iOS — write to shared UserDefaults; each call triggers WidgetCenter reload
+      const clubLogoUrl = _clubLogoDownloadUrl();
       writes = [
+        { key: 'club_name',            data: clubName || 'Eggbeater Water Polo', logoUrlHome: clubLogoUrl || undefined },
         { key: 'club_primary_color',   data: primary },
         { key: 'club_secondary_color', data: secondary },
         { key: 'available_teams',      data: JSON.stringify(availableTeams) },
@@ -14094,6 +14253,7 @@ async function toggleLiveActivity(gameId) {
   if (window._activeLA && window._activeLA.gameId === scopedGameId) {
     try { await LiveActivity.endActivity({}); } catch {}
     window._activeLA = null;
+    clearFollowedLiveGameId(scopedGameId);
     showToast(appT('live_follow_stopped'), "info");
     return;
   }
@@ -14101,6 +14261,7 @@ async function toggleLiveActivity(gameId) {
   // End any previous activity before starting a new one
   if (window._activeLA) {
     try { await LiveActivity.endActivity({}); } catch {}
+    clearFollowedLiveGameId(window._activeLA.gameId);
     window._activeLA = null;
   }
 
@@ -14108,6 +14269,7 @@ async function toggleLiveActivity(gameId) {
 
   // Poll for fresh score before starting so we don't show 0-0
   try { await pollLiveScores(); } catch {}
+  try { await _syncWidgetsAll(); } catch {}
   const score = getLiveScore(gameId);
 
   // Club branding colours (fall back to Eggbeater royal/teal)
@@ -14157,6 +14319,7 @@ async function toggleLiveActivity(gameId) {
 
     // Track so pollLiveScores can push updates
     window._activeLA = { gameId: scopedGameId, plugin: LiveActivity };
+    setFollowedLiveGameId(scopedGameId);
 
     showToast(appT('live_follow_ios'), "ok");
   } catch (e) {
