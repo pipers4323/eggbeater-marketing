@@ -3377,11 +3377,28 @@ function _buildRecoveredDraftsCard() {
         <div class="recovered-drafts-title">Scorer Recovery</div>
         <div class="recovered-drafts-copy">Unfinished scorer drafts and recent sync bindings are available here.</div>
       </div>
-      <button class="recovered-drafts-settings-btn" onclick="switchTab('settings')">Open Settings</button>
+      <div class="recovered-drafts-actions">
+        ${recovered.length ? `<button class="recovered-drafts-settings-btn" onclick="retryRecoveredScorerDrafts()">Retry Sync</button>` : ''}
+        <button class="recovered-drafts-settings-btn" onclick="switchTab('settings')">Open Settings</button>
+      </div>
     </div>
     ${draftItems ? `<div class="recovered-drafts-list">${draftItems}</div>` : ''}
     ${conflictItems ? `<div class="recovered-conflicts-list">${conflictItems}</div>` : ''}
   </div>`;
+}
+
+async function retryRecoveredScorerDrafts() {
+  const drafts = (state.recoveredScorerSessions || []).slice();
+  if (!drafts.length) return;
+  let attempted = 0;
+  for (const item of drafts) {
+    const score = state.liveScores[item.scopedKey];
+    if (!score || !_hasMeaningfulLiveScoreData(score)) continue;
+    attempted++;
+    broadcastLiveScore(item.scopedKey);
+  }
+  await _syncPendingScores();
+  if (attempted) showToast(`Retrying sync for ${attempted} scorer draft${attempted > 1 ? 's' : ''}`, 'warn');
 }
 
 function _renderScorerSyncStatusBadge(gameOrRef, explicitGroupKey = '') {
