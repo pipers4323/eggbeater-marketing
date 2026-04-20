@@ -3521,6 +3521,16 @@ function _getScorerSession(gameOrRef, explicitGroupKey = '') {
   return sessions[_getScorerSessionKey(gameOrRef, explicitGroupKey)] || null;
 }
 
+function _findOpenScorerSession(exceptGameOrRef = '', explicitGroupKey = '') {
+  const exceptScopedKey = exceptGameOrRef ? _scopedGameKey(exceptGameOrRef, explicitGroupKey) : '';
+  const sessions = Object.values(_getScorerSessions() || {});
+  return sessions.find(session => {
+    if (!session || session.status !== 'open' || !session.scopedKey) return false;
+    if (exceptScopedKey && session.scopedKey === exceptScopedKey) return false;
+    return (session.eventCount || 0) > 0 || session.gameState === 'final';
+  }) || null;
+}
+
 function _upsertScorerSession(gameOrRef, explicitGroupKey = '', extra = {}) {
   const game = _findGameByRef(gameOrRef, explicitGroupKey);
   const score = getLiveScore(gameOrRef);
@@ -7860,6 +7870,20 @@ function openScoreDetail(gameId, groupKey = '', ageGroupLabel = '', viewerOnly =
 }
 
 function openScorerDetail(gameId, groupKey = '', ageGroupLabel = '') {
+  const conflictingSession = _findOpenScorerSession(gameId, groupKey);
+  if (conflictingSession) {
+    const conflictGroupKey = conflictingSession.groupKey || _contextGroupKey(conflictingSession.scopedKey);
+    const conflictAgeLabel = TEAM_OPTIONS.find(t => t.key === conflictGroupKey)?.label || conflictGroupKey || 'Team';
+    const conflictTitle = [conflictAgeLabel, conflictingSession.opponent ? `vs ${normalizeOpponentName(conflictingSession.opponent)}` : '', conflictingSession.time || '']
+      .filter(Boolean)
+      .join(' · ');
+    const resumeExisting = window.confirm(`There is already an unfinished scorer session for ${conflictTitle || 'another game'}. Open that scorer instead?`);
+    if (resumeExisting) {
+      gameId = conflictingSession.scopedKey;
+      groupKey = conflictGroupKey;
+      ageGroupLabel = conflictAgeLabel;
+    }
+  }
   if (!state.scorerDetailsOpen) state.scorerDetailsOpen = {};
   state.scorerDetailsOpen[gameId] = true;
   state.scoreDetail = { gameId, groupKey, ageGroupLabel, viewerOnly: false, scorerMode: true };
