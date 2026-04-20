@@ -3562,6 +3562,11 @@ function _upsertScorerSession(gameOrRef, explicitGroupKey = '', extra = {}) {
   };
   _saveScorerSessions(sessions);
   _persistScorerSessionToDB(gameOrRef, explicitGroupKey, extra);
+  _mirrorScorerSessionToServer(scopedKey, groupKey, {
+    session: sessions[sessionKey],
+    status: sessions[sessionKey].status || 'open',
+    reason: extra.reason || 'session-upsert',
+  });
   return sessions[sessionKey];
 }
 
@@ -3576,6 +3581,11 @@ function _closeScorerSession(gameOrRef, explicitGroupKey = '', status = 'closed'
   };
   _saveScorerSessions(sessions);
   _persistScorerSessionToDB(gameOrRef, explicitGroupKey, { status });
+  _mirrorScorerSessionToServer(gameOrRef, explicitGroupKey, {
+    session: sessions[sessionKey],
+    status,
+    reason: 'session-close',
+  });
 }
 
 function _hasActiveScorerSession(gameOrRef, explicitGroupKey = '') {
@@ -3661,7 +3671,9 @@ function afterScore(gameId) {
   const gameRef = _gameRef(gameId);
   const scopedKey = _scopedGameKey(gameId);
   addMyGame(scopedKey); // remember we scored this game on this device
-  _upsertScorerSession(gameRef, _contextGroupKey(gameId), { status: 'open' });
+  const session = _getScorerSession(gameRef, _contextGroupKey(gameId));
+  const preservedStatus = ['finalizing', 'final', 'final-acked'].includes(session?.status || '') ? session.status : 'open';
+  _upsertScorerSession(gameRef, _contextGroupKey(gameId), { status: preservedStatus });
   saveLiveScores();
   renderGamesList();
   renderNextGameCard(); // update LIVE badge on blue card
@@ -6196,10 +6208,11 @@ function closeFinalizeGameModal() {
   _closeModal('finalize-game-modal');
 }
 
-function confirmFinalizeGame() {
+async function confirmFinalizeGame() {
   const gid = _pendingFinalizeGameId;
   if (!gid) return closeFinalizeGameModal();
   const score = getLiveScore(gid);
+  const groupKey = _contextGroupKey(gid);
   const teamInput = document.getElementById('finalize-game-team-input');
   const oppInput = document.getElementById('finalize-game-opp-input');
   score.team = Math.max(0, parseInt(teamInput?.value || `${score.team || 0}`, 10) || 0);
@@ -6212,14 +6225,18 @@ function confirmFinalizeGame() {
   score.finalizedBy = 'scorer';
   score.finalizedSource = _pendingFinalizeSource || 'manual';
   _setLiveScore(gid, score);
-  _closeScorerSession(gid, _contextGroupKey(gid), 'final');
-  _setScorerOutboxStatus(gid, _contextGroupKey(gid), 'finalize', 'local-final', {
+  _upsertScorerSession(gid, groupKey, { status: 'finalizing', finalizedSource: score.finalizedSource });
+  _setScorerOutboxStatus(gid, groupKey, 'finalize', 'pending', {
     team: score.team,
     opp: score.opp,
   });
   saveLiveScores();
   closeFinalizeGameModal();
   setGameState(gid, 'final');
+  await _finalizeScoreOnServer(gid, groupKey, {
+    score: getLiveScore(gid),
+    source: score.finalizedSource,
+  });
 }
 
 // ??? EVENT PICKER MODAL ???????????????????????????????????????????????????????
@@ -12822,13 +12839,6 @@ async function broadcastLiveScore(gameId) {
       opp: cleanScore.opp ?? 0,
       eventCount: _meaningfulEventCount(cleanScore),
     });
-    if (cleanScore.gameState === 'final') {
-      _ackFinalizeSync(gameId, ageGroup, {
-        team: cleanScore.team ?? 0,
-        opp: cleanScore.opp ?? 0,
-      });
-      _clearRecoveredDraftForGame(gameId, ageGroup);
-    }
   } catch (e) {
     // Queue for later sync
     _setScorerOutboxStatus(gameId, ageGroup, 'live-score', 'queued', {
@@ -12930,7 +12940,13 @@ async function _setScorerOutboxStatus(gameOrRef, explicitGroupKey = '', kind = '
   try {
     const sessionKey = _getScorerSessionKey(gameOrRef, explicitGroupKey);
     const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
-    _setScorerSyncStatus(gameOrRef, explicitGroupKey, status, { kind, ...extra });
+    const currentSync = _getScorerSyncStatus(gameOrRef, explicitGroupKey);
+    const gameState = getLiveScore(gameOrRef)?.gameState || '';
+    const protectFinalizeStatus = kind === 'live-score'
+      && ['final', 'so_w', 'so_l', 'ff'].includes(gameState)
+      && currentSync?.kind === 'finalize'
+      && ['pending', 'sending', 'queued', 'retrying', 'failed', 'rejected', 'local-final', 'final-acked'].includes(currentSync?.status || '');
+    if (!protectFinalizeStatus) _setScorerSyncStatus(gameOrRef, explicitGroupKey, status, { kind, ...extra });
     const db = await _openScoreDB();
     await _dbStorePut(db, 'scorer-outbox', {
       key: `${sessionKey}::${kind}`,
@@ -13019,6 +13035,103 @@ async function _mirrorScorerDraftToServer(gameOrRef, explicitGroupKey = '', extr
     });
   } catch (e) {
     console.warn('[scorer-db] mirror draft failed:', e.message);
+  }
+}
+
+async function _mirrorScorerSessionToServer(gameOrRef, explicitGroupKey = '', extra = {}) {
+  try {
+    const clubId = getAppClubId() || '';
+    const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
+    const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
+    const tournamentId = tournament.id || _getTournamentIdForGame(gameOrRef, explicitGroupKey) || '';
+    const session = extra.session || _getScorerSession(gameOrRef, groupKey);
+    if (!clubId || !groupKey || !tournamentId || !session?.gameId) return;
+    const headers = { 'Content-Type': 'application/json' };
+    const scorePw = (tournament.scoringPassword || '').trim();
+    if (scorePw) headers['X-Score-Password'] = scorePw;
+    await fetch(`${PUSH_SERVER_URL}/scorer-session`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        clubId,
+        ageGroup: groupKey,
+        tournamentId,
+        gameId: session.gameId || _gameIdOnly(gameOrRef),
+        session: {
+          ...session,
+          sessionKey: session.sessionKey || _getScorerSessionKey(gameOrRef, groupKey),
+          scopedKey: session.scopedKey || _scopedGameKey(gameOrRef, groupKey),
+        },
+        deviceId: getDeviceId(),
+        status: extra.status || session.status || 'open',
+        reason: extra.reason || 'session',
+        updatedAt: Date.parse(extra.session?.lastTouchedAt || session.lastTouchedAt || '') || Date.now(),
+      }),
+    });
+  } catch (e) {
+    console.warn('[scorer-db] mirror session failed:', e.message);
+  }
+}
+
+async function _finalizeScoreOnServer(gameOrRef, explicitGroupKey = '', extra = {}) {
+  const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
+  const score = extra.score || getLiveScore(gameOrRef);
+  const session = extra.session || _getScorerSession(gameOrRef, groupKey);
+  const clubId = getAppClubId() || '';
+  const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
+  const tournamentId = tournament.id || score?.tournamentId || '';
+  if (!score || !clubId || !groupKey || !tournamentId) return false;
+  const headers = { 'Content-Type': 'application/json' };
+  const scorePw = (tournament.scoringPassword || '').trim();
+  if (scorePw) headers['X-Score-Password'] = scorePw;
+  _setScorerOutboxStatus(gameOrRef, groupKey, 'finalize', 'sending', {
+    team: Number(score.team || 0),
+    opp: Number(score.opp || 0),
+  });
+  try {
+    const res = await fetch(`${PUSH_SERVER_URL}/scorer-finalize`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        clubId,
+        ageGroup: groupKey,
+        tournamentId,
+        gameId: _gameIdOnly(gameOrRef),
+        score: _meaningfulScoreSnapshot(score),
+        session,
+        deviceId: getDeviceId(),
+        source: extra.source || score.finalizedSource || 'manual',
+        updatedAt: Date.parse(session?.lastTouchedAt || '') || Date.now(),
+      }),
+    });
+    if (!res.ok) {
+      _setScorerOutboxStatus(gameOrRef, groupKey, 'finalize', (res.status === 400 || res.status === 401) ? 'rejected' : 'failed', {
+        httpStatus: res.status,
+        team: Number(score.team || 0),
+        opp: Number(score.opp || 0),
+      });
+      showToast('Final score did not save yet.', 'warn');
+      return false;
+    }
+    const payload = await res.json().catch(() => ({}));
+    const serverSession = payload?.session?.session
+      ? { ...payload.session.session, status: payload.session.status || payload.session.session.status || 'final-acked' }
+      : payload?.session;
+    if (serverSession) _upsertScorerSession(gameOrRef, groupKey, serverSession);
+    await _ackFinalizeSync(gameOrRef, groupKey, {
+      team: Number(score.team || 0),
+      opp: Number(score.opp || 0),
+      finalizedAt: payload?.finalizedAt || new Date().toISOString(),
+    });
+    return true;
+  } catch (e) {
+    _setScorerOutboxStatus(gameOrRef, groupKey, 'finalize', 'local-final', {
+      reason: e?.message || 'offline',
+      team: Number(score.team || 0),
+      opp: Number(score.opp || 0),
+    });
+    showToast('Final saved locally — retrying when signal returns.', 'warn');
+    return false;
   }
 }
 

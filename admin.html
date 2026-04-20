@@ -2607,6 +2607,7 @@
       history: [],
       scoredGames: {},
       scorerDrafts: [],
+      scorerSessions: [],
       roster: null,   // master roster — stored separately, persists across tournaments
       currentTab: 'schedule',
       editingGame: null,   // gameId currently open for edit
@@ -2761,6 +2762,7 @@
       S.history = data.history || [];
       S.scoredGames = data.scoredGames || {};
       S.scorerDrafts = [];
+      S.scorerSessions = [];
       S.roster = data.roster || null;
       S.role = data.adminRole || 'admin';
       S.director = JSON.parse(localStorage.getItem('ebadmin-director-' + S.team) || 'null');
@@ -2770,6 +2772,7 @@
       }
       if (data.gmBotId && !botGet(BOT_KEYS.GM_BOT_ID)) botSet(BOT_KEYS.GM_BOT_ID, data.gmBotId);
       try { await refreshScorerDraftsAdmin(); } catch (e) { console.warn('[admin] scorer drafts load error:', e.message); }
+      try { await refreshScorerSessionsAdmin(); } catch (e) { console.warn('[admin] scorer sessions load error:', e.message); }
       await _doAdminLoad();
     }
 
@@ -3591,7 +3594,7 @@
 
     async function api(method, path, body) {
       // Append team + club query params to admin endpoints
-      const teamPaths = ['/admin/data', '/admin/roster', '/admin/deploy', '/admin/scored-games', '/admin/scorer-drafts'];
+      const teamPaths = ['/admin/data', '/admin/roster', '/admin/deploy', '/admin/scored-games', '/admin/scorer-drafts', '/admin/scorer-sessions'];
       const needsTeam = teamPaths.some(p => path.startsWith(p));
       let fullPath = path;
       if (needsTeam) {
@@ -13041,6 +13044,7 @@
       const isHS = S.clubType === 'highschool';
       const scoredEntries = Object.values(S.scoredGames || {}).sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
       const scorerDraftEntries = (S.scorerDrafts || []).slice().sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+      const scorerSessionEntries = (S.scorerSessions || []).slice().sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
       const needsFinalizeEntries = scoredEntries.filter(entry => !!entry.needsFinalization);
       const needsFinalizeSummary = needsFinalizeEntries.length
         ? `<div style="padding:10px 12px;border:1px solid #facc15;border-radius:12px;background:#fffbeb;color:#78350f;font-size:0.82rem;font-weight:700">⚠️ ${needsFinalizeEntries.length} game(s) need finalization. Finalize or reopen/reset them before stats drift.</div>`
@@ -13066,10 +13070,38 @@
                 <div class="game-opp">${esc(entry.session?.opponent || entry.score?.opponent || entry.gameId || 'Recovered draft')}</div>
                 <div class="game-meta">${esc(scoreLabel)} · ${esc(sessionState)}${auditBits ? ' · ' + esc(auditBits) : ''}</div>
               </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+                <button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','restore')">Restore Draft</button>
+                <button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','clear')">Clear</button>
+              </div>
             </div>
           </div>`;
         }).join('')
         : `<div style="padding:16px 14px;color:var(--g400)">No mirrored scorer drafts stored for this age group.</div>`;
+      const scorerSessionRows = scorerSessionEntries.length
+        ? scorerSessionEntries.map(entry => {
+          const session = entry.session || {};
+          const score = session.score || {};
+          const scoreLabel = (typeof session.team === 'number' && typeof session.opp === 'number')
+            ? `${session.team}-${session.opp}`
+            : (typeof score.team === 'number' && typeof score.opp === 'number' ? `${score.team}-${score.opp}` : '—');
+          const stamp = entry.updatedAt ? new Date(entry.updatedAt).toLocaleString() : '';
+          const auditBits = [
+            stamp ? 'Updated ' + stamp : '',
+            entry.deviceId ? 'Device ' + entry.deviceId.slice(0, 8) : '',
+            session.eventCount ? `${session.eventCount} events` : '',
+            entry.conflict ? 'Conflict detected' : '',
+          ].filter(Boolean).join(' · ');
+          return `<div class="game-row">
+            <div class="game-summary" style="cursor:default">
+              <div class="game-info">
+                <div class="game-opp">${esc(session.opponent || entry.gameId || 'Active scorer session')}</div>
+                <div class="game-meta">${esc(scoreLabel)} · ${esc(entry.status || session.status || 'open')}${auditBits ? ' · ' + esc(auditBits) : ''}</div>
+              </div>
+            </div>
+          </div>`;
+        }).join('')
+        : `<div style="padding:16px 14px;color:var(--g400)">No mirrored scorer sessions stored for this age group.</div>`;
       const scoredRows = scoredEntries.length
         ? scoredEntries.map(entry => {
           const score = entry.score || {};
@@ -13130,6 +13162,15 @@
           These are the server-backed scorer drafts mirrored from devices. Use this list to confirm there is recoverable scorer state even if the original device reloads or loses signal.
         </div>
         ${scorerDraftRows}
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:10px;border-color:var(--royal-light);background:var(--royal-subtle)">
+      <div class="card-header" style="color:var(--royal)">📡 Active Scorer Sessions — ${esc(teamLabel)}</div>
+      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">
+          These are the server-owned scorer session heartbeats. Use this list to see which device most recently owned a game and whether that session was finalized cleanly.
+        </div>
+        ${scorerSessionRows}
       </div>
     </div>
     <div class="card" style="margin-bottom:10px;border-color:var(--royal-light);background:var(--royal-subtle)">
@@ -13358,6 +13399,18 @@
       S.scorerDrafts = Array.isArray(data.drafts) ? data.drafts : [];
     }
 
+    async function refreshScorerSessionsAdmin() {
+      const tournamentId = String(S.tournament?.id || '').trim();
+      if (!tournamentId) {
+        S.scorerSessions = [];
+        return;
+      }
+      const res = await api('GET', `/admin/scorer-sessions?tournamentId=${encodeURIComponent(tournamentId)}`);
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || data.description || ('Worker returned ' + res.status));
+      S.scorerSessions = Array.isArray(data.sessions) ? data.sessions : [];
+    }
+
     async function refreshScoredGamesAdmin() {
       try {
         setScoredGamesStatus('Refreshing…', 'info');
@@ -13367,6 +13420,7 @@
         if (data.tournament) S.tournament = data.tournament;
         S.scoredGames = data.scoredGames || {};
         await refreshScorerDraftsAdmin();
+        await refreshScorerSessionsAdmin();
         setScoredGamesStatus('Scored games refreshed', 'ok');
         renderTab();
       } catch (e) {
@@ -13383,6 +13437,7 @@
         if (data.tournament) S.tournament = data.tournament;
         S.scoredGames = data.scoredGames || {};
         await refreshScorerDraftsAdmin();
+        await refreshScorerSessionsAdmin();
         setScoredGamesStatus(`Updated ${Array.isArray(data.updated) ? data.updated.length : 0} game(s) from sheet`, 'ok');
         renderTab();
       } catch (e) {
@@ -13399,6 +13454,7 @@
         S.history = data.history || [];
         S.scoredGames = data.scoredGames || {};
         await refreshScorerDraftsAdmin();
+        await refreshScorerSessionsAdmin();
         setScoredGamesStatus('History rebuilt from scored games', 'ok');
         renderTab();
       } catch (e) {
@@ -13421,7 +13477,29 @@
         if (data.tournament) S.tournament = data.tournament;
         S.scoredGames = data.scoredGames || {};
         await refreshScorerDraftsAdmin();
+        await refreshScorerSessionsAdmin();
         setScoredGamesStatus(`Scored game ${action} complete`, 'ok');
+        renderTab();
+      } catch (e) {
+        setScoredGamesStatus('Error: ' + e.message, 'err');
+      }
+    }
+
+    async function updateScorerDraftAdmin(gameId, action) {
+      const prompt = action === 'clear'
+        ? 'Clear this mirrored scorer draft and its server session?'
+        : 'Restore this mirrored scorer draft into the durable scored-game store?';
+      if (!confirm(prompt)) return;
+      try {
+        setScoredGamesStatus(`${action} scorer draft…`, 'info');
+        const res = await api('POST', '/admin/scorer-drafts/action', { gameId, action });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || data.description || ('Worker returned ' + res.status));
+        if (data.tournament) S.tournament = data.tournament;
+        if (data.scoredGames) S.scoredGames = data.scoredGames || {};
+        await refreshScorerDraftsAdmin();
+        await refreshScorerSessionsAdmin();
+        setScoredGamesStatus(`Scorer draft ${action} complete`, 'ok');
         renderTab();
       } catch (e) {
         setScoredGamesStatus('Error: ' + e.message, 'err');
