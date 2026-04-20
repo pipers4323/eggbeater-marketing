@@ -2276,6 +2276,80 @@ h2 {
   border-color: #cbd5e1;
 }
 
+.recovered-drafts-card {
+  margin-bottom: 12px;
+  border: 1px solid #fcd34d;
+  background: linear-gradient(180deg, #fffef7 0%, #fff7ed 100%);
+}
+
+.recovered-drafts-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.recovered-drafts-title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #92400e;
+}
+
+.recovered-drafts-copy {
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: #9a3412;
+}
+
+.recovered-drafts-settings-btn {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #fed7aa;
+  background: #fff;
+  color: #9a3412;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.recovered-drafts-list,
+.recovered-conflicts-list {
+  display: grid;
+  gap: 8px;
+}
+
+.recovered-draft-item,
+.recovered-conflict-item {
+  width: 100%;
+  text-align: left;
+  border-radius: 12px;
+  border: 1px solid #fed7aa;
+  background: rgba(255,255,255,0.9);
+  padding: 10px 12px;
+}
+
+.recovered-draft-item {
+  cursor: pointer;
+}
+
+.recovered-draft-item-title,
+.recovered-conflict-title {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: #7c2d12;
+}
+
+.recovered-draft-item-copy,
+.recovered-conflict-copy {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.76rem;
+  color: #9a3412;
+}
+
 .score-detail-play .event-period-header {
   font-size: 1rem;
   font-weight: 800;

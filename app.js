@@ -1425,6 +1425,7 @@ const STORE = {
   BRACKET_RESULTS:  'ebwp-bracket-results',
   LIVE_SCORES:      'ebwp-live-scores',
   SCORER_SESSIONS:  'ebwp-scorer-sessions',
+  SCORER_CONFLICTS: 'ebwp-scorer-conflicts',
   LIVE_ACTIVITY_GAME:'ebwp-live-activity-game',
   HISTORY:          'ebwp-history',
   CALENDAR_ID:      'ebwp-calendar-id',
@@ -1996,7 +1997,19 @@ function _adoptLocalDraftForOfficialGame(game, explicitGroupKey = '') {
   const adopted = { ...match.score };
   _attachScoreContext(adopted, game, explicitGroupKey);
   state.liveScores[scopedKey] = adopted;
-  if (match.key !== scopedKey) delete state.liveScores[match.key];
+  if (match.key !== scopedKey) {
+    _recordScorerConflict('draft-adopted', {
+      scopedKey,
+      groupKey: explicitGroupKey || game?._groupKey || '',
+      gameId: game?.id || '',
+      officialGameId: game?.id || '',
+      localKey: match.key,
+      opponent: game?.opponent || adopted.opponent || '',
+      time: game?.time || adopted.time || '',
+      note: 'Local draft was rebound onto an official game record.',
+    });
+    delete state.liveScores[match.key];
+  }
   return adopted;
 }
 
@@ -2429,6 +2442,7 @@ const state = {
   tscorePollTimer:  null,
   scorerDetailsOpen:{},
   scorerSyncStatus: {},
+  scorerConflicts:  [],
   scoreDetail:      null,
   scoreDetailTab:   'summary',
   historyDetail:    null,
@@ -3226,6 +3240,37 @@ function _saveScorerSessions(sessions) {
   localStorage.setItem(STORE.SCORER_SESSIONS, JSON.stringify(sessions || {}));
 }
 
+function _getScorerConflicts() {
+  try { return JSON.parse(localStorage.getItem(STORE.SCORER_CONFLICTS) || '[]'); }
+  catch { return []; }
+}
+
+function _saveScorerConflicts(conflicts) {
+  const next = Array.isArray(conflicts) ? conflicts.slice(0, 25) : [];
+  localStorage.setItem(STORE.SCORER_CONFLICTS, JSON.stringify(next));
+  state.scorerConflicts = next;
+}
+
+function _recordScorerConflict(type, details = {}) {
+  const scopedKey = details.scopedKey || _scopedGameKey(details.gameId || '', details.groupKey || '');
+  const next = [
+    {
+      type,
+      scopedKey,
+      groupKey: details.groupKey || _contextGroupKey(scopedKey),
+      gameId: details.gameId || _gameIdOnly(scopedKey),
+      localKey: details.localKey || '',
+      officialGameId: details.officialGameId || '',
+      opponent: details.opponent || '',
+      time: details.time || '',
+      detectedAt: new Date().toISOString(),
+      note: details.note || '',
+    },
+    ..._getScorerConflicts().filter(item => !(item.type === type && item.scopedKey === scopedKey && item.localKey === (details.localKey || ''))),
+  ];
+  _saveScorerConflicts(next);
+}
+
 function _meaningfulScoreSnapshot(score) {
   if (!score) return null;
   const { _remote, _broadcastAt, _deviceId, ...clean } = score;
@@ -3258,6 +3303,44 @@ function _scorerSyncStatusLabel(statusObj) {
   if (status === 'local-final') return { tone: 'warn', text: 'Final saved locally' };
   if (status === 'final-acked') return { tone: 'ok', text: 'Final saved' };
   return { tone: 'muted', text: 'Not synced yet' };
+}
+
+function _buildRecoveredDraftsCard() {
+  const recovered = state.recoveredScorerSessions || [];
+  const conflicts = state.scorerConflicts || [];
+  if (!recovered.length && !conflicts.length) return '';
+  const draftItems = recovered.map(item => {
+    const groupKey = _contextGroupKey(item.scopedKey);
+    const ageLabel = TEAM_OPTIONS.find(t => t.key === groupKey)?.label || groupKey || 'Team';
+    const title = [ageLabel, item.opponent ? `vs ${normalizeOpponentName(item.opponent)}` : '', item.time || '']
+      .filter(Boolean)
+      .join(' · ');
+    return `<button class="recovered-draft-item" onclick="openScorerDetail('${escHtml(item.scopedKey)}','${escHtml(groupKey)}','${escHtml(ageLabel)}')">
+      <span class="recovered-draft-item-title">${escHtml(title || 'Recovered draft')}</span>
+      <span class="recovered-draft-item-copy">Resume scorer</span>
+    </button>`;
+  }).join('');
+  const conflictItems = conflicts.slice(0, 3).map(item => {
+    const ageLabel = TEAM_OPTIONS.find(t => t.key === (item.groupKey || ''))?.label || item.groupKey || 'Team';
+    const title = [ageLabel, item.opponent ? `vs ${normalizeOpponentName(item.opponent)}` : '', item.time || '']
+      .filter(Boolean)
+      .join(' · ');
+    return `<div class="recovered-conflict-item">
+      <div class="recovered-conflict-title">${escHtml(title || 'Scorer sync issue')}</div>
+      <div class="recovered-conflict-copy">${escHtml(item.note || 'Manual draft was matched to an official game slot.')}</div>
+    </div>`;
+  }).join('');
+  return `<div class="card tab-card recovered-drafts-card">
+    <div class="recovered-drafts-head">
+      <div>
+        <div class="recovered-drafts-title">Scorer Recovery</div>
+        <div class="recovered-drafts-copy">Unfinished scorer drafts and recent sync bindings are available here.</div>
+      </div>
+      <button class="recovered-drafts-settings-btn" onclick="switchTab('settings')">Open Settings</button>
+    </div>
+    ${draftItems ? `<div class="recovered-drafts-list">${draftItems}</div>` : ''}
+    ${conflictItems ? `<div class="recovered-conflicts-list">${conflictItems}</div>` : ''}
+  </div>`;
 }
 
 function _renderScorerSyncStatusBadge(gameOrRef, explicitGroupKey = '') {
@@ -7084,6 +7167,7 @@ function renderSettingsTab() {
 
   // Theme preference
   const themePref = getThemePref();
+  state.scorerConflicts = _getScorerConflicts();
   const recoveredDrafts = (state.recoveredScorerSessions || []).map(item => {
     const ageLabel = TEAM_OPTIONS.find(t => t.key === _contextGroupKey(item.scopedKey))?.label || _contextGroupKey(item.scopedKey) || 'Team';
     const label = [ageLabel, item.opponent ? `vs ${normalizeOpponentName(item.opponent)}` : '', item.time || '']
@@ -7096,6 +7180,19 @@ function renderSettingsTab() {
         <div class="settings-item-value">Resume unfinished scorer session</div>
       </div>
       <span style="color:var(--gray-300);font-size:1.1rem">›</span>
+    </div>`;
+  }).join('');
+  const scorerConflicts = (state.scorerConflicts || []).map(item => {
+    const ageLabel = TEAM_OPTIONS.find(t => t.key === (item.groupKey || ''))?.label || item.groupKey || 'Team';
+    const label = [ageLabel, item.opponent ? `vs ${normalizeOpponentName(item.opponent)}` : '', item.time || '']
+      .filter(Boolean)
+      .join(' · ');
+    return `<div class="settings-item" style="cursor:default">
+      <span class="settings-item-icon">⚠️</span>
+      <div class="settings-item-text">
+        <div class="settings-item-label">${escHtml(label || 'Scorer sync issue')}</div>
+        <div class="settings-item-value">${escHtml(item.note || 'Manual scorer draft was rebound to an official game.')}</div>
+      </div>
     </div>`;
   }).join('');
   function themePill(value, label) {
@@ -7261,6 +7358,12 @@ function renderSettingsTab() {
     <div class="settings-section" style="margin-bottom:30px">
       <div class="settings-section-title">Recovered Scorer Drafts</div>
       ${recoveredDrafts}
+    </div>` : ''}
+
+    ${scorerConflicts ? `
+    <div class="settings-section" style="margin-bottom:30px">
+      <div class="settings-section-title">Scorer Sync Issues</div>
+      ${scorerConflicts}
     </div>` : ''}
 
   `;
@@ -8155,6 +8258,8 @@ function buildScoreDetailView(ctx) {
 function renderScoresTab() {
   const el = $('view-scores');
   if (!el) return;
+  state.scorerConflicts = _getScorerConflicts();
+  const recoveryCard = _buildRecoveredDraftsCard();
 
   // ── Director "Submit Live Scores" section (prepended regardless of scorer mode) ──
   const dirPkg = getDirectorPkg();
@@ -8174,7 +8279,7 @@ function renderScoresTab() {
   const detailCtx = getScoreDetailContext();
   if (state.scoreDetail && detailCtx) {
     _setLiveBanner(isGameLive(detailCtx.gameId));
-    el.innerHTML = dirHtml + buildScoreDetailView(detailCtx);
+    el.innerHTML = dirHtml + recoveryCard + buildScoreDetailView(detailCtx);
     return;
   }
   if (state.scoreDetail && !detailCtx) state.scoreDetail = null;
@@ -8265,7 +8370,7 @@ const active = _dedupeScheduledGames(
     }
     html += buildTabRefreshButtonHtml('scores');
     html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
-    el.innerHTML = dirHtml + html;
+    el.innerHTML = dirHtml + recoveryCard + html;
     return;
   }
 
@@ -8310,7 +8415,7 @@ const active = _dedupeScheduledGames(
 
     _setLiveBanner(anyLive);
     const _guideLink = `${buildTabRefreshButtonHtml('scores')}<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
-    el.innerHTML = dirHtml + `
+    el.innerHTML = dirHtml + recoveryCard + `
         <div class="viewer-tab-bar">
           <span class="viewer-tab-label">${anyLive ? '🔴 Live Scores' : '📺 Scores'}</span>
           <button class="viewer-tab-login-btn" onclick="openScoringPasswordModal()">🔒 Login to Score</button>
@@ -8323,7 +8428,7 @@ const active = _dedupeScheduledGames(
   if (!games.length) {
     const tName = TOURNAMENT.name ? `<strong>${escHtml(TOURNAMENT.name)}</strong>` : 'the upcoming tournament';
     const tDate = TOURNAMENT.dates ? ` on ${escHtml(TOURNAMENT.dates)}` : '';
-    el.innerHTML = dirHtml + `<div class="card tab-card">
+    el.innerHTML = dirHtml + recoveryCard + `<div class="card tab-card">
       <div class="history-header-row"><h2>Box Scores</h2></div>
       <div style="padding:20px 16px;text-align:center">
         <div style="font-size:2rem;margin-bottom:10px">${swimmerEmoji()}</div>
@@ -8345,7 +8450,7 @@ const active = _dedupeScheduledGames(
     const projectedHtml = projected?.type === 'bracket'
       ? `<div class="games-section">${buildProjectedScoreCard(projected)}</div>`
       : '';
-    el.innerHTML = dirHtml + `<div class="card tab-card">
+    el.innerHTML = dirHtml + recoveryCard + `<div class="card tab-card">
       <div class="history-header-row"><h2>Box Scores</h2></div>
       <p class="empty-msg" style="padding:16px 0">All games complete — check the History tab for results.</p>
     </div>${projectedHtml}${buildTabRefreshButtonHtml('scores')}`;
@@ -8394,7 +8499,7 @@ const active = _dedupeScheduledGames(
 
   html += buildTabRefreshButtonHtml('scores');
   html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
-  el.innerHTML = dirHtml + html;
+  el.innerHTML = dirHtml + recoveryCard + html;
 }
 
 // ─── DIRECTOR LIVE SCORES ─────────────────────────────────────────────────────
@@ -11057,6 +11162,7 @@ function init() {
     // Now load team data with correct team keys
     await loadAllSelectedTeams();
     checkTournamentChange();
+    await _restoreScorerSessionsFromDB();
     await _restoreScorerOutboxFromDB();
     await _restoreScorerDraftsFromDB();
     seedHistory();
@@ -12588,6 +12694,13 @@ async function broadcastLiveScore(gameId) {
       opp: cleanScore.opp ?? 0,
       eventCount: _meaningfulEventCount(cleanScore),
     });
+    if (cleanScore.gameState === 'final') {
+      _ackFinalizeSync(gameId, ageGroup, {
+        team: cleanScore.team ?? 0,
+        opp: cleanScore.opp ?? 0,
+      });
+      _clearRecoveredDraftForGame(gameId, ageGroup);
+    }
   } catch (e) {
     // Queue for later sync
     _setScorerOutboxStatus(gameId, ageGroup, 'live-score', 'queued', {
@@ -12633,6 +12746,15 @@ function _dbStorePut(db, storeName, value) {
     const tx = db.transaction(storeName, 'readwrite');
     tx.objectStore(storeName).put(value);
     tx.oncomplete = () => resolve(value);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+function _dbStoreDelete(db, storeName, key) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).delete(key);
+    tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
 }
@@ -12696,6 +12818,40 @@ async function _setScorerOutboxStatus(gameOrRef, explicitGroupKey = '', kind = '
   }
 }
 
+async function _ackFinalizeSync(gameOrRef, explicitGroupKey = '', extra = {}) {
+  const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
+  const sessionKey = _getScorerSessionKey(gameOrRef, groupKey);
+  _setScorerSyncStatus(gameOrRef, groupKey, 'final-acked', extra);
+  _closeScorerSession(gameOrRef, groupKey, 'final-acked');
+  try {
+    const db = await _openScoreDB();
+    await _dbStorePut(db, 'scorer-outbox', {
+      key: `${sessionKey}::finalize`,
+      sessionKey,
+      scopedKey: _scopedGameKey(gameOrRef, groupKey),
+      groupKey,
+      kind: 'finalize',
+      status: 'final-acked',
+      updatedAt: Date.now(),
+      ...extra,
+    });
+  } catch (e) {
+    console.warn('[scorer-db] finalize ack failed:', e.message);
+  }
+}
+
+async function _clearRecoveredDraftForGame(gameOrRef, explicitGroupKey = '') {
+  try {
+    const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
+    const sessionKey = _getScorerSessionKey(gameOrRef, groupKey);
+    const db = await _openScoreDB();
+    await _dbStoreDelete(db, 'scorer-drafts', sessionKey);
+    state.recoveredScorerSessions = (state.recoveredScorerSessions || []).filter(item => item.sessionKey !== sessionKey);
+  } catch (e) {
+    console.warn('[scorer-db] clear draft failed:', e.message);
+  }
+}
+
 async function _restoreScorerOutboxFromDB() {
   try {
     const db = await _openScoreDB();
@@ -12717,6 +12873,32 @@ async function _restoreScorerOutboxFromDB() {
     state.scorerSyncStatus = nextStatuses;
   } catch (e) {
     console.warn('[scorer-db] restore outbox failed:', e.message);
+  }
+}
+
+async function _restoreScorerSessionsFromDB() {
+  try {
+    const db = await _openScoreDB();
+    const items = await _dbStoreGetAll(db, 'scorer-sessions');
+    if (!items.length) return;
+    const current = _getScorerSessions();
+    const next = { ...current };
+    let changed = false;
+    for (const item of items) {
+      if (!item?.sessionKey) continue;
+      const existing = next[item.sessionKey];
+      const existingTs = existing?.lastTouchedAt ? Date.parse(existing.lastTouchedAt) || 0 : 0;
+      const itemTs = item?.lastTouchedAt ? Date.parse(item.lastTouchedAt) || 0 : 0;
+      if (existing && existingTs >= itemTs) continue;
+      next[item.sessionKey] = {
+        ...(existing || {}),
+        ...item,
+      };
+      changed = true;
+    }
+    if (changed) _saveScorerSessions(next);
+  } catch (e) {
+    console.warn('[scorer-db] restore sessions failed:', e.message);
   }
 }
 
@@ -12826,6 +13008,13 @@ async function _syncPendingScores() {
         _setScorerOutboxStatus(entry.payload.gameId, entry.payload.ageGroup || '', 'live-score', 'acked', {
           tournamentId: entry.payload.tournamentId || '',
         });
+        if (entry.payload?.score?.gameState === 'final') {
+          _ackFinalizeSync(entry.payload.gameId, entry.payload.ageGroup || '', {
+            team: entry.payload?.score?.team ?? 0,
+            opp: entry.payload?.score?.opp ?? 0,
+          });
+          _clearRecoveredDraftForGame(entry.payload.gameId, entry.payload.ageGroup || '');
+        }
         synced++;
       } catch {
         // Increment retry count
