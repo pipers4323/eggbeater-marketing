@@ -11292,6 +11292,7 @@ function init() {
     await _restoreScorerSessionsFromDB();
     await _restoreScorerOutboxFromDB();
     await _restoreScorerDraftsFromDB();
+    await _restoreScorerDraftsFromServer();
     seedHistory();
     state.roster = loadRoster(getSelectedTeam()); // refresh in-memory roster from fresh TOURNAMENT.roster
     renderHeader();
@@ -12919,6 +12920,7 @@ async function _persistScorerDraftToDB(gameOrRef, explicitGroupKey = '', extra =
       savedAt: Date.now(),
       ...extra,
     });
+    _mirrorScorerDraftToServer(gameOrRef, explicitGroupKey, { score, session, reason: extra.reason || 'draft' });
   } catch (e) {
     console.warn('[scorer-db] persist draft failed:', e.message);
   }
@@ -12950,6 +12952,12 @@ async function _ackFinalizeSync(gameOrRef, explicitGroupKey = '', extra = {}) {
   const sessionKey = _getScorerSessionKey(gameOrRef, groupKey);
   _setScorerSyncStatus(gameOrRef, groupKey, 'final-acked', extra);
   _closeScorerSession(gameOrRef, groupKey, 'final-acked');
+  _mirrorScorerDraftToServer(gameOrRef, groupKey, {
+    score: getLiveScore(gameOrRef),
+    session: _getScorerSession(gameOrRef, groupKey),
+    status: 'final-acked',
+    reason: 'finalize-acked',
+  });
   try {
     const db = await _openScoreDB();
     await _dbStorePut(db, 'scorer-outbox', {
@@ -12976,6 +12984,92 @@ async function _clearRecoveredDraftForGame(gameOrRef, explicitGroupKey = '') {
     state.recoveredScorerSessions = (state.recoveredScorerSessions || []).filter(item => item.sessionKey !== sessionKey);
   } catch (e) {
     console.warn('[scorer-db] clear draft failed:', e.message);
+  }
+}
+
+async function _mirrorScorerDraftToServer(gameOrRef, explicitGroupKey = '', extra = {}) {
+  try {
+    const score = extra.score || getLiveScore(gameOrRef);
+    if (!score || !_hasMeaningfulLiveScoreData(score)) return;
+    const clubId = getAppClubId() || '';
+    const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
+    const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
+    const tournamentId = tournament.id || score.tournamentId || '';
+    if (!clubId || !groupKey || !tournamentId) return;
+    const session = extra.session || _getScorerSession(gameOrRef, groupKey);
+    const payload = {
+      clubId,
+      ageGroup: groupKey,
+      tournamentId,
+      gameId: _gameIdOnly(gameOrRef),
+      score: _meaningfulScoreSnapshot(score),
+      session,
+      deviceId: getDeviceId(),
+      reason: extra.reason || 'draft',
+      status: extra.status || session?.status || 'open',
+    };
+    const headers = { 'Content-Type': 'application/json' };
+    const scorePw = (tournament.scoringPassword || '').trim();
+    if (scorePw) headers['X-Score-Password'] = scorePw;
+    await fetch(`${PUSH_SERVER_URL}/scorer-draft`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    console.warn('[scorer-db] mirror draft failed:', e.message);
+  }
+}
+
+async function _restoreScorerDraftsFromServer() {
+  try {
+    const clubId = getAppClubId() || '';
+    if (!clubId) return;
+    const selected = getSelectedTeams();
+    const restored = [];
+    for (const groupKey of selected) {
+      const tournament = getTournamentForGroup(groupKey) || TEAM_CACHE[groupKey]?.tournament || TOURNAMENT || {};
+      const tournamentId = tournament.id || '';
+      if (!tournamentId) continue;
+      const res = await fetch(`${PUSH_SERVER_URL}/scorer-drafts?club=${encodeURIComponent(clubId)}&team=${encodeURIComponent(groupKey)}&tournamentId=${encodeURIComponent(tournamentId)}`, {
+        cache: 'no-store',
+      });
+      if (!res.ok) continue;
+      const payload = await res.json();
+      const drafts = Array.isArray(payload?.drafts) ? payload.drafts : [];
+      for (const item of drafts) {
+        const score = item?.score;
+        const session = item?.session || {};
+        if (!score || !_hasMeaningfulLiveScoreData(score)) continue;
+        if ((session.status || item.status || 'open') !== 'open') continue;
+        const scopedKey = item.scopedKey || _scopedGameKey(item.gameId || session.gameId || '', groupKey);
+        const current = state.liveScores[scopedKey];
+        if (current && _hasMeaningfulLiveScoreData(current) && _meaningfulEventCount(current) >= _meaningfulEventCount(score)) continue;
+        const nextScore = { ...score, ageGroup: groupKey };
+        _attachScoreContext(nextScore, scopedKey, groupKey);
+        state.liveScores[scopedKey] = nextScore;
+        if (session) _upsertScorerSession(scopedKey, groupKey, session);
+        restored.push({
+          sessionKey: item.sessionKey || _getScorerSessionKey(scopedKey, groupKey),
+          scopedKey,
+          opponent: session.opponent || nextScore.opponent || '',
+          time: session.time || nextScore.time || '',
+        });
+      }
+    }
+    if (restored.length) {
+      const merged = [...restored, ...(state.recoveredScorerSessions || [])];
+      const seen = new Set();
+      state.recoveredScorerSessions = merged.filter(item => {
+        if (!item?.sessionKey || seen.has(item.sessionKey)) return false;
+        seen.add(item.sessionKey);
+        return true;
+      });
+      saveLiveScores();
+      showToast(`Recovered ${restored.length} scorer draft${restored.length > 1 ? 's' : ''} from server`, 'warn');
+    }
+  } catch (e) {
+    console.warn('[scorer-db] restore drafts from server failed:', e.message);
   }
 }
 
