@@ -3351,12 +3351,14 @@ function _buildRecoveredDraftsCard() {
   const draftItems = recovered.map(item => {
     const groupKey = _contextGroupKey(item.scopedKey);
     const ageLabel = TEAM_OPTIONS.find(t => t.key === groupKey)?.label || groupKey || 'Team';
+    const statusMeta = _scorerSyncStatusLabel(_getScorerSyncStatus(item.scopedKey, groupKey));
     const title = [ageLabel, item.opponent ? `vs ${normalizeOpponentName(item.opponent)}` : '', item.time || '']
       .filter(Boolean)
       .join(' · ');
     return `<button class="recovered-draft-item" onclick="openScorerDetail('${escHtml(item.scopedKey)}','${escHtml(groupKey)}','${escHtml(ageLabel)}')">
       <span class="recovered-draft-item-title">${escHtml(title || 'Recovered draft')}</span>
       <span class="recovered-draft-item-copy">Resume scorer</span>
+      <span class="recovered-draft-status recovered-draft-status-${statusMeta.tone}">${escHtml(statusMeta.text)}</span>
     </button>`;
   }).join('');
   const conflictItems = conflicts.slice(0, 3).map(item => {
@@ -7251,7 +7253,9 @@ function renderSettingsTab() {
   const themePref = getThemePref();
   state.scorerConflicts = _getScorerConflicts();
   const recoveredDrafts = (state.recoveredScorerSessions || []).map(item => {
-    const ageLabel = TEAM_OPTIONS.find(t => t.key === _contextGroupKey(item.scopedKey))?.label || _contextGroupKey(item.scopedKey) || 'Team';
+    const groupKey = _contextGroupKey(item.scopedKey);
+    const ageLabel = TEAM_OPTIONS.find(t => t.key === groupKey)?.label || groupKey || 'Team';
+    const statusMeta = _scorerSyncStatusLabel(_getScorerSyncStatus(item.scopedKey, groupKey));
     const label = [ageLabel, item.opponent ? `vs ${normalizeOpponentName(item.opponent)}` : '', item.time || '']
       .filter(Boolean)
       .join(' · ');
@@ -7259,7 +7263,7 @@ function renderSettingsTab() {
       <span class="settings-item-icon">📝</span>
       <div class="settings-item-text">
         <div class="settings-item-label">${escHtml(label || 'Recovered draft')}</div>
-        <div class="settings-item-value">Resume unfinished scorer session</div>
+        <div class="settings-item-value">Resume unfinished scorer session · ${escHtml(statusMeta.text)}</div>
       </div>
       <span style="color:var(--gray-300);font-size:1.1rem">›</span>
     </div>`;
