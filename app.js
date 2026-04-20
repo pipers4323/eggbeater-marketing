@@ -12798,7 +12798,7 @@ function getDeviceId() {
 async function broadcastLiveScore(gameId) {
   const scopedKey = _scopedGameKey(gameId);
   const score = state.liveScores[scopedKey];
-  if (!score || score.gameState === 'pre') return; // nothing worth broadcasting yet
+  if (!score || (score.gameState === 'pre' && !_hasMeaningfulLiveScoreData(score))) return; // nothing worth broadcasting yet
   // Strip private tracking fields before sending
   const { _remote, _broadcastAt, _deviceId, ...cleanScore } = score;
   const ageGroup = _contextGroupKey(gameId) || cleanScore.ageGroup || getSelectedTeam() || '';
