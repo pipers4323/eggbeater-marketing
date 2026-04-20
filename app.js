@@ -1939,12 +1939,20 @@ function _sameScheduledTimeSlot(a, b) {
   return sameDate && sameTime;
 }
 
+function _sameScheduledVenue(a, b) {
+  if (!a || !b) return false;
+  const aVenue = _normalizeSlotValue(bracketLocationDisplay(a.location || a.poolLocation || a.site || ''));
+  const bVenue = _normalizeSlotValue(bracketLocationDisplay(b.location || b.poolLocation || b.site || ''));
+  if (!aVenue || !bVenue) return true;
+  return aVenue === bVenue;
+}
+
 function _sameScheduledSlot(a, b) {
   if (!a || !b) return false;
   const sameDate = _normalizeSlotValue(a.dateISO || a.date) === _normalizeSlotValue(b.dateISO || b.date);
   const sameTime = _normalizeSlotValue(a.time) === _normalizeSlotValue(b.time);
   const sameOpponent = _normalizeSlotValue(normalizeOpponentName(a.opponent || '')) === _normalizeSlotValue(normalizeOpponentName(b.opponent || ''));
-  return sameDate && sameTime && sameOpponent;
+  return sameDate && sameTime && sameOpponent && _sameScheduledVenue(a, b);
 }
 
 function _isActiveLocalScorerScore(localScore, gameOrRef, explicitGroupKey = '') {
@@ -1972,15 +1980,45 @@ function _shouldPreserveLocalLiveScore(localScore, remoteScore, gameOrRef = null
 
 function _findMatchingLocalDraftForGame(game, explicitGroupKey = '') {
   const groupKey = explicitGroupKey || game?._groupKey || '';
+  const exactMatches = [];
+  const activeSlotMatches = [];
   for (const [key, score] of Object.entries(state.liveScores || {})) {
     if (!score || score._remote) continue;
     if ((score.ageGroup || '') !== groupKey) continue;
     if (!_hasMeaningfulLiveScoreData(score)) continue;
     if (_gameIdOnly(key) === String(game?.id || '')) continue;
-    if (_sameScheduledSlot(score, game)) return { key, score };
-    if (_sameScheduledTimeSlot(score, game) && (_isActiveLocalScorerScore(score, key, groupKey) || _hasActiveScorerSession(key, groupKey))) {
-      return { key, score };
+    if (_sameScheduledSlot(score, game)) {
+      exactMatches.push({ key, score });
+      continue;
     }
+    if (_sameScheduledTimeSlot(score, game) && (_isActiveLocalScorerScore(score, key, groupKey) || _hasActiveScorerSession(key, groupKey))) {
+      activeSlotMatches.push({ key, score });
+    }
+  }
+  if (exactMatches.length === 1) return exactMatches[0];
+  if (exactMatches.length > 1) {
+    _recordScorerConflict('ambiguous-draft-match', {
+      scopedKey: _scopedGameKey(game, groupKey),
+      groupKey,
+      gameId: game?.id || '',
+      officialGameId: game?.id || '',
+      opponent: game?.opponent || '',
+      time: game?.time || '',
+      note: 'Multiple local drafts matched the same official slot. No auto-bind was applied.',
+    });
+    return null;
+  }
+  if (activeSlotMatches.length === 1) return activeSlotMatches[0];
+  if (activeSlotMatches.length > 1) {
+    _recordScorerConflict('ambiguous-time-slot', {
+      scopedKey: _scopedGameKey(game, groupKey),
+      groupKey,
+      gameId: game?.id || '',
+      officialGameId: game?.id || '',
+      opponent: game?.opponent || '',
+      time: game?.time || '',
+      note: 'More than one active local scorer draft matched this time slot. Review before binding.',
+    });
   }
   return null;
 }
