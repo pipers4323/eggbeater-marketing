@@ -13389,11 +13389,11 @@
 
     async function refreshScorerDraftsAdmin() {
       const tournamentId = String(S.tournament?.id || '').trim();
-      if (!tournamentId) {
-        S.scorerDrafts = [];
-        return;
-      }
-      const res = await api('GET', `/admin/scorer-drafts?tournamentId=${encodeURIComponent(tournamentId)}`);
+      // No early-return when tournamentId is empty — worker scans all team drafts in that case
+      const path = tournamentId
+        ? `/admin/scorer-drafts?tournamentId=${encodeURIComponent(tournamentId)}`
+        : '/admin/scorer-drafts';
+      const res = await api('GET', path);
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || data.description || ('Worker returned ' + res.status));
       S.scorerDrafts = Array.isArray(data.drafts) ? data.drafts : [];
@@ -13401,11 +13401,11 @@
 
     async function refreshScorerSessionsAdmin() {
       const tournamentId = String(S.tournament?.id || '').trim();
-      if (!tournamentId) {
-        S.scorerSessions = [];
-        return;
-      }
-      const res = await api('GET', `/admin/scorer-sessions?tournamentId=${encodeURIComponent(tournamentId)}`);
+      // No early-return when tournamentId is empty — worker scans all team sessions in that case
+      const path = tournamentId
+        ? `/admin/scorer-sessions?tournamentId=${encodeURIComponent(tournamentId)}`
+        : '/admin/scorer-sessions';
+      const res = await api('GET', path);
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || data.description || ('Worker returned ' + res.status));
       S.scorerSessions = Array.isArray(data.sessions) ? data.sessions : [];

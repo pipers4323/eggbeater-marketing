@@ -13010,8 +13010,8 @@ async function _mirrorScorerDraftToServer(gameOrRef, explicitGroupKey = '', extr
     const clubId = getAppClubId() || '';
     const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
     const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
-    const tournamentId = tournament.id || score.tournamentId || '';
-    if (!clubId || !groupKey || !tournamentId) return;
+    const tournamentId = tournament.id || score.tournamentId || '_';
+    if (!clubId || !groupKey) return;
     const session = extra.session || _getScorerSession(gameOrRef, groupKey);
     const payload = {
       clubId,
@@ -13045,8 +13045,8 @@ async function _mirrorScorerSessionToServer(gameOrRef, explicitGroupKey = '', ex
     const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
     const session = extra.session || _getScorerSession(gameOrRef, groupKey);
     const tournamentId = tournament.id || _getTournamentIdForGame(gameOrRef, explicitGroupKey)
-      || session?.tournamentId || getLiveScore(gameOrRef)?.tournamentId || '';
-    if (!clubId || !groupKey || !tournamentId || !session?.gameId) return;
+      || session?.tournamentId || getLiveScore(gameOrRef)?.tournamentId || '_';
+    if (!clubId || !groupKey || !session?.gameId) return;
     const headers = { 'Content-Type': 'application/json' };
     const scorePw = (tournament.scoringPassword || '').trim();
     if (scorePw) headers['X-Score-Password'] = scorePw;
@@ -13080,8 +13080,8 @@ async function _finalizeScoreOnServer(gameOrRef, explicitGroupKey = '', extra = 
   const session = extra.session || _getScorerSession(gameOrRef, groupKey);
   const clubId = getAppClubId() || '';
   const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
-  const tournamentId = tournament.id || score?.tournamentId || '';
-  if (!score || !clubId || !groupKey || !tournamentId) return false;
+  const tournamentId = tournament.id || score?.tournamentId || session?.tournamentId || '_';
+  if (!score || !clubId || !groupKey) return false;
   const headers = { 'Content-Type': 'application/json' };
   const scorePw = (tournament.scoringPassword || '').trim();
   if (scorePw) headers['X-Score-Password'] = scorePw;
