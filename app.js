@@ -3684,9 +3684,9 @@ function afterScore(gameId) {
   const _afterGs = state.liveScores[scopedKey];
   let historyChanged = false;
   if (_afterGs) historyChanged = _applyAutoFinalResult(gameId, _afterGs);
-  if (_afterGs && _afterGs.gameState === 'pre') {
+  if (_afterGs && _afterGs.gameState === 'pre' && !_hasMeaningfulLiveScoreData(_afterGs)) {
     broadcastGameReset(gameRef);
-    // End iOS Live Activity and stop Android chip when game resets to pre
+    // End iOS Live Activity and stop Android chip when game resets to pre (true reset — no events)
     if (window._activeLA?.gameId === gameRef) {
       const _laEnd = window.Capacitor?.Plugins?.LiveActivity;
       if (_laEnd) _laEnd.endActivity({}).catch(() => {});
@@ -3695,7 +3695,7 @@ function afterScore(gameId) {
       if (window._laAutoStarted) _laAutoStarted.delete(gameRef);
     }
     if (typeof EggbeaterLiveUpdate !== 'undefined') EggbeaterLiveUpdate.stop();
-  } else broadcastLiveScore(gameRef); // fire-and-forget
+  } else broadcastLiveScore(gameRef); // fire-and-forget — also handles pre-game sprint wins
   notifyScorePush(gameRef, 'goal'); // fire-and-forget APNs push
   // Android 16 Live Update Sync
   if (typeof EggbeaterLiveUpdate !== 'undefined') {
@@ -13043,8 +13043,9 @@ async function _mirrorScorerSessionToServer(gameOrRef, explicitGroupKey = '', ex
     const clubId = getAppClubId() || '';
     const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
     const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
-    const tournamentId = tournament.id || _getTournamentIdForGame(gameOrRef, explicitGroupKey) || '';
     const session = extra.session || _getScorerSession(gameOrRef, groupKey);
+    const tournamentId = tournament.id || _getTournamentIdForGame(gameOrRef, explicitGroupKey)
+      || session?.tournamentId || getLiveScore(gameOrRef)?.tournamentId || '';
     if (!clubId || !groupKey || !tournamentId || !session?.gameId) return;
     const headers = { 'Content-Type': 'application/json' };
     const scorePw = (tournament.scoringPassword || '').trim();
