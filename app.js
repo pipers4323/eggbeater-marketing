@@ -3285,6 +3285,7 @@ function _setScorerSyncStatus(gameOrRef, explicitGroupKey = '', status = 'idle',
     ...extra,
   };
   _refreshScorerSyncStatusUI(gameOrRef, explicitGroupKey);
+  _refreshFinalizeStatusUI(gameOrRef, explicitGroupKey);
 }
 
 function _getScorerSyncStatus(gameOrRef, explicitGroupKey = '') {
@@ -3355,6 +3356,44 @@ function _refreshScorerSyncStatusUI(gameOrRef, explicitGroupKey = '') {
   const statusMeta = _scorerSyncStatusLabel(_getScorerSyncStatus(gameOrRef, explicitGroupKey));
   el.className = `scorer-sync-status scorer-sync-status-${statusMeta.tone}`;
   el.textContent = statusMeta.text;
+}
+
+function _renderFinalizeStatus(gameOrRef, explicitGroupKey = '') {
+  const statusMeta = _scorerSyncStatusLabel(_getScorerSyncStatus(gameOrRef, explicitGroupKey));
+  return `<div id="finalize-game-status" class="finalize-game-status finalize-game-status-${statusMeta.tone}">${escHtml(statusMeta.text)}</div>`;
+}
+
+function _finalizeActionMeta(statusObj) {
+  const status = statusObj?.status || 'idle';
+  if (status === 'sending') return { text: 'Saving Final…', disabled: true };
+  if (status === 'acked' || status === 'final-acked') return { text: 'Final Saved', disabled: true };
+  if (status === 'failed' || status === 'rejected') return { text: 'Retry Final Save', disabled: false };
+  if (status === 'queued' || status === 'retrying' || status === 'pending' || status === 'local-final') {
+    return { text: 'Retry Final Save', disabled: false };
+  }
+  return { text: 'Submit Final Score & End Game', disabled: false };
+}
+
+function _renderFinalizeActionButton(gameOrRef, explicitGroupKey = '') {
+  const meta = _finalizeActionMeta(_getScorerSyncStatus(gameOrRef, explicitGroupKey));
+  const disabledAttr = meta.disabled ? ' disabled' : '';
+  const disabledClass = meta.disabled ? ' is-disabled' : '';
+  return `<button id="finalize-game-submit-btn" class="score-finalize-btn${disabledClass}" onclick="confirmFinalizeGame()"${disabledAttr}>${escHtml(meta.text)}</button>`;
+}
+
+function _refreshFinalizeStatusUI(gameOrRef, explicitGroupKey = '') {
+  const el = document.getElementById('finalize-game-status');
+  if (!el) return;
+  const statusMeta = _scorerSyncStatusLabel(_getScorerSyncStatus(gameOrRef, explicitGroupKey));
+  el.className = `finalize-game-status finalize-game-status-${statusMeta.tone}`;
+  el.textContent = statusMeta.text;
+  const btn = document.getElementById('finalize-game-submit-btn');
+  if (btn) {
+    const actionMeta = _finalizeActionMeta(_getScorerSyncStatus(gameOrRef, explicitGroupKey));
+    btn.textContent = actionMeta.text;
+    btn.disabled = !!actionMeta.disabled;
+    btn.classList.toggle('is-disabled', !!actionMeta.disabled);
+  }
 }
 
 function getFollowedLiveGameId() {
@@ -6028,9 +6067,10 @@ function _ensureFinalizeGameModal() {
           </div>
         </div>
         <div id="finalize-game-meta" class="finalize-game-meta"></div>
+        <div id="finalize-game-status-wrap"></div>
         <div class="finalize-game-actions">
           <button class="scoring-pw-btn-cancel" onclick="closeFinalizeGameModal()" style="background:transparent;color:var(--gray-500);border:none;font-size:0.9rem;font-weight:700;cursor:pointer">Keep Editing</button>
-          <button class="score-finalize-btn" onclick="confirmFinalizeGame()">Submit Final Score & End Game</button>
+          <div id="finalize-game-submit-wrap"></div>
         </div>
       </div>
     </div>`;
@@ -6064,12 +6104,16 @@ function openFinalizeGameModal(gameId, source = 'manual') {
   const meta = `${_phaseLabel(score.timerPhase || (score.period ? `q${score.period}` : 'q4'))} | ${getCurrentClockStr(gid)} | ${(Array.isArray(score.events) ? score.events.filter(ev => ev && ev.type !== 'game_state').length : 0)} events`;
   const scorelineEl = document.getElementById('finalize-game-scoreline');
   const metaEl = document.getElementById('finalize-game-meta');
+  const statusWrapEl = document.getElementById('finalize-game-status-wrap');
+  const submitWrapEl = document.getElementById('finalize-game-submit-wrap');
   const teamNameEl = document.getElementById('finalize-game-team-name');
   const oppNameEl = document.getElementById('finalize-game-opp-name');
   const teamInput = document.getElementById('finalize-game-team-input');
   const oppInput = document.getElementById('finalize-game-opp-input');
   if (scorelineEl) scorelineEl.textContent = scoreLine;
   if (metaEl) metaEl.textContent = meta;
+  if (statusWrapEl) statusWrapEl.innerHTML = _renderFinalizeStatus(gid, _contextGroupKey(gid));
+  if (submitWrapEl) submitWrapEl.innerHTML = _renderFinalizeActionButton(gid, _contextGroupKey(gid));
   if (teamNameEl) teamNameEl.textContent = teamName;
   if (oppNameEl) oppNameEl.textContent = oppName;
   if (teamInput) teamInput.value = String(Number(score.team || 0));

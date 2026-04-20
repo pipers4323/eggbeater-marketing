@@ -8217,6 +8217,13 @@ html.native-android[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-gr
   box-shadow: 0 10px 20px rgba(21, 128, 61, 0.2);
 }
 
+.score-finalize-btn.is-disabled,
+.score-finalize-btn:disabled {
+  opacity: 0.75;
+  cursor: default;
+  box-shadow: none;
+}
+
 .score-finalize-btn.is-final {
   background: #eef2ff;
   color: #1e3a8a;
@@ -8318,6 +8325,49 @@ html.native-android[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-gr
   font-size: 0.8rem;
   color: var(--gray-500);
   text-align: center;
+}
+
+.finalize-game-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  margin: 0 auto;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.finalize-game-status-ok {
+  color: #166534;
+  background: #ecfdf3;
+  border-color: #86efac;
+}
+
+.finalize-game-status-info {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.finalize-game-status-warn {
+  color: #92400e;
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
+.finalize-game-status-err {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.finalize-game-status-muted {
+  color: #475569;
+  background: #f8fafc;
+  border-color: #cbd5e1;
 }
 
 .finalize-game-actions {
