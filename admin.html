@@ -9620,6 +9620,19 @@
           _rowDate[ri] = _preDate;
           _rowLoc[ri] = _preLoc;
         }
+        // Back-fill: rows before the first date-section header (seeding/bracket rows that
+        // appear above the scheduled games) get the first known section date.  This ensures
+        // bracket-position entries like "680 A vs Davis @ 3:00 PM" in the top section
+        // import with the correct tournament date instead of blank.
+        {
+          const _firstSectionDate = _rowDate.find(d => d);
+          if (_firstSectionDate) {
+            for (let ri = 0; ri < _rowDate.length; ri++) {
+              if (!_rowDate[ri]) _rowDate[ri] = _firstSectionDate;
+              else break; // stop at first row that already has a date (the first section header)
+            }
+          }
+        }
 
         const games = [];
         for (let ri = dataStartRow; ri < allRows.length; ri++) {
