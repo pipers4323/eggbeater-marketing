@@ -3332,12 +3332,12 @@ function _getScorerSyncStatus(gameOrRef, explicitGroupKey = '') {
 
 function _scorerSyncStatusLabel(statusObj) {
   const status = statusObj?.status || 'idle';
-  if (status === 'acked') return { tone: 'ok', text: 'Saved' };
-  if (status === 'sending') return { tone: 'info', text: 'Saving…' };
-  if (status === 'queued') return { tone: 'warn', text: 'Queued — offline' };
-  if (status === 'retrying') return { tone: 'warn', text: 'Retrying sync…' };
-  if (status === 'rejected') return { tone: 'err', text: 'Sync rejected' };
-  if (status === 'failed') return { tone: 'err', text: 'Sync failed' };
+  if (status === 'acked') return { tone: 'ok', text: '✓ Synced' };
+  if (status === 'sending') return { tone: 'info', text: '↻ Syncing…' };
+  if (status === 'queued') return { tone: 'warn', text: '● Saved locally' };
+  if (status === 'retrying') return { tone: 'warn', text: '↺ Retrying…' };
+  if (status === 'rejected') return { tone: 'err', text: '⚠ Rejected' };
+  if (status === 'failed') return { tone: 'err', text: '⚠ Sync failed' };
   if (status === 'pending') return { tone: 'warn', text: 'Finalize pending' };
   if (status === 'local-final') return { tone: 'warn', text: 'Final saved locally' };
   if (status === 'final-acked') return { tone: 'ok', text: 'Final saved' };
@@ -3547,6 +3547,7 @@ function _upsertScorerSession(gameOrRef, explicitGroupKey = '', extra = {}) {
     groupKey,
     gameId: _gameIdOnly(gameOrRef),
     scopedKey,
+    teamSlot: game?.team || previous.teamSlot || '',
     opponent: game?.opponent || previous.opponent || score?.opponent || '',
     dateISO: game?.dateISO || previous.dateISO || score?.dateISO || '',
     time: game?.time || previous.time || score?.time || '',

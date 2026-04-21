@@ -2466,6 +2466,12 @@
         </svg>
         <span id="admin-tab-history">{{ t('History') }}</span><span class="tab-crown" style="display:none"> 👑</span>
       </button>
+      <button class="tab-btn admin-desktop-item" data-tab="recovery" onclick="switchTab('recovery')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        <span id="admin-tab-recovery">Recovery</span>
+      </button>
       <button class="tab-btn admin-desktop-item" data-tab="settings" onclick="switchTab('settings')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="3" />
@@ -2556,6 +2562,16 @@
               <circle cx="12" cy="12" r="10" />
             </svg>
             <span>{{ t('History') }}<span class="tab-crown" style="display:none"> 👑</span></span>
+            <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+          <button class="admin-more-item" data-tab="recovery" onclick="adminMoreNav('recovery')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <span>Recovery</span>
             <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
@@ -5100,6 +5116,9 @@
       }
       if (S.currentTab === 'history') {
         el.innerHTML = renderHistoryAdminTab();
+      }
+      if (S.currentTab === 'recovery') {
+        el.innerHTML = renderRecoveryAdminTab();
       }
       if (S.currentTab === 'settings') {
         el.innerHTML = renderAdminSettingsTab();
@@ -13039,323 +13058,17 @@
       }
     }
 
+    // ── renderHistoryAdminTab — season record management only (Recovery tab has operational tools) ──
     function renderHistoryAdminTab() {
       if (!tierHasFeature('season_stats')) return renderTieredNudge('history');
       const teamObj = getAdminTeams().find(t => t.key === S.team);
       const teamLabel = teamObj ? teamObj.label : S.team;
       const isHS = S.clubType === 'highschool';
-      const scoredEntries = Object.values(S.scoredGames || {}).sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
-      const scorerDraftEntries = (S.scorerDrafts || []).slice().sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
-      const scorerSessionEntries = (S.scorerSessions || []).slice().sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
-      const needsFinalizeEntries = scoredEntries.filter(entry => !!entry.needsFinalization);
-      const needsFinalizeSummary = needsFinalizeEntries.length
-        ? `<div style="padding:10px 12px;border:1px solid #facc15;border-radius:12px;background:#fffbeb;color:#78350f;font-size:0.82rem;font-weight:700">⚠️ ${needsFinalizeEntries.length} game(s) need finalization. Finalize or reopen/reset them before stats drift.</div>`
-        : '';
-      const scorerDraftRows = scorerDraftEntries.length
-        ? scorerDraftEntries.map(entry => {
-          const score = entry.score || {};
-          const scoreLabel = (typeof score.team === 'number' && typeof score.opp === 'number')
-            ? `${score.team}-${score.opp}`
-            : '—';
-          const stamp = entry.updatedAt ? new Date(entry.updatedAt).toLocaleString() : '';
-          const eventCount = Array.isArray(score.events) ? score.events.filter(ev => ev && ev.type !== 'game_state').length : 0;
-          const sessionState = String(entry.status || entry.session?.status || 'open').trim() || 'open';
-          const auditBits = [
-            stamp ? 'Updated ' + stamp : '',
-            entry.deviceId ? 'Device ' + entry.deviceId.slice(0, 8) : '',
-            eventCount ? `${eventCount} events` : '',
-            entry.conflict ? 'Conflict detected' : '',
-          ].filter(Boolean).join(' · ');
-          return `<div class="game-row">
-            <div class="game-summary" style="cursor:default">
-              <div class="game-info">
-                <div class="game-opp">${esc(entry.session?.opponent || entry.score?.opponent || entry.gameId || 'Recovered draft')}</div>
-                <div class="game-meta">${esc(scoreLabel)} · ${esc(sessionState)}${auditBits ? ' · ' + esc(auditBits) : ''}</div>
-              </div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-                <button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','restore')">Restore Draft</button>
-                <button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','clear')">Clear</button>
-              </div>
-            </div>
-          </div>`;
-        }).join('')
-        : `<div style="padding:16px 14px;color:var(--g400)">No mirrored scorer drafts stored for this age group.</div>`;
-      const scorerSessionRows = scorerSessionEntries.length
-        ? scorerSessionEntries.map(entry => {
-          const session = entry.session || {};
-          const score = session.score || {};
-          const scoreLabel = (typeof session.team === 'number' && typeof session.opp === 'number')
-            ? `${session.team}-${session.opp}`
-            : (typeof score.team === 'number' && typeof score.opp === 'number' ? `${score.team}-${score.opp}` : '—');
-          // computedStatus is set server-side accounting for stale heartbeat window
-          const effectiveStatus = entry.computedStatus || entry.status || session.status || 'open';
-          const statusColor = { 'open': '#15803d', 'finalizing': '#1d4ed8', 'final-acked': '#1d4ed8', 'stale': '#d97706', 'conflict': '#dc2626', 'abandoned': '#6b7280' }[effectiveStatus] || '#6b7280';
-          const statusLabel = { 'open': 'Active ●', 'finalizing': 'Finalizing…', 'final-acked': 'Final ✓', 'stale': 'Stale ⚠', 'conflict': 'Conflict!', 'abandoned': 'Abandoned' }[effectiveStatus] || effectiveStatus;
-          const hbMs = entry.heartbeatAt ? Date.now() - Number(entry.heartbeatAt) : null;
-          const hbLabel = hbMs !== null ? (hbMs < 90000 ? 'heartbeat just now' : hbMs < 3600000 ? `heartbeat ${Math.round(hbMs / 60000)}m ago` : 'heartbeat >1h ago') : (entry.updatedAt ? 'updated ' + new Date(entry.updatedAt).toLocaleTimeString() : '');
-          const auditBits = [
-            hbLabel,
-            entry.deviceId ? 'Device ' + entry.deviceId.slice(0, 8) : '',
-            session.eventCount ? `${session.eventCount} events` : '',
-            entry.conflict ? 'Conflict detected' : '',
-          ].filter(Boolean).join(' · ');
-          const canAct = ['open', 'stale', 'finalizing', 'conflict'].includes(effectiveStatus);
-          const sessionTid = esc(entry.tournamentId || '_');
-          const sessionGid = esc(entry.gameId);
-          return `<div class="game-row">
-            <div class="game-summary" style="cursor:default">
-              <div class="game-info">
-                <div class="game-opp">${esc(session.opponent || entry.gameId || 'Active scorer session')}</div>
-                <div class="game-meta">${esc(scoreLabel)} · <span style="font-weight:700;color:${statusColor}">${esc(statusLabel)}</span>${auditBits ? ' · ' + esc(auditBits) : ''}</div>
-              </div>
-              ${canAct ? `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-                <button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700)" onclick="updateScorerSessionAdmin('${sessionGid}','${sessionTid}','force-close')">Force Close</button>
-              </div>` : ''}
-            </div>
-          </div>`;
-        }).join('')
-        : `<div style="padding:16px 14px;color:var(--g400)">No mirrored scorer sessions stored for this age group.</div>`;
-      const scoredRows = scoredEntries.length
-        ? scoredEntries.map(entry => {
-          const score = entry.score || {};
-          const scoreLabel = (typeof score.team === 'number' && typeof score.opp === 'number')
-            ? `${score.team}-${score.opp}`
-            : '—';
-          const stateLabel = String(score.gameState || '').trim() || 'pre';
-          const stamp = entry.updatedAt ? new Date(entry.updatedAt).toLocaleString() : '';
-          const needsFinal = !!entry.needsFinalization;
-          const needsStamp = entry.needsFinalizationAt ? new Date(entry.needsFinalizationAt).toLocaleString() : '';
-          const confirmedStamp = entry.finalizationConfirmedAt ? new Date(entry.finalizationConfirmedAt).toLocaleString() : '';
-          const auditBits = [
-            stamp ? 'Updated ' + stamp : '',
-            needsFinal && needsStamp ? 'Needs finalization since ' + needsStamp : '',
-            !needsFinal && confirmedStamp ? 'Finalized ' + confirmedStamp : '',
-            entry.finalizedBy ? 'By ' + entry.finalizedBy : '',
-            entry.finalizedSource ? 'via ' + entry.finalizedSource : '',
-          ].filter(Boolean).join(' · ');
-          const promoteLabel = stateLabel === 'final' ? 'Reopen' : 'Promote Final';
-          const promoteAction = stateLabel === 'final' ? 'reopen' : 'promote';
-          return `<div class="game-row">
-            <div class="game-summary" style="cursor:default">
-              <div class="game-info">
-                <div class="game-opp">${esc(entry.opponent || entry.gameId || 'Scored game')}</div>
-                <div class="game-meta">${esc(scoreLabel)} · ${esc(stateLabel)}${needsFinal ? ' · Needs Finalization' : ''}${auditBits ? ' · ' + esc(auditBits) : ''}</div>
-              </div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-                <button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','${promoteAction}')">${promoteLabel}</button>
-                <button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','reset')">Reset</button>
-              </div>
-            </div>
-          </div>`;
-        }).join('')
-        : `<div style="padding:16px 14px;color:var(--g400)">No durable scored games for this age group yet.</div>`;
-      // ── Conflicts card (only shown when there are unresolved conflicts) ──
-      const unresolvedConflicts = (S.conflicts || []).filter(c => !c.resolved);
-      const conflictsCard = unresolvedConflicts.length ? `
-    <div class="card" style="margin-bottom:10px;border-color:#fca5a5;background:#fff1f2">
-      <div class="card-header" style="color:#dc2626">⚠️ Scorer Conflicts — ${esc(teamLabel)}</div>
-      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
-        <div style="font-size:0.82rem;color:#7f1d1d;line-height:1.5">
-          These conflicts were detected when two devices tried to own the same scorer session.
-          Force-close the losing session in the Active Scorer Sessions section, then dismiss the conflict here.
-        </div>
-        ${unresolvedConflicts.map(conflict => {
-          const stamp = conflict.updatedAt ? new Date(conflict.updatedAt).toLocaleString() : '';
-          const typeLabel = { 'multi-device': 'Multi-device ownership' }[conflict.type] || conflict.type;
-          const auditBits = [
-            conflict.existingDeviceId ? 'Owner: ' + conflict.existingDeviceId.slice(0, 8) : '',
-            conflict.incomingDeviceId ? 'Challenger: ' + conflict.incomingDeviceId.slice(0, 8) : '',
-            stamp ? stamp : '',
-            conflict.occurrences > 1 ? `${conflict.occurrences}× occurred` : '',
-          ].filter(Boolean).join(' · ');
-          return `<div class="game-row"><div class="game-summary" style="cursor:default">
-            <div class="game-info">
-              <div class="game-opp" style="color:#dc2626">${esc(typeLabel)}: ${esc(conflict.gameId || 'unknown game')}</div>
-              <div class="game-meta">${esc(auditBits)}</div>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-              <button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700)"
-                onclick="resolveConflictAdmin('${esc(conflict.gameId)}','${esc(conflict.tournamentId || '_')}')">Dismiss</button>
-            </div>
-          </div></div>`;
-        }).join('')}
-      </div>
-    </div>` : '';
+      let html = '';
 
-      let html = conflictsCard + `
-    <div class="card" style="margin-bottom:10px;border-color:var(--royal-light);background:var(--royal-subtle)">
-      <div class="card-header" style="color:var(--royal)">🛠️ Scored Games Recovery — ${esc(teamLabel)}</div>
-      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-          <button class="save-btn" onclick="syncOfficialSheetResultsAdmin()" style="background:var(--royal)">📥 Sync Official Sheet Results</button>
-          <button class="save-btn" onclick="rebuildHistoryFromScoredGamesAdmin()" style="background:#2e7d32">🧱 Rebuild History from Scored Games</button>
-          <button class="save-btn" onclick="refreshScoredGamesAdmin()" style="background:var(--g100);color:var(--g700)">↻ Refresh</button>
-          <span id="scored-games-status" style="font-size:0.82rem"></span>
-        </div>
-        ${needsFinalizeSummary}
-        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">
-          Official sheet sync writes final scores into durable scored-game records and the live tournament snapshot.
-          Recovery actions let you promote, reopen, or reset a scored game without manual KV patching.
-          Games flagged as needing finalization should be closed out before the next round.
-        </div>
-        ${scoredRows}
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:10px;border-color:var(--royal-light);background:var(--royal-subtle)">
-      <div class="card-header" style="color:var(--royal)">🧾 Mirrored Scorer Drafts — ${esc(teamLabel)}</div>
-      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
-        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">
-          These are the server-backed scorer drafts mirrored from devices. Use this list to confirm there is recoverable scorer state even if the original device reloads or loses signal.
-        </div>
-        ${scorerDraftRows}
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:10px;border-color:var(--royal-light);background:var(--royal-subtle)">
-      <div class="card-header" style="color:var(--royal)">📡 Active Scorer Sessions — ${esc(teamLabel)}</div>
-      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
-        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">
-          These are the server-owned scorer session heartbeats. Use this list to see which device most recently owned a game and whether that session was finalized cleanly.
-        </div>
-        ${scorerSessionRows}
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:10px;border-color:var(--royal-light);background:var(--royal-subtle)">
-      <div class="card-header" style="color:var(--royal)">🔄 Restore History from Archive — ${esc(teamLabel)}</div>
-      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px">
-        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">
-          Pulls every archived tournament for this age group and rebuilds the history spectators see.
-          Existing entries are preserved; only missing ones are added.
-          Use this after a deploy accidentally cleared the history.
-        </div>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-          <button id="rebuild-hist-btn" class="save-btn" onclick="rebuildHistoryFromArchive()"
-                  style="background:var(--royal)">🔄 Rebuild from Archive</button>
-          <button id="clear-rebuild-hist-btn" class="save-btn" onclick="clearAndRebuildHistory()"
-                  style="background:var(--red)">🗑️ Clear &amp; Rebuild</button>
-          <button id="seed-legacy-hist-btn" class="save-btn" onclick="seedLegacyHistory()"
-                  style="background:#2e7d32">📥 Seed Legacy Data</button>
-          <span id="rebuild-hist-status" style="font-size:0.82rem"></span>
-        </div>
-      </div>
-    </div>`;
-
-      // ── MaxPreps Import for HS clubs ──
-      if (isHS) {
-        html += `
-    <div class="card" style="margin-bottom:10px">
-      <div class="card-header">📊 Import from MaxPreps</div>
-      <div style="padding:10px 14px">
-        <div style="font-size:0.82rem;color:var(--g400);margin-bottom:8px;line-height:1.5">
-          Import a season's W/L history from MaxPreps.
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-          <input class="form-input" id="maxpreps-url" placeholder="https://www.maxpreps.com/…/schedule/"
-                 style="flex:1;font-size:0.8rem">
-          <button class="save-btn" onclick="importMaxPreps()">📥 Import</button>
-        </div>
-        <details id="maxpreps-paste-section" style="margin-top:6px">
-          <summary style="font-size:0.78rem;color:var(--royal);cursor:pointer;font-weight:600">
-            ⚡ Import not working? Paste page source instead
-          </summary>
-          <div style="margin-top:8px;font-size:0.78rem;color:var(--g400);line-height:1.5">
-            1. Open the MaxPreps schedule page in your browser<br>
-            2. Press <b>Ctrl+U</b> (or ⌘+U on Mac) to view page source<br>
-            3. Press <b>Ctrl+A</b> then <b>Ctrl+C</b> to copy all<br>
-            4. Paste below and click Import
-          </div>
-          <textarea id="maxpreps-paste" rows="4" placeholder="Paste page source HTML here…"
-                    style="width:100%;margin-top:6px;font-size:0.72rem;font-family:monospace;padding:8px;border:1.5px solid var(--g200);border-radius:8px;resize:vertical"></textarea>
-          <button class="save-btn" onclick="importMaxPrepsPaste()" style="margin-top:6px">📥 Import from Paste</button>
-        </details>
-        <div id="maxpreps-import-status" style="font-size:0.78rem;margin-top:6px;min-height:16px"></div>
-      </div>
-    </div>`;
-      }
-
-      // ── Add History Entry form ──
-      html += `
-    <div class="card">
-      <div class="card-header">📝 Add Tournament Result — ${esc(teamLabel)}</div>
-      <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">${adminT('addgames_tournament_name')} *</label>
-            <input id="hist-name" class="form-input" placeholder="e.g. KAP7 Invitational">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group" style="flex:2">
-            <label class="form-label">${adminT('addgames_dates')}</label>
-            <input id="hist-dates" class="form-input" placeholder="e.g. Oct 12–13, 2025">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Season</label>
-            <select id="hist-season" class="form-input" style="padding:9px 8px">
-              <option value="">— None —</option>
-              ${buildSeasonOptions()}
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Location</label>
-            <input id="hist-location" class="form-input" placeholder="e.g. Woollett Aquatics">
-          </div>
-          <div class="form-group" style="flex:0 0 90px">
-            <label class="form-label">Placement</label>
-            <input id="hist-place" class="form-input" placeholder="e.g. 1st">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group" style="flex:0 0 65px">
-            <label class="form-label">Wins</label>
-            <input id="hist-wins" type="number" min="0" class="form-input" value="0">
-          </div>
-          <div class="form-group" style="flex:0 0 65px">
-            <label class="form-label">Losses</label>
-            <input id="hist-losses" type="number" min="0" class="form-input" value="0">
-          </div>
-          <div class="form-group" style="flex:0 0 65px">
-            <label class="form-label">Ties</label>
-            <input id="hist-ties" type="number" min="0" class="form-input" value="0">
-          </div>
-          <div class="form-group" style="flex:0 0 80px">
-            <label class="form-label">Points</label>
-            <input id="hist-points" type="number" class="form-input" value="">
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Notes</label>
-          <input id="hist-notes" class="form-input" placeholder="e.g. Won championship bracket">
-        </div>
-        <button class="btn-save" onclick="addHistoryEntry()" style="margin-top:4px">➕ Add Tournament Result</button>
-      </div>
-    </div>`;
-
-      // ── CSV Upload card ──
-      html += `
-    <div class="card">
-      <div class="card-header">📊 Import from Spreadsheet — ${esc(teamLabel)}</div>
-      <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
-        <div style="font-size:0.82rem;color:var(--g600);line-height:1.55">
-          Upload a CSV with columns: <strong>Name, Dates, Location, Wins, Losses, Ties, Points, Placement, Season, Notes</strong><br>
-          <em>Only "Name" is required. Order must match. First row = headers (skipped).</em>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <label class="btn-save" style="cursor:pointer;flex:1;min-width:160px">
-            📁 Choose CSV File
-            <input type="file" accept=".csv,.tsv,.txt" onchange="importHistoryCsv(this)" style="display:none">
-          </label>
-          <button class="btn-save" style="background:var(--g100);color:var(--g600);flex:0" onclick="downloadHistoryTemplate()">📄 Template</button>
-        </div>
-        <div id="csv-preview" style="display:none;font-size:0.82rem;color:var(--green)"></div>
-      </div>
-    </div>`;
-
-      // ── Existing History entries ──
+      // ── Tournament History list at top (most-visited section) ──────────
       const entries = S.history || [];
       if (entries.length) {
-        // Group by season if any have season set
         const bySeason = {};
         const seasonOrder = [];
         for (const h of entries) {
@@ -13363,19 +13076,16 @@
           if (!bySeason[s]) { bySeason[s] = []; seasonOrder.push(s); }
           bySeason[s].push(h);
         }
-
-        html += `<div class="card">
+        html += `<div class="card" style="margin-bottom:10px">
       <div class="card-header">📋 Tournament History — ${esc(teamLabel)} (${entries.length})</div>`;
-
         for (const season of seasonOrder) {
           const seasonEntries = bySeason[season];
           const totalW = seasonEntries.reduce((s, h) => s + (h.wins || 0), 0);
           const totalL = seasonEntries.reduce((s, h) => s + (h.losses || 0), 0);
           html += `<div style="padding:8px 14px 4px;font-size:0.78rem;font-weight:800;color:var(--royal);text-transform:uppercase;letter-spacing:.04em;border-top:1px solid var(--g100);display:flex;align-items:center;gap:8px">
         ${esc(season)}
-        <span style="font-weight:400;color:var(--g400);text-transform:none;letter-spacing:0">${totalW}W–${totalL}L (${seasonEntries.length} tournaments)</span>
+        <span style="font-weight:400;color:var(--g400);text-transform:none;letter-spacing:0">${totalW}W–${totalL}L (${seasonEntries.length} tournament${seasonEntries.length !== 1 ? 's' : ''})</span>
       </div>`;
-
           for (let i = 0; i < entries.length; i++) {
             const h = entries[i];
             if ((h.season || 'Unsorted') !== season) continue;
@@ -13394,17 +13104,321 @@
         }
         html += `</div>`;
       } else {
-        html += `<div class="card">
+        html += `<div class="card" style="margin-bottom:10px">
       <div class="card-header">📋 Tournament History — ${esc(teamLabel)}</div>
       <div style="padding:20px;text-align:center;color:var(--g400)">
         <div style="font-size:1.5rem;margin-bottom:6px">📭</div>
-        No history entries yet. Add one manually or import a CSV above.
+        No history entries yet. Add one below or import from a spreadsheet.
       </div>
     </div>`;
       }
 
+      // ── Add Tournament Result (collapsible) ────────────────────────────
+      html += `<details class="card collapsible-card" style="margin-bottom:10px">
+    <summary class="card-header collapsible-header">📝 Add Tournament Result — ${esc(teamLabel)}<span class="collapse-icon">▼</span></summary>
+    <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">${adminT('addgames_tournament_name')} *</label>
+          <input id="hist-name" class="form-input" placeholder="e.g. KAP7 Invitational">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2">
+          <label class="form-label">${adminT('addgames_dates')}</label>
+          <input id="hist-dates" class="form-input" placeholder="e.g. Oct 12–13, 2025">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Season</label>
+          <select id="hist-season" class="form-input" style="padding:9px 8px">
+            <option value="">— None —</option>
+            ${buildSeasonOptions()}
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input id="hist-location" class="form-input" placeholder="e.g. Woollett Aquatics">
+        </div>
+        <div class="form-group" style="flex:0 0 90px">
+          <label class="form-label">Placement</label>
+          <input id="hist-place" class="form-input" placeholder="e.g. 1st">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:0 0 65px">
+          <label class="form-label">Wins</label>
+          <input id="hist-wins" type="number" min="0" class="form-input" value="0">
+        </div>
+        <div class="form-group" style="flex:0 0 65px">
+          <label class="form-label">Losses</label>
+          <input id="hist-losses" type="number" min="0" class="form-input" value="0">
+        </div>
+        <div class="form-group" style="flex:0 0 65px">
+          <label class="form-label">Ties</label>
+          <input id="hist-ties" type="number" min="0" class="form-input" value="0">
+        </div>
+        <div class="form-group" style="flex:0 0 80px">
+          <label class="form-label">Points</label>
+          <input id="hist-points" type="number" class="form-input" value="">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input id="hist-notes" class="form-input" placeholder="e.g. Won championship bracket">
+      </div>
+      <button class="btn-save" onclick="addHistoryEntry()" style="margin-top:4px">➕ Add Tournament Result</button>
+    </div>
+  </details>`;
+
+      // ── Import & Restore Tools (collapsible) ──────────────────────────
+      html += `<details class="card collapsible-card" style="margin-bottom:10px">
+    <summary class="card-header collapsible-header">📥 Import &amp; Restore Tools<span class="collapse-icon">▼</span></summary>
+    <div style="padding:14px;display:flex;flex-direction:column;gap:18px">
+      <div>
+        <div style="font-weight:700;font-size:0.82rem;color:var(--g700);margin-bottom:6px">📊 Import from Spreadsheet</div>
+        <div style="font-size:0.82rem;color:var(--g600);line-height:1.55;margin-bottom:8px">
+          Upload a CSV: <strong>Name, Dates, Location, Wins, Losses, Ties, Points, Placement, Season, Notes</strong><br>
+          <em>Only "Name" is required. First row = headers (skipped).</em>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label class="btn-save" style="cursor:pointer;flex:1;min-width:160px">
+            📁 Choose CSV File
+            <input type="file" accept=".csv,.tsv,.txt" onchange="importHistoryCsv(this)" style="display:none">
+          </label>
+          <button class="btn-save" style="background:var(--g100);color:var(--g600);flex:0" onclick="downloadHistoryTemplate()">📄 Template</button>
+        </div>
+        <div id="csv-preview" style="display:none;font-size:0.82rem;color:var(--green);margin-top:6px"></div>
+      </div>`;
+
+      if (isHS) {
+        html += `<div>
+        <div style="font-weight:700;font-size:0.82rem;color:var(--g700);margin-bottom:6px">📊 Import from MaxPreps</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <input class="form-input" id="maxpreps-url" placeholder="https://www.maxpreps.com/…/schedule/" style="flex:1;font-size:0.8rem">
+          <button class="save-btn" onclick="importMaxPreps()">📥 Import</button>
+        </div>
+        <details id="maxpreps-paste-section">
+          <summary style="font-size:0.78rem;color:var(--royal);cursor:pointer;font-weight:600">⚡ Paste page source instead</summary>
+          <div style="margin-top:8px;font-size:0.78rem;color:var(--g400);line-height:1.5">1. Open MaxPreps schedule page · 2. Ctrl+U → Ctrl+A → Ctrl+C · 3. Paste below</div>
+          <textarea id="maxpreps-paste" rows="4" placeholder="Paste page source HTML here…" style="width:100%;margin-top:6px;font-size:0.72rem;font-family:monospace;padding:8px;border:1.5px solid var(--g200);border-radius:8px;resize:vertical"></textarea>
+          <button class="save-btn" onclick="importMaxPrepsPaste()" style="margin-top:6px">📥 Import from Paste</button>
+        </details>
+        <div id="maxpreps-import-status" style="font-size:0.78rem;margin-top:6px;min-height:16px"></div>
+      </div>`;
+      }
+
+      html += `<div>
+        <div style="font-weight:700;font-size:0.82rem;color:var(--g700);margin-bottom:6px">🔄 Restore from Archive</div>
+        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5;margin-bottom:8px">
+          Rebuild spectator history from archived tournaments. Use after a deploy accidentally cleared history.
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button id="rebuild-hist-btn" class="save-btn" onclick="rebuildHistoryFromArchive()" style="background:var(--royal)">🔄 Rebuild from Archive</button>
+          <button id="clear-rebuild-hist-btn" class="save-btn" onclick="clearAndRebuildHistory()" style="background:var(--red)">🗑️ Clear &amp; Rebuild</button>
+          <button id="seed-legacy-hist-btn" class="save-btn" onclick="seedLegacyHistory()" style="background:#2e7d32">📥 Seed Legacy Data</button>
+          <span id="rebuild-hist-status" style="font-size:0.82rem"></span>
+        </div>
+      </div>
+    </div>
+  </details>`;
+
       return html;
     }
+
+    // ── renderRecoveryAdminTab — live scoring operations, sessions, drafts, conflicts ──
+    function renderRecoveryAdminTab() {
+      const teamObj = getAdminTeams().find(t => t.key === S.team);
+      const teamLabel = teamObj ? teamObj.label : S.team;
+      const scoredEntries = Object.values(S.scoredGames || {}).sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+      const scorerDraftEntries = (S.scorerDrafts || []).slice().sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+      const scorerSessionEntries = (S.scorerSessions || []).slice().sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+      const needsFinalizeEntries = scoredEntries.filter(entry => !!entry.needsFinalization);
+      const unresolvedConflicts = (S.conflicts || []).filter(c => !c.resolved);
+      const activeSessionCount = scorerSessionEntries.filter(e => ['open', 'finalizing'].includes(e.computedStatus || e.status || 'open')).length;
+
+      // ── Status summary pills ────────────────────────────────────────────
+      const pills = [
+        unresolvedConflicts.length ? `<span style="padding:2px 9px;border-radius:99px;background:#fee2e2;color:#dc2626;font-size:0.75rem;font-weight:700">⚠ ${unresolvedConflicts.length} conflict${unresolvedConflicts.length > 1 ? 's' : ''}</span>` : '',
+        activeSessionCount ? `<span style="padding:2px 9px;border-radius:99px;background:#dcfce7;color:#15803d;font-size:0.75rem;font-weight:700">● ${activeSessionCount} active</span>` : '',
+        needsFinalizeEntries.length ? `<span style="padding:2px 9px;border-radius:99px;background:#fef3c7;color:#78350f;font-size:0.75rem;font-weight:700">⏳ ${needsFinalizeEntries.length} need${needsFinalizeEntries.length > 1 ? '' : 's'} finalization</span>` : '',
+      ].filter(Boolean).join('');
+
+      let html = `<div class="card" style="margin-bottom:10px">
+      <div style="padding:12px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-weight:800;font-size:0.9rem;color:var(--g700)">🛠 Scoring Recovery — ${esc(teamLabel)}</span>
+        ${pills}
+        <div style="flex:1"></div>
+        <button class="save-btn" onclick="refreshScoredGamesAdmin()" style="background:var(--g100);color:var(--g700)">↻ Refresh All</button>
+        <span id="scored-games-status" style="font-size:0.82rem"></span>
+      </div>
+    </div>`;
+
+      // ── Conflicts (red card, only shown when > 0) ─────────────────────
+      if (unresolvedConflicts.length) {
+        html += `<div class="card" style="margin-bottom:10px;border-color:#fca5a5;background:#fff1f2">
+      <div class="card-header" style="color:#dc2626">⚠️ Scorer Conflicts — ${esc(teamLabel)}</div>
+      <div style="padding:10px 14px;font-size:0.82rem;color:#7f1d1d;line-height:1.5">
+        Two devices tried to own the same scorer session. Force-close the losing session in Active Sessions below, then dismiss here.
+      </div>
+      <div style="display:flex;flex-direction:column">
+        ${unresolvedConflicts.map(conflict => {
+          const stamp = conflict.updatedAt ? new Date(conflict.updatedAt).toLocaleString() : '';
+          const typeLabel = { 'multi-device': 'Multi-device conflict' }[conflict.type] || conflict.type;
+          const auditBits = [
+            conflict.existingDeviceId ? 'Owner: ' + conflict.existingDeviceId.slice(0, 8) : '',
+            conflict.incomingDeviceId ? 'Challenger: ' + conflict.incomingDeviceId.slice(0, 8) : '',
+            stamp,
+            conflict.occurrences > 1 ? `${conflict.occurrences}× occurred` : '',
+          ].filter(Boolean).join(' · ');
+          return `<div class="game-row"><div class="game-summary" style="cursor:default">
+            <div class="game-info">
+              <div class="game-opp" style="color:#dc2626">${esc(typeLabel)}: ${esc(conflict.gameId || 'unknown game')}</div>
+              <div class="game-meta">${esc(auditBits)}</div>
+            </div>
+            <button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700)"
+              onclick="resolveConflictAdmin('${esc(conflict.gameId)}','${esc(conflict.tournamentId || '_')}')">Dismiss</button>
+          </div></div>`;
+        }).join('')}
+      </div>
+    </div>`;
+      }
+
+      // ── Scored Games ─────────────────────────────────────────────────────
+      const needsFinalizeSummary = needsFinalizeEntries.length
+        ? `<div style="padding:10px 12px;border:1px solid #facc15;border-radius:10px;background:#fffbeb;color:#78350f;font-size:0.82rem;font-weight:700">⚠️ ${needsFinalizeEntries.length} game(s) need finalization — close them out before the next round.</div>`
+        : '';
+      const scoredRows = scoredEntries.length
+        ? scoredEntries.map(entry => {
+            const score = entry.score || {};
+            const scoreLabel = (typeof score.team === 'number' && typeof score.opp === 'number') ? `${score.team}–${score.opp}` : '—';
+            const stateLabel = String(score.gameState || '').trim() || 'pre';
+            const stamp = entry.updatedAt ? new Date(entry.updatedAt).toLocaleString() : '';
+            const needsFinal = !!entry.needsFinalization;
+            const confirmedStamp = entry.finalizationConfirmedAt ? new Date(entry.finalizationConfirmedAt).toLocaleString() : '';
+            const auditBits = [
+              stamp ? 'Updated ' + stamp : '',
+              needsFinal && entry.needsFinalizationAt ? 'Pending since ' + new Date(entry.needsFinalizationAt).toLocaleString() : '',
+              !needsFinal && confirmedStamp ? 'Finalized ' + confirmedStamp : '',
+              entry.finalizedBy ? 'by ' + entry.finalizedBy : '',
+              entry.finalizedSource ? 'via ' + entry.finalizedSource : '',
+            ].filter(Boolean).join(' · ');
+            const promoteLabel = stateLabel === 'final' ? 'Reopen' : 'Promote Final';
+            const promoteAction = stateLabel === 'final' ? 'reopen' : 'promote';
+            return `<div class="game-row">
+            <div class="game-summary" style="cursor:default">
+              <div class="game-info">
+                <div class="game-opp">${esc(entry.opponent || entry.gameId || 'Scored game')}</div>
+                <div class="game-meta">${esc(scoreLabel)} · ${esc(stateLabel)}${needsFinal ? ' · ⚠ Needs Finalization' : ''}${auditBits ? ' · ' + esc(auditBits) : ''}</div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+                <button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','${promoteAction}')">${promoteLabel}</button>
+                <button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','reset')">Reset</button>
+              </div>
+            </div>
+          </div>`;
+          }).join('')
+        : `<div style="padding:16px 14px;color:var(--g400)">No durable scored games for this age group yet.</div>`;
+
+      html += `<div class="card" style="margin-bottom:10px">
+      <div class="card-header" style="color:var(--royal)">🎯 Scored Games — ${esc(teamLabel)}</div>
+      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="save-btn" onclick="syncOfficialSheetResultsAdmin()" style="background:var(--royal)">📥 Sync Official Sheet</button>
+          <button class="save-btn" onclick="rebuildHistoryFromScoredGamesAdmin()" style="background:#2e7d32">🧱 Rebuild History</button>
+        </div>
+        ${needsFinalizeSummary}
+        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">
+          Sync writes final scores into durable records. Rebuild History pushes finalized games to the spectator history view.
+        </div>
+        ${scoredRows}
+      </div>
+    </div>`;
+
+      // ── Active Scorer Sessions ───────────────────────────────────────────
+      const scorerSessionRows = scorerSessionEntries.length
+        ? scorerSessionEntries.map(entry => {
+            const session = entry.session || {};
+            const scoreLabel = (typeof session.team === 'number' && typeof session.opp === 'number') ? `${session.team}–${session.opp}` : '—';
+            const effectiveStatus = entry.computedStatus || entry.status || session.status || 'open';
+            const statusColor = { 'open': '#15803d', 'finalizing': '#1d4ed8', 'final-acked': '#1d4ed8', 'stale': '#d97706', 'conflict': '#dc2626', 'abandoned': '#6b7280' }[effectiveStatus] || '#6b7280';
+            const statusLabel = { 'open': 'Active ●', 'finalizing': 'Finalizing…', 'final-acked': 'Final ✓', 'stale': 'Stale ⚠', 'conflict': 'Conflict!', 'abandoned': 'Abandoned' }[effectiveStatus] || effectiveStatus;
+            const hbMs = entry.heartbeatAt ? Date.now() - Number(entry.heartbeatAt) : null;
+            const hbLabel = hbMs !== null ? (hbMs < 90000 ? 'just now' : hbMs < 3600000 ? `${Math.round(hbMs / 60000)}m ago` : '>1h ago') : (entry.updatedAt ? new Date(entry.updatedAt).toLocaleTimeString() : '—');
+            // Identity chips — show ageGroup, team slot, and gameId for debugging
+            const ageGroupLabel = esc(entry.ageGroup || session.groupKey || '');
+            const teamSlot = esc(session.teamSlot || '');
+            const gameIdShort = esc((entry.gameId || '').slice(-10));
+            const identityChips = [
+              ageGroupLabel ? `<span style="padding:1px 7px;border-radius:99px;background:var(--g100);color:var(--g600);font-size:0.72rem">${ageGroupLabel}</span>` : '',
+              teamSlot ? `<span style="padding:1px 7px;border-radius:99px;background:#dbeafe;color:#1d4ed8;font-size:0.72rem;font-weight:700">Team ${teamSlot}</span>` : '',
+              gameIdShort ? `<span style="padding:1px 7px;border-radius:99px;background:var(--g100);color:var(--g400);font-size:0.72rem;font-family:monospace" title="${esc(entry.gameId || '')}">…${gameIdShort}</span>` : '',
+            ].filter(Boolean).join('');
+            const canAct = ['open', 'stale', 'finalizing', 'conflict'].includes(effectiveStatus);
+            const sessionTid = esc(entry.tournamentId || '_');
+            const sessionGid = esc(entry.gameId);
+            return `<div class="game-row">
+            <div class="game-summary" style="cursor:default">
+              <div class="game-info" style="gap:4px">
+                <div class="game-opp">${esc(session.opponent || entry.gameId || 'Active scorer session')}</div>
+                <div style="display:flex;gap:4px;flex-wrap:wrap;margin:2px 0">${identityChips}</div>
+                <div class="game-meta">${esc(scoreLabel)} · <span style="font-weight:700;color:${statusColor}">${esc(statusLabel)}</span> · hb ${esc(hbLabel)}${entry.deviceId ? ' · ' + esc(entry.deviceId.slice(0, 8)) : ''}</div>
+              </div>
+              ${canAct ? `<button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700);white-space:nowrap" onclick="updateScorerSessionAdmin('${sessionGid}','${sessionTid}','force-close')">Force Close</button>` : ''}
+            </div>
+          </div>`;
+          }).join('')
+        : `<div style="padding:16px 14px;color:var(--g400)">No active scorer sessions for this age group.</div>`;
+
+      html += `<div class="card" style="margin-bottom:10px">
+      <div class="card-header" style="color:var(--royal)">📡 Active Scorer Sessions — ${esc(teamLabel)}</div>
+      <div style="padding:10px 14px;font-size:0.82rem;color:var(--g600);line-height:1.5">
+        Server-owned heartbeats. Force-close a stale session before a new device starts scoring the same game.
+      </div>
+      ${scorerSessionRows}
+    </div>`;
+
+      // ── Mirrored Scorer Drafts ───────────────────────────────────────────
+      const scorerDraftRows = scorerDraftEntries.length
+        ? scorerDraftEntries.map(entry => {
+            const score = entry.score || {};
+            const scoreLabel = (typeof score.team === 'number' && typeof score.opp === 'number') ? `${score.team}–${score.opp}` : '—';
+            const stamp = entry.updatedAt ? new Date(entry.updatedAt).toLocaleString() : '';
+            const eventCount = Array.isArray(score.events) ? score.events.filter(ev => ev && ev.type !== 'game_state').length : 0;
+            const sessionState = String(entry.status || entry.session?.status || 'open').trim() || 'open';
+            const auditBits = [
+              stamp ? 'Updated ' + stamp : '',
+              entry.deviceId ? 'Device ' + entry.deviceId.slice(0, 8) : '',
+              eventCount ? `${eventCount} event${eventCount !== 1 ? 's' : ''}` : '',
+              entry.conflict ? '⚠ Conflict detected' : '',
+            ].filter(Boolean).join(' · ');
+            return `<div class="game-row">
+            <div class="game-summary" style="cursor:default">
+              <div class="game-info">
+                <div class="game-opp">${esc(entry.session?.opponent || score.opponent || entry.gameId || 'Recovered draft')}</div>
+                <div class="game-meta">${esc(scoreLabel)} · ${esc(sessionState)}${auditBits ? ' · ' + esc(auditBits) : ''}</div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+                <button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','restore')">Restore Draft</button>
+                <button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','clear')">Clear</button>
+              </div>
+            </div>
+          </div>`;
+          }).join('')
+        : `<div style="padding:16px 14px;color:var(--g400)">No mirrored scorer drafts for this age group.</div>`;
+
+      html += `<div class="card" style="margin-bottom:10px">
+      <div class="card-header" style="color:var(--royal)">🧾 Mirrored Scorer Drafts — ${esc(teamLabel)}</div>
+      <div style="padding:10px 14px;font-size:0.82rem;color:var(--g600);line-height:1.5">
+        Server-backed drafts. Use Restore Draft to rebuild a scored-game record from a mirrored draft if the original device was lost.
+      </div>
+      ${scorerDraftRows}
+    </div>`;
+
+      return html;
+    }
+
 
     function buildSeasonOptions() {
       const now = new Date();
