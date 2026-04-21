@@ -5648,11 +5648,12 @@
         Refresh Data
       </button>
     </div>
-    <div style="display:flex;justify-content:center;padding:16px 0 8px;border-top:1px solid var(--g200);margin-top:16px">
-      <button class="add-btn" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;font-weight:700" onclick="undeployLiveSchedule()">🛑 Undeploy Live Schedule</button>
-    </div>
-    <div style="display:flex;justify-content:center;padding:4px 0 8px">
-      <button class="clear-data-btn" onclick="clearAgeGroupData()">🗑 Clear All Data for ${esc(ADMIN_TEAMS.find(t => t.key === S.team)?.label || S.team)}</button>
+    <div style="border:1.5px solid #fca5a5;border-radius:12px;background:#fff8f8;padding:12px 14px;margin-top:16px">
+      <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#dc2626;margin-bottom:8px">⚠ Danger Zone</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="add-btn" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;font-weight:700" onclick="undeployLiveSchedule()">🛑 Undeploy Live Schedule</button>
+        <button class="clear-data-btn" onclick="clearAgeGroupData()">🗑 Clear All Data for ${esc(ADMIN_TEAMS.find(t => t.key === S.team)?.label || S.team)}</button>
+      </div>
     </div>`;
     }
 
@@ -7527,7 +7528,6 @@
                    oninput="updateBrandingPreview()" style="width:48px;height:36px;border:1px solid var(--g200);border-radius:6px;cursor:pointer;padding:2px">
             <input class="info-input" id="brand-primary-hex" value="${S._branding?.primaryColor || '#002868'}" maxlength="7"
                    oninput="syncBrandingFromHex('primary')" style="flex:0 0 90px;margin:0;font-family:monospace;text-align:center">
-            <span id="brand-primary-swatch" style="width:24px;height:24px;border-radius:50%;background:${S._branding?.primaryColor || '#002868'};border:2px solid var(--g200);flex-shrink:0"></span>
           </div>
         </div>
         <div class="info-field">
@@ -7537,7 +7537,6 @@
                    oninput="updateBrandingPreview()" style="width:48px;height:36px;border:1px solid var(--g200);border-radius:6px;cursor:pointer;padding:2px">
             <input class="info-input" id="brand-secondary-hex" value="${S._branding?.secondaryColor || '#0d9488'}" maxlength="7"
                    oninput="syncBrandingFromHex('secondary')" style="flex:0 0 90px;margin:0;font-family:monospace;text-align:center">
-            <span id="brand-secondary-swatch" style="width:24px;height:24px;border-radius:50%;background:${S._branding?.secondaryColor || '#0d9488'};border:2px solid var(--g200);flex-shrink:0"></span>
           </div>
         </div>
         <div class="info-field">
@@ -7746,7 +7745,7 @@
       </div>
     </details>
 
-    <details class="card collapsible-card" open>
+    <details class="card collapsible-card">
       <summary class="card-header collapsible-header">⏱ ${esc(adminT('addgames_clock_settings'))} <span class="collapse-icon">▾</span></summary>
       <div class="info-form">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
@@ -8947,7 +8946,7 @@
       var rbNoBg = !bs.rebracket ? 'var(--royal)' : 'var(--g100)';
       var rbNoCo = !bs.rebracket ? 'white' : 'var(--g600)';
       var s4dis = (bs.games && bs.games.length) ? '' : ' disabled';
-      return '<details class="card collapsible-card" id="bs-card" open>'
+      return '<details class="card collapsible-card" id="bs-card"' + ((bs.sheetUrl || (bs.step && bs.step > 1)) ? ' open' : '') + '>'
         + '<summary class="card-header collapsible-header">&#x1f4ca; Bracket Sheet Sync <span class="collapse-icon">&#9662;</span></summary>'
         + '<div style="padding:10px 14px">'
         + '<div style="display:flex;gap:3px;margin-bottom:10px" id="bs-stepbar">' + dots + '</div>'
@@ -12118,8 +12117,12 @@
           </div>
         </div>
 
-        <div style="border-top:1px solid var(--g100);padding-top:10px">
-          <div style="font-size:0.82rem;font-weight:700;color:var(--royal);margin-bottom:8px">📢 Send Announcement</div>
+        <details style="border-top:1px solid var(--g100);padding-top:10px">
+          <summary style="font-size:0.82rem;font-weight:700;color:var(--royal);margin-bottom:8px;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between">
+            📢 Send Announcement
+            <span style="font-size:0.72rem;font-weight:400;color:var(--g400)">tap to expand ▾</span>
+          </summary>
+          <div style="padding-top:8px">
           <div class="info-field" style="margin-bottom:8px">
             <div class="info-label">Title</div>
             <input class="info-input" id="announce-title" placeholder="e.g. Schedule Change for Saturday" maxlength="100">
@@ -12157,7 +12160,8 @@
           <div id="announce-status" style="font-size:0.82rem;margin-top:6px;color:var(--g400)"></div>
           <div style="font-size:0.72rem;color:var(--g300);margin-top:4px">Rate limit: max 5 announcements per hour.</div>
           <div id="scheduled-list" style="margin-top:10px;border-top:1px solid var(--g100);padding-top:8px"></div>
-        </div>
+          </div>
+        </details>
       </div>
     </div>`;
 
@@ -13415,6 +13419,16 @@
       </div>
       ${scorerDraftRows}
     </div>`;
+
+      // ── All-clear empty state ──────────────────────────────────────────────
+      const allEmpty = !unresolvedConflicts.length && !scoredEntries.length && !scorerSessionEntries.length && !scorerDraftEntries.length;
+      if (allEmpty) {
+        html += `<div class="card" style="margin-bottom:10px;text-align:center;padding:28px 20px">
+        <div style="font-size:2rem;margin-bottom:8px">✅</div>
+        <div style="font-weight:700;color:var(--g700);margin-bottom:4px">All clear</div>
+        <div style="font-size:0.82rem;color:var(--g400)">No active scorer sessions, pending drafts, or conflicts.<br>Hit <strong>↻ Refresh All</strong> if you're expecting live data.</div>
+      </div>`;
+      }
 
       return html;
     }
