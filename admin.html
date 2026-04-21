@@ -9960,7 +9960,13 @@
         S.tournament.games = games;
         {
           const _bUpdate = {};
-          if (S.bsync.bracketPaths?.length) _bUpdate.paths = S.bsync.bracketPaths;
+          if (S.bsync.bracketPaths?.length) {
+            _bUpdate.paths = S.bsync.bracketPaths;
+          } else if (S.bsync.rebracket === false) {
+            // User explicitly chose "No, single day" — clear any stale bracket paths
+            // from previous imports so the bracket tab doesn't show bogus data.
+            _bUpdate.paths = [];
+          }
           if (S.bsync.pools && Object.keys(S.bsync.pools).length) _bUpdate.pools = S.bsync.pools;
           if (Object.keys(_bUpdate).length) S.tournament.bracket = { ...(S.tournament.bracket || {}), ..._bUpdate };
         }
