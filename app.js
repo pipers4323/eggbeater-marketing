@@ -7906,6 +7906,7 @@ function openScorerDetail(gameId, groupKey = '', ageGroupLabel = '') {
   state.scoreDetail = { gameId, groupKey, ageGroupLabel, viewerOnly: false, scorerMode: true };
   state.scoreDetailTab = 'summary';
   _upsertScorerSession(gameId, groupKey, { status: 'open' });
+  _startScorerHeartbeat(gameId, groupKey); // keep server session marked active every 60s
   syncVolumeButtonShortcut();
   if (state.currentTab !== 'scores') switchTab('scores');
   renderScoresTab();
@@ -7940,6 +7941,7 @@ function handleToggleLiveButtonClick(evt, btn) {
 }
 
 function closeScoreDetail() {
+  _stopScorerHeartbeat(); // stop server heartbeat when leaving scorer
   state.scoreDetail = null;
   state.scoreDetailTab = 'summary';
   syncVolumeButtonShortcut();
@@ -13050,7 +13052,7 @@ async function _mirrorScorerSessionToServer(gameOrRef, explicitGroupKey = '', ex
     const headers = { 'Content-Type': 'application/json' };
     const scorePw = (tournament.scoringPassword || '').trim();
     if (scorePw) headers['X-Score-Password'] = scorePw;
-    await fetch(`${PUSH_SERVER_URL}/scorer-session`, {
+    const res = await fetch(`${PUSH_SERVER_URL}/scorer-session`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -13066,11 +13068,81 @@ async function _mirrorScorerSessionToServer(gameOrRef, explicitGroupKey = '', ex
         deviceId: getDeviceId(),
         status: extra.status || session.status || 'open',
         reason: extra.reason || 'session',
+        force: extra.force || false,
         updatedAt: Date.parse(extra.session?.lastTouchedAt || session.lastTouchedAt || '') || Date.now(),
       }),
     });
+    // 409 = another device actively owns this session
+    if (res.status === 409) {
+      const conflictData = await res.json().catch(() => ({}));
+      if (conflictData.blocked) {
+        _handleScorerDeviceConflict(conflictData, session.gameId || _gameIdOnly(gameOrRef), groupKey);
+      }
+    }
   } catch (e) {
     console.warn('[scorer-db] mirror session failed:', e.message);
+  }
+}
+
+// ─── SCORER HEARTBEAT ──────────────────────────────────────────────────────────
+
+let _scorerHeartbeatInterval = null;
+
+/**
+ * Start a 60-second heartbeat that keeps the server session record fresh
+ * so the worker can distinguish active vs stale sessions.
+ * Clears any existing heartbeat first.
+ */
+function _startScorerHeartbeat(gameOrRef, groupKey) {
+  _stopScorerHeartbeat();
+  _scorerHeartbeatInterval = setInterval(() => {
+    if (!state.scoreDetail?.scorerMode) { _stopScorerHeartbeat(); return; }
+    const session = _getScorerSession(gameOrRef, groupKey);
+    if (!session || ['final-acked', 'finalizing', 'abandoned'].includes(session.status || '')) {
+      _stopScorerHeartbeat();
+      return;
+    }
+    _mirrorScorerSessionToServer(gameOrRef, groupKey, {
+      session,
+      status: 'open',
+      reason: 'heartbeat',
+    });
+  }, 60 * 1000);
+}
+
+function _stopScorerHeartbeat() {
+  if (_scorerHeartbeatInterval) {
+    clearInterval(_scorerHeartbeatInterval);
+    _scorerHeartbeatInterval = null;
+  }
+}
+
+/**
+ * Called when the server returns 409: another device actively owns this session.
+ * Shows the scorer a warning with the option to take over ownership.
+ */
+function _handleScorerDeviceConflict(conflictData, gameId, groupKey) {
+  // Only show once — don't spam if heartbeat fires repeatedly
+  if (window._scorerConflictShown) return;
+  window._scorerConflictShown = true;
+  const existingDevice = (conflictData.existingDeviceId || '').slice(0, 8);
+  const existingUpdated = conflictData.existingUpdatedAt
+    ? new Date(conflictData.existingUpdatedAt).toLocaleTimeString()
+    : 'recently';
+  const takeOver = window.confirm(
+    `⚠️ Scorer conflict: another device (${existingDevice || 'unknown'}) is actively scoring this game.\n` +
+    `Last active: ${existingUpdated}\n\n` +
+    `Take over scoring from that device?`
+  );
+  window._scorerConflictShown = false;
+  if (takeOver) {
+    _mirrorScorerSessionToServer(gameId, groupKey, {
+      session: _getScorerSession(gameId, groupKey),
+      status: 'open',
+      reason: 'takeover',
+      force: true,
+    });
+    showToast('Took over scorer session', 'warn');
   }
 }
 

@@ -13085,9 +13085,14 @@
           const scoreLabel = (typeof session.team === 'number' && typeof session.opp === 'number')
             ? `${session.team}-${session.opp}`
             : (typeof score.team === 'number' && typeof score.opp === 'number' ? `${score.team}-${score.opp}` : '—');
-          const stamp = entry.updatedAt ? new Date(entry.updatedAt).toLocaleString() : '';
+          // computedStatus is set server-side accounting for stale heartbeat window
+          const effectiveStatus = entry.computedStatus || entry.status || session.status || 'open';
+          const statusColor = { 'open': '#15803d', 'finalizing': '#1d4ed8', 'final-acked': '#1d4ed8', 'stale': '#d97706', 'conflict': '#dc2626', 'abandoned': '#6b7280' }[effectiveStatus] || '#6b7280';
+          const statusLabel = { 'open': 'Active ●', 'finalizing': 'Finalizing…', 'final-acked': 'Final ✓', 'stale': 'Stale ⚠', 'conflict': 'Conflict!', 'abandoned': 'Abandoned' }[effectiveStatus] || effectiveStatus;
+          const hbMs = entry.heartbeatAt ? Date.now() - Number(entry.heartbeatAt) : null;
+          const hbLabel = hbMs !== null ? (hbMs < 90000 ? 'heartbeat just now' : hbMs < 3600000 ? `heartbeat ${Math.round(hbMs / 60000)}m ago` : 'heartbeat >1h ago') : (entry.updatedAt ? 'updated ' + new Date(entry.updatedAt).toLocaleTimeString() : '');
           const auditBits = [
-            stamp ? 'Updated ' + stamp : '',
+            hbLabel,
             entry.deviceId ? 'Device ' + entry.deviceId.slice(0, 8) : '',
             session.eventCount ? `${session.eventCount} events` : '',
             entry.conflict ? 'Conflict detected' : '',
@@ -13096,7 +13101,7 @@
             <div class="game-summary" style="cursor:default">
               <div class="game-info">
                 <div class="game-opp">${esc(session.opponent || entry.gameId || 'Active scorer session')}</div>
-                <div class="game-meta">${esc(scoreLabel)} · ${esc(entry.status || session.status || 'open')}${auditBits ? ' · ' + esc(auditBits) : ''}</div>
+                <div class="game-meta">${esc(scoreLabel)} · <span style="font-weight:700;color:${statusColor}">${esc(statusLabel)}</span>${auditBits ? ' · ' + esc(auditBits) : ''}</div>
               </div>
             </div>
           </div>`;
