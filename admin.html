@@ -2639,6 +2639,9 @@
       tournamentList: [],     // Phase 3: [{id, name, dates, status, location, ...}]
       director: null,   // Tournament Director state (lazily init'd in renderDirectorTab)
       directorUnlocked: false,
+      directorView: 'setup',      // 'setup' | 'dashboard'
+      _dirDashData: null,          // cached dashboard API response
+      _dirDashPollTimer: null,     // interval ID for dashboard auto-refresh
       idToken: null,   // Firebase ID token for Worker API auth
       authMode: '',     // 'google' or 'password'
       dirPkg: null,   // imported Tournament Director package (for Sync from Director)
@@ -5038,6 +5041,7 @@
     function switchTab(tab) {
       // Clear recovery auto-refresh when leaving that tab
       if (S._recoveryPollTimer) { clearInterval(S._recoveryPollTimer); S._recoveryPollTimer = null; }
+      if (S._dirDashPollTimer) { clearInterval(S._dirDashPollTimer); S._dirDashPollTimer = null; }
       S.currentTab = tab;
       S.editingGame = null;
       S.editingRoster = null;
@@ -5098,10 +5102,20 @@
       if (S.currentTab === 'help') el.innerHTML = renderHelpTab();
       if (S.currentTab === 'director') {
         if (!tierHasFeature('tournament_host')) { el.innerHTML = renderTieredNudge('director'); return; }
-        // Any authenticated admin (Firebase or standard password) is auto-unlocked.
         if (S.idToken || S.pw) S.directorUnlocked = true;
         if (!S.directorUnlocked) { el.innerHTML = renderDirectorLoginGate(); return; }
-        el.innerHTML = renderDirectorTab(); setTimeout(() => { initDirectorPlaces(); (S.director?.ageGroups || []).forEach((_, ai) => renderDirToLengthInputs(ai)); }, 0);
+        el.innerHTML = renderDirectorTab();
+        if (S.directorView !== 'dashboard') {
+          setTimeout(() => { initDirectorPlaces(); (S.director?.ageGroups || []).forEach((_, ai) => renderDirToLengthInputs(ai)); }, 0);
+        } else {
+          if (!S._dirDashData) loadDirectorDashboard().then(data => { S._dirDashData = data; renderTab(); }).catch(() => {});
+          if (!S._dirDashPollTimer) {
+            S._dirDashPollTimer = setInterval(() => {
+              if (S.currentTab !== 'director' || S.directorView !== 'dashboard') { clearInterval(S._dirDashPollTimer); S._dirDashPollTimer = null; return; }
+              loadDirectorDashboard().then(data => { S._dirDashData = data; renderTab(); }).catch(() => {});
+            }, 15000);
+          }
+        }
       }
       if (S.currentTab === 'teamcomm') {
         el.innerHTML = renderTeamCommTab();
@@ -16187,7 +16201,12 @@
       </div>
     </div>`;
 
-      return `
+      const _dirToggle = `<div style="display:flex;gap:0;margin-bottom:12px;border-radius:10px;overflow:hidden;border:1.5px solid var(--g200)">
+        <button onclick="switchDirectorView('setup')" style="flex:1;padding:10px;font-size:0.85rem;font-weight:700;border:none;cursor:pointer;background:${S.directorView!=='dashboard'?'var(--royal)':'var(--g50)'};color:${S.directorView!=='dashboard'?'white':'var(--g600)'}">⚙️ Setup</button>
+        <button onclick="switchDirectorView('dashboard')" style="flex:1;padding:10px;font-size:0.85rem;font-weight:700;border:none;cursor:pointer;border-left:1.5px solid var(--g200);background:${S.directorView==='dashboard'?'var(--royal)':'var(--g50)'};color:${S.directorView==='dashboard'?'white':'var(--g600)'}">📊 Live Dashboard</button>
+      </div>`;
+      if (S.directorView === 'dashboard') return _dirToggle + renderDirectorDashboard();
+      return `${_dirToggle}
     ${tournamentInfoCard}
     ${dirBsCard}
     <div class="card">
@@ -16245,6 +16264,127 @@
         <div style="color:var(--g400);font-size:0.85rem">${adminT('addgames_scores_hint')}</div>
       </div>
     </div>` : ''}`;
+    }
+
+    // ── Director Live Dashboard ───────────────────────────────────────────────────
+
+    function switchDirectorView(view) {
+      S.directorView = view;
+      if (view === 'dashboard') {
+        S._dirDashData = null; // force fresh load on switch
+      }
+      renderTab();
+    }
+
+    async function refreshDirDashboard() {
+      try {
+        S._dirDashData = await loadDirectorDashboard();
+        renderTab();
+      } catch (e) {
+        console.warn('[ebwp] dashboard refresh failed:', e);
+      }
+    }
+
+    function renderDirectorDashboard() {
+      const data = S._dirDashData;
+      const teams = getAdminTeams();
+
+      if (!data) {
+        return `<div class="card" style="text-align:center;padding:32px 20px">
+          <div style="font-size:1.5rem;margin-bottom:8px">⏳</div>
+          <div style="font-weight:700;color:var(--g700);margin-bottom:4px">Loading dashboard…</div>
+          <div style="font-size:0.82rem;color:var(--g400)">Fetching live data across all age groups</div>
+        </div>`;
+      }
+
+      if (!data.groups || !data.groups.length) {
+        return `<div class="card" style="text-align:center;padding:32px 20px">
+          <div style="font-size:2rem;margin-bottom:8px">📭</div>
+          <div style="font-weight:700;color:var(--g700);margin-bottom:4px">No active tournaments</div>
+          <div style="font-size:0.82rem;color:var(--g400)">Deploy games in <strong>Add Games</strong> first, then return here to monitor live.</div>
+        </div>`;
+      }
+
+      let totalLive = 0, totalFinal = 0, totalPre = 0, totalIssues = 0;
+
+      const groupsHtml = data.groups.map(group => {
+        const games = (group.games || []).slice().sort((a, b) => gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum));
+        const scoredGames = group.scoredGames || {};
+        const sessions = group.sessions || [];
+        const sessionByGame = {};
+        for (const sess of sessions) { if (sess.gameId) sessionByGame[sess.gameId] = sess; }
+        const teamLabel = teams.find(t => t.key === group.team)?.label || group.team;
+
+        const rows = games.map(game => {
+          const session = sessionByGame[game.id];
+          const scored = scoredGames[game.id];
+          let statusIcon, statusText, statusColor, scoreLabel = '', periodLabel = '';
+          const ss = session?.computedStatus;
+
+          if (session && ['open', 'finalizing'].includes(ss)) {
+            const sc = session.session || session.score || {};
+            if (typeof sc.team === 'number' && typeof sc.opp === 'number') scoreLabel = `${sc.team}–${sc.opp}`;
+            if (sc.period) periodLabel = `Q${sc.period}`;
+            statusIcon = '🟢'; statusText = 'Live' + (periodLabel ? ' ' + periodLabel : ''); statusColor = '#15803d'; totalLive++;
+          } else if (session && ss === 'conflict') {
+            statusIcon = '⚠️'; statusText = 'Conflict!'; statusColor = '#dc2626'; totalIssues++;
+          } else if (session && ss === 'stale') {
+            statusIcon = '🟡'; statusText = 'Stale'; statusColor = '#d97706'; totalIssues++;
+          } else if (scored?.needsFinalization) {
+            const sc = scored.score || {};
+            if (typeof sc.team === 'number' && typeof sc.opp === 'number') scoreLabel = `${sc.team}–${sc.opp}`;
+            statusIcon = '⏳'; statusText = 'Needs final'; statusColor = '#d97706'; totalIssues++;
+          } else if (scored && ['final','so_w','so_l','ff'].includes(String(scored.score?.gameState||''))) {
+            const sc = scored.score || {};
+            if (typeof sc.team === 'number' && typeof sc.opp === 'number') scoreLabel = `${sc.team}–${sc.opp}`;
+            statusIcon = '✅'; statusText = 'Final'; statusColor = 'var(--g400)'; totalFinal++;
+          } else {
+            statusIcon = '○'; statusText = 'Pre'; statusColor = 'var(--g200)'; totalPre++;
+          }
+
+          const hasIssue = ['conflict','stale'].includes(ss) || !!scored?.needsFinalization;
+          return `<div class="game-row" style="${hasIssue ? 'background:#fffbeb;' : ''}cursor:default">
+            <div class="game-summary" style="cursor:default">
+              <span class="game-num">${esc(game.gameNum || '?')}</span>
+              <div class="game-info">
+                <div class="game-opp">${esc(game.opponent || 'TBD')}${scoreLabel ? `<span style="font-weight:800;margin-left:8px;color:var(--royal)">${esc(scoreLabel)}</span>` : ''}</div>
+                <div class="game-meta">${[game.time, game.pool, game.location].filter(Boolean).map(esc).join(' · ')}</div>
+              </div>
+              <span style="font-size:0.78rem;font-weight:700;color:${statusColor};white-space:nowrap;flex-shrink:0">${statusIcon} ${esc(statusText)}</span>
+            </div>
+          </div>`;
+        }).join('');
+
+        return `<div class="card" style="margin-bottom:10px">
+          <div class="card-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span>${esc(teamLabel)}</span>
+            ${group.tournamentName ? `<span style="font-size:0.75rem;font-weight:400;color:var(--g400)">${esc(group.tournamentName)}</span>` : ''}
+            <div style="flex:1"></div>
+            <span style="font-size:0.72rem;color:var(--g400)">${games.length} game${games.length !== 1 ? 's' : ''}</span>
+          </div>
+          ${rows || '<div style="padding:16px 14px;color:var(--g400);font-size:.85rem">No games deployed for this group</div>'}
+        </div>`;
+      }).join('');
+
+      const fetchedAgo = data.fetchedAt ? Math.round((Date.now() - data.fetchedAt) / 1000) : null;
+      const agoLabel = fetchedAgo !== null ? (fetchedAgo < 5 ? 'just now' : fetchedAgo + 's ago') : '';
+      const pills = [
+        totalLive  ? `<span style="padding:2px 9px;border-radius:99px;background:#dcfce7;color:#15803d;font-size:0.75rem;font-weight:700">🟢 ${totalLive} live</span>` : '',
+        totalFinal ? `<span style="padding:2px 9px;border-radius:99px;background:var(--g100);color:var(--g600);font-size:0.75rem;font-weight:700">✅ ${totalFinal} final</span>` : '',
+        totalPre   ? `<span style="padding:2px 9px;border-radius:99px;background:var(--g50);color:var(--g400);font-size:0.75rem;font-weight:700">○ ${totalPre} pre</span>` : '',
+        totalIssues? `<span style="padding:2px 9px;border-radius:99px;background:#fee2e2;color:#dc2626;font-size:0.75rem;font-weight:700">⚠️ ${totalIssues} need attention</span>` : '',
+      ].filter(Boolean).join('');
+
+      return `<div class="card" style="margin-bottom:10px">
+        <div style="padding:12px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-weight:800;font-size:0.9rem;color:var(--g700)">📊 Tournament Overview</span>
+          ${pills}
+          <div style="flex:1"></div>
+          <span style="font-size:0.7rem;color:var(--g300);white-space:nowrap">${agoLabel ? 'Updated ' + esc(agoLabel) : ''} · auto 15s</span>
+          <button class="save-btn" onclick="refreshDirDashboard()" style="background:var(--g100);color:var(--g700)">↻ Refresh</button>
+        </div>
+      </div>
+      ${groupsHtml}`;
     }
 
     // ─── AUTO-FOCUS ───────────────────────────────────────────────────────────────
