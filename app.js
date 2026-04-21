@@ -2488,6 +2488,7 @@ const state = {
   recoveredScorerSessions: [],
   roster:           [],     // [{ cap, first, last }] — editable via Roster tab
   bracketDrawView:  'my-path',  // 'my-path' | 'full-draw'
+  _fullDrawPollTimer: null,     // fast-refresh interval (6s) active when Full Draw is visible
   currentTab:       'schedule',
   viewerMode:       true,       // true = viewing live scores without scorer login (default for spectators)
   spectatorTier:    null,       // canonical in-memory tier name going forward
@@ -7207,6 +7208,11 @@ function updateSyncBadge(status) {
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
 
 function switchTab(tab) {
+  // Stop Full Draw fast-poll when leaving the bracket tab
+  if (tab !== 'possible' && state._fullDrawPollTimer) {
+    clearInterval(state._fullDrawPollTimer);
+    state._fullDrawPollTimer = null;
+  }
   state.currentTab = tab;
   document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
   $(`view-${tab}`)?.classList.remove('hidden');
@@ -10334,6 +10340,10 @@ const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && get
 // ─── FULL DRAW VIEW ───────────────────────────────────────────────────────────
 
 function setBracketDrawView(view) {
+  if (view !== 'full-draw' && state._fullDrawPollTimer) {
+    clearInterval(state._fullDrawPollTimer);
+    state._fullDrawPollTimer = null;
+  }
   state.bracketDrawView = view;
   renderPossibleTab();
 }
@@ -10342,6 +10352,26 @@ function setBracketDrawView(view) {
  *  scoreSource = { games: [...directorGames], scores: {id→{score1,score2,status}} } | null
  *  Returns { 'Pool A': [{name, seed, w, l, t, gf, ga, gd, gp}, ...], ... }
  */
+/** Resolve "1st Pool A" / "2nd Pool B" references in bracket step descriptions
+ *  to actual team names once that pool's round-robin is complete.
+ *  Returns the original text unchanged if the pool isn't locked yet.
+ */
+function _resolvePoolSeedRef(text, standings) {
+  if (!standings || !Object.keys(standings).length) return text;
+  return text.replace(/\b(\d+)(?:st|nd|rd|th)\s+(Pool\s+[A-Z0-9]+)\b/gi, (match, ordStr, poolRef) => {
+    const poolKey = Object.keys(standings).find(k => k.toLowerCase() === poolRef.toLowerCase());
+    if (!poolKey) return match;
+    const arr = standings[poolKey];
+    if (!arr || !arr.length) return match;
+    const expectedGames = arr.length - 1; // round-robin: each team plays N-1 games
+    const isLocked = expectedGames > 0 && arr.every(t => t.gp === expectedGames);
+    if (!isLocked) return match;
+    const idx = parseInt(ordStr) - 1;
+    const team = arr[idx];
+    return team ? team.name : match;
+  });
+}
+
 function _computeFullDrawStandings(pools, scoreSource) {
   const result = {};
   for (const [poolName, teamNames] of Object.entries(pools)) {
@@ -10389,6 +10419,20 @@ function renderFullDraw() {
   if (emptyEl) emptyEl.classList.add('hidden');
   if (descEl) descEl.textContent = '';
 
+  // ── Phase D: Start fast-refresh poll (6s) while Full Draw is visible ─────
+  if (!state._fullDrawPollTimer) {
+    state._fullDrawPollTimer = setInterval(async () => {
+      if (state.currentTab !== 'possible' || state.bracketDrawView !== 'full-draw') {
+        clearInterval(state._fullDrawPollTimer);
+        state._fullDrawPollTimer = null;
+        return;
+      }
+      if (state.tscorePkg?.code) await pollTournScores();
+      else if (getDirectorPkg()?.code) await pollDirScores();
+      // renderPossibleTab() is triggered by the poll callbacks when data changes
+    }, 6000);
+  }
+
   const pools = TOURNAMENT.bracket?.pools || {};
   const paths = getTournamentBracketPaths() || [];
   const hasPools = Object.keys(pools).length > 0;
@@ -10406,9 +10450,21 @@ function renderFullDraw() {
 
   let html = '';
 
+  // Compute standings once — used for both the table and bracket seed resolution
+  const standings = hasPools ? _computeFullDrawStandings(pools, scoreSource) : {};
+
+  // Live refresh indicator (shows when a score source is active)
+  if (scoreSource) {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    html += `<div style="display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--gray-400,#9ca3af);margin-bottom:10px">
+      <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite"></span>
+      Live · refreshes every 6s · last updated ${timeStr}
+    </div>`;
+  }
+
   // ── 1. Pool standings ──────────────────────────────────────────────────────
   if (hasPools) {
-    const standings = _computeFullDrawStandings(pools, scoreSource);
     const hasAnyScores = Object.values(standings).some(arr => arr.some(t => t.gp > 0));
 
     html += `<div style="margin-bottom:18px">
@@ -10463,9 +10519,11 @@ function renderFullDraw() {
         </div>
         ${(path.steps || []).map(s => {
           const timeStr = (s.time && s.time !== 'TBD') ? escHtml(s.time) : (s.date ? escHtml(s.date) : 'TBD');
+          // Phase D: resolve "1st Pool A" → actual team name when standings are locked
+          const descResolved = escHtml(_resolvePoolSeedRef(s.desc || '', standings));
           return `<div style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--gray-700,#374151);padding:4px 0;border-top:1px solid var(--gray-100,#f3f4f6)">
             ${s.gameNum ? `<span style="color:var(--gray-400,#9ca3af);font-size:0.72rem;min-width:32px">${escHtml(s.gameNum)}</span>` : ''}
-            <span style="flex:1">${escHtml(s.desc || '')}</span>
+            <span style="flex:1">${descResolved}</span>
             <span style="color:var(--gray-400,#9ca3af);font-size:0.75rem;white-space:nowrap">${timeStr}</span>
           </div>`;
         }).join('')}
