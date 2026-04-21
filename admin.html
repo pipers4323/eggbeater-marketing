@@ -10774,8 +10774,24 @@
           const _apDateCell = (dateCol >= 0 ? (row[dateCol] || '').trim() : '');
           const dateRaw = (parseDateToISO(_apDateCell) ? _apDateCell : '') || _apRowDate[ri] || '';
           const dateISO = parseDateToISO(dateRaw);
-          const rawLoc = poolCol >= 0 ? (row[poolCol] || '').trim() : ((row[locationCol] || '').trim() || _apRowLoc[ri] || '');
-          const locParsed = (typeof bsParseLocation === 'function') ? bsParseLocation(rawLoc) : { venue: rawLoc };
+          // Venue: always from the section-header pre-pass (never from the pool# column)
+          const _apGameLocation = _apRowLoc[ri] || '';
+          // Pool: col after dark often holds a bare court number ("1","2") — format as "Pool N"
+          const _apPoolRaw = poolCol >= 0 ? (row[poolCol] || '').trim() : '';
+          const _apLocRaw  = locationCol >= 0 ? (row[locationCol] || '').trim() : '';
+          let _apGamePool = '';
+          if (_apPoolRaw) {
+            if (/^\d+$/.test(_apPoolRaw)) { _apGamePool = 'Pool ' + _apPoolRaw; }
+            else { const _lp = bsParseLocation(_apPoolRaw); _apGamePool = _lp.poolNum ? 'Pool ' + _lp.poolNum : (_apPoolRaw || ''); }
+          } else if (_apLocRaw) {
+            const _lp = bsParseLocation(_apLocRaw); _apGamePool = _lp.poolNum ? 'Pool ' + _lp.poolNum : (_lp.venue || '');
+          }
+          if (!_apGamePool) _apGamePool = S.bsync.myPool || '';
+          // Multi-team: assign team slot (A/B/C) based on which name matched
+          const _apTeamSlots = ['A', 'B', 'C'];
+          const _apMatchField = (isWhite ? white : blue).toLowerCase();
+          const _apMatchedIdx = _apTeamNamesLower.length > 1 ? _apTeamNamesLower.findIndex(n => _apMatchField.includes(n)) : -1;
+          const _apTeamSlot = _apMatchedIdx >= 0 ? (_apTeamSlots[_apMatchedIdx] || 'A') : undefined;
 
           const game = {
             id: 'g' + (Date.now() + games.length).toString(36),
@@ -10784,9 +10800,10 @@
             time: (row[timeCol] || '').trim(),
             dateISO,
             date: dateISO ? isoToDate(dateISO) : dateRaw,
-            location: locParsed.venue,
-            pool: locParsed.poolNum ? 'Pool ' + locParsed.poolNum : (S.bsync.myPool || ''),
+            location: _apGameLocation,
+            pool: _apGamePool,
             cap: isBlue ? 'Dark' : 'White',
+            ...(_apTeamSlot ? { team: _apTeamSlot } : {}),
           };
 
           // Apply score/result sync
