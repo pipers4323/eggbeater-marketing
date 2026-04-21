@@ -9178,13 +9178,20 @@
       const status = document.getElementById('bs-cc-status');
       const groups = document.getElementById('bs-cc-groups');
       if (!cells) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter legend cells first (e.g. A18, B18)'; } return; }
+      const _urlVal = (document.getElementById('bs-url')?.value || '').trim();
       const sheetId = S.bsync?.sheetId || (() => {
-        const m = (document.getElementById('bs-url')?.value || '').match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+        const m = _urlVal.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
         return m ? m[1] : null;
       })();
       if (!sheetId) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter the sheet URL first'; } return; }
       S.bsync.legendCells = cells;
       if (S.bsync) S.bsync.sheetId = sheetId;
+      // Also extract sheetGid from the URL field if not already set — bsStep1Next()
+      // normally does this, but the user may click Detect before clicking Next.
+      if (S.bsync && !S.bsync.sheetGid) {
+        const _gidM = _urlVal.match(/[#?&]gid=(\d+)/);
+        if (_gidM) { S.bsync.sheetGid = _gidM[1]; localStorage.setItem('ebadmin-bsync-gid', _gidM[1]); }
+      }
       if (status) { status.style.color = 'var(--g400)'; status.textContent = '\u23f3 Reading legend cells\u2026'; }
       if (groups) groups.innerHTML = '';
       try {
