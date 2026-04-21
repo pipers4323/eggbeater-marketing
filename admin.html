@@ -9631,10 +9631,11 @@
           const isBlue = _teamNamesLower.some(n => dark.toLowerCase().includes(n));
           if (!isWhite && !isBlue) continue;
 
-          // Use cell value from detected column only if it looks like a date (contains / or -),
-          // so bare game numbers in col 0 (e.g. "1","2","7") don't shadow the pre-pass date.
+          // Only use dateCol cell if it actually parses as a valid date, so bare game
+          // numbers in col 0 ("1","2","7") and other non-date values don't shadow the
+          // pre-pass section-header date.  Works for any date format parseDateToISO handles.
           const _dateCellRaw = (dateCol >= 0 ? (row[dateCol] || '').trim() : '');
-          const dateRaw = (/[\/\-]/.test(_dateCellRaw) ? _dateCellRaw : '') || _rowDate[ri] || '';
+          const dateRaw = (parseDateToISO(_dateCellRaw) ? _dateCellRaw : '') || _rowDate[ri] || '';
           // Venue: always from the section-header pre-pass (never from the pool# column)
           const gameLocation = _rowLoc[ri] || '';
           // Pool: col E often holds a bare court/pool number ("1", "2") — format as "Pool N"
@@ -10735,7 +10736,7 @@
           if (!isWhite && !isBlue) continue;
           const rawGnum = gameNumCol >= 0 ? (row[gameNumCol] || '').trim() : '';
           const _apDateCell = (dateCol >= 0 ? (row[dateCol] || '').trim() : '');
-          const dateRaw = (/[\/\-]/.test(_apDateCell) ? _apDateCell : '') || _apRowDate[ri] || '';
+          const dateRaw = (parseDateToISO(_apDateCell) ? _apDateCell : '') || _apRowDate[ri] || '';
           const dateISO = parseDateToISO(dateRaw);
           const rawLoc = poolCol >= 0 ? (row[poolCol] || '').trim() : ((row[locationCol] || '').trim() || _apRowLoc[ri] || '');
           const locParsed = (typeof bsParseLocation === 'function') ? bsParseLocation(rawLoc) : { venue: rawLoc };
