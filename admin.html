@@ -9626,8 +9626,19 @@
 
           // Use cell value from detected column; fall back to section-header date from pre-pass
           const dateRaw = (dateCol >= 0 ? (row[dateCol] || '').trim() : '') || _rowDate[ri] || '';
-          const rawLoc = poolCol >= 0 ? (row[poolCol] || '').trim() : ((locationCol >= 0 ? (row[locationCol] || '').trim() : '') || _rowLoc[ri] || '');
-          const locParsed = bsParseLocation(rawLoc);
+          // Venue: always from the section-header pre-pass (never from the pool# column)
+          const gameLocation = _rowLoc[ri] || '';
+          // Pool: col E often holds a bare court/pool number ("1", "2") — format as "Pool N"
+          const _poolRaw = poolCol >= 0 ? (row[poolCol] || '').trim() : '';
+          const _locRaw  = locationCol >= 0 ? (row[locationCol] || '').trim() : '';
+          let gamePool = '';
+          if (_poolRaw) {
+            if (/^\d+$/.test(_poolRaw)) { gamePool = 'Pool ' + _poolRaw; }
+            else { const lp = bsParseLocation(_poolRaw); gamePool = lp.poolNum ? 'Pool ' + lp.poolNum : (_poolRaw || ''); }
+          } else if (_locRaw) {
+            const lp = bsParseLocation(_locRaw); gamePool = lp.poolNum ? 'Pool ' + lp.poolNum : (lp.venue || '');
+          }
+          if (!gamePool) gamePool = S.bsync.myPool || '';
           const time = (row[timeCol] || '').trim();
           const rawGnum = gameNumCol >= 0 ? (row[gameNumCol] || '').trim() : '';
           const opponentRaw = isWhite ? dark : white;
@@ -9654,8 +9665,8 @@
             time: timeFormatted,
             dateISO,
             date: dateISO ? isoToDate(dateISO) : dateRaw,
-            location: locParsed.venue,
-            pool: locParsed.poolNum ? 'Pool ' + locParsed.poolNum : (S.bsync.myPool || ''),
+            location: gameLocation,
+            pool: gamePool,
             cap,
             ...(teamSlot ? { team: teamSlot } : {}),
           });
@@ -9950,8 +9961,10 @@
         // Save sync config
         S.tournament.sheetSync = {
           sheetUrl: S.bsync.sheetUrl,
+          sheetGid: S.bsync.sheetGid || '',
           poolRange: S.bsync.poolRange,
           teamName: S.bsync.teamName,
+          teamNames: S.bsync.teamNames || [],
           myPool: S.bsync.myPool,
           mySeed: S.bsync.mySeed,
           rebracket: S.bsync.rebracket,
@@ -9961,8 +9974,10 @@
           legendCells: S.bsync.legendCells || '',
           myAgeGroup: S.bsync.myAgeGroup || '',
           lastSync: new Date().toISOString(),
+          ...(S.bsync.dateOverrides && Object.keys(S.bsync.dateOverrides).length ? { dateOverrides: S.bsync.dateOverrides } : {}),
         };
         localStorage.setItem('ebadmin-bsync-url', S.bsync.sheetUrl || '');
+        localStorage.setItem('ebadmin-bsync-gid', S.bsync.sheetGid || '');
         localStorage.setItem('ebadmin-bsync-team', S.bsync.teamName || '');
         localStorage.setItem('ebadmin-bsync-mins', S.bsync.pollMins || '0');
         localStorage.setItem('ebadmin-bsync-range', S.bsync.poolRange || '');
@@ -10541,13 +10556,16 @@
     function _restoreBsyncFromTournament() {
       const sync = S.tournament?.sheetSync;
       if (!sync?.sheetUrl || sync?.njoMode) return;
+      const _gidFromUrl = url => url?.match(/[#?&]gid=(\d+)/)?.[1] || '';
       S.bsync = {
         ...(S.bsync || {}),
         step: S.bsync?.step || 7,
         sheetUrl: sync.sheetUrl,
         sheetId: sync.sheetId || _sheetIdFromUrl(sync.sheetUrl),
+        sheetGid: sync.sheetGid || _gidFromUrl(sync.sheetUrl) || localStorage.getItem('ebadmin-bsync-gid') || '',
         poolRange: sync.poolRange || '',
         teamName: sync.teamName || '',
+        teamNames: Array.isArray(sync.teamNames) ? sync.teamNames : (sync.teamName ? [sync.teamName] : []),
         myPool: sync.myPool || '',
         mySeed: sync.mySeed || 0,
         rebracket: !!sync.rebracket,
@@ -10557,6 +10575,7 @@
         legendCells: sync.legendCells || '',
         myAgeGroup: sync.myAgeGroup || '',
         lastSync: sync.lastSync || '',
+        dateOverrides: sync.dateOverrides || null,
         games: Array.isArray(S.tournament?.games) ? [...S.tournament.games] : [],
         bracketPaths: Array.isArray(S.tournament?.bracket?.paths) ? [...S.tournament.bracket.paths] : null,
       };
