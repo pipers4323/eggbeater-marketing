@@ -7716,6 +7716,8 @@
       // Init bracket sync state lazily
       if (!S.bsync) S.bsync = { step: 1, sheetUrl: localStorage.getItem('ebadmin-bsync-url') || '', poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '' };
       const bs = S.bsync;
+      // Advanced Import parent accordion: auto-open if any wizard is active
+      const _advOpen = !!(bs.sheetUrl || (bs.step && bs.step > 1) || (S.dirImport && S.dirImport.open) || (S.njo && S.njo.sheetUrl));
 
       return `
     <details class="card collapsible-card" open>
@@ -7737,11 +7739,14 @@
       </div>
     </details>
 
-    ${bsWizardHtml()}
-
-    ${dirImportWizardHtml()}
-
-    ${njoWizardHtml()}
+    <details class="card collapsible-card" id="advanced-import-card"${_advOpen ? ' open' : ''}>
+      <summary class="card-header collapsible-header">🔧 Advanced Import <span class="collapse-icon">▾</span></summary>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:8px 0 4px">
+        ${bsWizardHtml()}
+        ${dirImportWizardHtml()}
+        ${njoWizardHtml()}
+      </div>
+    </details>
 
     <details class="card collapsible-card" open>
       <summary class="card-header collapsible-header">⚙️ ${esc(adminT('addgames_game_setup'))} <span class="collapse-icon">▾</span></summary>
