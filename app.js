@@ -2487,6 +2487,7 @@ const state = {
   historyDetailTab: 'summary',
   recoveredScorerSessions: [],
   roster:           [],     // [{ cap, first, last }] — editable via Roster tab
+  bracketDrawView:  'my-path',  // 'my-path' | 'full-draw'
   currentTab:       'schedule',
   viewerMode:       true,       // true = viewing live scores without scorer login (default for spectators)
   spectatorTier:    null,       // canonical in-memory tier name going forward
@@ -9183,6 +9184,7 @@ async function pollTournScores() {
       }
     }
     if (changed && state.currentTab === 'tournscore') renderTournScoreTab();
+    if (changed && state.currentTab === 'possible' && state.bracketDrawView === 'full-draw') renderPossibleTab();
   } catch {}
 }
 
@@ -10174,6 +10176,31 @@ function renderPossibleTab() {
     if (viewEl) viewEl.innerHTML = renderSpectatorNudge('possible');
     return;
   }
+
+  // ── My Path / Full Draw toggle ────────────────────────────────────────────
+  const _hasPools = !!(TOURNAMENT.bracket?.pools && Object.keys(TOURNAMENT.bracket.pools).length > 0);
+  const _allPaths = getTournamentBracketPaths();
+  const _showToggle = _hasPools || !!(_allPaths?.length);
+  if (_showToggle) {
+    let _toggleEl = document.getElementById('possible-toggle-bar');
+    if (!_toggleEl) {
+      _toggleEl = document.createElement('div');
+      _toggleEl.id = 'possible-toggle-bar';
+      const _card = document.querySelector('#view-possible .tab-card');
+      if (_card) _card.insertBefore(_toggleEl, _card.firstChild);
+    }
+    const _isFull = state.bracketDrawView === 'full-draw';
+    _toggleEl.innerHTML = `<div style="display:flex;border-radius:8px;overflow:hidden;border:1.5px solid var(--g200,#e2e8f0);margin-bottom:14px">
+      <button onclick="setBracketDrawView('my-path')" style="flex:1;padding:7px 0;border:none;background:${!_isFull?'var(--royal,#1e3a8a)':'transparent'};color:${!_isFull?'#fff':'var(--gray-600,#6b7280)'};font-weight:600;font-size:0.85rem;cursor:pointer;transition:background .15s">My Path</button>
+      <button onclick="setBracketDrawView('full-draw')" style="flex:1;padding:7px 0;border:none;background:${_isFull?'var(--royal,#1e3a8a)':'transparent'};color:${_isFull?'#fff':'var(--gray-600,#6b7280)'};font-weight:600;font-size:0.85rem;cursor:pointer;transition:background .15s">Full Draw</button>
+    </div>`;
+  }
+
+  if (state.bracketDrawView === 'full-draw') {
+    renderFullDraw();
+    return;
+  }
+
   // ── Director standings + reseeding (shown when dir scores exist) ─────────
   const dirPkg = getDirectorPkg();
   const dirGames = dirPkg?.directorGames || [];
@@ -10297,6 +10324,155 @@ const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && get
 
     listEl.appendChild(section);
   });
+}
+
+// ─── FULL DRAW VIEW ───────────────────────────────────────────────────────────
+
+function setBracketDrawView(view) {
+  state.bracketDrawView = view;
+  renderPossibleTab();
+}
+
+/** Compute per-pool standings from available director/T-Score data.
+ *  scoreSource = { games: [...directorGames], scores: {id→{score1,score2,status}} } | null
+ *  Returns { 'Pool A': [{name, seed, w, l, t, gf, ga, gd, gp}, ...], ... }
+ */
+function _computeFullDrawStandings(pools, scoreSource) {
+  const result = {};
+  for (const [poolName, teamNames] of Object.entries(pools)) {
+    const byName = {};
+    (teamNames || []).forEach((name, i) => {
+      byName[name] = { name, seed: i + 1, w: 0, l: 0, t: 0, gf: 0, ga: 0, gd: 0, gp: 0 };
+    });
+    if (scoreSource) {
+      for (const g of (scoreSource.games || [])) {
+        const sc = scoreSource.scores[g.id];
+        if (!sc || sc.status !== 'final') continue;
+        const t1 = g.team1Name || g.team1Seed || '';
+        const t2 = g.team2Name || g.team2Seed || '';
+        if (!byName[t1] || !byName[t2]) continue; // game not in this pool
+        byName[t1].gp++; byName[t1].gf += sc.score1; byName[t1].ga += sc.score2;
+        byName[t2].gp++; byName[t2].gf += sc.score2; byName[t2].ga += sc.score1;
+        if      (sc.score1 > sc.score2) { byName[t1].w++; byName[t2].l++; }
+        else if (sc.score1 < sc.score2) { byName[t2].w++; byName[t1].l++; }
+        else                             { byName[t1].t++; byName[t2].t++; }
+      }
+      for (const s of Object.values(byName)) s.gd = s.gf - s.ga;
+    }
+    const arr = Object.values(byName);
+    const hasGames = arr.some(t => t.gp > 0);
+    if (hasGames) {
+      arr.sort((a, b) => {
+        const pa = a.w * 3 + a.t, pb = b.w * 3 + b.t;
+        if (pa !== pb) return pb - pa;
+        if (b.gd !== a.gd) return b.gd - a.gd;
+        return a.seed - b.seed;
+      });
+    } else {
+      arr.sort((a, b) => a.seed - b.seed);
+    }
+    result[poolName] = arr;
+  }
+  return result;
+}
+
+function renderFullDraw() {
+  const listEl  = $('possible-list');
+  const emptyEl = $('possible-empty');
+  const descEl  = $('possible-desc');
+  if (!listEl) return;
+  if (emptyEl) emptyEl.classList.add('hidden');
+  if (descEl) descEl.textContent = '';
+
+  const pools = TOURNAMENT.bracket?.pools || {};
+  const paths = getTournamentBracketPaths() || [];
+  const hasPools = Object.keys(pools).length > 0;
+
+  // Best available score source: T-Score > director scores
+  const tPkg    = state.tscorePkg;
+  const tGames  = tPkg?.directorGames || [];
+  const dirPkg  = getDirectorPkg();
+  const dGames  = dirPkg?.directorGames || [];
+  const scoreSource = tGames.length
+    ? { games: tGames, scores: state.tscoreScores }
+    : dGames.length
+    ? { games: dGames, scores: state.dirScores }
+    : null;
+
+  let html = '';
+
+  // ── 1. Pool standings ──────────────────────────────────────────────────────
+  if (hasPools) {
+    const standings = _computeFullDrawStandings(pools, scoreSource);
+    const hasAnyScores = Object.values(standings).some(arr => arr.some(t => t.gp > 0));
+
+    html += `<div style="margin-bottom:18px">
+      <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-500,#9ca3af);margin-bottom:10px">Pool Standings</div>`;
+
+    for (const [poolName, arr] of Object.entries(standings)) {
+      html += `<div style="margin-bottom:14px">
+        <div style="font-size:0.8rem;font-weight:700;color:var(--royal,#1e3a8a);margin-bottom:4px">${escHtml(poolName)}</div>
+        <table style="width:100%;font-size:0.82rem;border-collapse:collapse">
+          <tr style="color:var(--gray-400,#9ca3af);font-size:0.7rem">
+            <th style="text-align:left;padding:2px 4px;font-weight:600">Team</th>
+            ${hasAnyScores ? `<th style="padding:2px 6px;text-align:center">W</th><th style="padding:2px 6px;text-align:center">L</th><th style="padding:2px 6px;text-align:center">T</th><th style="padding:2px 6px;text-align:center">GD</th>` : ''}
+          </tr>
+          ${arr.map((t, i) => `
+            <tr style="border-top:1px solid var(--gray-100,#f3f4f6)">
+              <td style="padding:5px 4px;font-weight:400">${i + 1}. ${escHtml(t.name)}</td>
+              ${hasAnyScores ? `
+              <td style="text-align:center;padding:5px 6px;font-weight:${t.gp?'600':'400'}">${t.gp ? t.w : '—'}</td>
+              <td style="text-align:center;padding:5px 6px;font-weight:${t.gp?'600':'400'}">${t.gp ? t.l : '—'}</td>
+              <td style="text-align:center;padding:5px 6px">${t.gp && t.t ? t.t : (t.gp ? '0' : '—')}</td>
+              <td style="text-align:center;padding:5px 6px;color:${t.gd>0?'var(--green,#16a34a)':t.gd<0?'var(--red,#dc2626)':'inherit'}">${t.gp ? (t.gd > 0 ? '+' : '') + t.gd : '—'}</td>` : ''}
+            </tr>`).join('')}
+        </table>
+      </div>`;
+    }
+
+    if (!scoreSource) {
+      html += `<div style="font-size:0.78rem;color:var(--gray-400,#9ca3af);font-style:italic;margin-top:-4px;margin-bottom:4px">
+        Live standings appear when director scores are available.
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // ── 2. All bracket paths ───────────────────────────────────────────────────
+  if (paths.length) {
+    const projected = inferProjectedPath();
+    html += `<div>
+      <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-500,#9ca3af);margin-bottom:10px">All Bracket Paths</div>`;
+
+    for (const path of paths) {
+      const isProj = projected && path.id === projected.id;
+      html += `<div style="margin-bottom:10px;padding:10px 12px;border-radius:10px;border:1.5px solid ${isProj ? 'var(--royal-light,#bfdbfe)' : 'var(--gray-100,#f3f4f6)'};background:${isProj ? 'rgba(59,130,246,0.04)' : '#fff'}">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:${(path.steps || []).length ? '6' : '0'}px">
+          <span style="font-weight:700;font-size:0.9rem">${escHtml(path.label)}</span>
+          ${isProj ? `<span style="font-size:0.7rem;background:var(--royal,#1e3a8a);color:#fff;padding:2px 8px;border-radius:20px">Projected</span>` : ''}
+          ${path.qualifier ? `<span style="font-size:0.75rem;color:var(--gray-400,#9ca3af);margin-left:auto">${escHtml(path.qualifier)}</span>` : ''}
+        </div>
+        ${(path.steps || []).map(s => {
+          const timeStr = (s.time && s.time !== 'TBD') ? escHtml(s.time) : (s.date ? escHtml(s.date) : 'TBD');
+          return `<div style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--gray-700,#374151);padding:4px 0;border-top:1px solid var(--gray-100,#f3f4f6)">
+            ${s.gameNum ? `<span style="color:var(--gray-400,#9ca3af);font-size:0.72rem;min-width:32px">${escHtml(s.gameNum)}</span>` : ''}
+            <span style="flex:1">${escHtml(s.desc || '')}</span>
+            <span style="color:var(--gray-400,#9ca3af);font-size:0.75rem;white-space:nowrap">${timeStr}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  if (!hasPools && !paths.length) {
+    html = `<div style="text-align:center;padding:32px 0;color:var(--gray-400,#9ca3af)">
+      <div style="font-size:2rem;margin-bottom:10px">📋</div>
+      <div style="font-size:0.9rem;line-height:1.6">Full tournament draw will be<br>available once the schedule is posted.</div>
+    </div>`;
+  }
+
+  listEl.innerHTML = html;
 }
 
 // ─── RENDER: HISTORY TAB ──────────────────────────────────────────────────────
@@ -11162,6 +11338,17 @@ function init() {
 
   // ── Handle ?join=CLUB_ID — spectator clicked admin's share link ──
   _handleJoinParam();
+
+  // ── Handle ?view=bracket — deep link to Full Draw (QR code on tournament day) ──
+  (function() {
+    const _p = new URLSearchParams(window.location.search);
+    if (_p.get('view') === 'bracket') {
+      state.bracketDrawView = 'full-draw';
+      _p.delete('view');
+      window.history.replaceState({}, '', window.location.pathname + (_p.toString() ? '?' + _p.toString() : ''));
+      setTimeout(() => switchTab('possible'), 400);
+    }
+  })();
 
   // ── Backward compat: migrate existing club selection to joined list ──
   _migrateJoinedClubs();
