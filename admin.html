@@ -6270,13 +6270,17 @@
      */
     async function undeployLiveSchedule() {
       const teamLabel = ADMIN_TEAMS.find(t => t.key === S.team)?.label || S.team;
-      if (!confirm(`🛑 Undeploy Live Schedule for ${teamLabel}?\n\nThis will:\n  • Clear all games from the live app\n  • Set app back to "Upcoming" mode\n\nYour saved drafts and age group configurations will remain safe.`)) return;
+      if (!confirm(`🛑 Undeploy Live Schedule for ${teamLabel}?\n\nThis will:\n  • Clear all games from the live app\n  • Set app back to "Upcoming" mode\n  • Clear the bracket sheet wizard setup\n\nYour age group configurations and club settings will remain safe.`)) return;
 
       showStatus('Undeploying…', 'info');
       try {
         S.tournament.games = [];
         S.tournament.upcomingMode = true;
         S.tournament.comingSoon = S.tournament.comingSoon || 'Schedule coming soon — check back closer to tournament day!';
+        // Clear sheetSync so hard refresh doesn't restore the old wizard setup
+        delete S.tournament.sheetSync;
+        S.bsync = null;
+        ['ebadmin-bsync-url', 'ebadmin-bsync-team', 'ebadmin-bsync-range', 'ebadmin-bsync-mins'].forEach(k => localStorage.removeItem(k));
 
         // Save state
         const res = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
@@ -9032,8 +9036,8 @@
         + '<div id="bs-s3" style="display:' + (step === 3 ? 'block' : 'none') + '">'
         + '<div id="bs-s3-pools" style="margin-bottom:10px">' + poolsHtml + '</div>'
         + '<div class="info-label" style="margin-bottom:4px">How is your team listed on this sheet?</div>'
-        + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">Enter the exact name as it appears (e.g. <em>Diablo</em>)</div>'
-        + '<input class="info-input" id="bs-teamname" value="' + esc(bs.teamName || '') + '" placeholder="e.g. Diablo" autocomplete="off" style="margin-bottom:8px" onkeydown="if(event.key===\'Enter\')bsFindTeam()">'
+        + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">Exact name as it appears. For multiple teams (A &amp; B squad same sheet) separate with a comma — e.g. <em>680 A, 680 B</em></div>'
+        + '<input class="info-input" id="bs-teamname" value="' + esc(bs.teamName || '') + '" placeholder="e.g. 680 A, 680 B" autocomplete="off" style="margin-bottom:8px" onkeydown="if(event.key===\'Enter\')bsFindTeam()">'
         + '<button class="save-btn" style="width:100%" onclick="bsFindTeam()">Find My Team &rarr;</button>'
         + '<div id="bs-s3-status" style="font-size:.8rem;margin-top:6px;min-height:1em"></div>'
         + '</div>'
@@ -9273,6 +9277,9 @@
       if (!name) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter your team name'; } return; }
       if (!S.bsync?.pools) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Go back and fetch pools first'; } return; }
       S.bsync.teamName = name;
+      // Support comma-separated multi-team (e.g. "680 A, 680 B")
+      const teamNames = name.split(/[,;]+/).map(n => n.trim()).filter(Boolean);
+      S.bsync.teamNames = teamNames;
 
       if (S.bsync.courseFormat) {
         if (status) { status.style.color = '#059669'; status.textContent = `✅ Got it — scanning for "${name}"…`; }
@@ -9280,15 +9287,19 @@
         return;
       }
 
-      // Refresh pool preview with highlight
+      // Refresh pool preview highlighting all entered names
       const poolsEl = document.getElementById('bs-s3-pools');
-      if (poolsEl) poolsEl.innerHTML = bsRenderPoolPreview(S.bsync.pools, name);
+      if (poolsEl) poolsEl.innerHTML = bsRenderPoolPreview(S.bsync.pools, teamNames[0]);
 
-      const nameLower = name.toLowerCase();
+      // Find pool for each name — use first match as primary
       let found = null;
-      for (const [pool, teams] of Object.entries(S.bsync.pools)) {
-        const idx = teams.findIndex(t => t.toLowerCase().includes(nameLower) || nameLower.includes(t.toLowerCase()) && t.trim().length > 2);
-        if (idx !== -1) { found = { pool, seed: idx + 1, matchedName: teams[idx] }; break; }
+      for (const tName of teamNames) {
+        const tLower = tName.toLowerCase();
+        for (const [pool, teams] of Object.entries(S.bsync.pools)) {
+          const idx = teams.findIndex(t => t.toLowerCase().includes(tLower) || tLower.includes(t.toLowerCase()) && t.trim().length > 2);
+          if (idx !== -1) { found = { pool, seed: idx + 1, matchedName: teams[idx] }; break; }
+        }
+        if (found) break;
       }
       if (!found) {
         if (status) { status.style.color = '#dc2626'; status.textContent = `❌ "${name}" not found in any pool — check spelling`; }
@@ -9296,7 +9307,8 @@
       }
       S.bsync.myPool = found.pool;
       S.bsync.mySeed = found.seed;
-      if (status) { status.style.color = '#059669'; status.textContent = `✅ Found: ${found.pool}, Seed ${found.seed} (matched "${found.matchedName}") — scanning schedule…`; }
+      const foundMsg = teamNames.length > 1 ? `✅ Found pools for ${teamNames.length} teams (primary: ${found.pool}) — scanning schedule…` : `✅ Found: ${found.pool}, Seed ${found.seed} (matched "${found.matchedName}") — scanning schedule…`;
+      if (status) { status.style.color = '#059669'; status.textContent = foundMsg; }
       setTimeout(bsScanGames, 400);
     }
 
@@ -9475,7 +9487,9 @@
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const text = await resp.text();
         const allRows = parseCSV(text);
-        const teamNameLower = (S.bsync.teamName || '').toLowerCase();
+        // Support multi-team (comma-separated): match games for any listed team
+        const _teamNamesLower = (S.bsync.teamNames && S.bsync.teamNames.length ? S.bsync.teamNames : [S.bsync.teamName || '']).map(n => n.toLowerCase()).filter(Boolean);
+        const teamNameLower = _teamNamesLower[0] || '';
 
         // ── Course/court schedule format — bypass standard column detection ──
         if (S.bsync.courseFormat) {
@@ -9526,6 +9540,13 @@
             break;
           }
         }
+        // ── Infer unlabeled columns from white/dark position ───────────────────
+        // Handles sheets where Game#/Time/Pool headers are merged cells that gviz
+        // omits in the full-sheet export (they look empty even though they exist
+        // when fetched as a targeted range). Standard format: Game#|Time|White|Dark|Pool
+        if (timeCol === whiteCol) timeCol = whiteCol > 0 ? whiteCol - 1 : 0; // time is 1 col before white
+        if (poolCol === -1) poolCol = darkCol + 1; // pool is 1 col after dark
+        if (gameNumCol === -1 && whiteCol >= 2) gameNumCol = whiteCol - 2; // game# is 2 cols before white
         // ── Auto-correct year typos in date column ──────────────────────────────
         // e.g. sheet has 4/12/2025 when all others are 4/11/2026 → fix to dominant year
         const _yearCount = {};
@@ -9585,8 +9606,8 @@
           const white = (row[whiteCol] || '').trim();
           const dark = (row[darkCol] || '').trim();
           if (!white && !dark) continue;
-          const isWhite = white.toLowerCase().includes(teamNameLower);
-          const isBlue = dark.toLowerCase().includes(teamNameLower);
+          const isWhite = _teamNamesLower.some(n => white.toLowerCase().includes(n));
+          const isBlue = _teamNamesLower.some(n => dark.toLowerCase().includes(n));
           if (!isWhite && !isBlue) continue;
 
           // Use cell value from detected column; fall back to section-header date from pre-pass
@@ -9955,12 +9976,15 @@
       }
     }
 
-    function bsReset() {
-      const saved = S.bsync?.sheetUrl || '';
-      S.bsync = { step: 1, sheetUrl: saved, poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '' };
+    async function bsReset() {
+      // Clear all wizard state — both in-memory and on the server so a hard
+      // refresh doesn't restore the old setup via _restoreBsyncFromTournament()
+      S.bsync = { step: 1, sheetUrl: '', sheetId: '', sheetGid: '', poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '' };
+      ['ebadmin-bsync-url', 'ebadmin-bsync-team', 'ebadmin-bsync-range', 'ebadmin-bsync-mins'].forEach(k => localStorage.removeItem(k));
+      if (S.tournament) delete S.tournament.sheetSync;
       bsStep(1);
-      const urlInput = document.getElementById('bs-url');
-      if (urlInput) urlInput.value = saved;
+      // Save the cleared sheetSync to the server so hard refresh doesn't restore it
+      try { await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history }); } catch (e) { /* non-fatal */ }
     }
 
     // ─── Director tab bracket import ─────────────────────────────────────────────
@@ -10585,7 +10609,8 @@
         if (!resp.ok) return;
         const text = await resp.text();
         const allRows = parseCSV(text);
-        const teamNameLower = S.bsync.teamName.toLowerCase();
+        const _apTeamNamesLower = (S.bsync.teamNames && S.bsync.teamNames.length ? S.bsync.teamNames : [S.bsync.teamName || '']).map(n => n.toLowerCase()).filter(Boolean);
+        const teamNameLower = _apTeamNamesLower[0] || '';
 
         // Auto-detect column structure
         let dateCol = 0, locationCol = 1, timeCol = 2, whiteCol = 3, darkCol = 5, gameNumCol = -1, poolCol = -1, scoreCol = -1, resCol = -1;
@@ -10617,6 +10642,10 @@
             break;
           }
         }
+        // Infer unlabeled columns from white/dark position (merged-cell header fix)
+        if (timeCol === whiteCol) timeCol = whiteCol > 0 ? whiteCol - 1 : 0;
+        if (poolCol === -1) poolCol = darkCol + 1;
+        if (gameNumCol === -1 && whiteCol >= 2) gameNumCol = whiteCol - 2;
 
         // Pre-pass: track last-seen date/location from section headers
         const _apRowDate = new Array(allRows.length).fill('');
@@ -10645,8 +10674,8 @@
           const white = (row[whiteCol] || '').trim();
           const blue = (row[darkCol] || '').trim();
           if (!white && !blue) continue;
-          const isWhite = white.toLowerCase().includes(teamNameLower);
-          const isBlue = blue.toLowerCase().includes(teamNameLower);
+          const isWhite = _apTeamNamesLower.some(n => white.toLowerCase().includes(n));
+          const isBlue  = _apTeamNamesLower.some(n => blue.toLowerCase().includes(n));
           if (!isWhite && !isBlue) continue;
           const rawGnum = gameNumCol >= 0 ? (row[gameNumCol] || '').trim() : '';
           const dateRaw = (dateCol >= 0 ? (row[dateCol] || '').trim() : '') || _apRowDate[ri] || '';
