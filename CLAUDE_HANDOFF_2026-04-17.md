@@ -518,3 +518,652 @@ de21880  fix: correct age group header colors in light mode
    - next-game materialization
    - durable history/archive preservation
 4. If another scored game disappears, inspect durable scored-game record before running any official-sheet/admin rebuild action so the original event stream is not overwritten.
+
+## 2026-04-18 Final Wrap Update
+
+- `eggbeater-marketing` `main` is now at `89ab839` (`feat: improve scoring feedback and calendar team sync`).
+- `eggbeater-waterpolo` `main` is now at `0c369b4` (`fix: preserve official scores while syncing native bundle`).
+- Worker deploy is current after the blank-sheet-score parsing fix at version `e49afc07-75da-4b29-af91-60b152a89a5c`.
+- Current native build source is `eggbeater-waterpolo` commit `0c369b4`.
+- Multi-team calendar sync is now in:
+  - user can choose which selected teams sync to the chosen Google calendar
+  - settings exposes a `Teams` action to adjust synced teams later
+  - sync reconciles per-team events instead of assuming only the first selected team
+- Scorer UX additions now in:
+  - small recorded toast/checkmark after scorer actions
+  - finalization sheet padded above native bottom tabs
+- Worker sheet-sync hardening now in:
+  - blank sheet score cells no longer parse as `0`
+  - official sheet scores remain authoritative for history/final scores
+- 680 current official sheet state:
+  - `BULLDOG` `19-10 W`
+  - `ROSE BOWL RED` `14-6 W`
+  - next game materialized as `NEWPORT`, `7:00`, `CENTENNIAL HS`, `White`
+- Important source-of-truth note:
+  - the recovered `15-5` 680 payload was useful for diagnosis, but the official sheet later corrected the final to `14-6`, and backend history/schedule now reflect the official sheet.
+
+### Updated follow-ups
+
+1. Trigger and verify a fresh native build from `0c369b4`.
+2. On device, verify:
+   - scorer action toast shows reliably
+   - finalization sheet is fully visible above bottom tabs
+   - multi-team calendar sync flow lets user choose which selected teams sync
+3. On web/native after refresh, verify 680 shows the official sheet-backed history/schedule state:
+   - `ROSE BOWL RED 14-6`
+   - next game `NEWPORT`
+   - `CENTENNIAL HS`
+4. On the next live-scored game, verify the full closeout loop:
+   - scorer finalizes game
+   - official sheet sync refreshes final score if edited later
+   - history and next game update without manual repair
+
+## 2026-04-18 Final Native Build Update
+
+- `eggbeater-marketing` `main` is now at `deded61` (`feat: restore inline play-by-play for scorers`).
+- `eggbeater-waterpolo` `main` is now at `c7106b7` (`chore: sync native bundle with scorer inline log`).
+- A later iOS project fix for the volume-button plugin was committed in wrapper history and is included in the current wrapper head.
+- Current native build source is `eggbeater-waterpolo` commit `c7106b7`.
+
+### Included in the current native build
+
+- scorer-only inline play-by-play restored:
+  - scoring controls on top
+  - inline grouped event log directly underneath
+  - quarter grouping preserved
+  - swipe-to-delete preserved in the inline scorer feed
+- viewer game detail remains unchanged:
+  - clean `Summary`
+  - separate `Play-by-Play` tab
+- recorded-action toast/checkmark after scorer actions
+- finalization sheet padded above native bottom tabs
+- multi-team Google Calendar sync:
+  - choose which selected teams sync
+  - settings exposes team selection later
+- iOS volume-button pause/unpause support
+- mobile score-view cleanup and prior score/schedule/readability fixes remain included
+
+### Current source-of-truth / backend notes
+
+- Worker deploy currently includes:
+  - blank sheet score cells no longer parsing as `0`
+  - official sheet scores flowing into durable scored-game/history state
+  - next-game materialization from bracket sheet rows
+- 680 official sheet-backed state is currently:
+  - `BULLDOG` `19-10 W`
+  - `ROSE BOWL RED` `14-6 W`
+  - next game `NEWPORT`, `7:00`, `CENTENNIAL HS`, `White`
+- Important:
+  - if a manually recovered score conflicts with the official tournament sheet later, the sheet is now the authoritative final score for history/schedule.
+
+### Follow-ups for this build
+
+1. Verify the newly published native build from `c7106b7` on device.
+2. In scorer mode, verify:
+   - inline grouped play-by-play appears under controls
+   - swipe-to-delete works there
+   - recorded toast appears after scorer actions
+3. Verify finalization UX:
+   - finalization sheet is fully reachable above bottom tabs
+   - scorer can submit final without controls being obscured
+4. Verify calendar sync:
+   - after connecting Google Calendar, team-selection modal appears
+   - user can sync more than one selected team
+5. Verify one end-to-end live-scored game after this build:
+   - scorer records events
+   - viewer sees live updates
+   - game finalizes cleanly
+   - official sheet updates flow into history if corrected later
+
+## 2026-04-18 Post-Launch / Scale Update
+
+- `eggbeater-marketing` `main` is now at `7ad3f88` (`fix: dedupe duplicate score cards`).
+- `eggbeater-waterpolo` `main` is now at `867999c` (`chore: sync duplicate score-card fix into native bundle`).
+- Latest native build source is `eggbeater-waterpolo` commit `867999c`.
+- The duplicate `NEWPORT` score-card issue was fixed by deduping equivalent scheduled games before Scores-tab rendering and preferring the richer game payload when duplicates collide.
+- Score cards now also prefer the actual game venue over the tournament venue when rendering location.
+- Help guides were updated and synced into native earlier in the day at wrapper commit `8190441`; wrapper head `867999c` includes those guide changes plus the final duplicate-card fix.
+- Operational milestone: 32 people used the app in one day. The product has crossed from single-operator testing into real multi-user live-event usage.
+
+### Scale implications
+
+- The next likely failures are no longer basic UI issues first; they are state-consistency, fan-out, and operational visibility issues under concurrent usage.
+- Priority risk areas now are:
+  - stale client-local state overriding fresher backend state
+  - duplicate/synthetic game materialization paths colliding with imported/sheet-resolved games
+  - live-score fan-out latency or dropped updates under more simultaneous viewers
+  - admin/operator recovery time when one bad game state affects many viewers
+- The backend/source-of-truth rule should stay strict:
+  - durable scored-game record first for scored games
+  - official sheet final scores authoritative for final result/history reconciliation
+  - client local state treated as cache, not authority
+
+### Follow-ups
+
+1. Verify the newly published native build from `867999c` on device.
+2. On native, confirm the duplicate `NEWPORT` score card is gone from the Scores tab.
+3. Before the next busy event, add lightweight operational logging/metrics for:
+   - scored-game writes
+   - sheet-sync updates
+   - next-game materialization
+   - live-score poll / broadcast freshness
+4. Add an admin-visible integrity surface for production use:
+   - games needing finalization
+   - duplicate scheduled games detected
+   - local/final mismatch against official sheet
+5. Add a scale pass focused on concurrency and recovery:
+   - multiple viewers + one scorer on the same game
+   - scorer disconnect / reconnect
+   - sheet correction after final
+   - tournament rollover with active local caches still present
+6. Keep history scoping strict by active age group and keep dedupe logic shared between Schedule and Scores so the same class of bug does not reappear in parallel render paths.
+
+## 2026-04-19 Reliability Hardening Update
+
+- `eggbeater-marketing` `main` is now at `c7ab2a9` (`Harden scorer sessions and server finalize flow`).
+- `eggbeater-waterpolo` `main` is now at `0f6ca63` (`Add scorer session and finalize endpoints`).
+- Worker deploy is live at version `923037de-baab-4c6d-8ec5-8ded99d4e545`.
+- New server-owned reliability pieces now live:
+  - scorer session registry endpoints (`/scorer-session` GET/POST)
+  - scorer finalize endpoint (`/scorer-finalize`)
+  - admin scorer session visibility (`/admin/scorer-sessions`)
+  - admin mirrored draft actions (`restore`, `clear`)
+- Marketing app now uses worker-acknowledged finalization instead of treating ordinary live-score ack as final authority.
+- Marketing app now mirrors scorer session ownership/heartbeat to the worker.
+- Admin History tab now shows both mirrored scorer drafts and active scorer sessions, so recovery can be handled without manual KV inspection.
+
+### Important build note
+
+- These latest reliability changes are live on web + worker.
+- They are **not yet synced into the native wrapper bundle**.
+- Do **not** trigger a new native build expecting these exact client-side reliability changes until `eggbeater-waterpolo` is synced with the latest marketing `app.js` / `admin.html` bundle.
+- Current good stopping point tonight:
+  - web/admin + worker are live and consistent
+  - code changes are committed and pushed
+  - next step tomorrow is wrapper sync, then native build
+
+### Tomorrow test plan
+
+1. **Wrapper sync + build prep**
+   - Sync latest marketing bundle into native wrapper before any iOS/Android build.
+   - Build from wrapper repo only after confirming synced bundle includes marketing commit `c7ab2a9`.
+
+2. **Scorer session ownership**
+   - Open scorer on one device for a specific game.
+   - In Admin ? History/Recovery, verify an active scorer session appears for that exact game.
+   - Verify device id fragment, updated timestamp, opponent, and event count look correct.
+
+3. **Draft durability / weak-signal recovery**
+   - Start scoring a game and record several events.
+   - Reload app or background/foreground it.
+   - Confirm scorer draft restores locally.
+   - Confirm mirrored draft is visible in Admin.
+   - If possible, simulate bad signal and confirm draft still exists after reconnect.
+
+4. **Finalize path**
+   - Finalize a game from scorer flow.
+   - Confirm finalize UI shows worker-backed save state, not just local-final.
+   - In Admin, verify scorer session/draft move to final-acked state.
+   - Verify durable scored-game record is present and no stale open session remains.
+
+5. **Admin recovery actions**
+   - From Admin, test `Restore Draft` on a mirrored draft and confirm it rehydrates durable scored-game/tournament state.
+   - Test `Clear` on a non-critical draft and confirm both mirrored draft + session disappear.
+   - Verify actions do not break scored-games list or history rebuild flow.
+
+6. **Manual-vs-official collision path**
+   - If a manual game is started before the official row appears, verify the later official/sheet resolution does not wipe the live-scored draft.
+   - This is still the most important real-world validation scenario.
+
+7. **Blue/B-slot validation**
+   - Explicitly test a secondary team/Blue/B slot game.
+   - Verify scorer session binds to exact game and survives reopen/reconnect.
+   - Verify Admin shows the exact correct game id and opponent for that session.
+
+8. **Live Activity follow-up**
+   - Re-test on iPhone after the next native build:
+     - 680 shield rendering
+     - update continuity after background/relaunch
+     - no duplicate activity creation
+   - Live Activity is improved, but still needs runtime confirmation.
+
+### Follow-ups
+
+1. Sync latest marketing bundle into `eggbeater-waterpolo`, then produce the next native build from that synced wrapper commit.
+2. Run the full tomorrow test plan above, with priority on:
+   - scorer session visibility
+   - weak-signal draft recovery
+   - finalize ack path
+   - Blue/B-slot recovery
+3. If tests pass, next hardening step is server-side stale-session/heartbeat handling and stronger multi-device conflict resolution.
+4. After that, add richer admin recovery actions and diagnostics rather than more blind client-side patches.
+
+## 2026-04-19 Native Build Prep Update
+
+- Latest build-ready wrapper source is now `eggbeater-waterpolo` commit `e50f22a` (`Sync scorer reliability hardening into native bundle`).
+- Latest marketing/web source remains `eggbeater-marketing` commit `c7ab2a9`.
+- Latest worker/backend source remains `eggbeater-waterpolo` commit `0f6ca63`, deployed as worker version `923037de-baab-4c6d-8ec5-8ded99d4e545`.
+- The native wrapper has now been synced with the latest scorer reliability hardening bundle.
+- `npx cap sync ios` and `npx cap sync android` were run before creating wrapper commit `e50f22a`.
+
+### Build status
+
+- You can now trigger a new native build from:
+  - `C:\Users\sarah\Claude Code\eggbeater-waterpolo` at `e50f22a`
+- This build should include:
+  - server-owned scorer session mirroring
+  - worker-backed finalize flow
+  - admin scorer session visibility
+  - admin mirrored draft restore/clear support
+
+### Tomorrow test plan (updated after build prep)
+
+1. **Install the new native build from wrapper commit `e50f22a`**
+   - Confirm the app you are testing is built from that exact wrapper commit.
+
+2. **Scorer session visibility**
+   - Open scorer on one device for one exact game.
+   - In Admin > History/Recovery, verify an active scorer session appears.
+   - Confirm:
+     - opponent
+     - timestamp freshness
+     - device id fragment
+     - event count
+
+3. **Draft durability / reopen recovery**
+   - Record multiple events.
+   - Force-close or background/foreground the app.
+   - Reopen and verify the draft is still present.
+   - Verify mirrored draft is visible in Admin.
+
+4. **Weak-signal recovery**
+   - If possible, score during weak/no signal.
+   - Reconnect.
+   - Verify draft remains recoverable and can resume.
+   - Verify `Retry Sync` path works if needed.
+
+5. **Finalize path**
+   - Finalize a game in scorer mode.
+   - Confirm finalize UI reaches a true saved/final-acked state.
+   - In Admin, verify:
+     - scorer session is final-acked
+     - mirrored draft is final-acked or no longer active
+     - durable scored-game record exists
+     - no stale open session remains
+
+6. **Admin recovery actions**
+   - On a non-critical test game/draft:
+     - test `Restore Draft`
+     - test `Clear`
+   - Verify restore rebuilds scored-game/tournament state correctly.
+   - Verify clear removes mirrored draft and mirrored session.
+
+7. **Manual-vs-official collision validation**
+   - This remains the most important real-world check.
+   - If a manual game is started before official resolution/sheet update, confirm later official resolution does not wipe the draft.
+
+8. **Blue/B-slot validation**
+   - Explicitly test a Blue/B or secondary-slot game.
+   - Confirm exact game binding survives reopen/reconnect.
+   - Confirm Admin shows the correct game id/opponent/session.
+
+9. **Live Activity follow-up on the new native build**
+   - Re-test:
+     - 680 shield rendering
+     - update continuity after background/relaunch
+     - no duplicate Live Activities
+
+### Follow-ups
+
+1. Run the full native test plan above against build `e50f22a`.
+2. If scorer session visibility + finalize ack behave correctly, next hardening step is stale-session heartbeat handling and stronger multi-device conflict resolution.
+3. If Blue/B-slot or manual-vs-official still fails, instrument those exact flows before any more UI work.
+4. Keep admin recovery as the operational safety net; expand that surface instead of relying on hidden local state.
+
+## 2026-04-20 Reliability Implementation Plan for Claude
+
+### Goal
+
+Bring Eggbeater to production-grade scorer reliability.
+The priority is preventing loss of scoring state, preventing wrong-game binding, and making recovery/admin workflows explicit and inspectable.
+
+### Current baseline
+
+Already live/in place:
+- IndexedDB-backed scorer drafts and outbox
+- server-mirrored scorer drafts
+- server-mirrored scorer sessions
+- worker-backed finalize endpoint
+- admin visibility for mirrored drafts and active scorer sessions
+- admin `Restore Draft` / `Clear` actions
+- worker stale-write protection for mirrored drafts
+
+Still not fully hardened:
+- stale-session / abandoned-session handling
+- multi-device conflict ownership rules
+- stronger finalize retry + reconciliation behavior
+- authoritative manual-vs-official merge rules in all cases
+- explicit Blue/B-slot validation and conflict surfacing
+- native verification for all of the above
+- Live Activity runtime reliability and diagnostics
+
+### Implementation order Claude should follow
+
+#### Phase 1 — server authority and session lifecycle
+
+1. **Add scorer session heartbeat / stale-session handling**
+   - Extend server-owned scorer session records with:
+     - `heartbeatAt`
+     - `lastAckAt`
+     - `status` (`open`, `finalizing`, `final-acked`, `stale`, `abandoned`, `conflict`)
+   - On each scorer action, refresh heartbeat.
+   - Worker should classify open sessions as stale after a defined timeout window.
+   - Admin UI should surface stale vs active explicitly.
+
+2. **Add multi-device session conflict rules**
+   - If another device opens the same game while an active session already exists:
+     - do not silently overwrite
+     - record a conflict
+     - return server response indicating ownership conflict
+   - App should show explicit warning and give operator a choice to resume existing session or override.
+
+3. **Promote finalize to fully authoritative worker flow**
+   - Finalize should become the only authoritative final write path.
+   - All final durable state should come from `/scorer-finalize`.
+   - Prevent any ordinary `/live-score` ack from implicitly marking a game final.
+   - Add explicit server response payload with:
+     - final record status
+     - scored game revision
+     - session final state
+     - any conflict/rejection reason
+
+#### Phase 2 — recovery and conflict tooling
+
+4. **Expand admin recovery actions**
+   - Add admin actions for scorer sessions:
+     - `Mark Stale`
+     - `Resume Ownership`
+     - `Force Close Session`
+   - Add conflict-specific admin actions:
+     - `Bind Draft to Official Game`
+     - `Accept Server Copy`
+     - `Accept Local Draft`
+
+5. **Add durable conflict records on worker**
+   - Persist explicit conflict records for:
+     - multi-device scorer collision
+     - manual-vs-official game collision
+     - stale overwrite attempt
+     - final-score mismatch
+     - ambiguous Blue/B-slot slot binding
+   - Expose them to Admin via dedicated endpoint and UI card.
+
+6. **Strengthen manual-vs-official merge rules**
+   - When official/sheet game appears after a manual scorer session exists:
+     - enrich metadata only
+     - never wipe event stream
+     - bind the draft to the official `gameId` if slot match is exact
+   - If slot match is ambiguous:
+     - record a conflict
+     - do not auto-bind
+
+#### Phase 3 — Blue/B-slot and low-signal reliability
+
+7. **Harden exact game binding for secondary team slots**
+   - Session identity must always include:
+     - `clubId`
+     - `tournamentId`
+     - `ageGroup`
+     - `team letter / slot`
+     - `gameId`
+   - Surface this identity clearly in scorer UI and admin UI.
+   - Reject ambiguous scorer opens.
+
+8. **Improve low-signal offline continuation**
+   - Ensure every scorer action is saved locally first, then queued for server sync.
+   - Add explicit UI status in scorer for:
+     - `Saved locally`
+     - `Synced`
+     - `Retrying`
+     - `Conflict`
+   - On reopen, auto-offer resume for unfinished drafts before showing other games.
+
+#### Phase 4 — native parity and Live Activity hardening
+
+9. **Keep native wrapper synced after each reliability batch**
+   - No reliability work should be considered complete until synced into wrapper and test-built natively.
+
+10. **Add Live Activity diagnostics and recovery**
+   - Add explicit diagnostics for:
+     - followed game id
+     - active activity known yes/no
+     - last update sent
+     - last update acked
+     - logo source used
+   - Verify update after relaunch/background/re-follow.
+   - Verify 680 shield/logo path on actual device.
+
+### Definition of done
+
+Do not call reliability work complete until all of these are true:
+- scorer can start a game, lose signal, keep scoring, reopen app, and recover draft
+- manual game is not wiped when official/sheet row appears later
+- Blue/B-slot game binds to the correct exact game and survives reopen/reconnect
+- finalize cannot silently fail without operator visibility
+- admin can see and act on active sessions, drafts, stale sessions, and conflicts
+- native build behaves the same as web for scorer durability
+- Live Activity survives relaunch/background and shows correct branding
+
+## 2026-04-20 Detailed Test Instructions for Build `e50f22a`
+
+### Preconditions
+
+Use the native build produced from:
+- wrapper repo: `C:\Users\sarah\Claude Code\eggbeater-waterpolo`
+- commit: `e50f22a`
+
+Also confirm worker is live at:
+- worker repo commit: `0f6ca63`
+- deployed worker version: `923037de-baab-4c6d-8ec5-8ded99d4e545`
+
+Use a real test game if possible. If not, use a non-critical game slot where restore/clear can be exercised safely.
+
+### 1. Install and open the native build
+
+1. Install the latest iOS/native build created from `e50f22a`.
+2. Open the app.
+3. Confirm you are seeing the latest scorer layout and recent reliability work.
+4. Open Admin in a browser so you can watch recovery/session state while testing.
+
+Expected:
+- app launches normally
+- no obvious stale old UI
+- Admin is reachable and shows History/Recovery sections
+
+### 2. Verify scorer session appears in Admin
+
+1. In the native app, open a specific game in scorer mode.
+2. Record at least one event.
+3. In Admin, open the History/Recovery area for that same team/tournament.
+4. Look for the `Active Scorer Sessions` section.
+
+Verify:
+- the correct game appears
+- opponent is correct
+- updated timestamp is fresh
+- device id fragment is present
+- event count is non-zero
+- session status is `open`
+
+Failure conditions:
+- no session appears
+- wrong game/opponent appears
+- timestamp does not refresh after additional scorer actions
+
+### 3. Verify reopen/background draft recovery
+
+1. While scoring, record 3–5 events.
+2. Background the app.
+3. Reopen it.
+4. If safe, fully close the app and reopen it.
+5. Return to the same game.
+6. Also check Admin for mirrored draft presence.
+
+Verify:
+- scorer draft is still present
+- event count and score are intact
+- mirrored draft remains visible in Admin
+- app offers a recovery/resume path if relevant
+
+Failure conditions:
+- draft disappears
+- score survives but event list is missing
+- mirrored draft disappears unexpectedly
+
+### 4. Verify weak-signal recovery and Retry Sync
+
+1. Start scoring and record several events.
+2. Put the device into weak/no signal mode if possible:
+   - bad Wi-Fi
+   - airplane mode briefly, if that is safe for the test
+3. Keep scoring additional events.
+4. Restore signal.
+5. Use `Retry Sync` if needed.
+6. Watch Admin for mirrored draft/session updates.
+
+Verify:
+- local draft stays intact during weak signal
+- scorer indicates queued/retrying/local save state rather than silently failing
+- after signal returns, sync resumes
+- `Retry Sync` works and does not lose events
+
+Failure conditions:
+- events disappear during reconnect
+- sync status never recovers
+- Admin never receives updated draft/session state after reconnect
+
+### 5. Verify finalize reaches true final-acked state
+
+1. Score a game to completion.
+2. Use the finalize flow in scorer mode.
+3. Watch the finalize UI status carefully.
+4. In Admin, watch both `Mirrored Scorer Drafts` and `Active Scorer Sessions`.
+5. Also verify the durable scored-game entry reflects final state.
+
+Verify:
+- finalize shows real save state, not just local closeout
+- final state reaches `Final saved` / final-acked behavior
+- session is no longer left as open
+- mirrored draft/session reflect final-acked or equivalent completed state
+- durable scored-game record exists and looks correct
+
+Failure conditions:
+- game looks final locally but not in Admin
+- session stays open after final
+- durable scored-game record is missing or wrong
+
+### 6. Verify Admin `Restore Draft` and `Clear`
+
+Use a non-critical test draft.
+
+#### Restore Draft
+1. In Admin, find a mirrored draft for the test game.
+2. Click `Restore Draft`.
+3. Refresh Admin and viewer/scorer state as needed.
+
+Verify:
+- scored-game record is created or updated
+- tournament game reflects restored score/live data correctly
+- no duplicate game appears
+
+#### Clear
+1. In Admin, find a safe mirrored draft/session.
+2. Click `Clear`.
+3. Refresh Admin.
+
+Verify:
+- mirrored draft disappears
+- corresponding scorer session disappears
+- other scored games are unaffected
+
+Failure conditions:
+- restore creates duplicate or wrong game binding
+- clear leaves orphaned session or partial data
+
+### 7. Verify manual-vs-official collision behavior
+
+This is the most important scenario.
+
+1. Start a game manually in scorer mode before official/sheet resolution appears.
+2. Record multiple first-half events.
+3. Let the official game resolve or sheet data arrive later.
+4. Continue scoring.
+5. Open Admin and inspect the draft/session/scored-game state.
+
+Verify:
+- original event stream is preserved
+- score is not wiped or reset
+- draft binds to the correct official game
+- no second duplicate game is created
+- if binding is ambiguous, it is surfaced as conflict rather than silently overwritten
+
+Failure conditions:
+- first half disappears
+- local draft is overwritten by official import
+- duplicate official/manual game entries appear
+
+### 8. Verify Blue/B-slot game binding
+
+1. Use a Blue/B or other secondary-slot game.
+2. Open scorer for that exact game.
+3. Record multiple events.
+4. Background/reopen the app.
+5. Check Admin.
+
+Verify:
+- session shows the correct exact game/opponent
+- draft survives reopen/reconnect
+- no accidental binding to A-slot or another game at the same time
+- Admin session/draft identity matches the exact B-slot game
+
+Failure conditions:
+- B-slot draft binds to wrong game
+- opponent or game id is wrong
+- reopen causes the wrong game to appear
+
+### 9. Re-test Live Activities on the new native build
+
+1. Follow a live game on iPhone.
+2. Lock the phone.
+3. Record several score changes from the scorer device.
+4. Background and relaunch the app.
+5. Re-follow if needed.
+
+Verify:
+- Live Activity appears reliably
+- 680 shield/logo shows instead of fallback `6`
+- score/clock updates continue after background/relaunch
+- re-follow does not create duplicate Live Activities
+
+Failure conditions:
+- stale or duplicate Live Activities
+- no branding shield
+- activity freezes after relaunch/backgrounding
+
+### Test reporting format
+
+For each section above, record:
+- `PASS` / `FAIL`
+- device used
+- team / game / opponent
+- exact failure step
+- screenshot if failure is visible
+- whether Admin state matched app state
+
+If anything fails, prioritize capture of:
+- game id
+- opponent
+- age group / slot
+- session status in Admin
+- draft presence in Admin
+- finalize status text in scorer UI
