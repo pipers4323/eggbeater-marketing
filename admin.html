@@ -9073,7 +9073,7 @@
         + '</div>'
         + '<div style="display:flex;gap:8px;margin-top:10px">'
         + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g300)" onclick="bsStep(3)">&larr; Back</button>'
-        + '<button class="save-btn" style="flex:2" id="bs-s4-next" onclick="bsStep5Next()"' + s4dis + '>Continue &rarr;</button>'
+        + '<button class="save-btn" style="flex:2" id="bs-s4-next" onclick="bsStep4Continue()"' + s4dis + '>Continue &rarr;</button>'
         + '</div></div>'
         // Step 5
         + '<div id="bs-s5" style="display:' + (step === 5 ? 'block' : 'none') + '">'
@@ -9366,7 +9366,7 @@
       });
     }
 
-    function bsStep5Next() {
+    function bsStep4Continue() {
       bsApplyDateOverrides();
       bsStep(5);
     }
@@ -9630,6 +9630,12 @@
           const isWhite = _teamNamesLower.some(n => white.toLowerCase().includes(n));
           const isBlue = _teamNamesLower.some(n => dark.toLowerCase().includes(n));
           if (!isWhite && !isBlue) continue;
+
+          // Skip seeding/bracket-assignment rows that appear before the first date-section
+          // header. Those rows have team names (bracket position labels) but no time value
+          // and no date context — detecting them as games produces phantom entries.
+          const _rowTime = (row[timeCol] || '').trim();
+          if (!_rowDate[ri] && !_rowLoc[ri] && !_rowTime) continue;
 
           // Only use dateCol cell if it actually parses as a valid date, so bare game
           // numbers in col 0 ("1","2","7") and other non-date values don't shadow the
