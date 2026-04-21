@@ -2608,6 +2608,7 @@
       scoredGames: {},
       scorerDrafts: [],
       scorerSessions: [],
+      conflicts: [],
       roster: null,   // master roster — stored separately, persists across tournaments
       currentTab: 'schedule',
       editingGame: null,   // gameId currently open for edit
@@ -2773,6 +2774,7 @@
       if (data.gmBotId && !botGet(BOT_KEYS.GM_BOT_ID)) botSet(BOT_KEYS.GM_BOT_ID, data.gmBotId);
       try { await refreshScorerDraftsAdmin(); } catch (e) { console.warn('[admin] scorer drafts load error:', e.message); }
       try { await refreshScorerSessionsAdmin(); } catch (e) { console.warn('[admin] scorer sessions load error:', e.message); }
+      try { await refreshConflictsAdmin(); } catch (e) { console.warn('[admin] conflicts load error:', e.message); }
       await _doAdminLoad();
     }
 
@@ -3594,7 +3596,7 @@
 
     async function api(method, path, body) {
       // Append team + club query params to admin endpoints
-      const teamPaths = ['/admin/data', '/admin/roster', '/admin/deploy', '/admin/scored-games', '/admin/scorer-drafts', '/admin/scorer-sessions'];
+      const teamPaths = ['/admin/data', '/admin/roster', '/admin/deploy', '/admin/scored-games', '/admin/scorer-drafts', '/admin/scorer-sessions', '/admin/conflicts'];
       const needsTeam = teamPaths.some(p => path.startsWith(p));
       let fullPath = path;
       if (needsTeam) {
@@ -13097,12 +13099,18 @@
             session.eventCount ? `${session.eventCount} events` : '',
             entry.conflict ? 'Conflict detected' : '',
           ].filter(Boolean).join(' · ');
+          const canAct = ['open', 'stale', 'finalizing', 'conflict'].includes(effectiveStatus);
+          const sessionTid = esc(entry.tournamentId || '_');
+          const sessionGid = esc(entry.gameId);
           return `<div class="game-row">
             <div class="game-summary" style="cursor:default">
               <div class="game-info">
                 <div class="game-opp">${esc(session.opponent || entry.gameId || 'Active scorer session')}</div>
                 <div class="game-meta">${esc(scoreLabel)} · <span style="font-weight:700;color:${statusColor}">${esc(statusLabel)}</span>${auditBits ? ' · ' + esc(auditBits) : ''}</div>
               </div>
+              ${canAct ? `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+                <button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700)" onclick="updateScorerSessionAdmin('${sessionGid}','${sessionTid}','force-close')">Force Close</button>
+              </div>` : ''}
             </div>
           </div>`;
         }).join('')
@@ -13141,7 +13149,40 @@
           </div>`;
         }).join('')
         : `<div style="padding:16px 14px;color:var(--g400)">No durable scored games for this age group yet.</div>`;
-      let html = `
+      // ── Conflicts card (only shown when there are unresolved conflicts) ──
+      const unresolvedConflicts = (S.conflicts || []).filter(c => !c.resolved);
+      const conflictsCard = unresolvedConflicts.length ? `
+    <div class="card" style="margin-bottom:10px;border-color:#fca5a5;background:#fff1f2">
+      <div class="card-header" style="color:#dc2626">⚠️ Scorer Conflicts — ${esc(teamLabel)}</div>
+      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:0.82rem;color:#7f1d1d;line-height:1.5">
+          These conflicts were detected when two devices tried to own the same scorer session.
+          Force-close the losing session in the Active Scorer Sessions section, then dismiss the conflict here.
+        </div>
+        ${unresolvedConflicts.map(conflict => {
+          const stamp = conflict.updatedAt ? new Date(conflict.updatedAt).toLocaleString() : '';
+          const typeLabel = { 'multi-device': 'Multi-device ownership' }[conflict.type] || conflict.type;
+          const auditBits = [
+            conflict.existingDeviceId ? 'Owner: ' + conflict.existingDeviceId.slice(0, 8) : '',
+            conflict.incomingDeviceId ? 'Challenger: ' + conflict.incomingDeviceId.slice(0, 8) : '',
+            stamp ? stamp : '',
+            conflict.occurrences > 1 ? `${conflict.occurrences}× occurred` : '',
+          ].filter(Boolean).join(' · ');
+          return `<div class="game-row"><div class="game-summary" style="cursor:default">
+            <div class="game-info">
+              <div class="game-opp" style="color:#dc2626">${esc(typeLabel)}: ${esc(conflict.gameId || 'unknown game')}</div>
+              <div class="game-meta">${esc(auditBits)}</div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+              <button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700)"
+                onclick="resolveConflictAdmin('${esc(conflict.gameId)}','${esc(conflict.tournamentId || '_')}')">Dismiss</button>
+            </div>
+          </div></div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
+
+      let html = conflictsCard + `
     <div class="card" style="margin-bottom:10px;border-color:var(--royal-light);background:var(--royal-subtle)">
       <div class="card-header" style="color:var(--royal)">🛠️ Scored Games Recovery — ${esc(teamLabel)}</div>
       <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
@@ -13426,6 +13467,7 @@
         S.scoredGames = data.scoredGames || {};
         await refreshScorerDraftsAdmin();
         await refreshScorerSessionsAdmin();
+        await refreshConflictsAdmin();
         setScoredGamesStatus('Scored games refreshed', 'ok');
         renderTab();
       } catch (e) {
@@ -13505,6 +13547,47 @@
         await refreshScorerDraftsAdmin();
         await refreshScorerSessionsAdmin();
         setScoredGamesStatus(`Scorer draft ${action} complete`, 'ok');
+        renderTab();
+      } catch (e) {
+        setScoredGamesStatus('Error: ' + e.message, 'err');
+      }
+    }
+
+    /** Force-close or mark-stale an active scorer session from admin. */
+    async function updateScorerSessionAdmin(gameId, tournamentId, action) {
+      const label = action === 'force-close' ? 'Force-close this scorer session?' : 'Mark this session as stale?';
+      if (!confirm(label)) return;
+      try {
+        setScoredGamesStatus(`${action} scorer session…`, 'info');
+        const res = await api('POST', '/admin/scorer-sessions/action', { gameId, tournamentId, action });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || data.description || ('Worker returned ' + res.status));
+        await refreshScorerSessionsAdmin();
+        setScoredGamesStatus(`Session ${action} complete`, 'ok');
+        renderTab();
+      } catch (e) {
+        setScoredGamesStatus('Error: ' + e.message, 'err');
+      }
+    }
+
+    /** Fetch unresolved conflict records for this team. */
+    async function refreshConflictsAdmin() {
+      const res = await api('GET', '/admin/conflicts');
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || ('Worker returned ' + res.status));
+      S.conflicts = Array.isArray(data.conflicts) ? data.conflicts : [];
+    }
+
+    /** Dismiss (resolve) a conflict record — marks it resolved in KV. */
+    async function resolveConflictAdmin(gameId, tournamentId) {
+      if (!confirm('Dismiss this conflict record?')) return;
+      try {
+        setScoredGamesStatus('Dismissing conflict…', 'info');
+        const res = await api('POST', '/admin/conflicts/resolve', { gameId, tournamentId });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || ('Worker returned ' + res.status));
+        await refreshConflictsAdmin();
+        setScoredGamesStatus('Conflict dismissed', 'ok');
         renderTab();
       } catch (e) {
         setScoredGamesStatus('Error: ' + e.message, 'err');
