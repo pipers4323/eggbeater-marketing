@@ -9117,15 +9117,26 @@
       if (lbl) lbl.textContent = bsStepLabel(n);
     }
 
+    // ── BSSync gviz URL helper — always includes gid when available ───────────────
+    function bsCsvUrl(rangeOrNull) {
+      let url = 'https://docs.google.com/spreadsheets/d/' + S.bsync.sheetId + '/gviz/tq?tqx=out:csv';
+      if (S.bsync.sheetGid) url += '&gid=' + S.bsync.sheetGid;
+      if (rangeOrNull) url += '&range=' + encodeURIComponent(rangeOrNull);
+      return url;
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
+
     function bsStep1Next() {
       const url = (document.getElementById('bs-url')?.value || '').trim();
       const err = document.getElementById('bs-s1-err');
       if (!url) { if (err) err.textContent = '⚠️ Enter a Google Sheets URL first'; return; }
       const m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
       if (!m) { if (err) err.textContent = '❌ Could not find a sheet ID — paste the full Google Sheets URL'; return; }
+      const gidM = url.match(/[#?&]gid=(\d+)/);
       if (!S.bsync) S.bsync = {};
       S.bsync.sheetUrl = url;
       S.bsync.sheetId = m[1];
+      S.bsync.sheetGid = gidM ? gidM[1] : '';
       localStorage.setItem('ebadmin-bsync-url', url);
       if (err) err.textContent = '';
       if (S.bsync.courseFormat) { bsStep(3); } else { bsStep(2); }
@@ -9160,7 +9171,7 @@
       if (status) { status.style.color = 'var(--g400)'; status.textContent = '\u23f3 Reading legend cells\u2026'; }
       if (groups) groups.innerHTML = '';
       try {
-        // Parse refs like "A18, B18" → [{col:0,row:17},{col:1,row:17}]
+        // Parse refs like "A12, A18" → [{col:0,row:11},{col:0,row:17}]
         const refs = cells.split(/[\s,]+/).map(r => r.trim().toUpperCase()).filter(Boolean);
         const parsed = refs.map(ref => {
           const m = ref.match(/^([A-Z]+)(\d+)$/);
@@ -9168,16 +9179,22 @@
           let col = 0; for (const ch of m[1]) col = col * 26 + (ch.charCodeAt(0) - 64); col--;
           return { ref, col, row: parseInt(m[2]) - 1 };
         }).filter(Boolean);
-        if (!parsed.length) throw new Error('Could not parse cell references — use format A18, B18');
-        const legendRowNum = parsed[0].row + 1; // 1-indexed for gviz
-        const csvUrl = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:csv&range=' + legendRowNum + ':' + legendRowNum;
+        if (!parsed.length) throw new Error('Could not parse cell references — use format A12, A18');
+        // Fetch a range that spans ALL referenced rows (handles cells in different rows)
+        const minRow = Math.min(...parsed.map(p => p.row)) + 1; // 1-indexed
+        const maxRow = Math.max(...parsed.map(p => p.row)) + 1;
+        const csvUrl = bsCsvUrl(minRow + ':' + maxRow);
         const resp = await fetch(csvUrl);
         if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — check sheet is "Anyone with the link can view"');
         const text = await resp.text();
         const rows = parseCSV(text);
-        if (!rows.length || !rows[0]) throw new Error('No data returned for that row');
-        const row = rows[0];
-        const agLabels = parsed.map(p => (row[p.col] || '').trim()).filter(Boolean);
+        if (!rows.length) throw new Error('No data returned for that row range');
+        // Map each ref to the correct fetched row (offset from minRow)
+        const agLabels = parsed.map(p => {
+          const rowOffset = p.row - (minRow - 1); // 0-indexed into fetched rows
+          const row = rows[rowOffset] || [];
+          return (row[p.col] || '').trim();
+        }).filter(Boolean);
         if (!agLabels.length) throw new Error('Cells appear empty — check the row number in your cell refs');
         S.bsync.ageGroups = agLabels;
         S.bsync.legendParsed = parsed;
@@ -9216,7 +9233,7 @@
       if (status) { status.style.color = 'var(--g400)'; status.textContent = '⏳ Fetching pools…'; }
       if (preview) preview.innerHTML = '';
       try {
-        const csvUrl = `https://docs.google.com/spreadsheets/d/${S.bsync.sheetId}/gviz/tq?tqx=out:csv&range=${encodeURIComponent(range)}`;
+        const csvUrl = bsCsvUrl(range);
         const resp = await fetch(csvUrl);
         if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — make sure the sheet is set to "Anyone with the link can view"');
         const text = await resp.text();
@@ -9453,7 +9470,7 @@
       if (status4) { status4.style.color = 'var(--g400)'; status4.textContent = '⏳ Scanning schedule sheet for games…'; }
       if (preview) preview.innerHTML = '';
       try {
-        const csvUrl = 'https://docs.google.com/spreadsheets/d/' + S.bsync.sheetId + '/gviz/tq?tqx=out:csv';
+        const csvUrl = bsCsvUrl(null);
         const resp = await fetch(csvUrl);
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const text = await resp.text();
@@ -9640,7 +9657,7 @@
       S.bsync.rebracketRange = range;
       if (status) { status.style.color = 'var(--g400)'; status.textContent = '⏳ Fetching re-bracket…'; }
       try {
-        const csvUrl = `https://docs.google.com/spreadsheets/d/${S.bsync.sheetId}/gviz/tq?tqx=out:csv&range=${encodeURIComponent(range)}`;
+        const csvUrl = bsCsvUrl(range);
         const resp = await fetch(csvUrl);
         if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — make sure the sheet is publicly viewable');
         const text = await resp.text();
@@ -10539,7 +10556,7 @@
       _restoreBsyncFromTournament();
       if (!S.bsync?.sheetId || !S.bsync?.teamName) return;
       try {
-        const csvUrl = 'https://docs.google.com/spreadsheets/d/' + S.bsync.sheetId + '/gviz/tq?tqx=out:csv';
+        const csvUrl = bsCsvUrl(null);
         const resp = await fetch(csvUrl);
         if (!resp.ok) return;
         const text = await resp.text();
