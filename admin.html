@@ -9556,6 +9556,29 @@
         const agLabel = (S.bsync.colorCoded && S.bsync.myAgeGroup) ? ' (' + S.bsync.myAgeGroup + ')' : '';
         const _dateFix = _dateFixCount > 0 ? ` ⚠️ Auto-fixed ${_dateFixCount} date(s) with wrong year (${_badYears.join(', ')})` : '';
 
+        // Pre-pass: track last-seen date and location from section header rows.
+        // Handles sheets where game rows have no date column — date is in a header row
+        // above the block (e.g. "Date: | 4/25/2026 | Location: | Independence HS | …").
+        const _rowDate = new Array(allRows.length).fill('');
+        const _rowLoc  = new Array(allRows.length).fill('');
+        let _preDate = '', _preLoc = '';
+        for (let ri = 0; ri < allRows.length; ri++) {
+          const row = allRows[ri];
+          for (let ci = 0; ci < Math.min(row.length, 8); ci++) {
+            const d = parseDateToISO((row[ci] || '').trim());
+            if (d) { _preDate = d; break; }
+          }
+          for (let ci = 0; ci < Math.min(row.length - 1, 8); ci++) {
+            const lc = (row[ci] || '').toLowerCase().trim();
+            if (lc === 'location:' || lc === 'location') {
+              const v = (row[ci + 1] || '').trim();
+              if (v && !/^location/i.test(v)) { _preLoc = v; break; }
+            }
+          }
+          _rowDate[ri] = _preDate;
+          _rowLoc[ri] = _preLoc;
+        }
+
         const games = [];
         for (let ri = dataStartRow; ri < allRows.length; ri++) {
           const row = allRows[ri];
@@ -9566,8 +9589,9 @@
           const isBlue = dark.toLowerCase().includes(teamNameLower);
           if (!isWhite && !isBlue) continue;
 
-          const dateRaw = dateCol >= 0 ? (row[dateCol] || '').trim() : '';
-          const rawLoc = poolCol >= 0 ? (row[poolCol] || '').trim() : (locationCol >= 0 ? (row[locationCol] || '').trim() : '');
+          // Use cell value from detected column; fall back to section-header date from pre-pass
+          const dateRaw = (dateCol >= 0 ? (row[dateCol] || '').trim() : '') || _rowDate[ri] || '';
+          const rawLoc = poolCol >= 0 ? (row[poolCol] || '').trim() : ((locationCol >= 0 ? (row[locationCol] || '').trim() : '') || _rowLoc[ri] || '');
           const locParsed = bsParseLocation(rawLoc);
           const time = (row[timeCol] || '').trim();
           const rawGnum = gameNumCol >= 0 ? (row[gameNumCol] || '').trim() : '';
@@ -10594,6 +10618,27 @@
           }
         }
 
+        // Pre-pass: track last-seen date/location from section headers
+        const _apRowDate = new Array(allRows.length).fill('');
+        const _apRowLoc  = new Array(allRows.length).fill('');
+        let _apPreDate = '', _apPreLoc = '';
+        for (let ri = 0; ri < allRows.length; ri++) {
+          const row = allRows[ri];
+          for (let ci = 0; ci < Math.min(row.length, 8); ci++) {
+            const d = parseDateToISO((row[ci] || '').trim());
+            if (d) { _apPreDate = d; break; }
+          }
+          for (let ci = 0; ci < Math.min(row.length - 1, 8); ci++) {
+            const lc = (row[ci] || '').toLowerCase().trim();
+            if (lc === 'location:' || lc === 'location') {
+              const v = (row[ci + 1] || '').trim();
+              if (v && !/^location/i.test(v)) { _apPreLoc = v; break; }
+            }
+          }
+          _apRowDate[ri] = _apPreDate;
+          _apRowLoc[ri] = _apPreLoc;
+        }
+
         const games = [];
         for (let ri = dataStartRow; ri < allRows.length; ri++) {
           const row = allRows[ri];
@@ -10604,9 +10649,9 @@
           const isBlue = blue.toLowerCase().includes(teamNameLower);
           if (!isWhite && !isBlue) continue;
           const rawGnum = gameNumCol >= 0 ? (row[gameNumCol] || '').trim() : '';
-          const dateRaw = dateCol >= 0 ? (row[dateCol] || '').trim() : '';
+          const dateRaw = (dateCol >= 0 ? (row[dateCol] || '').trim() : '') || _apRowDate[ri] || '';
           const dateISO = parseDateToISO(dateRaw);
-          const rawLoc = poolCol >= 0 ? (row[poolCol] || '').trim() : (row[locationCol] || '').trim();
+          const rawLoc = poolCol >= 0 ? (row[poolCol] || '').trim() : ((row[locationCol] || '').trim() || _apRowLoc[ri] || '');
           const locParsed = (typeof bsParseLocation === 'function') ? bsParseLocation(rawLoc) : { venue: rawLoc };
 
           const game = {
