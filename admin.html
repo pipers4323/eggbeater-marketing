@@ -9841,7 +9841,12 @@
         }));
         games.sort((a, b) => gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum));
         S.tournament.games = games;
-        if (S.bsync.bracketPaths?.length) S.tournament.bracket = { paths: S.bsync.bracketPaths };
+        {
+          const _bUpdate = {};
+          if (S.bsync.bracketPaths?.length) _bUpdate.paths = S.bsync.bracketPaths;
+          if (S.bsync.pools && Object.keys(S.bsync.pools).length) _bUpdate.pools = S.bsync.pools;
+          if (Object.keys(_bUpdate).length) S.tournament.bracket = { ...(S.tournament.bracket || {}), ..._bUpdate };
+        }
         // Deploying games means the tournament is live — clear upcoming/coming-soon flags
         delete S.tournament.upcomingMode;
         delete S.tournament.comingSoon;
@@ -13508,6 +13513,15 @@
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || data.description || ('Worker returned ' + res.status));
       S.scorerSessions = Array.isArray(data.sessions) ? data.sessions : [];
+    }
+
+    // ── Director Dashboard data fetch ────────────────────────────────────────────
+    async function loadDirectorDashboard() {
+      const teams = getAdminTeams().map(t => t.key).join(',');
+      const res = await api('GET', `/admin/director-dashboard?teams=${encodeURIComponent(teams)}`);
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Dashboard fetch failed');
+      return data; // { groups: [...], fetchedAt }
     }
 
     async function refreshScoredGamesAdmin() {
