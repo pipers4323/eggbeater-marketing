@@ -6280,7 +6280,7 @@
         // Clear sheetSync so hard refresh doesn't restore the old wizard setup
         delete S.tournament.sheetSync;
         S.bsync = null;
-        ['ebadmin-bsync-url', 'ebadmin-bsync-team', 'ebadmin-bsync-range', 'ebadmin-bsync-mins'].forEach(k => localStorage.removeItem(k));
+        ['ebadmin-bsync-url', 'ebadmin-bsync-gid', 'ebadmin-bsync-team', 'ebadmin-bsync-range', 'ebadmin-bsync-mins'].forEach(k => localStorage.removeItem(k));
 
         // Save state
         const res = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
@@ -7714,7 +7714,11 @@
       const autoBtn = isMultiTeamAdmin() ? `<button class="add-btn" style="background:#dce5f5;color:#002868;border:1.5px solid #b8c9e5;margin-bottom:4px" onclick="autoDetectAllTeams()">🔍 Auto-detect teams</button>` : '';
 
       // Init bracket sync state lazily
-      if (!S.bsync) S.bsync = { step: 1, sheetUrl: localStorage.getItem('ebadmin-bsync-url') || '', poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '' };
+      if (!S.bsync) {
+        const _lsUrl = localStorage.getItem('ebadmin-bsync-url') || '';
+        const _lsGidM = _lsUrl.match(/[#?&]gid=(\d+)/);
+        S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] || '', sheetGid: localStorage.getItem('ebadmin-bsync-gid') || (_lsGidM ? _lsGidM[1] : ''), poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '' };
+      }
       const bs = S.bsync;
       // Advanced Import parent accordion: auto-open if any wizard is active
       const _advOpen = !!(bs.sheetUrl || (bs.step && bs.step > 1) || (S.dirImport && S.dirImport.open) || (S.njo && S.njo.sheetUrl));
@@ -8962,10 +8966,13 @@
         if (!S.bsync) {
           const url = localStorage.getItem('ebadmin-bsync-url') || '';
           const sheetId = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] || '';
+          const gidMInit = url.match(/[#?&]gid=(\d+)/);
+          const sheetGidInit = localStorage.getItem('ebadmin-bsync-gid') || (gidMInit ? gidMInit[1] : '');
           S.bsync = {
             step: 1,
             sheetUrl: url,
             sheetId: sheetId,
+            sheetGid: sheetGidInit,
             poolRange: localStorage.getItem('ebadmin-bsync-range') || '',
             teamName: localStorage.getItem('ebadmin-bsync-team') || '',
             rebracket: false,
@@ -9147,6 +9154,7 @@
       S.bsync.sheetId = m[1];
       S.bsync.sheetGid = gidM ? gidM[1] : '';
       localStorage.setItem('ebadmin-bsync-url', url);
+      localStorage.setItem('ebadmin-bsync-gid', S.bsync.sheetGid);
       if (err) err.textContent = '';
       if (S.bsync.courseFormat) { bsStep(3); } else { bsStep(2); }
     }
@@ -9985,7 +9993,7 @@
       // Clear all wizard state — both in-memory and on the server so a hard
       // refresh doesn't restore the old setup via _restoreBsyncFromTournament()
       S.bsync = { step: 1, sheetUrl: '', sheetId: '', sheetGid: '', poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '' };
-      ['ebadmin-bsync-url', 'ebadmin-bsync-team', 'ebadmin-bsync-range', 'ebadmin-bsync-mins'].forEach(k => localStorage.removeItem(k));
+      ['ebadmin-bsync-url', 'ebadmin-bsync-gid', 'ebadmin-bsync-team', 'ebadmin-bsync-range', 'ebadmin-bsync-mins'].forEach(k => localStorage.removeItem(k));
       if (S.tournament) delete S.tournament.sheetSync;
       bsStep(1);
       // Save the cleared sheetSync to the server so hard refresh doesn't restore it
