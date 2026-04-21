@@ -10194,6 +10194,11 @@ function renderPossibleTab() {
       <button onclick="setBracketDrawView('my-path')" style="flex:1;padding:7px 0;border:none;background:${!_isFull?'var(--royal,#1e3a8a)':'transparent'};color:${!_isFull?'#fff':'var(--gray-600,#6b7280)'};font-weight:600;font-size:0.85rem;cursor:pointer;transition:background .15s">My Path</button>
       <button onclick="setBracketDrawView('full-draw')" style="flex:1;padding:7px 0;border:none;background:${_isFull?'var(--royal,#1e3a8a)':'transparent'};color:${_isFull?'#fff':'var(--gray-600,#6b7280)'};font-weight:600;font-size:0.85rem;cursor:pointer;transition:background .15s">Full Draw</button>
     </div>`;
+  } else {
+    // Remove stale toggle bar if tournament no longer has pools/paths
+    const _stale = document.getElementById('possible-toggle-bar');
+    if (_stale) _stale.remove();
+    state.bracketDrawView = 'my-path';
   }
 
   if (state.bracketDrawView === 'full-draw') {
@@ -10433,6 +10438,10 @@ function renderFullDraw() {
     if (!scoreSource) {
       html += `<div style="font-size:0.78rem;color:var(--gray-400,#9ca3af);font-style:italic;margin-top:-4px;margin-bottom:4px">
         Live standings appear when director scores are available.
+      </div>`;
+    } else if (!hasAnyScores) {
+      html += `<div style="font-size:0.78rem;color:var(--gray-400,#9ca3af);font-style:italic;margin-top:-4px;margin-bottom:4px">
+        Standings will update as games are scored.
       </div>`;
     }
     html += `</div>`;
