@@ -9641,6 +9641,11 @@
             const hm = time.match(/^(\d{1,2}):/);
             if (hm) { const h = parseInt(hm[1], 10); timeFormatted = time + (h >= 7 && h <= 11 ? ' AM' : ' PM'); }
           }
+          // Multi-team: determine which team name matched and assign the correct slot (A/B/C)
+          const _teamSlots = ['A', 'B', 'C'];
+          const _matchField = (isWhite ? white : dark).toLowerCase();
+          const _matchedIdx = _teamNamesLower.length > 1 ? _teamNamesLower.findIndex(n => _matchField.includes(n)) : -1;
+          const teamSlot = _matchedIdx >= 0 ? (_teamSlots[_matchedIdx] || 'A') : undefined;
 
           games.push({
             id: 'g' + (Date.now() + games.length).toString(36),
@@ -9652,6 +9657,7 @@
             location: locParsed.venue,
             pool: locParsed.poolNum ? 'Pool ' + locParsed.poolNum : (S.bsync.myPool || ''),
             cap,
+            ...(teamSlot ? { team: teamSlot } : {}),
           });
         }
 
