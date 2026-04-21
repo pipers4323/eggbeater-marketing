@@ -10629,10 +10629,11 @@
         if (y.length === 2) y = '20' + y;
         return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
       }
-      // Only try new Date() for strings that look like real dates (contain letters for
-      // a month name, or a dash for dashed formats). This prevents bare game-number
-      // strings like "1", "2", "7" from being parsed as years 2001, 2002, 2007.
-      if (/[a-zA-Z]|-/.test(s)) {
+      // Only try new Date() for strings that strongly resemble a real date:
+      // must contain a 4-digit year OR a recognisable month abbreviation.
+      // This prevents game-notation like "L-Game 2" / "W-Game 3" and bare
+      // numbers like "1","2","7" from being mis-parsed as 2001-xx-xx dates.
+      if (/\d{4}/.test(s) || /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i.test(s)) {
         try {
           const parsed = new Date(s);
           if (!isNaN(parsed)) {
