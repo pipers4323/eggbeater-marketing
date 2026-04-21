@@ -10749,6 +10749,16 @@
           _apRowDate[ri] = _apPreDate;
           _apRowLoc[ri] = _apPreLoc;
         }
+        // Back-fill: rows before the first date-section header get the first known section date.
+        {
+          const _firstSectionDate = _apRowDate.find(d => d);
+          if (_firstSectionDate) {
+            for (let ri = 0; ri < _apRowDate.length; ri++) {
+              if (!_apRowDate[ri]) _apRowDate[ri] = _firstSectionDate;
+              else break;
+            }
+          }
+        }
 
         const games = [];
         for (let ri = dataStartRow; ri < allRows.length; ri++) {
