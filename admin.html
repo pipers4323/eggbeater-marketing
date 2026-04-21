@@ -9198,9 +9198,10 @@
         }).filter(Boolean);
         if (!parsed.length) throw new Error('Could not parse cell references — use format A12, A18');
         // Fetch a range that spans ALL referenced rows (handles cells in different rows)
+        // gviz range is end-exclusive, so fetch maxRow+1 to ensure the last row is included
         const minRow = Math.min(...parsed.map(p => p.row)) + 1; // 1-indexed
         const maxRow = Math.max(...parsed.map(p => p.row)) + 1;
-        const csvUrl = bsCsvUrl(minRow + ':' + maxRow);
+        const csvUrl = bsCsvUrl(minRow + ':' + (maxRow + 1));
         const resp = await fetch(csvUrl);
         if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — check sheet is "Anyone with the link can view"');
         const text = await resp.text();
