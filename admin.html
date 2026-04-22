@@ -9144,7 +9144,7 @@
       var rbNoBg = !bs.rebracket ? 'var(--royal)' : 'var(--g100)';
       var rbNoCo = !bs.rebracket ? 'white' : 'var(--g600)';
       var s4dis = (bs.games && bs.games.length) ? '' : ' disabled';
-      var hasDraft = !!(localStorage.getItem('ebwp-bsync-draft'));
+      var hasDraft = !!(localStorage.getItem('ebwp-bsync-draft-' + S.team));
       return '<details class="card collapsible-card" id="bs-card"' + ((bs.sheetUrl || (bs.step && bs.step > 1)) ? ' open' : '') + '>'
         + '<summary class="card-header collapsible-header">&#x1f4ca; Bracket Sheet Sync <span style="font-size:0.72rem;font-weight:400;color:var(--g400);margin-left:8px">' + (hasDraft ? '| <a href="#" onclick="event.preventDefault();_bsClearWizardDraft()" style="color:#92400e;text-decoration:none">🗑 Clear draft</a>' : '') + '</span><span class="collapse-icon">&#9662;</span></summary>'
         + '<div style="padding:10px 14px">'
@@ -9304,13 +9304,13 @@
           bracketPathTeam: S.bsync.bracketPathTeam,
           _savedAt: Date.now(),
         };
-        localStorage.setItem('ebwp-bsync-draft', JSON.stringify(draft));
+        localStorage.setItem('ebwp-bsync-draft-' + S.team, JSON.stringify(draft));
       } catch (e) { /* non-fatal */ }
     }
 
     function _bsRestoreWizard() {
       try {
-        const raw = localStorage.getItem('ebwp-bsync-draft');
+        const raw = localStorage.getItem('ebwp-bsync-draft-' + S.team);
         if (!raw) return;
         const draft = JSON.parse(raw);
         if (!draft || !draft.step || draft.step < 2) return;
@@ -9325,7 +9325,7 @@
     }
 
     function _bsClearWizardDraft() {
-      localStorage.removeItem('ebwp-bsync-draft');
+      localStorage.removeItem('ebwp-bsync-draft-' + S.team);
       if (S.bsync) S.bsync.step = 1;
       const banner = document.getElementById('bs-draft-banner');
       if (banner) banner.style.display = 'none';
@@ -11186,7 +11186,11 @@
       try {
         const csvUrl = bsCsvUrl(null);
         const resp = await fetch(csvUrl, { cache: 'no-store' });
-        if (!resp.ok) return;
+        if (!resp.ok) {
+          console.warn('[bsAutoPoll] Sheet fetch failed:', resp.status, resp.statusText);
+          _showSyncToast(0, 0, '⚠️ Auto-sync failed — sheet returned ' + resp.status + '. Check sheet permissions.');
+          return;
+        }
         const text = await resp.text();
         const allRows = parseCSV(text);
         const _apTeamNamesLower = (S.bsync.teamNames && S.bsync.teamNames.length ? S.bsync.teamNames : [S.bsync.teamName || '']).map(n => n.toLowerCase()).filter(Boolean);
@@ -11379,7 +11383,24 @@
 
         const existingByNum = {};
         for (const g of (S.tournament.games || [])) existingByNum[g.gameNum] = g;
-        S.tournament.games = games.map(g => ({ ...g, id: existingByNum[g.gameNum]?.id || g.id }));
+        S.tournament.games = games.map(g => {
+          const prev = existingByNum[g.gameNum];
+          // Preserve manually-added fields that the sheet doesn't supply
+          const hasSheetScore = g.result != null || g.teamScore != null || g.oppScore != null;
+          return {
+            ...g,
+            id: prev?.id || g.id,
+            note: g.note || prev?.note,          // keep admin notes (sheet never has these)
+            cap: g.cap || prev?.cap,              // keep manual cap overrides
+            // Only fall back to existing score if sheet gave us nothing — prevents accidental wipe
+            ...(hasSheetScore ? {} : {
+              result: prev?.result,
+              score: prev?.score,
+              teamScore: prev?.teamScore,
+              oppScore: prev?.oppScore,
+            }),
+          };
+        });
         S.bsync.games = S.tournament.games;
         delete S.tournament.upcomingMode;
         delete S.tournament.comingSoon;
@@ -11421,18 +11442,19 @@
       }
     }
 
-    function _showSyncToast(added, updated) {
+    function _showSyncToast(added, updated, errorMsg) {
       let toast = document.getElementById('bs-sync-toast');
       if (!toast) {
         toast = document.createElement('div');
         toast.id = 'bs-sync-toast';
-        toast.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;background:#059669;color:white;padding:8px 14px;border-radius:20px;font-size:0.82rem;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.25);pointer-events:none;transition:opacity .4s';
         document.body.appendChild(toast);
       }
-      toast.textContent = '🔄 Auto-sync: +' + added + ' new · ' + updated + ' updated';
+      const isError = !!errorMsg;
+      toast.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;color:white;padding:8px 14px;border-radius:20px;font-size:0.82rem;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.25);pointer-events:none;transition:opacity .4s;background:' + (isError ? '#dc2626' : '#059669');
+      toast.textContent = errorMsg || ('🔄 Auto-sync: +' + added + ' new · ' + updated + ' updated');
       toast.style.opacity = '1';
       clearTimeout(toast._fadeTimer);
-      toast._fadeTimer = setTimeout(() => { toast.style.opacity = '0'; }, 4000);
+      toast._fadeTimer = setTimeout(() => { toast.style.opacity = '0'; }, isError ? 8000 : 4000);
     }
 
     async function syncGamesFromSheet() {
