@@ -3014,6 +3014,19 @@ function findNextGameOrProjected() {
   return null;
 }
 
+function findProjectedNextOnly(now = new Date()) {
+  if (_isTournamentPastWindow(TOURNAMENT, now)) return null;
+  const projected = inferProjectedPath();
+  if (!projected) return null;
+  for (const step of (projected.steps || [])) {
+    const stepKey = `${projected.id}-${step.gameNum}`;
+    if (!state.bracketResults[stepKey] && _isUpcomingOrCurrentProjectedStep(step, now)) {
+      return { game: step, type: 'bracket', pathLabel: projected.label };
+    }
+  }
+  return null;
+}
+
 // ─── BRACKET PROJECTION ───────────────────────────────────────────────────────
 
 function _pathProjectedRank(path) {
@@ -9885,6 +9898,11 @@ function renderGamesList() {
   if (!upcomingGames.length) {
     const tournamentPast = _isTournamentPastWindow() && !TOURNAMENT.upcomingMode && !TOURNAMENT.comingSoon;
     const allDone = games.length > 0 && games.every(g => _getResultForGame(g));
+    const projected = findProjectedNextOnly();
+    if (projected?.type === 'bracket') {
+      listEl.innerHTML = `<div class="games-section">${buildProjectedScoreCard(projected)}</div>`;
+      return;
+    }
     // The schedule header already renders the completion state in the blue Next Game slot.
     // Keep the list body empty here so we do not show a second duplicate completion card.
     listEl.innerHTML = (tournamentPast || allDone)
@@ -9937,6 +9955,12 @@ function renderGamesList() {
   }
 
   if (!listGames.length) {
+    const projected = nextObj?.type === 'pool' ? findProjectedNextOnly() : (nextObj?.type === 'bracket' ? nextObj : null);
+    const projectedMatchesDay = !window._scheduleDay || projected?.game?.dateISO === window._scheduleDay;
+    if (projected?.type === 'bracket' && projectedMatchesDay) {
+      listEl.innerHTML = dayPickerHtml + `<div class="games-section">${buildProjectedScoreCard(projected)}</div>`;
+      return;
+    }
     listEl.innerHTML = dayPickerHtml + `<p class="empty-msg" style="padding:24px 18px;">${escHtml(_scheduleEmptyMessage())}</p>`;
     return;
   }
@@ -15690,18 +15714,22 @@ async function updateGameNote(gameId, note) {
     }
   }
 
+  // On native the page scrolls inside .app-container, not the document root
+  function _ptrScrollTop() {
+    const c = document.querySelector('.app-container');
+    return c ? c.scrollTop : (document.documentElement.scrollTop || document.body.scrollTop || 0);
+  }
+
   document.addEventListener('touchstart', (e) => {
     if (!_isRefreshableTab()) return;
-    const scrollTop = document.documentElement.scrollTop || document.body.scrollTop || 0;
-    if (scrollTop > 2) return; // only trigger at top
+    if (_ptrScrollTop() > 2) return; // only trigger at top
     _ptrStartY = e.touches[0].clientY;
     _ptrActive = false;
   }, { passive: true });
 
   document.addEventListener('touchmove', (e) => {
     if (!_isRefreshableTab()) return;
-    const scrollTop = document.documentElement.scrollTop || document.body.scrollTop || 0;
-    if (scrollTop > 2) { _ptrStartY = 0; return; }
+    if (_ptrScrollTop() > 2) { _ptrStartY = 0; return; }
     if (!_ptrStartY) return;
     const delta = e.touches[0].clientY - _ptrStartY;
     if (delta > _ptrThreshold) {
@@ -15767,7 +15795,11 @@ function _scheduleEmptyMessage() {
   const pastGames   = games.filter(g => g.dateISO < today);
   if (futureGames.length === 0 && pastGames.length > 0) return '✓ All games complete — great tournament!';
   if (futureGames.length === 0) return 'No upcoming games scheduled yet. Check back soon.';
-  return 'No games today — check back tomorrow or use the day picker above.';
+  // Only reference the day picker if multiple dates are present (so picker is actually rendered)
+  const allDates = [...new Set(games.filter(g => g.dateISO).map(g => g.dateISO))].sort();
+  return allDates.length > 1
+    ? 'No games today — use the day picker above to see games on other days.'
+    : 'No games scheduled for today. Check back soon.';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

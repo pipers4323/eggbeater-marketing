@@ -369,10 +369,29 @@ body {
   vertical-align: middle;
 }
 
-/* ── Small-screen header compression (iPhone SE, landscape, narrow viewports) */
+/* ── Mobile header compression (all phones) — keeps header under ~180px */
+@media (max-width: 1022px) {
+  .club-custom-logo-img {
+    max-height: 44px;   /* Down from 80px — biggest single header height saving */
+  }
+  .club-custom-logo-wrap {
+    padding-top: 2px;
+    padding-bottom: 1px;
+  }
+  .header-inner {
+    padding-bottom: 4px;  /* Down from 7px */
+  }
+  .tournament-strip {
+    padding-top: 4px;
+    padding-bottom: 5px;
+    font-size: 0.78rem;
+  }
+}
+
+/* ── Extra-small-screen compression (iPhone SE, landscape, narrow viewports) */
 @media (max-height: 700px), (max-width: 380px) {
   .club-custom-logo-img {
-    max-height: 52px;   /* Down from 80px — saves ~30px on short/narrow screens */
+    max-height: 36px;   /* Even tighter on tiny/landscape screens */
   }
   .club-custom-logo-wrap {
     padding-top: 2px;
@@ -505,6 +524,56 @@ body {
 #header-tournament-name {
   font-weight: 700;
   color: white;
+}
+
+/* Native header compaction: reclaim vertical space on phones */
+html.native-ios .header-lang-wrap,
+html.native-android .header-lang-wrap,
+html.native-ios .eggbeater-poweredby-bar,
+html.native-android .eggbeater-poweredby-bar {
+  display: none !important;
+}
+
+html.native-ios .header-inner,
+html.native-android .header-inner {
+  padding-bottom: 2px;
+}
+
+html.native-ios .club-custom-logo-wrap,
+html.native-android .club-custom-logo-wrap {
+  padding-top: 2px;
+  padding-bottom: 0;
+}
+
+html.native-ios .club-custom-logo-img,
+html.native-android .club-custom-logo-img {
+  max-height: 30px;
+}
+
+html.native-ios .club-logo-img,
+html.native-android .club-logo-img {
+  max-height: 44px;
+}
+
+html.native-ios .header-right,
+html.native-android .header-right {
+  top: calc(env(safe-area-inset-top, 0px) + 4px);
+  right: 12px;
+  gap: 0;
+}
+
+html.native-ios .tournament-strip,
+html.native-android .tournament-strip {
+  padding-top: 4px;
+  padding-bottom: 5px;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+html.native-ios .team-picker,
+html.native-android .team-picker {
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 
 
@@ -1049,6 +1118,7 @@ h2 {
 
 .next-game-card {
   background: linear-gradient(135deg, var(--royal) 0%, var(--royal-dark) 100%);
+  border: 1px solid rgba(255,255,255,0.18);
   border-radius: var(--radius);
   padding: 16px 18px;
   color: white;
@@ -1127,8 +1197,9 @@ h2 {
   background: linear-gradient(135deg, #002868 0%, #b91c1c 100%);
 }
 .next-game-card.cap-dark-bg {
-  background: rgb(var(--royal-rgb));
-  box-shadow: 0 4px 18px rgba(20,64,176,.35);
+  background: linear-gradient(135deg, #2b63ff 0%, #153a9f 100%);
+  border: 1.5px solid rgba(255,255,255,0.52);
+  box-shadow: 0 0 0 1px rgba(12,24,73,0.2), 0 12px 30px rgba(0,0,0,.34);
 }
 .next-game-card.cap-white-bg {
   background: white;
@@ -1292,9 +1363,9 @@ h2 {
 .game-card.cap-dark-bg,
 .sched-card.cap-dark-bg {
   background: linear-gradient(180deg, rgba(var(--royal-rgb),0.94) 0%, rgba(20,34,76,0.98) 100%);
-  border-color: rgba(255,255,255,0.12);
-  border-left-color: rgba(255,255,255,0.3);
-  box-shadow: 0 8px 24px rgba(0,0,0,.22);
+  border-color: rgba(255,255,255,0.32);
+  border-left-color: rgba(255,255,255,0.55);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.18), 0 6px 20px rgba(0,0,0,.5);
 }
 .game-card.cap-dark-bg .game-vs,
 .game-card.cap-dark-bg .game-card-age-label,
