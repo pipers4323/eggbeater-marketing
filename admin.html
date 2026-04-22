@@ -9982,9 +9982,12 @@
           if (S.bsync.bracketPaths?.length) {
             _bUpdate.paths = S.bsync.bracketPaths;
           } else if (S.bsync.rebracket === false) {
-            // User explicitly chose "No, single day" — clear any stale bracket paths
-            // from previous imports so the bracket tab doesn't show bogus data.
-            _bUpdate.paths = [];
+            // User chose "single day" — clear stale ARRAY bracket paths (auto-generated),
+            // but preserve any manually-keyed object paths (e.g. { B: [...] }) set via console.
+            const _existingPaths = S.tournament.bracket?.paths;
+            const _hasKeyedPaths = _existingPaths && !Array.isArray(_existingPaths)
+              && typeof _existingPaths === 'object' && Object.keys(_existingPaths).length > 0;
+            if (!_hasKeyedPaths) _bUpdate.paths = [];
           }
           if (S.bsync.pools && Object.keys(S.bsync.pools).length) _bUpdate.pools = S.bsync.pools;
           if (Object.keys(_bUpdate).length) S.tournament.bracket = { ...(S.tournament.bracket || {}), ..._bUpdate };
