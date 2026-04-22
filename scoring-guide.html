@@ -450,7 +450,7 @@ code {
     <a href="#open-a-game"><span class="num">4</span> Opening a Game</a>
     <a href="#the-clock"><span class="num">5</span> The Clock</a>
     <a href="#recording-goals"><span class="num">6</span> Recording Goals</a>
-    <a href="#exclusions"><span class="num">7</span> Exclusions &amp; Brutality</a>
+    <a href="#exclusions"><span class="num">7</span> Exclusions &amp; Power Plays</a>
     <a href="#other-events"><span class="num">8</span> Assists &amp; GK Saves</a>
     <a href="#timeouts"><span class="num">9</span> Timeouts</a>
     <a href="#between-quarters"><span class="num">10</span> Between Quarters</a>
@@ -611,12 +611,12 @@ code {
   <div class="card">
     <h3>Clock buttons explained</h3>
     <div class="kv-row">
-      <span class="kv-label"><span class="btn-demo green">▶ Start</span></span>
-      <span class="kv-value"><strong>Begins the automatic countdown</strong> for the current quarter. Tap this when the referee blows the whistle to start play.</span>
+      <span class="kv-label"><span class="btn-demo green">Sprint Won</span></span>
+      <span class="kv-value"><strong>Starts each period.</strong> At the opening whistle for Q1, Q2, Q3, Q4, or overtime, tap <strong>Sprint Won</strong>, choose your player or <strong>Opp</strong>, and the app records the sprint result while starting the clock.</span>
     </div>
     <div class="kv-row">
-      <span class="kv-label"><span class="btn-demo amber">Pause</span></span>
-      <span class="kv-value">Pauses the countdown. Use this for long stoppages, score corrections, or anytime you need to catch up on stats. Tap <strong>Start</strong> again to resume.</span>
+      <span class="kv-label"><span class="btn-demo amber">Pause Clock</span></span>
+      <span class="kv-value">Pauses the countdown. Use this for long stoppages, score corrections, or anytime you need to catch up on stats. Tap <strong>Resume</strong> when play restarts.</span>
     </div>
     <div class="kv-row">
       <span class="kv-label"><span class="btn-demo ghost">Volume Button (iPhone)</span></span>
@@ -630,7 +630,7 @@ code {
 
   <div class="callout callout-warn">
     <span class="callout-icon">⚠️</span>
-    <p><strong>0:00 does not advance the game for you.</strong> When a quarter ends, review the inline play-by-play, catch up on any missing stats, then use the explicit next-step button such as <strong>Start Q2</strong>, <strong>Start Half Time</strong>, <strong>Start Q3</strong>, <strong>Start Q4</strong>, or <strong>Finalize Game</strong>.</p>
+    <p><strong>0:00 does not advance the game for you.</strong> When a quarter ends, review the inline play-by-play, catch up on any missing stats, then use the explicit next-step button for the next period. When the next period actually starts, tap <strong>Sprint Won</strong> to record the sprint and start the clock.</p>
   </div>
 
   <div class="card">
@@ -691,7 +691,7 @@ code {
 <div class="section" id="exclusions">
   <div class="section-header">
     <div class="section-icon">7</div>
-    <h2>Exclusions &amp; Brutality Cards</h2>
+    <h2>Exclusions &amp; Power Plays</h2>
   </div>
 
   <div class="card">
@@ -706,13 +706,14 @@ code {
   </div>
 
   <div class="card">
-    <h3>Brutality cards</h3>
-    <p>A brutality card is the most severe penalty in water polo &mdash; the offending player is excluded for the rest of the game and their team plays a man down for four minutes. To record one:</p>
+    <h3>Exclusion types</h3>
+    <p>The scorer grid now keeps exclusions tighter and more explicit:</p>
     <ol style="padding-left:20px;margin-top:8px">
-      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Tap <span class="btn-demo red">Brutality</span> for the offending team.</li>
-      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Enter the player's cap number and confirm.</li>
+      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Tap <span class="btn-demo red">Excl</span> and choose <strong>Common Penalty</strong> or <strong>Kickout</strong>.</li>
+      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Tap <span class="btn-demo ghost">Opp Excl</span> and choose <strong>Opp Exclusion</strong> or <strong>Earned Exclusion</strong> when your player drew the foul.</li>
+      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Enter the cap number when prompted so the exclusion stays attached to the right player.</li>
     </ol>
-    <p style="margin-top:8px;font-size:.88rem;color:var(--g600)">Brutality cards are logged separately from regular exclusions in the play-by-play and appear prominently in the post-game box score summary.</p>
+    <p style="margin-top:8px;font-size:.88rem;color:var(--g600)">Eggbeater does not track brutality as a separate button in the current scorer flow. The log is optimized around the exclusions and earned exclusions that matter to 6-on-5 scoring.</p>
   </div>
 
   <div class="callout callout-info">
@@ -736,7 +737,7 @@ code {
 
   <div class="card">
     <h3>GK Saves</h3>
-    <p>A GK Save is credited to the goalkeeper who stopped a shot. Tap <span class="btn-demo ghost">GK Save</span> and enter the goalkeeper's cap number. GK Saves accumulate in the goalkeeper's individual stats and show up in the post-game box score.</p>
+    <p>A GK Save is credited to the goalkeeper who stopped a shot. Tap <span class="btn-demo ghost">GK Save</span>, choose whether it happened <strong>inside 2M</strong> when relevant, then enter the goalkeeper&apos;s cap number. GK Saves accumulate in the goalkeeper&apos;s individual stats and show up in the post-game box score.</p>
   </div>
 
   <div class="card">
@@ -762,9 +763,9 @@ code {
     <h3>Recording a timeout</h3>
     <p>Each team typically gets one timeout per game (exact rules vary by age group and tournament format). When a team calls a timeout:</p>
     <ol style="padding-left:20px;margin-top:8px">
-      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Tap <span class="btn-demo amber">Timeout</span> for the team that called it.</li>
-      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">The timeout is logged with the current clock time and the team's timeout usage is recorded.</li>
-      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Tap <span class="btn-demo amber">⏸ Stop</span> on the clock to pause the countdown while the teams huddle. Tap <span class="btn-demo green">▶ Start</span> when the referee restarts play.</li>
+      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Tap the correct timeout chip: <span class="btn-demo amber">Team TO 1 Min</span>, <span class="btn-demo amber">Team TO 30s</span>, <span class="btn-demo amber">Opp TO 1 Min</span>, or <span class="btn-demo amber">Opp TO 30s</span>.</li>
+      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">Eggbeater logs the timeout with the current clock time and moves the game into timeout mode automatically.</li>
+      <li style="margin-bottom:6px;font-size:.88rem;color:var(--g600)">When the referee restarts play, exit timeout mode and continue scoring normally.</li>
     </ol>
   </div>
 </div>
@@ -794,7 +795,7 @@ code {
       <span style="font-size:.8rem;color:var(--g400);align-self:center">&rarr;</span>
       <span class="period-chip">Final / OT / Shootout</span>
     </div>
-    <p style="margin-top:10px">You advance manually using the explicit next-step button that appears after the quarter expires. The app holds the current quarter until you are ready, then shows the correct action such as <span class="btn-demo">Start Q2</span>, <span class="btn-demo">Start Half Time</span>, <span class="btn-demo">Start Q3</span>, <span class="btn-demo">Start Q4</span>, or <span class="btn-demo">Finalize Game</span>.</p>
+    <p style="margin-top:10px">You advance manually using the explicit next-step button that appears after the quarter expires. The app holds the current quarter until you are ready, then shows the correct action such as <span class="btn-demo">Start Q2</span>, <span class="btn-demo">Start Half Time</span>, <span class="btn-demo">Start Q3</span>, <span class="btn-demo">Start Q4</span>, or <span class="btn-demo">End Game</span>. Once the next period actually begins, use <span class="btn-demo">Sprint Won</span> to start the clock.</p>
   </div>
 
   <div class="card">
@@ -898,8 +899,8 @@ code {
       <p>Check the grouped event log and confirm the score looks right. If you spot a missed goal or incorrect stat, add or delete it before finalizing. This is the main reason scorer view keeps the play-by-play inline.</p>
     </div>
     <div class="step">
-      <h3>Use Submit Final Score &amp; End Game</h3>
-      <p>Tap the green <span class="btn-demo">Submit Final Score &amp; End Game</span> button. The confirmation sheet lets you <strong>correct the score before submitting</strong>. Once confirmed, the game moves to History, notifications fire, and the official final is saved.</p>
+      <h3>Use End Game</h3>
+      <p>Tap the compact red <span class="btn-demo">End Game</span> button in the clock area. The confirmation sheet lets you <strong>correct the score before submitting</strong>, and the status now stays explicit until the server acknowledges the final.</p>
     </div>
   </div>
 

@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   window.SITE_PAGE_I18N = {
     en: {
       page_title: 'Eggbeater Scorer Guide',
@@ -17,16 +17,16 @@
       fact_3_label: 'Open Game',
       fact_3_value: 'Open Scorer',
       fact_4_label: 'Done',
-      fact_4_value: 'Submit Final',
+      fact_4_value: 'End Game',
       step_1_title: 'Before the game',
       step_1_intro: 'Open the app, go to <strong>Scores</strong>, and unlock scorer mode.',
       step_1_list: '<li>Tap <strong>Login to Score</strong></li><li>Enter the scorer password</li><li>Tap <strong>Open Scorer</strong> on the correct game</li><li>Confirm opponent, time, and cap color</li><li>Confirm roster/player names look right</li>',
       step_2_title: 'During the game',
       step_2_intro: 'Use the live controls to track the game as it happens.',
-      step_2_list: '<li>Tap <strong>Start</strong> when play begins</li><li>Use the inline play-by-play under scorer controls to confirm each action recorded</li><li>Record goals, assists, steals, exclusions, and saves</li><li>Use <strong>Pause</strong> or the iPhone volume button if you need to stop the clock quickly</li><li>If unsure, keep the score accurate first</li>',
+      step_2_list: '<li>Tap <strong>Sprint Won</strong> when each period begins</li><li>Use the inline play-by-play under scorer controls to confirm each action recorded</li><li>Record goals, assists, steals, exclusions, and saves</li><li>Use <strong>Pause Clock</strong> or the iPhone volume button if you need to stop the clock quickly</li><li>If unsure, keep the score accurate first</li>',
       step_3_title: 'After the game',
       step_3_intro: 'Close the game cleanly so spectators see the correct final result.',
-      step_3_list: '<li>Let the game expire and review the inline log before closing out</li><li>Tap <strong>Submit Final Score &amp; End Game</strong></li><li>Correct the score in the confirmation sheet if needed</li><li>Confirm the final and move the game to history</li><li><strong>Lock scorer mode</strong> when finished</li>',
+      step_3_list: '<li>Let the game expire and review the inline log before closing out</li><li>Tap the red <strong>End Game</strong> button in the clock area</li><li>Correct the score in the confirmation sheet if needed</li><li>Wait for the final save status to confirm before closing out</li><li>Confirm the final and move the game to history</li><li><strong>Lock scorer mode</strong> when finished</li>',
       best_title: 'Best Practices',
       best_list: '<li><strong>Score one game only.</strong> Make sure you are in the correct game before entering events.</li><li><strong>Use the inline play-by-play.</strong> Delete mistakes there before you advance the quarter or finalize.</li><li><strong>Quarter end is manual now.</strong> At 0:00 the app stops and waits for you to start the next phase.</li><li><strong>Do not share scorer access broadly.</strong> Keep the scorer password with designated scorers only.</li>',
       trouble_title: 'Fast Troubleshooting',
@@ -56,7 +56,7 @@
       fact_3_label: 'Abrir partido',
       fact_3_value: 'Open Scorer',
       fact_4_label: 'Terminar',
-      fact_4_value: 'Submit Final',
+      fact_4_value: 'End Game',
       step_1_title: 'Antes del partido',
       step_1_intro: 'Abre la app, entra en <strong>Scores</strong> y desbloquea scorer mode.',
       step_1_list: '<li>Toca <strong>Login to Score</strong></li><li>Introduce la contrasena del scorer</li><li>Toca <strong>Open Scorer</strong> en el partido correcto</li><li>Confirma rival, hora y color de gorro</li><li>Confirma que los nombres del roster se ven bien</li>',
@@ -67,7 +67,7 @@
       step_3_intro: 'Cierra el partido correctamente para que los espectadores vean el resultado final.',
       step_3_list: '<li>Pon el estado en <strong>Final</strong></li><li>Confirma el marcador final</li><li>Selecciona el resultado correcto</li><li>Comparte o envia el box score si hace falta</li><li><strong>Bloquea scorer mode</strong> al terminar</li>',
       best_title: 'Buenas practicas',
-      best_list: '<li><strong>Anota solo un partido.</strong> Asegurate de estar en el partido correcto antes de registrar eventos.</li><li><strong>Haz una pausa si algo se ve raro.</strong> Refresca y verifica antes de continuar si el score, el partido o el roster no cuadran.</li><li><strong>Usa bien los botones de estado.</strong> Los cambios de cuarto y final forman parte de lo que ven los espectadores.</li><li><strong>No compartas el acceso de scorer ampliamente.</strong> Mant�n la contrasena solo entre los scorers designados.</li>',
+      best_list: '<li><strong>Anota solo un partido.</strong> Asegurate de estar en el partido correcto antes de registrar eventos.</li><li><strong>Haz una pausa si algo se ve raro.</strong> Refresca y verifica antes de continuar si el score, el partido o el roster no cuadran.</li><li><strong>Usa bien los botones de estado.</strong> Los cambios de cuarto y final forman parte de lo que ven los espectadores.</li><li><strong>No compartas el acceso de scorer ampliamente.</strong> Mantén la contrasena solo entre los scorers designados.</li>',
       trouble_title: 'Resolucion rapida',
       status_green_title: 'Si todo funciona',
       status_green_body: 'Debes ver la tarjeta correcta, el color de gorro correcto, los controles de live scoring y el marcador actualizado al registrar eventos.',
@@ -95,7 +95,7 @@
       fact_3_label: 'Ouvrir le match',
       fact_3_value: 'Open Scorer',
       fact_4_label: 'Fin',
-      fact_4_value: 'Submit Final',
+      fact_4_value: 'End Game',
       step_1_title: 'Avant le match',
       step_1_intro: 'Ouvrez l app, allez dans <strong>Scores</strong>, puis debloquez scorer mode.',
       step_1_list: '<li>Appuyez sur <strong>Login to Score</strong></li><li>Saisissez le mot de passe scorer</li><li>Appuyez sur <strong>Open Scorer</strong> sur le bon match</li><li>Confirmez l adversaire, l heure et la couleur du bonnet</li><li>Verifiez que les noms du roster sont corrects</li>',
@@ -119,3 +119,4 @@
     }
   };
 })();
+

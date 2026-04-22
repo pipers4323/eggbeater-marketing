@@ -629,7 +629,7 @@ kbd {
     </div>
     <div class="kv-row" style="align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
       <span class="kv-label" style="min-width:90px;padding-top:2px">Step 6</span>
-      <span class="kv-value"><strong>Set the auto-sync interval</strong><br>Choose how often the app should re-check the sheet for changes &mdash; every 5, 10, or 30 minutes, or manual only. Tournament directors sometimes update game times, locations, final scores, or resolved bracket opponents the morning of the event; auto-sync keeps schedule, history, and next-game cards aligned with the official sheet.</span>
+      <span class="kv-value"><strong>Set the auto-sync interval</strong><br>Choose how often the app should re-check the sheet for changes &mdash; every 5, 10, or 30 minutes, or manual only. Tournament directors sometimes update game times, locations, final scores, or resolved bracket opponents the morning of the event; auto-sync keeps schedule, history, and next-game cards aligned with the official sheet. The wizard now preserves its draft, shows you the detected changes before deploy, and lets you compare before you push them live.</span>
     </div>
     <div class="kv-row" style="align-items:flex-start;padding:10px 0">
       <span class="kv-label" style="min-width:90px;padding-top:2px">Step 7</span>
@@ -1014,9 +1014,12 @@ kbd {
 
   <div class="card">
     <h3>Scored Game Recovery &amp; Official Results</h3>
-    <p>The admin <strong>History</strong> tools now work from durable scored-game records, not just browser-local history. Use them when a scorer closes a game incorrectly, a final score changes on the official sheet, or a tournament needs to be rebuilt cleanly.</p>
+    <p>The admin <strong>History</strong> tools now work from durable scored-game records, mirrored scorer drafts, and server-backed scorer sessions &mdash; not just browser-local history. Use them when a scorer closes a game incorrectly, a final score changes on the official sheet, or a tournament needs to be rebuilt cleanly.</p>
     <ul>
       <li><strong>Scored Games list</strong> &mdash; review every durable scored game for the selected team</li>
+      <li><strong>Active Scorer Sessions</strong> &mdash; see which device currently owns a live scorer session and whether it is still active</li>
+      <li><strong>Mirrored Drafts</strong> &mdash; inspect server-backed scorer drafts when the original device had weak signal, refreshed, or was lost</li>
+      <li><strong>Restore Draft / Clear</strong> &mdash; rebuild from a mirrored draft or clear a bad server draft without manual KV work</li>
       <li><strong>Sync Official Sheet Results</strong> &mdash; pull final scores from the tournament sheet into scored games and history</li>
       <li><strong>Rebuild History from Scored Games</strong> &mdash; regenerate tournament history from durable scored-game records</li>
       <li><strong>Promote Final / Reopen / Reset / Restore</strong> &mdash; correct bad closeouts without losing the durable source record</li>
@@ -1057,7 +1060,7 @@ kbd {
 
     <div class="kv-row" style="flex-direction:column;gap:2px">
       <span class="kv-label">Q: Does live scoring work with bad WiFi?</span>
-      <span class="kv-value">A: Yes. Scores queue locally on the device and sync automatically when connectivity returns. The scorer sees a yellow "offline" banner.</span>
+      <span class="kv-value">A: Yes. Scores queue locally on the device, mirror to the server when possible, and sync automatically when connectivity returns. The scorer now sees an explicit sync-status badge, and admins can inspect mirrored drafts plus active scorer sessions from Recovery.</span>
     </div>
 
     <div class="kv-row" style="flex-direction:column;gap:2px">
