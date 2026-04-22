@@ -894,6 +894,65 @@
       margin-top: 1px;
     }
 
+    .recovery-summary-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 0 14px 12px;
+    }
+
+    .recovery-summary-card {
+      border: 1px solid var(--g200);
+      border-radius: 12px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      padding: 10px 12px;
+    }
+
+    .recovery-summary-card-alert {
+      border-color: #fdba74;
+      background: linear-gradient(180deg, #fff7ed 0%, #fffbeb 100%);
+    }
+
+    .recovery-summary-label {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--g400);
+    }
+
+    .recovery-summary-value {
+      margin-top: 4px;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--g700);
+    }
+
+    .recovery-filter-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 0 14px 12px;
+    }
+
+    .recovery-filter-btn {
+      min-height: 34px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--g200);
+      background: white;
+      color: var(--g600);
+      font-size: 0.76rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .recovery-filter-btn.active {
+      border-color: var(--royal);
+      background: #dbeafe;
+      color: var(--royal);
+    }
+
     .game-edit-icon {
       font-size: 1.1rem;
       color: var(--g400);
@@ -1940,6 +1999,12 @@
       color: var(--g400);
       font-style: italic;
       font-size: 0.82rem;
+    }
+
+    @media (max-width: 760px) {
+      .recovery-summary-strip {
+        grid-template-columns: 1fr 1fr;
+      }
     }
   </style>
   <!-- Adding Spanish and French translations -->
@@ -14043,6 +14108,13 @@
       const needsFinalizeEntries = scoredEntries.filter(entry => !!entry.needsFinalization);
       const unresolvedConflicts = (S.conflicts || []).filter(c => !c.resolved);
       const activeSessionCount = scorerSessionEntries.filter(e => ['open', 'finalizing'].includes(e.computedStatus || e.status || 'open')).length;
+      const draftActionCount = scorerDraftEntries.filter(entry => {
+        const status = String(entry.status || entry.session?.status || 'open').trim() || 'open';
+        return status !== 'final-acked' || entry.conflict;
+      }).length;
+      const needsActionCount = unresolvedConflicts.length + activeSessionCount + needsFinalizeEntries.length + draftActionCount;
+      const recoveryFilter = S.recoveryFilter || 'needs-action';
+      const lastRefreshLabel = S.recoveryLastRefreshAt ? new Date(S.recoveryLastRefreshAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '--';
 
       // ── Status summary pills ────────────────────────────────────────────
       const pills = [
@@ -14053,12 +14125,34 @@
 
       let html = `<div class="card" style="margin-bottom:10px">
       <div style="padding:12px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span style="font-weight:800;font-size:0.9rem;color:var(--g700)">🛠 Scoring Recovery — ${esc(teamLabel)}</span>
+        <span style="font-weight:800;font-size:0.9rem;color:var(--g700)">Scoring Recovery - ${esc(teamLabel)}</span>
         ${pills}
         <div style="flex:1"></div>
-        <span style="font-size:0.7rem;color:var(--g300);white-space:nowrap">auto-refresh 30s</span>
-        <button class="save-btn" onclick="refreshScoredGamesAdmin()" style="background:var(--g100);color:var(--g700)">↻ Refresh All</button>
+        <span style="font-size:0.7rem;color:var(--g300);white-space:nowrap">last refresh ${esc(lastRefreshLabel)} | auto-refresh 30s</span>
+        <button class="save-btn" onclick="refreshScoredGamesAdmin()" style="background:var(--g100);color:var(--g700)">Refresh All</button>
         <span id="scored-games-status" style="font-size:0.82rem"></span>
+      </div>
+      <div class="recovery-summary-strip">
+        <div class="recovery-summary-card recovery-summary-card-alert">
+          <span class="recovery-summary-label">Needs Action</span>
+          <span class="recovery-summary-value">${needsActionCount}</span>
+        </div>
+        <div class="recovery-summary-card">
+          <span class="recovery-summary-label">Conflicts</span>
+          <span class="recovery-summary-value">${unresolvedConflicts.length}</span>
+        </div>
+        <div class="recovery-summary-card">
+          <span class="recovery-summary-label">Active Sessions</span>
+          <span class="recovery-summary-value">${activeSessionCount}</span>
+        </div>
+        <div class="recovery-summary-card">
+          <span class="recovery-summary-label">Mirrored Drafts</span>
+          <span class="recovery-summary-value">${scorerDraftEntries.length}</span>
+        </div>
+      </div>
+      <div class="recovery-filter-row">
+        <button class="recovery-filter-btn ${recoveryFilter === 'needs-action' ? 'active' : ''}" onclick="setRecoveryFilter('needs-action')">Needs Action</button>
+        <button class="recovery-filter-btn ${recoveryFilter === 'all' ? 'active' : ''}" onclick="setRecoveryFilter('all')">Show All</button>
       </div>
     </div>`;
 
@@ -14096,8 +14190,11 @@
       const needsFinalizeSummary = needsFinalizeEntries.length
         ? `<div style="padding:10px 12px;border:1px solid #facc15;border-radius:10px;background:#fffbeb;color:#78350f;font-size:0.82rem;font-weight:700">⚠️ ${needsFinalizeEntries.length} game(s) need finalization — close them out before the next round.</div>`
         : '';
-      const scoredRows = scoredEntries.length
-        ? scoredEntries.map(entry => {
+      const filteredScoredEntries = recoveryFilter === 'needs-action'
+        ? scoredEntries.filter(entry => !!entry.needsFinalization || String(entry.score?.gameState || '').trim() !== 'final')
+        : scoredEntries;
+      const scoredRows = filteredScoredEntries.length
+        ? filteredScoredEntries.map(entry => {
             const score = entry.score || {};
             const scoreLabel = (typeof score.team === 'number' && typeof score.opp === 'number') ? `${score.team}–${score.opp}` : '—';
             const stateLabel = String(score.gameState || '').trim() || 'pre';
@@ -14144,8 +14241,11 @@
     </div>`;
 
       // ── Active Scorer Sessions ───────────────────────────────────────────
-      const scorerSessionRows = scorerSessionEntries.length
-        ? scorerSessionEntries.map(entry => {
+      const filteredScorerSessionEntries = recoveryFilter === 'needs-action'
+        ? scorerSessionEntries.filter(entry => ['open', 'stale', 'finalizing', 'conflict'].includes(entry.computedStatus || entry.status || 'open'))
+        : scorerSessionEntries;
+      const scorerSessionRows = filteredScorerSessionEntries.length
+        ? filteredScorerSessionEntries.map(entry => {
             const session = entry.session || {};
             const scoreLabel = (typeof session.team === 'number' && typeof session.opp === 'number') ? `${session.team}–${session.opp}` : '—';
             const effectiveStatus = entry.computedStatus || entry.status || session.status || 'open';
@@ -14187,8 +14287,14 @@
     </div>`;
 
       // ── Mirrored Scorer Drafts ───────────────────────────────────────────
-      const scorerDraftRows = scorerDraftEntries.length
-        ? scorerDraftEntries.map(entry => {
+      const filteredScorerDraftEntries = recoveryFilter === 'needs-action'
+        ? scorerDraftEntries.filter(entry => {
+            const status = String(entry.status || entry.session?.status || 'open').trim() || 'open';
+            return status !== 'final-acked' || entry.conflict;
+          })
+        : scorerDraftEntries;
+      const scorerDraftRows = filteredScorerDraftEntries.length
+        ? filteredScorerDraftEntries.map(entry => {
             const score = entry.score || {};
             const scoreLabel = (typeof score.team === 'number' && typeof score.opp === 'number') ? `${score.team}–${score.opp}` : '—';
             const stamp = entry.updatedAt ? new Date(entry.updatedAt).toLocaleString() : '';
@@ -14264,6 +14370,12 @@
       el.textContent = message || '';
     }
 
+    function setRecoveryFilter(mode = 'needs-action') {
+      S.recoveryFilter = mode === 'all' ? 'all' : 'needs-action';
+      renderTab();
+    }
+
+
     async function refreshScorerDraftsAdmin() {
       const tournamentId = String(S.tournament?.id || '').trim();
       // No early-return when tournamentId is empty — worker scans all team drafts in that case
@@ -14308,6 +14420,7 @@
         await refreshScorerDraftsAdmin();
         await refreshScorerSessionsAdmin();
         await refreshConflictsAdmin();
+        S.recoveryLastRefreshAt = Date.now();
         setScoredGamesStatus('Scored games refreshed', 'ok');
         renderTab();
       } catch (e) {

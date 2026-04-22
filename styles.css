@@ -1109,6 +1109,21 @@ h2 {
 @media (max-width: 1022px) {
   .date-group-header { color: white; }
   .date-group-header::after { background: rgba(255,255,255,0.25); }
+  .schedule-utility-row {
+    background: linear-gradient(180deg, rgba(0, 40, 104, 0.98) 0%, rgba(0, 40, 104, 0.92) 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .day-chip {
+    border-color: rgba(255,255,255,0.22);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.88);
+  }
+  .polished-empty-msg {
+    border-color: rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.88);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
 }
 
 /* ── Next Game Card ──────────────────────────────────────────────────────── */
@@ -3965,6 +3980,27 @@ h2 {
   background: rgba(var(--royal-rgb), 0.08);
   color: var(--royal);
 }
+.projected-score-pill {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(var(--royal-rgb), 0.10);
+  color: var(--royal);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.projected-card-note {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(var(--royal-rgb), 0.08);
+  color: var(--gray-500);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
 
 .next-game-card.next-complete {
   background: linear-gradient(135deg, var(--green) 0%, #0f6b35 100%);
@@ -5405,7 +5441,8 @@ body.modal-open { overflow: hidden; }
 }
 
 /* Force Refresh button — bottom of schedule tab */
-#schedule-refresh-wrap {
+#schedule-refresh-wrap,
+.schedule-refresh-wrap {
   display: flex;
   justify-content: center;
   padding: 12px 16px 24px;
@@ -5413,7 +5450,38 @@ body.modal-open { overflow: hidden; }
 .scores-refresh-wrap {
   display: flex;
   justify-content: center;
-  padding: 12px 16px 8px;
+  padding: 0;
+}
+.scores-toolbar-wrap {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 12px 8px;
+}
+.tab-utility-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 8px 12px 4px;
+}
+.tab-utility-main {
+  flex: 1;
+  min-width: 0;
+}
+.tab-utility-spacer {
+  min-height: 1px;
+}
+.schedule-utility-row {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.94) 100%);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--gray-200);
+}
+.tab-utility-row .schedule-refresh-wrap,
+.scores-toolbar-wrap .scores-refresh-wrap {
+  padding: 0;
 }
 .schedule-refresh-btn {
   display: flex;
@@ -5434,8 +5502,48 @@ body.modal-open { overflow: hidden; }
   border-color: rgba(255,255,255,0.55);
   background: rgba(255,255,255,0.08);
 }
+.schedule-refresh-btn-compact {
+  padding-inline: 14px;
+  min-height: 34px;
+}
 .schedule-refresh-btn:active { opacity: 0.6; }
 .schedule-refresh-btn:disabled { opacity: 0.5; cursor: default; }
+
+.day-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0;
+  scrollbar-width: none;
+}
+.day-chips::-webkit-scrollbar { display: none; }
+.day-chip {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--gray-200);
+  background: #fff;
+  color: var(--gray-700);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+.day-chip-active {
+  background: #fff;
+  color: var(--royal);
+  border-color: #fff;
+  box-shadow: 0 8px 20px rgba(15,23,42,0.12);
+}
+.polished-empty-msg {
+  border: 1px solid var(--gray-200);
+  border-radius: 16px;
+  margin: 10px 12px 0;
+  background: rgba(255,255,255,0.82);
+  color: var(--gray-600);
+  box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+}
 
 /* Live score summary bar — shown below the game header when remote live */
 .live-score-bar {

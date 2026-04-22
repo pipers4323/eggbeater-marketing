@@ -8345,9 +8345,10 @@ function buildEmbeddedScoreCardDetail(game, viewerOnly = false, ageGroupLabel = 
 }
 
 function buildTabRefreshButtonHtml(target = 'schedule') {
-  return `<div class="${target}-refresh-wrap"><button class="schedule-refresh-btn is-light" onclick="forceAppRefresh(this)">
+  const label = target === 'scores' ? 'Refresh Scores' : appT('schedule_force_refresh');
+  return `<div class="${target}-refresh-wrap"><button class="schedule-refresh-btn is-light ${target === 'scores' ? 'schedule-refresh-btn-compact' : ''}" onclick="forceAppRefresh(this)">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-    ${appT('schedule_force_refresh')}</button></div>`;
+    ${escHtml(label)}</button></div>`;
 }
 
 function buildProjectedScoreCard(next) {
@@ -8361,9 +8362,17 @@ function buildProjectedScoreCard(next) {
       <div class="game-vs">vs ${escHtml(normalizeOpponentName(g.desc || 'Bracket Game'))}</div>
       ${g.gameNum ? `<div class="game-num-tag">${escHtml(g.gameNum)}</div>` : ''}
     </div>
-    <div class="game-info-row game-info-row-primary">${escHtml(next.pathLabel || 'Projected Next')} · ${timeStr}</div>
+    <div class="game-info-row game-info-row-primary"><span class="projected-score-pill">Projected</span> ${escHtml(next.pathLabel || 'Projected Next')} · ${timeStr}</div>
     ${bracketLocationDisplay(g.location) ? `<div class="game-location-row">${buildLocationVenueOnly(bracketLocationDisplay(g.location))}</div>` : ''}
     <div class="game-info-row"><span class="points-badge">${escHtml(appFormat('next_based_on_record', { record: getPoolRecord() }))}</span></div>
+    <div class="projected-card-note">Waiting for the official bracket sheet to confirm this opponent.</div>
+  </div>`;
+}
+
+function _buildScheduleControlsHtml(dayPickerHtml = '', target = 'schedule') {
+  return `<div class="tab-utility-row ${target}-utility-row">
+    <div class="tab-utility-main">${dayPickerHtml || '<div class="tab-utility-spacer"></div>'}</div>
+    ${buildTabRefreshButtonHtml(target)}
   </div>`;
 }
 
@@ -8535,7 +8544,7 @@ const active = _dedupeScheduledGames(
       _activeAgeGroup = null;
       if (cache) { window.TOURNAMENT = _savedT; window.HISTORY_SEED = _savedH; }
     }
-    html += buildTabRefreshButtonHtml('scores');
+    html = `<div class="scores-toolbar-wrap">${buildTabRefreshButtonHtml('scores')}</div>` + html;
     html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
     el.innerHTML = dirHtml + recoveryCard + html;
     return;
@@ -8581,7 +8590,7 @@ const active = _dedupeScheduledGames(
     }
 
     _setLiveBanner(anyLive);
-    const _guideLink = `${buildTabRefreshButtonHtml('scores')}<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
+    const _guideLink = `<div class="scores-toolbar-wrap">${buildTabRefreshButtonHtml('scores')}</div><div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
     el.innerHTML = dirHtml + recoveryCard + `
         <div class="viewer-tab-bar">
           <span class="viewer-tab-label">${anyLive ? '🔴 Live Scores' : '📺 Scores'}</span>
@@ -8620,7 +8629,7 @@ const active = _dedupeScheduledGames(
     el.innerHTML = dirHtml + recoveryCard + `<div class="card tab-card">
       <div class="history-header-row"><h2>Box Scores</h2></div>
       <p class="empty-msg" style="padding:16px 0">All games complete — check the History tab for results.</p>
-    </div>${projectedHtml}${buildTabRefreshButtonHtml('scores')}`;
+    </div>${projectedHtml}<div class="scores-toolbar-wrap">${buildTabRefreshButtonHtml('scores')}</div>`;
     return;
   }
 
@@ -8664,7 +8673,7 @@ const active = _dedupeScheduledGames(
     html += `</div>`;
   }
 
-  html += buildTabRefreshButtonHtml('scores');
+  html = `<div class="scores-toolbar-wrap">${buildTabRefreshButtonHtml('scores')}</div>` + html;
   html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
   el.innerHTML = dirHtml + recoveryCard + html;
   // Feature 3: trigger score pulse check after DOM is updated
@@ -9900,14 +9909,14 @@ function renderGamesList() {
     const allDone = games.length > 0 && games.every(g => _getResultForGame(g));
     const projected = findProjectedNextOnly();
     if (projected?.type === 'bracket') {
-      listEl.innerHTML = `<div class="games-section">${buildProjectedScoreCard(projected)}</div>`;
+      listEl.innerHTML = _buildScheduleControlsHtml('', 'schedule') + `<div class="games-section">${buildProjectedScoreCard(projected)}</div>`;
       return;
     }
     // The schedule header already renders the completion state in the blue Next Game slot.
     // Keep the list body empty here so we do not show a second duplicate completion card.
     listEl.innerHTML = (tournamentPast || allDone)
       ? ''
-      : `<p class="empty-msg" style="padding:24px 18px;">${escHtml(_scheduleEmptyMessage())}</p>`;
+      : _buildScheduleControlsHtml('', 'schedule') + `<p class="empty-msg polished-empty-msg" style="padding:24px 18px;">${escHtml(_scheduleEmptyMessage())}</p>`;
     return;
   }
 
@@ -9958,10 +9967,10 @@ function renderGamesList() {
     const projected = nextObj?.type === 'pool' ? findProjectedNextOnly() : (nextObj?.type === 'bracket' ? nextObj : null);
     const projectedMatchesDay = !window._scheduleDay || projected?.game?.dateISO === window._scheduleDay;
     if (projected?.type === 'bracket' && projectedMatchesDay) {
-      listEl.innerHTML = dayPickerHtml + `<div class="games-section">${buildProjectedScoreCard(projected)}</div>`;
+      listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule') + `<div class="games-section">${buildProjectedScoreCard(projected)}</div>`;
       return;
     }
-    listEl.innerHTML = dayPickerHtml + `<p class="empty-msg" style="padding:24px 18px;">${escHtml(_scheduleEmptyMessage())}</p>`;
+    listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule') + `<p class="empty-msg polished-empty-msg" style="padding:24px 18px;">${escHtml(_scheduleEmptyMessage())}</p>`;
     return;
   }
 
@@ -9973,7 +9982,7 @@ function renderGamesList() {
     groups[key].push(g);
   }
 
-  let html = dayPickerHtml;
+  let html = _buildScheduleControlsHtml(dayPickerHtml, 'schedule');
   for (const dateLabel of groupOrder) {
     // Skip the date header if it matches the next game's date — already shown above that card
     if (dateLabel !== nextDateKey) {
