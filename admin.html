@@ -953,6 +953,37 @@
       color: var(--royal);
     }
 
+    .recovery-health-strip {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      padding: 0 14px 14px;
+    }
+
+    .recovery-health-item {
+      border-radius: 10px;
+      background: var(--g50);
+      border: 1px solid var(--g200);
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .recovery-health-label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--g400);
+    }
+
+    .recovery-health-value {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--g700);
+    }
+
     .recovery-status-chip {
       display: inline-flex;
       align-items: center;
@@ -2080,6 +2111,11 @@
       }
 
       .recovery-filter-row {
+        gap: 6px;
+      }
+
+      .recovery-health-strip {
+        grid-template-columns: 1fr 1fr;
         gap: 6px;
       }
 
@@ -10104,6 +10140,14 @@
         }
 
         S.bsync.games = games;
+        const specialTeamPaths = bsComputeKap7FuturesSpecialPaths(allRows, S.bsync.cols, games);
+        if (specialTeamPaths) {
+          S.bsync.teamBracketPaths = specialTeamPaths;
+          S.bsync.bracketPaths = Object.values(specialTeamPaths).flat();
+          S.bsync.bracketPathTeam = 'All';
+        } else {
+          delete S.bsync.teamBracketPaths;
+        }
         const _diffStr = _bsScanDiff(games, window._bsPreScanGames || []);
         if (status4) { status4.style.color = '#059669'; status4.textContent = '\u2705 Found ' + games.length + ' game(s)' + agLabel + ' \u2014 review below' + _dateFix; }
         const nextBtn = document.getElementById('bs-s4-next');
@@ -10119,7 +10163,8 @@
               <span style="font-size:.7rem;background:${g.cap === 'Dark' ? '#1f2937' : 'var(--g100)'};color:${g.cap === 'Dark' ? 'white' : 'var(--g600)'};padding:1px 5px;border-radius:3px;min-width:36px;text-align:center">${g.cap === 'Dark' ? '⚫ Dark' : '⚪ White'}</span>
             </div>`
 
-          ).join('') + `<div style="padding-top:6px;font-size:.75rem;color:var(--g400)">Cap colour = ${S.bsync.teamName}'s cap. Tap Continue to set re-bracket options.</div>`;
+          ).join('') + `<div style="padding-top:6px;font-size:.75rem;color:var(--g400)">Cap colour = ${S.bsync.teamName}'s cap. Tap Continue to set re-bracket options.</div>`
+            + (specialTeamPaths?.B?.length ? `<div style="padding-top:6px;font-size:.75rem;color:var(--royal);font-weight:600">680 Blue will project only within Independence HS: win vs ARWPC → Game 6, loss vs ARWPC → Game 5. 680 Red has no additional bracket games on this sheet.</div>` : '');
           // Prepare date overrides UI
           const uniqueDates = [...new Set(games.map(g => g.dateISO || g.date))].filter(Boolean).sort();
           const oList = document.getElementById('bs-s4-override-list');
@@ -10370,6 +10415,122 @@
       return paths;
     }
 
+    function bsComputeKap7FuturesSpecialPaths(allRows, cols, games) {
+      if (S.bsync?.sheetId !== '1n7y7fVM7RWku9yzqyx5sIxwdOTvDuXInV-Q0nLW9c7c') return null;
+      if (!/14u girls/i.test(String(S.bsync?.myAgeGroup || ''))) return null;
+      if (!Array.isArray(allRows) || !allRows.length || !Array.isArray(games) || !games.length) return null;
+
+      const rowDate = new Array(allRows.length).fill('');
+      const rowLoc = new Array(allRows.length).fill('');
+      let currentDate = '', currentLoc = '';
+      for (let ri = 0; ri < allRows.length; ri++) {
+        const row = allRows[ri] || [];
+        for (let ci = 0; ci < Math.min(row.length, 8); ci++) {
+          const d = parseDateToISO((row[ci] || '').trim());
+          if (d) { currentDate = d; break; }
+        }
+        for (let ci = 0; ci < Math.min(row.length - 1, 8); ci++) {
+          const lc = (row[ci] || '').toLowerCase().trim();
+          if (lc === 'location:' || lc === 'location') {
+            const v = (row[ci + 1] || '').trim();
+            if (v && !/^location/i.test(v)) { currentLoc = v; break; }
+          }
+        }
+        rowDate[ri] = currentDate;
+        rowLoc[ri] = currentLoc;
+      }
+
+      const sectionRows = [];
+      for (let ri = 0; ri < allRows.length; ri++) {
+        const row = allRows[ri] || [];
+        const rawGameNum = String(row[0] || '').trim();
+        if (!/^\d+$/.test(rawGameNum)) continue;
+        const white = String(row[2] || '').trim();
+        const dark = String(row[3] || '').trim();
+        if (!white && !dark) continue;
+        sectionRows.push({
+          gameNum: rawGameNum,
+          white,
+          dark,
+          time: String(row[1] || '').trim(),
+          dateISO: rowDate[ri] || '',
+          date: rowDate[ri] ? isoToDate(rowDate[ri]) : '',
+          location: rowLoc[ri] || '',
+          group: String(row[6] || '').trim(),
+          note: String(row[7] || '').trim(),
+        });
+      }
+
+      const expandRef = raw => {
+        const text = String(raw || '').trim();
+        const win = text.match(/^W-?Game\s*(\d+)$/i);
+        if (win) return `Winner of Game ${win[1]}`;
+        const loss = text.match(/^L-?Game\s*(\d+)$/i);
+        if (loss) return `Loser of Game ${loss[1]}`;
+        return normalizeOpponentName(text || 'TBD');
+      };
+
+      const buildTeamPaths = (slot, teamName, locationHint) => {
+        const slotGames = games.filter(g => (g.team || '') === slot);
+        if (!slotGames.length) return [];
+        const liveBracketGame = sectionRows.find(row => {
+          if (!/win\/loss/i.test(row.note || '')) return false;
+          if (locationHint && row.location !== locationHint) return false;
+          return row.white.toLowerCase().includes(teamName.toLowerCase()) || row.dark.toLowerCase().includes(teamName.toLowerCase());
+        });
+        if (!liveBracketGame) return [];
+
+        const sameBlockRows = sectionRows.filter(row =>
+          row.dateISO === liveBracketGame.dateISO
+          && row.location === liveBracketGame.location
+          && /win\/loss/i.test(row.note || '')
+        );
+        const winRows = sameBlockRows.filter(row => new RegExp(`\\bW-?Game\\s*${liveBracketGame.gameNum}\\b`, 'i').test(`${row.white} ${row.dark}`));
+        const lossRows = sameBlockRows.filter(row => new RegExp(`\\bL-?Game\\s*${liveBracketGame.gameNum}\\b`, 'i').test(`${row.white} ${row.dark}`));
+        const buildPath = (rows, outcome) => rows.map(row => {
+          const teamOnWhite = new RegExp(`\\b${teamName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(row.white)
+            || new RegExp(`^${outcome}-?Game\\s*${liveBracketGame.gameNum}$`, 'i').test(row.white);
+          const otherSide = teamOnWhite ? row.dark : row.white;
+          return {
+            gameNum: row.gameNum,
+            desc: `vs ${expandRef(otherSide)}`,
+            time: row.time || 'TBD',
+            date: row.date || (row.dateISO ? isoToDate(row.dateISO) : ''),
+            dateISO: row.dateISO || '',
+            location: row.location || '',
+          };
+        });
+
+        const paths = [];
+        if (winRows.length) {
+          paths.push({
+            id: `kap7-futures-${slot.toLowerCase()}-win-${liveBracketGame.dateISO || 'day1'}`,
+            label: `If ${teamName} wins Game ${liveBracketGame.gameNum}`,
+            qualifier: `Official bracket path from the Futures sheet — ${liveBracketGame.location}.`,
+            steps: buildPath(winRows, 'W'),
+          });
+        }
+        if (lossRows.length) {
+          paths.push({
+            id: `kap7-futures-${slot.toLowerCase()}-loss-${liveBracketGame.dateISO || 'day1'}`,
+            label: `If ${teamName} loses Game ${liveBracketGame.gameNum}`,
+            qualifier: `Official bracket path from the Futures sheet — ${liveBracketGame.location}.`,
+            steps: buildPath(lossRows, 'L'),
+          });
+        }
+        return paths;
+      };
+
+      const bySlot = {
+        A: [],
+        B: [],
+      };
+      bySlot.A = buildTeamPaths('A', '680 A', 'Campo HS/SODA AC');
+      bySlot.B = buildTeamPaths('B', '680 B', 'Independence HS');
+
+      return (bySlot.A.length || bySlot.B.length) ? bySlot : null;
+    }
+
     function bsStep5Next() {
       if (S.bsync?.rebracket && !S.bsync?.bracketPaths?.length) {
         const status = document.getElementById('bs-s5-status');
@@ -10448,7 +10609,9 @@
         S.tournament.games = games;
         {
           const _bUpdate = {};
-          if (S.bsync.bracketPaths?.length) {
+          if (S.bsync.teamBracketPaths && Object.keys(S.bsync.teamBracketPaths).some(k => (S.bsync.teamBracketPaths[k] || []).length)) {
+            _bUpdate.paths = S.bsync.teamBracketPaths;
+          } else if (S.bsync.bracketPaths?.length) {
             // If admin selected a specific team slot, wrap paths as keyed object { A: [...] }
             const _pathTeam = S.bsync.bracketPathTeam && S.bsync.bracketPathTeam !== 'All'
               ? S.bsync.bracketPathTeam : null;
@@ -14225,6 +14388,17 @@
       const needsActionCount = unresolvedConflicts.length + activeSessionCount + needsFinalizeEntries.length + draftActionCount;
       const recoveryFilter = S.recoveryFilter || 'needs-action';
       const lastRefreshLabel = S.recoveryLastRefreshAt ? new Date(S.recoveryLastRefreshAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '--';
+      const lastSheetSyncLabel = S.tournament?.sheetSync?.lastSync
+        ? new Date(S.tournament.sheetSync.lastSync).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+        : '--';
+      const scorerUpdateAt = Math.max(
+        ...scorerDraftEntries.map(entry => Number(entry.updatedAt || 0)),
+        ...scorerSessionEntries.map(entry => Number(entry.updatedAt || 0)),
+        0
+      );
+      const lastScorerUpdateLabel = scorerUpdateAt
+        ? new Date(scorerUpdateAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+        : '--';
       const recoveryChip = (label, tone = 'muted') => `<span class="recovery-status-chip recovery-status-chip-${tone}">${esc(label)}</span>`;
 
       // ── Status summary pills ────────────────────────────────────────────
@@ -14264,6 +14438,13 @@
       <div class="recovery-filter-row">
         <button class="recovery-filter-btn ${recoveryFilter === 'needs-action' ? 'active' : ''}" onclick="setRecoveryFilter('needs-action')">Needs Action</button>
         <button class="recovery-filter-btn ${recoveryFilter === 'all' ? 'active' : ''}" onclick="setRecoveryFilter('all')">Show All</button>
+      </div>
+      <div class="recovery-health-strip">
+        <div class="recovery-health-item"><span class="recovery-health-label">Active Sessions</span><span class="recovery-health-value">${activeSessionCount}</span></div>
+        <div class="recovery-health-item"><span class="recovery-health-label">Drafts Needing Action</span><span class="recovery-health-value">${draftActionCount}</span></div>
+        <div class="recovery-health-item"><span class="recovery-health-label">Conflicts</span><span class="recovery-health-value">${unresolvedConflicts.length}</span></div>
+        <div class="recovery-health-item"><span class="recovery-health-label">Last Sheet Sync</span><span class="recovery-health-value">${esc(lastSheetSyncLabel)}</span></div>
+        <div class="recovery-health-item"><span class="recovery-health-label">Last Scorer Update</span><span class="recovery-health-value">${esc(lastScorerUpdateLabel)}</span></div>
       </div>
     </div>`;
 
@@ -14612,7 +14793,7 @@
 
     async function updateScorerDraftAdmin(gameId, action) {
       const prompt = action === 'clear'
-        ? 'Clear this mirrored scorer draft and its server session?'
+        ? 'Clear this mirrored scorer draft and its server session?\n\nThis is destructive and cannot be undone.'
         : 'Restore this mirrored scorer draft into the durable scored-game store?';
       if (!confirm(prompt)) return;
       try {

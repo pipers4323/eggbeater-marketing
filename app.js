@@ -106,7 +106,7 @@ const APP_I18N = {
     next_check_history_results: 'Check the History tab for results',
     next_in_progress: 'In Progress',
     next_next_game: 'Next Game',
-    next_projected_next: 'Projected Next',
+    next_projected_next: 'Projected Bracket',
     next_based_on_record: 'Based on {record} pool record',
     possible_division_standings: 'Division Standings',
     possible_select_prompt: 'Select an age group above to view the bracket.',
@@ -116,7 +116,7 @@ const APP_I18N = {
     possible_confirmed: '{record} pool record → {label} confirmed.',
     possible_projected: '{record} pool record → projected {label}.',
     possible_mark_results: 'Mark pool play results to see your projected bracket path.',
-    possible_projected_badge: 'Projected',
+    possible_projected_badge: 'Projected Path',
     history_title: 'Tournament History',
     history_select_prompt: 'Select an age group above to view tournament history.',
     history_desc: 'Past tournament results, most recent first.',
@@ -459,7 +459,7 @@ const APP_I18N = {
     next_check_history_results: 'Consulta la pestaña Historial para ver los resultados',
     next_in_progress: 'En juego',
     next_next_game: 'Proximo partido',
-    next_projected_next: 'Siguiente proyectado',
+    next_projected_next: 'Bracket proyectado',
     next_based_on_record: 'Segun record de grupo {record}',
     possible_division_standings: 'Clasificacion de division',
     possible_select_prompt: 'Selecciona un grupo de edad arriba para ver el cuadro.',
@@ -469,7 +469,7 @@ const APP_I18N = {
     possible_confirmed: 'Record de grupo {record} → {label} confirmado.',
     possible_projected: 'Record de grupo {record} → {label} proyectado.',
     possible_mark_results: 'Marca los resultados de fase de grupos para ver tu camino proyectado.',
-    possible_projected_badge: 'Proyectado',
+    possible_projected_badge: 'Ruta proyectada',
     history_title: 'Historial del torneo',
     history_select_prompt: 'Selecciona un grupo de edad arriba para ver el historial del torneo.',
     history_desc: 'Resultados de torneos pasados, del mas reciente al mas antiguo.',
@@ -812,7 +812,7 @@ const APP_I18N = {
     next_check_history_results: "Voir l'onglet Historique pour les resultats",
     next_in_progress: 'En cours',
     next_next_game: 'Prochain match',
-    next_projected_next: 'Prochain projete',
+    next_projected_next: 'Brackets projete',
     next_based_on_record: 'Base sur le bilan {record} en poule',
     possible_division_standings: 'Classement de division',
     possible_select_prompt: "Choisissez un groupe d'age ci-dessus pour voir le tableau.",
@@ -822,7 +822,7 @@ const APP_I18N = {
     possible_confirmed: 'Bilan de poule {record} → {label} confirme.',
     possible_projected: 'Bilan de poule {record} → {label} projete.',
     possible_mark_results: 'Entrez les resultats de poule pour voir votre parcours projete.',
-    possible_projected_badge: 'Projete',
+    possible_projected_badge: 'Parcours projete',
     history_title: 'Historique du tournoi',
     history_select_prompt: "Choisissez un groupe d'age ci-dessus pour voir l'historique du tournoi.",
     history_desc: 'Resultats des tournois passes, du plus recent au plus ancien.',
@@ -8199,9 +8199,12 @@ function buildScoresListCard(g, viewerOnly = false, ageGroupLabel = '') {
   const finalChip = s.gameState === 'final' || _getResultForGame(g)
     ? `<span class="scores-status-chip final">Final</span>` : '';
   const canScore = !TOURNAMENT.scoringPassword || isScorerUnlockedForTournament(TOURNAMENT);
+  const isViewerAction = viewerOnly || !canScore;
   const actionBtn = (!viewerOnly && canScore)
     ? `<button class="scores-open-scorer-btn" data-game-id="${escHtml(gid)}" data-group-key="${escHtml(g._groupKey || '')}" data-age-group-label="${escHtml(ageGroupLabel || '')}" onclick="return handleOpenScorerButtonClick(event, this)" title="${escHtml(appT('scorer_open'))}">✏️ ${escHtml(appT('scorer_open'))}</button>`
     : `<button class="follow-live-btn-sm" data-game-id="${escHtml(gid)}" onclick="return handleToggleLiveButtonClick(event, this)" title="${escHtml(appT('common_follow_live'))}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
+  const topActionBtn = isViewerAction ? actionBtn : '';
+  const bottomActionBtn = isViewerAction ? '' : actionBtn;
 
   return `
     <div class="scores-list-card ${g.cap === 'Dark' ? 'cap-dark-bg' : g.cap === 'White' ? 'cap-white-bg' : ''}"
@@ -8213,6 +8216,7 @@ function buildScoresListCard(g, viewerOnly = false, ageGroupLabel = '') {
       <div class="scores-list-top">
         <div class="scores-list-vs">vs ${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}</div>
         <div class="scores-list-top-right">
+          ${topActionBtn}
           ${liveChip}${finalChip}
           ${g.gameNum ? `<span class="scores-list-game-num">${escHtml(g.gameNum)}</span>` : ''}
         </div>
@@ -8230,7 +8234,7 @@ function buildScoresListCard(g, viewerOnly = false, ageGroupLabel = '') {
         </div>
         <div class="scores-list-actions">
           <span class="scores-list-status">${escHtml(statusLabel)}</span>
-          ${actionBtn}
+          ${bottomActionBtn}
         </div>
       </div>
     </div>`;
@@ -8371,11 +8375,38 @@ function buildEmbeddedScoreCardDetail(game, viewerOnly = false, ageGroupLabel = 
     </div>`;
 }
 
+const APP_REFRESH_STAMP_KEY = 'ebwp-last-refresh-at';
+
+function _setLastRefreshStamp(ts = Date.now()) {
+  try { localStorage.setItem(APP_REFRESH_STAMP_KEY, String(ts)); } catch (_) {}
+}
+
+function _getLastRefreshStamp() {
+  try {
+    const raw = localStorage.getItem(APP_REFRESH_STAMP_KEY);
+    const num = Number(raw || 0);
+    return Number.isFinite(num) && num > 0 ? num : 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+function _formatLastRefreshLabel() {
+  const ts = _getLastRefreshStamp();
+  if (!ts) return '';
+  return `Updated ${new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+}
+
 function buildTabRefreshButtonHtml(target = 'schedule') {
   const label = target === 'scores' ? 'Refresh Scores' : appT('schedule_force_refresh');
-  return `<div class="${target}-refresh-wrap"><button class="schedule-refresh-btn is-light ${target === 'scores' ? 'schedule-refresh-btn-compact' : ''}" onclick="forceAppRefresh(this)">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-    ${escHtml(label)}</button></div>`;
+  const stampLabel = _formatLastRefreshLabel();
+  return `<div class="${target}-refresh-wrap">
+    <button class="schedule-refresh-btn is-light ${target === 'scores' ? 'schedule-refresh-btn-compact' : ''}" onclick="forceAppRefresh(this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      ${escHtml(label)}
+    </button>
+    ${stampLabel ? `<span class="tab-last-updated">${escHtml(stampLabel)}</span>` : ''}
+  </div>`;
 }
 
 function buildProjectedScoreCard(next) {
@@ -8389,7 +8420,7 @@ function buildProjectedScoreCard(next) {
       <div class="game-vs">vs ${escHtml(normalizeOpponentName(g.desc || 'Bracket Game'))}</div>
       ${g.gameNum ? `<div class="game-num-tag">${escHtml(g.gameNum)}</div>` : ''}
     </div>
-    <div class="game-info-row game-info-row-primary"><span class="projected-score-pill">Projected</span> ${escHtml(next.pathLabel || 'Projected Next')} · ${timeStr}</div>
+    <div class="game-info-row game-info-row-primary"><span class="projected-score-pill">Projected Bracket</span> ${escHtml(next.pathLabel || 'Projected Next')} · ${timeStr}</div>
     ${bracketLocationDisplay(g.location) ? `<div class="game-location-row">${buildLocationVenueOnly(bracketLocationDisplay(g.location))}</div>` : ''}
     <div class="game-info-row"><span class="points-badge">${escHtml(appFormat('next_based_on_record', { record: getPoolRecord() }))}</span></div>
     <div class="projected-card-note">Waiting for the official bracket sheet to confirm this opponent.</div>
@@ -9673,6 +9704,7 @@ function _renderScheduleMulti(slots) {
 async function forceAppRefresh(btn) {
   if (btn) { btn.disabled = true; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Refreshing…'; }
   try {
+    _setLastRefreshStamp();
     if ('serviceWorker' in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
       await Promise.all(regs.map(r => r.unregister()));
@@ -15781,6 +15813,9 @@ async function updateGameNote(gameId, note) {
     _showPtrIndicator(true);
     try {
       if (typeof reloadTournamentJs === 'function') await reloadTournamentJs();
+      _setLastRefreshStamp();
+      if (state.currentTab === 'schedule') renderScheduleTab();
+      if (state.currentTab === 'scores') renderScoresTab();
     } catch (_) {}
     _showPtrIndicator(false);
     // Show "Refreshed" pill

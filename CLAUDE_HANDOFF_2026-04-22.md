@@ -139,3 +139,50 @@ eggbeater-waterpolo:
   61f028a  Fix 4 game-day reliability bugs
   5573b5e  Harden bsAutoPoll (mid-wizard guard + visibilitychange)
 ```
+
+---
+
+## 2026-04-22 Follow-up Update
+
+### Latest build-ready heads
+```
+eggbeater-marketing:
+  fa7cb39  Polish spectator cards, Futures Blue bracket import, admin recovery health strip
+
+eggbeater-waterpolo:
+  2e1c082  Sync spectator/admin polish bundle for next native build
+```
+
+### Futures 14u special-case import
+- Google Sheet checked: `1n7y7fVM7RWku9yzqyx5sIxwdOTvDuXInV-Q0nLW9c7c` / gid `582713701`
+- For this sheet only, 14u Girls Futures import now treats:
+  - `680 A` / Red as locked to `Campo HS / SODA AC`
+  - `680 B` / Blue as locked to `Independence HS`
+- Blue bracket path from the official sheet:
+  - current game: `Game 2` vs `ARWPC` at `Independence HS`
+  - if Blue loses `Game 2` → `Game 5` at `12:50 PM`
+  - if Blue wins `Game 2` → `Game 6` at `1:40 PM`
+- Red has no additional bracket path on this sheet after its round-robin games.
+
+### Spectator polish added
+- Scores cards visually aligned to Schedule cards
+- Scores `Follow Live` moved to the top-right to match Schedule card placement
+- Schedule no longer shows misleading `No games today` below an already-featured next game
+- Native header compacted further:
+  - smaller logo block
+  - tighter tournament strip
+  - smaller team picker chrome
+- `Last updated` timestamp now appears beside refresh controls after pull-to-refresh / force refresh
+
+### Admin polish added
+- Recovery tab now has a compact health strip:
+  - active sessions
+  - drafts needing action
+  - conflicts
+  - last sheet sync
+  - last scorer update
+- `Clear` mirrored draft action now has explicit destructive confirmation text
+
+### Next build source
+- Trigger native build from:
+  - `C:\Users\sarah\Claude Code\eggbeater-waterpolo` at `2e1c082`
