@@ -66,8 +66,43 @@
 
   <!-- ── Offline Banner (Phase 5E) ──────────────────────────────────────── -->
   <div id="offline-banner" class="offline-banner hidden">
-    📡 You're offline — showing cached data
+    📶 Offline — showing cached data
   </div>
+
+  <!-- ── Pull-to-refresh indicator (Feature 1) ──────────────────────────── -->
+  <div id="ptr-indicator" style="display:none;text-align:center;padding:8px;color:var(--text-secondary);font-size:13px;position:sticky;top:0;z-index:800;background:var(--bg,#f8fafc)">↻ Refreshing…</div>
+  <div id="ptr-refreshed-pill" style="display:none;opacity:0;transition:opacity 0.4s;text-align:center;position:sticky;top:0;z-index:800;padding:6px;font-size:12px;color:#10b981;font-weight:600">✓ Refreshed just now</div>
+
+  <!-- ── Feature CSS: score pulse, day chips, bracket tree, game note, share ── -->
+  <style>
+    @keyframes score-pulse {
+      0%   { transform: scale(1); }
+      30%  { transform: scale(1.15); color: #10b981; }
+      100% { transform: scale(1); }
+    }
+    .score-pulse { animation: score-pulse 0.6s ease-out; }
+
+    .day-chips { display:flex; gap:6px; overflow-x:auto; padding:4px 0 8px; scrollbar-width:none; }
+    .day-chips::-webkit-scrollbar { display:none; }
+    .day-chip { white-space:nowrap; padding:5px 12px; border-radius:20px; border:1px solid var(--border); background:var(--card-bg); font-size:12px; cursor:pointer; color:var(--text-secondary); }
+    .day-chip-active { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+    .game-note { font-size:12px; color:var(--text-secondary); margin-top:4px; padding:4px 8px; background:rgba(245,158,11,0.1); border-left:3px solid #f59e0b; border-radius:0 4px 4px 0; }
+
+    .share-btn { background:transparent; border:none; cursor:pointer; font-size:14px; color:var(--text-secondary); padding:2px 4px; border-radius:4px; line-height:1; min-width:20px; height:20px; display:flex; align-items:center; justify-content:center; }
+    .share-btn:hover { background:rgba(0,0,0,0.08); }
+
+    .bracket-tree { display:flex; gap:24px; overflow-x:auto; padding:12px; }
+    .bracket-round { display:flex; flex-direction:column; justify-content:space-around; gap:8px; min-width:120px; }
+    .bracket-round-label { font-size:10px; font-weight:700; text-transform:uppercase; color:var(--text-secondary); text-align:center; margin-bottom:4px; letter-spacing:.06em; }
+    .bracket-slot { background:var(--card-bg); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:12px; text-align:center; min-height:32px; display:flex; align-items:center; justify-content:center; }
+    .bracket-slot.winner { border-color:var(--accent); font-weight:600; }
+
+    #next-game-card { margin:8px 12px 4px; padding:10px 14px; background:rgba(245,158,11,0.12); border:1px solid #f59e0b; border-radius:10px; }
+    #next-game-card .ngc-title { font-size:13px; font-weight:700; color:#b45309; margin-bottom:3px; }
+    #next-game-card .ngc-body  { font-size:14px; font-weight:600; }
+    #next-game-card .ngc-meta  { font-size:12px; color:var(--text-secondary); margin-top:2px; }
+  </style>
 
   <!-- Dark mode: apply saved theme immediately to prevent FOUC -->
   <script>
@@ -521,7 +556,7 @@
 
   <!-- Data + App — query string busts any intermediate cache on every deploy -->
 <script src="tournament.js?v=254"></script>
-<script src="app.js?v=271"></script>
+<script src="app.js?v=272"></script>
 
   <!-- SW auto-reload: runs before app.js initialises so every device always
        picks up new code immediately after a deploy, even on the first load. -->

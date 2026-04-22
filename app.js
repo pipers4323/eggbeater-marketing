@@ -8588,7 +8588,7 @@ const active = _dedupeScheduledGames(
         <div style="font-size:2rem;margin-bottom:10px">${swimmerEmoji()}</div>
         <div style="font-weight:700;font-size:1rem;margin-bottom:6px">Live scoring coming soon</div>
         <div style="color:var(--gray-600);font-size:0.88rem;line-height:1.55">
-          Box scores and live game stats will be available here on tournament day${tDate}.<br><br>
+          No results yet — scores will appear here once games are played${tDate}.<br><br>
           Check back once the schedule for ${tName} is posted.
         </div>
       </div>
@@ -8654,6 +8654,8 @@ const active = _dedupeScheduledGames(
   html += buildTabRefreshButtonHtml('scores');
   html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
   el.innerHTML = dirHtml + recoveryCard + html;
+  // Feature 3: trigger score pulse check after DOM is updated
+  requestAnimationFrame(_checkAndPulseScores);
 }
 
 // ─── DIRECTOR LIVE SCORES ─────────────────────────────────────────────────────
@@ -9841,6 +9843,8 @@ function renderGamesList() {
   const games  = getTournamentGames();
 
   if (!games.length) {
+    // Clear day picker when no games
+    window._scheduleDay = null;
     if (TOURNAMENT.stayTuned) {
       listEl.innerHTML = `
         <div class="coming-soon-wrap">
@@ -9866,7 +9870,7 @@ function renderGamesList() {
           </div>
         </div>`;
     } else {
-      listEl.innerHTML = '<p class="empty-msg" style="padding:24px 18px;">No games scheduled.</p>';
+      listEl.innerHTML = `<p class="empty-msg" style="padding:24px 18px;">${escHtml(_scheduleEmptyMessage())}</p>`;
     }
     return;
   }
@@ -9885,8 +9889,27 @@ function renderGamesList() {
     // Keep the list body empty here so we do not show a second duplicate completion card.
     listEl.innerHTML = (tournamentPast || allDone)
       ? ''
-      : '<p class="empty-msg" style="padding:24px 18px;">All games complete — check the History tab for results.</p>';
+      : `<p class="empty-msg" style="padding:24px 18px;">${escHtml(_scheduleEmptyMessage())}</p>`;
     return;
+  }
+
+  // ── Feature 4: Day picker ──────────────────────────────────────────────────
+  // Collect unique dates from upcoming games
+  const allDates = [...new Set(upcomingGames.map(g => g.dateISO).filter(Boolean))].sort();
+  let dayPickerHtml = '';
+  if (allDates.length > 1) {
+    // Validate stored day is still valid
+    if (window._scheduleDay && !allDates.includes(window._scheduleDay)) window._scheduleDay = null;
+    dayPickerHtml = `<div class="day-chips">` +
+      `<button class="day-chip${!window._scheduleDay ? ' day-chip-active' : ''}" onclick="setScheduleDay(null)">All</button>` +
+      allDates.map(d => {
+        const label = formatDateGroupLabel(d);
+        const active = window._scheduleDay === d ? ' day-chip-active' : '';
+        return `<button class="day-chip${active}" onclick="setScheduleDay('${escHtml(d)}')">${escHtml(label)}</button>`;
+      }).join('') +
+      `</div>`;
+  } else {
+    window._scheduleDay = null; // reset if only one day
   }
 
   // Sort by date then by game number numerically (G1 < G4 < G10 < G13)
@@ -9902,13 +9925,21 @@ function renderGamesList() {
   const nextObj    = findNextGameOrProjected();
   const nextGameId = nextObj?.type === 'pool' ? nextObj.game?.id : null;
   const nextDateKey = nextObj?.type === 'pool' ? (nextObj.game?.dateISO || nextObj.game?.date) : null;
-  const listGames  = upcomingGames.filter(g => {
+  let listGames  = upcomingGames.filter(g => {
     if (g.id === nextGameId) return false;
     if (nextObj?.type !== 'pool' || !nextObj.game) return true;
     return !_sameScheduledGame(g, nextObj.game);
   });
 
-  if (!listGames.length) { listEl.innerHTML = ''; return; }
+  // Apply day filter
+  if (window._scheduleDay) {
+    listGames = listGames.filter(g => g.dateISO === window._scheduleDay);
+  }
+
+  if (!listGames.length) {
+    listEl.innerHTML = dayPickerHtml + `<p class="empty-msg" style="padding:24px 18px;">${escHtml(_scheduleEmptyMessage())}</p>`;
+    return;
+  }
 
   const groups = {};
   const groupOrder = [];
@@ -9918,7 +9949,7 @@ function renderGamesList() {
     groups[key].push(g);
   }
 
-  let html = '';
+  let html = dayPickerHtml;
   for (const dateLabel of groupOrder) {
     // Skip the date header if it matches the next game's date — already shown above that card
     if (dateLabel !== nextDateKey) {
@@ -9941,8 +9972,10 @@ function buildScheduleCard(g) {
   const liveBadge = isLive ? ' <span class="live-badge">🔴 LIVE</span>' : '';
   const followBtn = `<button class="follow-live-btn-sm" onclick="event.stopPropagation();toggleLiveActivity('${_gameRef(g)}')" title="${escHtml(appT('common_follow_live'))}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
 
+  const noteHtml = g.note ? `<div class="game-note">📌 ${escHtml(g.note)}</div>` : '';
+  const hapticAttr = isLive ? '' : ` ontouchstart="_haptic('light')"`;
   return `
-    <div class="sched-card ${capBgClass}${isLive ? ' sched-card-clickable' : ''}"${isLive ? ` onclick="openLiveGameFromSchedule('${escHtml(_gameRef(g))}')"` : ''}>
+    <div class="sched-card ${capBgClass}${isLive ? ' sched-card-clickable' : ''}"${isLive ? ` onclick="_haptic('light');openLiveGameFromSchedule('${escHtml(_gameRef(g))}')"` : ''}${hapticAttr}>
       <div class="sched-card-top">
         <div class="sched-vs">${TOURNAMENT.clubName ? escHtml(TOURNAMENT.clubName) + ' vs ' : 'vs '}${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}${liveBadge} ${followBtn}</div>
         ${g.gameNum ? `<div class="sched-game-num">${escHtml(g.gameNum)}</div>` : ''}
@@ -9952,6 +9985,7 @@ function buildScheduleCard(g) {
         ${g.pool ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
         ${(g.location || TOURNAMENT.location) ? buildLocationLink(g.location || TOURNAMENT.location) : ''}
       </div>
+      ${noteHtml}
     </div>`;
 }
 
@@ -10121,17 +10155,40 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
 
   const embeddedDetail = buildEmbeddedScoreCardDetail(g, viewerOnly || !canScore, ageGroupLabel);
 
+  // Feature 7: game note
+  const gameNoteHtml = g.note ? `<div class="game-note">📌 ${escHtml(g.note)}</div>` : '';
+
+  // Feature 6: share button (shown on completed games with a result)
+  const shareBtnHtml = result
+    ? `<button class="share-btn" onclick="shareGameResult(event,'${gid}')" title="Share result">⎋</button>`
+    : '';
+
+  // Feature 3: score pulse — tag the live score element with a pulse key
+  const scorePulseKey = gid;
+  const scorePulseVal = isRemoteLive ? `${s.team}-${s.opp}` : '';
+  const liveScoreBarWithPulse = isRemoteLive ? liveScoreBarHtml.replace(
+    'class="live-score-bar"',
+    `class="live-score-bar" data-score-pulse-key="${escHtml(scorePulseKey)}" data-score-pulse-val="${escHtml(scorePulseVal)}"`
+  ) : liveScoreBarHtml;
+
+  // Feature 10: haptic on tap for live and scored cards
+  const hapticTap = (isRemoteLive || result) ? ` ontouchstart="_haptic('light')"` : '';
+
   return `
-    <div class="game-card ${cardClass} ${capBgClass}">
+    <div class="game-card ${cardClass} ${capBgClass}"${hapticTap}>
       ${ageGroupLabel ? `<div class="game-card-age-label">${escHtml(ageGroupLabel)}</div>` : ''}
       <div class="game-card-top">
         <div class="game-vs">${TOURNAMENT.clubName ? escHtml(TOURNAMENT.clubName) + ' vs ' : 'vs '}${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}${pillHtml}${liveBadgeHtml}</div>
-        ${g.gameNum ? `<div class="game-num-tag">${escHtml(g.gameNum)}</div>` : ''}
+        <div style="display:flex;align-items:center;gap:6px">
+          ${g.gameNum ? `<div class="game-num-tag">${escHtml(g.gameNum)}</div>` : ''}
+          ${shareBtnHtml}
+        </div>
       </div>
-      ${liveScoreBarHtml}
+      ${liveScoreBarWithPulse}
       <div class="game-info-row game-info-row-primary">${primaryMeta}</div>
       ${locationRow}
       ${pts !== null ? `<div class="game-info-row"><span class="points-badge">+${pts} bracket pts</span></div>` : ''}
+      ${gameNoteHtml}
 
       ${embeddedDetail}
 
@@ -10270,6 +10327,19 @@ function renderPossibleTab() {
   const paths = getTournamentBracketPaths();
   if (!paths?.length) { emptyEl.innerHTML = appT('possible_no_data'); emptyEl.classList.remove('hidden'); return; }
   emptyEl.classList.add('hidden');
+
+  // Feature 9: Bracket visual tree — show above the paths list when data is available
+  const _bracketTreeHtml = renderBracketTree(paths);
+  if (_bracketTreeHtml) {
+    let _treeEl = document.getElementById('bracket-visual-tree');
+    if (!_treeEl) {
+      _treeEl = document.createElement('div');
+      _treeEl.id = 'bracket-visual-tree';
+      _treeEl.style.cssText = 'overflow-x:auto;margin:0 0 12px;';
+      listEl.parentNode.insertBefore(_treeEl, listEl);
+    }
+    _treeEl.innerHTML = _bracketTreeHtml;
+  }
 
   const projected  = inferProjectedPath();
 const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && getTournamentGames().length > 0;
@@ -15448,6 +15518,294 @@ async function toggleLiveActivity(gameId) {
     showToast(appFormat('live_follow_unavailable', { message: e.message }), "error");
     window._activeLA = null;
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEATURE 10: Haptic feedback helper
+// ─────────────────────────────────────────────────────────────────────────────
+function _haptic(style) {
+  try {
+    if (window.Capacitor?.Plugins?.Haptics) {
+      window.Capacitor.Plugins.Haptics.impact({ style: style || 'light' });
+    }
+  } catch (_) {}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEATURE 5: Offline indicator (supplements Phase 5E handler in init())
+// _updateOfflineBanner is kept compatible with existing init() code which
+// directly toggles the .hidden class — this function is called from init()
+// for any additional callsite that needs it.
+// ─────────────────────────────────────────────────────────────────────────────
+function _updateOfflineBanner() {
+  const el = document.getElementById('offline-banner');
+  if (!el) return;
+  el.style.display = navigator.onLine ? '' : '';
+  el.classList.toggle('hidden', navigator.onLine);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEATURE 3: Live game score pulse animation
+// Store last-known scores; on each render cycle compare and trigger animation.
+// ─────────────────────────────────────────────────────────────────────────────
+if (!window._lastKnownScores) window._lastKnownScores = {};
+
+function _checkAndPulseScores() {
+  // Look at all rendered live-score-bar elements and compare to stored values
+  document.querySelectorAll('[data-score-pulse-key]').forEach(el => {
+    const key = el.dataset.scorePulseKey;
+    const cur = el.dataset.scorePulseVal;
+    if (key && cur !== undefined) {
+      const prev = window._lastKnownScores[key];
+      if (prev !== undefined && prev !== cur) {
+        el.classList.remove('score-pulse');
+        // Force reflow so animation restarts if already animating
+        void el.offsetWidth;
+        el.classList.add('score-pulse');
+        setTimeout(() => el.classList.remove('score-pulse'), 700);
+      }
+      window._lastKnownScores[key] = cur;
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEATURE 6: Score share button
+// ─────────────────────────────────────────────────────────────────────────────
+async function shareGameResult(e, gameId) {
+  e.stopPropagation();
+  _haptic('light');
+  // Find the game from all possible sources
+  let game = null;
+  const allGames = [];
+  // Collect from TOURNAMENT
+  if (window.TOURNAMENT?.games) allGames.push(...window.TOURNAMENT.games);
+  // Collect from TEAM_CACHE
+  if (window.TEAM_CACHE) {
+    for (const key of Object.keys(window.TEAM_CACHE)) {
+      const cache = window.TEAM_CACHE[key];
+      if (cache?.tournament?.games) allGames.push(...cache.tournament.games);
+    }
+  }
+  // Also check HISTORY_SEED
+  if (window.HISTORY_SEED) allGames.push(...window.HISTORY_SEED);
+  // Strip slot suffix from gameId (format: "gameId" or "groupKey:gameId")
+  const bareId = gameId.includes(':') ? gameId.split(':').pop() : gameId;
+  game = allGames.find(g => g.id === bareId || g.id === gameId);
+  if (!game) return;
+
+  const result = game.result;
+  const resultWord = result === 'W' ? 'Won' : result === 'L' ? 'Lost' : result === 'SW' ? 'Won (SO)' : result === 'SL' ? 'Lost (SO)' : result === 'F' ? 'Forfeit' : '';
+  const scoreStr = (game.homeScore != null && game.visitorScore != null)
+    ? `${game.homeScore}–${game.visitorScore}`
+    : (game.teamScore != null && game.oppScore != null)
+    ? `${game.teamScore}–${game.oppScore}` : '';
+  const parts = [
+    resultWord || 'Result',
+    scoreStr,
+    `vs. ${game.opponent || game.visitor || 'Opponent'}`,
+    game.time || '',
+    game.location || ''
+  ].filter(Boolean);
+  const text = parts.join(' · ');
+  const clubName = localStorage.getItem('ebwp-club-name') || 'Eggbeater';
+  const shareTitle = `${clubName} Game Result`;
+
+  if (navigator.share) {
+    try { await navigator.share({ title: shareTitle, text }); } catch (_) {}
+  } else {
+    try {
+      await navigator.clipboard.writeText(text);
+      // Show a brief "Copied!" tooltip near the button
+      const btn = e.currentTarget || e.target;
+      if (btn) {
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.style.color = '#10b981';
+        setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1800);
+      }
+    } catch (_) {}
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEATURE 7: Admin game note Firestore writer
+// ─────────────────────────────────────────────────────────────────────────────
+async function updateGameNote(gameId, note) {
+  try {
+    const clubId = getAppClubId();
+    const teamKey = getSelectedTeam();
+    if (!clubId || !teamKey || !gameId) return;
+    // Update Firestore via the Worker so it goes through the same auth path
+    const db = window.firebase?.firestore?.() || (typeof firebase !== 'undefined' ? firebase.firestore() : null);
+    if (!db) { console.warn('[ebwp] Firestore not available for updateGameNote'); return; }
+    // Find the club's Firestore document path — clubs/{clubId}/tournaments/{teamKey}
+    await db.collection('clubs').doc(clubId)
+      .collection('tournaments').doc(teamKey)
+      .update({ [`games.${gameId}.note`]: note || firebase.firestore.FieldValue.delete() });
+  } catch (err) {
+    console.warn('[ebwp] updateGameNote failed:', err.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEATURE 1: Pull-to-refresh
+// ─────────────────────────────────────────────────────────────────────────────
+(function _initPullToRefresh() {
+  let _ptrStartY = 0;
+  let _ptrActive = false;
+  let _ptrThreshold = 60;
+
+  function _getScrollContainer() {
+    // The main scroll target is document.documentElement or body
+    return document.documentElement.scrollTop > 0 ? document.documentElement : document.body;
+  }
+
+  function _isRefreshableTab() {
+    const tab = window.state?.currentTab;
+    return tab === 'schedule' || tab === 'scores';
+  }
+
+  function _showPtrIndicator(visible) {
+    const ind = document.getElementById('ptr-indicator');
+    if (!ind) return;
+    ind.style.display = visible ? 'block' : 'none';
+  }
+
+  async function _doRefresh() {
+    _showPtrIndicator(true);
+    try {
+      if (typeof reloadTournamentJs === 'function') await reloadTournamentJs();
+    } catch (_) {}
+    _showPtrIndicator(false);
+    // Show "Refreshed" pill
+    const pill = document.getElementById('ptr-refreshed-pill');
+    if (pill) {
+      pill.style.display = 'block';
+      pill.style.opacity = '1';
+      setTimeout(() => {
+        pill.style.opacity = '0';
+        setTimeout(() => { pill.style.display = 'none'; }, 400);
+      }, 2000);
+    }
+  }
+
+  document.addEventListener('touchstart', (e) => {
+    if (!_isRefreshableTab()) return;
+    const scrollTop = document.documentElement.scrollTop || document.body.scrollTop || 0;
+    if (scrollTop > 2) return; // only trigger at top
+    _ptrStartY = e.touches[0].clientY;
+    _ptrActive = false;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e) => {
+    if (!_isRefreshableTab()) return;
+    const scrollTop = document.documentElement.scrollTop || document.body.scrollTop || 0;
+    if (scrollTop > 2) { _ptrStartY = 0; return; }
+    if (!_ptrStartY) return;
+    const delta = e.touches[0].clientY - _ptrStartY;
+    if (delta > _ptrThreshold) {
+      _ptrActive = true;
+      _showPtrIndicator(true);
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => {
+    if (_ptrActive) {
+      _ptrActive = false;
+      _doRefresh();
+    } else {
+      _showPtrIndicator(false);
+    }
+    _ptrStartY = 0;
+  }, { passive: true });
+})();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEATURE 4: Day-picker state (window._scheduleDay)
+// ─────────────────────────────────────────────────────────────────────────────
+if (window._scheduleDay === undefined) window._scheduleDay = null;
+
+function setScheduleDay(day) {
+  window._scheduleDay = day;
+  renderScheduleTab();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEATURE 2: Next-game countdown helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function _startNextGameCountdown(targetDate) {
+  if (window._nextGameTimer) clearInterval(window._nextGameTimer);
+  function _tick() {
+    const el = document.getElementById('next-game-card-countdown');
+    if (!el) { clearInterval(window._nextGameTimer); window._nextGameTimer = null; return; }
+    const diff = targetDate - Date.now();
+    if (diff <= 0) {
+      el.textContent = 'Starting now';
+      clearInterval(window._nextGameTimer);
+      window._nextGameTimer = null;
+      setTimeout(() => renderScheduleTab(), 3000);
+      return;
+    }
+    const totalMins = Math.floor(diff / 60000);
+    const hours = Math.floor(totalMins / 60);
+    const mins  = totalMins % 60;
+    el.textContent = hours > 0 ? `in ${hours}h ${mins}m` : `in ${mins}m`;
+  }
+  _tick();
+  window._nextGameTimer = setInterval(_tick, 60000);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEATURE 8: Empty state helper
+// ─────────────────────────────────────────────────────────────────────────────
+function _scheduleEmptyMessage() {
+  if (!window.TOURNAMENT) return 'No tournament loaded. Ask your club admin to set up the app.';
+  const today = _localDateStr ? _localDateStr() : new Date().toISOString().split('T')[0];
+  const games = window.TOURNAMENT.games || [];
+  const futureGames = games.filter(g => g.dateISO > today);
+  const pastGames   = games.filter(g => g.dateISO < today);
+  if (futureGames.length === 0 && pastGames.length > 0) return '✓ All games complete — great tournament!';
+  if (futureGames.length === 0) return 'No upcoming games scheduled yet. Check back soon.';
+  return 'No games today — check back tomorrow or use the day picker above.';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEATURE 9: Bracket visual tree renderer
+// ─────────────────────────────────────────────────────────────────────────────
+function renderBracketTree(paths) {
+  if (!paths || !paths.length) return '';
+
+  // Build rounds: each path is an array of steps; group steps by round index
+  // Find max round count
+  const maxRounds = Math.max(...paths.map(p => (p.steps || []).length));
+  if (!maxRounds) return '';
+
+  // Build a round-by-round matrix: rounds[roundIdx] = array of slots
+  const rounds = [];
+  for (let r = 0; r < maxRounds; r++) {
+    const slots = [];
+    for (const path of paths) {
+      const step = (path.steps || [])[r];
+      if (step) slots.push({ desc: step.desc || step.opponent || 'TBD', game: step });
+    }
+    rounds.push(slots);
+  }
+
+  const roundLabels = ['QF', 'SF', 'F', 'GF'];
+
+  let html = '<div class="bracket-tree">';
+  for (let r = 0; r < rounds.length; r++) {
+    const label = roundLabels[r] || `R${r+1}`;
+    html += `<div class="bracket-round"><div class="bracket-round-label">${escHtml(label)}</div>`;
+    for (const slot of rounds[r]) {
+      const isWinner = slot.game?.result === 'W' || slot.game?.result === 'SW';
+      html += `<div class="bracket-slot${isWinner ? ' winner' : ''}">${escHtml(slot.desc)}</div>`;
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
 }
 
 document.addEventListener('DOMContentLoaded', init);

@@ -3529,6 +3529,8 @@
 
       // Auto-start Bracket Sheet sync from the deployed tournament package.
       _restoreBsyncFromTournament();
+      // Restore in-progress wizard draft if one exists (step >= 2)
+      _bsRestoreWizard();
       if (S.bsync?.pollMins > 0) {
         bsStartPoll();
         bsAutoPoll().catch(e => console.warn('[bsync] initial auto-poll error:', e.message));
@@ -5088,7 +5090,7 @@
         return;
       }
       if (S.currentTab === 'clubinfo') { loadClubSettings().then(() => { el.innerHTML = renderClubInfoTab(); loadClubAdmins(); loadPendingInvites(); initBrandingPreview(); }); return; }
-      if (S.currentTab === 'schedule') { el.innerHTML = renderScheduleTab(); }
+      if (S.currentTab === 'schedule') { el.innerHTML = renderScheduleTab(); setTimeout(_updateRollbackTimestamp, 50); }
       if (S.currentTab === 'roster') el.innerHTML = renderRosterTab();
       if (S.currentTab === 'addgames') {
         try { el.innerHTML = renderAddGamesTab(); } catch (e) { console.warn('[ebwp] renderAddGamesTab error:', e); el.innerHTML = '<div style="padding:20px;color:#dc2626;font-size:.85rem">Tab render error: ' + e.message + '</div>'; }
@@ -5425,10 +5427,41 @@
       const statusCls = current ? `tourn-status-${current.status || 'upcoming'}` : '';
       const statusLabel = current ? (current.status || 'upcoming') : '';
 
+      const _today = new Date().toISOString().split('T')[0];
       const options = S.tournamentList.map(t => {
         const sel = t.id === S.tournamentId ? ' selected' : '';
         const icon = t.status === 'active' ? '● ' : t.status === 'archived' ? '○ ' : '◎ ';
-        return `<option value="${esc(t.id)}"${sel}>${icon}${esc(t.name || 'Untitled')} — ${esc(t.dates || 'no dates')}</option>`;
+        // Compute status badge from dates field (e.g. "April 25–27, 2026" or ISO dates)
+        let _badge = '';
+        if (t.dates) {
+          const _dRaw = t.dates || '';
+          // Try to extract year/month for approximate range
+          const _isoMatch = _dRaw.match(/(\d{4}-\d{2}-\d{2})/g);
+          const _yearMatch = _dRaw.match(/\b(\d{4})\b/);
+          let _startD = '', _endD = '';
+          if (_isoMatch && _isoMatch.length >= 1) { _startD = _isoMatch[0]; _endD = _isoMatch[_isoMatch.length - 1]; }
+          else if (_yearMatch) {
+            // Month name extraction for "April 25–27, 2026"
+            const _mo = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+            const _mn = (_dRaw.toLowerCase().match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i) || [])[1];
+            const _days = _dRaw.match(/\b(\d{1,2})\b/g) || [];
+            if (_mn && _days.length && _yearMatch) {
+              const _mNum = String(_mo[_mn.toLowerCase()]).padStart(2,'0');
+              _startD = _yearMatch[1] + '-' + _mNum + '-' + String(_days[0]).padStart(2,'0');
+              _endD = _yearMatch[1] + '-' + _mNum + '-' + String(_days[_days.length-1]).padStart(2,'0');
+            }
+          }
+          if (_startD && _endD) {
+            if (_today >= _startD && _today <= _endD) _badge = ' ● Live';
+            else if (_startD > _today) _badge = ' ⏳ Upcoming';
+            else if (_endD < _today) _badge = ' ✓ Complete';
+          } else if (!_startD && _yearMatch) {
+            _badge = ' ⏳ Upcoming';
+          }
+        } else {
+          _badge = ' · No dates';
+        }
+        return `<option value="${esc(t.id)}"${sel}>${icon}${esc(t.name || 'Untitled')} — ${esc(t.dates || 'no dates')}${_badge}</option>`;
       }).join('');
 
       strip.innerHTML = `
@@ -5436,6 +5469,7 @@
     <span class="tourn-status-badge ${statusCls}">${esc(statusLabel)}</span>
     <button class="tourn-strip-btn" onclick="toggleTournamentStatus()" title="Toggle active/archived">${current?.status === 'active' ? '📦 Archive' : '🟢 Activate'
         }</button>
+    <button class="tourn-strip-btn" onclick="_copyTournamentAsTemplate('${esc(S.tournamentId || '')}')" title="Copy as template" style="background:#f0f9ff;color:#0c4a6e;border:1px solid #7dd3fc">📋 Copy</button>
     <button class="tourn-strip-btn tourn-strip-btn-new" onclick="createNewTournament()">${adminT('tournament_new')}</button>
     ${current?.status === 'archived' ? `<button class="tourn-strip-btn tourn-strip-btn-danger" onclick="deleteTournament()">✕</button>` : ''}
   `;
@@ -5465,6 +5499,38 @@
         renderTournamentSelector();
         renderTab();
         showStatus(adminFormat('tournament_loaded', { name: full.name || 'Untitled' }), 'ok');
+      } catch (e) {
+        showStatus('❌ ' + e.message, 'err');
+      }
+    }
+
+    async function _copyTournamentAsTemplate(tId) {
+      if (!tId) { showStatus('⚠️ No tournament selected', 'warn'); return; }
+      const current = S.tournamentList.find(t => t.id === tId);
+      if (!current) { showStatus('⚠️ Tournament not found', 'warn'); return; }
+      if (!confirm(`📋 Copy "${current.name || 'Untitled'}" as a template?\n\nA new tournament will be created with the same settings but no games, scores, or bracket paths.`)) return;
+      showStatus('Creating template…', 'info');
+      try {
+        // Load full tournament data
+        let baseTournament = {};
+        if (typeof fbLoadTournament === 'function') {
+          const full = await fbLoadTournament(tId);
+          if (full) baseTournament = full.tournament || {};
+        }
+        // Strip games, scores, bracket paths
+        const template = { ...baseTournament };
+        delete template.games;
+        delete template.bracket;
+        delete template.sheetSync;
+        delete template.upcomingMode;
+        delete template.comingSoon;
+        const newName = 'Copy of ' + (current.name || 'Untitled');
+        const todayISO = new Date().toISOString().split('T')[0];
+        const id = await fbCreateTournament({ name: newName, dates: todayISO, location: template.location || '', address: template.address || '', status: 'upcoming' });
+        if (!id) throw new Error('Template created but no ID returned');
+        S.tournamentList = await fbLoadTournaments();
+        renderTournamentSelector();
+        showStatus('✅ Template created — select it from the list to fill in details', 'ok');
       } catch (e) {
         showStatus('❌ ' + e.message, 'err');
       }
@@ -5686,7 +5752,16 @@
       <div style="display:flex;flex-direction:column;gap:8px">
         <button class="add-btn" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;font-weight:700" onclick="undeployLiveSchedule()">🛑 Undeploy Live Schedule</button>
         <button class="clear-data-btn" onclick="clearAgeGroupData()">🗑 Clear All Data for ${esc(ADMIN_TEAMS.find(t => t.key === S.team)?.label || S.team)}</button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="add-btn" style="background:#fef3c7;color:#92400e;border-color:#fcd34d;font-weight:700;flex:1" onclick="_rollbackDeploy()">↩ Undo Last Deploy</button>
+          <span id="rollback-ts" style="font-size:0.72rem;color:var(--g400)"></span>
+        </div>
       </div>
+      <details style="margin-top:12px">
+        <summary style="font-size:0.78rem;font-weight:700;color:var(--g600);cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px">📋 Audit Log <span style="font-weight:400;color:var(--g400)">(last 20 actions)</span></summary>
+        <ul id="audit-log-list" style="list-style:none;padding:0;margin:8px 0 0">${_renderAuditLog()}</ul>
+        <button onclick="_clearAuditLog()" style="margin-top:6px;font-size:0.75rem;background:var(--g100);border:1px solid var(--g200);border-radius:6px;padding:3px 10px;cursor:pointer;color:var(--g600)">Clear log</button>
+      </details>
     </div>`;
     }
 
@@ -6379,6 +6454,7 @@
         // card doesn't keep appearing after a data wipe.
         await _clearScorerDraftsForTeam(S.tournament);
 
+        _auditLog('Cleared age group data for ' + teamLabel);
         showStatus(`✓ All ${teamLabel} data cleared`, 'ok');
         renderTab();
       } catch (e) {
@@ -6460,6 +6536,8 @@
       g.date = isoToDate(dateISO);
       g.location = document.getElementById('ge-loc').value.trim();
       g.pool = document.getElementById('ge-pool').value.trim();
+      const noteVal = (document.getElementById('ge-note')?.value || '').trim();
+      if (noteVal) g.note = noteVal; else delete g.note;
       // cap is set via setGameField
 
       // Auto-detect team from opponent text in multi-team mode (opponent name preserved as-entered)
@@ -6574,6 +6652,18 @@
       } catch (e) {
         if (statusEl) statusEl.innerHTML = `<span style="color:#dc2626">❌ ${e.message}</span>`;
       }
+    }
+
+    function filterAddGames() {
+      const q = (document.getElementById('ag-search')?.value || '').toLowerCase().trim();
+      const list = document.getElementById('ag-game-list');
+      if (!list) return;
+      const rows = list.querySelectorAll('.game-row');
+      rows.forEach(row => {
+        if (!q) { row.style.display = ''; return; }
+        const text = (row.textContent || '').toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+      });
     }
 
     function addGame() {
@@ -7743,6 +7833,7 @@
           <div class="form-row"><div class="form-group"><div class="form-label">${adminT('addgames_time')}</div><input class="form-input" id="ge-time" value="${esc(g.time || '')}" placeholder="9:00am"></div><div class="form-group"><div class="form-label">${adminT('addgames_date_iso')}</div><input class="form-input" id="ge-date" value="${esc(g.dateISO || '')}" placeholder="2026-04-25" oninput="checkGameDateWarning()"><div id="ge-date-warn" style="font-size:0.76rem;color:#f59e0b;margin-top:3px;${(g.dateISO || '') < new Date().toISOString().split('T')[0] && g.dateISO ? '' : 'display:none'}">⚠️ ${esc(adminT('addgames_date_past_warn'))}</div></div></div>
           <div class="form-group"><div class="form-label">${adminT('addgames_venue_name')}</div><input class="form-input" id="ge-loc" value="${esc(g.location || '')}" placeholder="${esc(adminT('addgames_start_typing_venue'))}" spellcheck="false" autocomplete="off"><div class="info-hint" style="margin-top:3px;font-size:0.75rem;color:var(--g400)">${esc(adminT('addgames_google_places_hint'))}</div></div>
           <div class="form-group"><div class="form-label">${adminT('addgames_pool')}</div><input class="form-input" id="ge-pool" value="${esc(g.pool || '')}" placeholder="Pool C"></div>
+          <div class="form-group"><div class="form-label">Admin Note <span style="font-size:0.75rem;color:var(--g400);font-weight:400">(shown to spectators)</span></div><input class="form-input" id="ge-note" type="text" maxlength="120" value="${esc(g.note || '')}" placeholder="e.g. Wear dark caps, warm-up at 8:45am"></div>
           <div class="form-group"><div class="form-label">${adminT('addgames_cap_color')}</div><div class="cap-toggle"><button class="cap-btn white ${g.cap !== 'Dark' ? 'active' : ''}" onclick="setGameField('${esc(g.id)}','cap','White')">⚪ ${esc(adminT('addgames_white'))}</button><button class="cap-btn dark ${g.cap === 'Dark' ? 'active' : ''}" onclick="setGameField('${esc(g.id)}','cap','Dark')">⚫ ${esc(adminT('addgames_dark'))}</button></div></div>
           ${isMultiTeamAdmin() ? `<div class="form-group"><div class="form-label">${adminT('addgames_team')}</div><select class="form-input" onchange="setGameField('${esc(g.id)}','team',this.value)"><option value="A" ${(g.team || 'A') === 'A' ? 'selected' : ''}>A — ${esc((t.teamLabels && t.teamLabels.A) || 'Team A')}</option><option value="B" ${g.team === 'B' ? 'selected' : ''}>B — ${esc((t.teamLabels && t.teamLabels.B) || 'Team B')}</option>${t.enableCTeam ? `<option value="C" ${g.team === 'C' ? 'selected' : ''}>C — ${esc((t.teamLabels && t.teamLabels.C) || 'Team C')}</option>` : ''}</select></div>` : ''}
           <div class="form-actions"><button class="btn-save" onclick="saveGame('${esc(g.id)}')">✓ ${esc(adminT('addgames_done'))}</button><button class="btn-cancel" onclick="cancelEdit()">${esc(adminT('addgames_cancel'))}</button><button class="btn-del" onclick="deleteGame('${esc(g.id)}')">🗑</button></div>
@@ -7858,7 +7949,8 @@
     <details class="card collapsible-card" ${games.length < 6 || S.editingGame ? 'open' : ''}>
       <summary class="card-header collapsible-header">📅 ${esc(adminT('tab_addgames'))} / ${esc(adminT('addgames_tournament_name'))}${games.length ? ` <span style="font-size:0.75rem;font-weight:400;color:var(--g400);margin-left:4px">(${games.length} game${games.length !== 1 ? 's' : ''})</span>` : ''} <span class="collapse-icon">▾</span></summary>
       <div style="padding:10px 14px">
-        <div style="margin:0 0 10px;border-bottom:1px solid var(--g100);padding-bottom:8px">
+        ${games.length > 3 ? `<input type="text" id="ag-search" placeholder="Filter by pool, team, or time…" oninput="filterAddGames()" style="width:100%;margin-bottom:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box">` : ''}
+        <div id="ag-game-list" style="margin:0 0 10px;border-bottom:1px solid var(--g100);padding-bottom:8px">
           ${rows || `<div style="padding:8px;color:var(--g400);font-size:.82rem;text-align:center">${esc(adminT('addgames_no_games_yet'))}</div>`}
         </div>
         ${autoBtn}
@@ -9052,9 +9144,11 @@
       var rbNoBg = !bs.rebracket ? 'var(--royal)' : 'var(--g100)';
       var rbNoCo = !bs.rebracket ? 'white' : 'var(--g600)';
       var s4dis = (bs.games && bs.games.length) ? '' : ' disabled';
+      var hasDraft = !!(localStorage.getItem('ebwp-bsync-draft'));
       return '<details class="card collapsible-card" id="bs-card"' + ((bs.sheetUrl || (bs.step && bs.step > 1)) ? ' open' : '') + '>'
-        + '<summary class="card-header collapsible-header">&#x1f4ca; Bracket Sheet Sync <span class="collapse-icon">&#9662;</span></summary>'
+        + '<summary class="card-header collapsible-header">&#x1f4ca; Bracket Sheet Sync <span style="font-size:0.72rem;font-weight:400;color:var(--g400);margin-left:8px">' + (hasDraft ? '| <a href="#" onclick="event.preventDefault();_bsClearWizardDraft()" style="color:#92400e;text-decoration:none">🗑 Clear draft</a>' : '') + '</span><span class="collapse-icon">&#9662;</span></summary>'
         + '<div style="padding:10px 14px">'
+        + '<div id="bs-draft-banner" style="display:' + (hasDraft && step >= 2 ? 'block' : 'none') + ';background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:8px 12px;font-size:0.8rem;color:#92400e;margin-bottom:10px">⚡ Draft restored from your last session. <a href="#" onclick="event.preventDefault();_bsClearWizardDraft()" style="color:#92400e;font-weight:700">Start fresh</a></div>'
         + '<div style="display:flex;gap:3px;margin-bottom:10px" id="bs-stepbar">' + dots + '</div>'
         + '<div id="bs-step-label" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--g400);margin-bottom:10px">' + bsStepLabel(step) + '</div>'
         // Step 1
@@ -9185,9 +9279,64 @@
     // Wizard is now rendered inline via ${bsWizardHtml()} in renderAddGamesTab(). No-op kept for compatibility.
     function renderBsWizard() { }
 
+    // ── BSSync wizard draft persistence ──────────────────────────────────────────
+    function _bsSaveWizard() {
+      if (!S.bsync) return;
+      try {
+        const draft = {
+          step: S.bsync.step,
+          sheetUrl: S.bsync.sheetUrl,
+          sheetId: S.bsync.sheetId,
+          sheetGid: S.bsync.sheetGid,
+          poolRange: S.bsync.poolRange,
+          teamName: S.bsync.teamName,
+          teamNames: S.bsync.teamNames,
+          rebracket: S.bsync.rebracket,
+          rebracketRange: S.bsync.rebracketRange,
+          pollMins: S.bsync.pollMins,
+          myPool: S.bsync.myPool,
+          mySeed: S.bsync.mySeed,
+          colorCoded: S.bsync.colorCoded,
+          legendCells: S.bsync.legendCells,
+          myAgeGroup: S.bsync.myAgeGroup,
+          myAgeGroupIdx: S.bsync.myAgeGroupIdx,
+          courseFormat: S.bsync.courseFormat,
+          bracketPathTeam: S.bsync.bracketPathTeam,
+          _savedAt: Date.now(),
+        };
+        localStorage.setItem('ebwp-bsync-draft', JSON.stringify(draft));
+      } catch (e) { /* non-fatal */ }
+    }
+
+    function _bsRestoreWizard() {
+      try {
+        const raw = localStorage.getItem('ebwp-bsync-draft');
+        if (!raw) return;
+        const draft = JSON.parse(raw);
+        if (!draft || !draft.step || draft.step < 2) return;
+        if (!S.bsync) S.bsync = {};
+        Object.assign(S.bsync, draft);
+        // Show restoration banner after a short delay (DOM may not be ready yet)
+        setTimeout(() => {
+          const banner = document.getElementById('bs-draft-banner');
+          if (banner) banner.style.display = 'block';
+        }, 600);
+      } catch (e) { /* non-fatal */ }
+    }
+
+    function _bsClearWizardDraft() {
+      localStorage.removeItem('ebwp-bsync-draft');
+      if (S.bsync) S.bsync.step = 1;
+      const banner = document.getElementById('bs-draft-banner');
+      if (banner) banner.style.display = 'none';
+      bsStep(1);
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
+
     function bsStep(n) {
       if (!S.bsync) return;
       S.bsync.step = n;
+      _bsSaveWizard();
       for (let i = 1; i <= 7; i++) {
         const el = document.getElementById('bs-s' + i);
         if (el) el.style.display = (i === n) ? 'block' : 'none';
@@ -9567,6 +9716,8 @@
       const status4 = document.getElementById('bs-s4-status');
       const preview = document.getElementById('bs-games-preview');
       bsStep(4);
+      // Snapshot current games for diff display
+      window._bsPreScanGames = JSON.parse(JSON.stringify(S.tournament.games || []));
       if (status4) { status4.style.color = 'var(--g400)'; status4.textContent = '⏳ Scanning schedule sheet for games…'; }
       if (preview) preview.innerHTML = '';
       try {
@@ -9589,11 +9740,13 @@
             return;
           }
           S.bsync.games = games;
+          const _diffStr1 = _bsScanDiff(games, window._bsPreScanGames || []);
           if (status4) { status4.style.color = '#059669'; status4.textContent = '\u2705 Found ' + games.length + ' game(s) \u2014 review below'; }
           const nextBtn2 = document.getElementById('bs-s4-next');
           if (nextBtn2) nextBtn2.disabled = false;
           if (preview) {
-            preview.innerHTML = games.map(function (g) {
+            preview.innerHTML = '<div style="padding:6px 10px;background:var(--g50);border-radius:6px;font-size:.78rem;margin-bottom:8px;color:var(--g600)">' + _diffStr1 + '</div>'
+              + games.map(function (g) {
               return '<div style="padding:5px 0;border-bottom:1px solid var(--g100);display:flex;gap:8px;align-items:center">'
                 + '<span style="font-size:.72rem;color:var(--g400);min-width:40px;font-weight:600">' + esc(g.gameNum) + '</span>'
                 + '<span style="flex:1;font-weight:600;font-size:.82rem">vs ' + esc(g.opponent) + '</span>'
@@ -9776,12 +9929,14 @@
         }
 
         S.bsync.games = games;
+        const _diffStr = _bsScanDiff(games, window._bsPreScanGames || []);
         if (status4) { status4.style.color = '#059669'; status4.textContent = '\u2705 Found ' + games.length + ' game(s)' + agLabel + ' \u2014 review below' + _dateFix; }
         const nextBtn = document.getElementById('bs-s4-next');
         if (nextBtn) nextBtn.disabled = false;
 
         if (preview) {
-          preview.innerHTML = games.map(g =>
+          preview.innerHTML = '<div style="padding:6px 10px;background:var(--g50);border-radius:6px;font-size:.78rem;margin-bottom:8px;color:var(--g600)">' + _diffStr + '</div>'
+          + games.map(g =>
             `<div style="padding:5px 0;border-bottom:1px solid var(--g100);display:flex;gap:8px;align-items:center">
               <span style="font-size:.72rem;color:var(--g400);min-width:28px;font-weight:600">G${esc(g.gameNum)}</span>
               <span style="flex:1;font-weight:600;font-size:.82rem">vs ${esc(g.opponent)}</span>
@@ -9808,6 +9963,31 @@
       } catch (e) {
         if (status4) { status4.style.color = '#dc2626'; status4.textContent = '❌ ' + e.message; }
       }
+    }
+
+    function _bsScanDiff(newGames, prevGames) {
+      const prevById = {};
+      for (const g of prevGames) prevById[g.gameNum] = g;
+      const newIds = new Set(newGames.map(g => g.gameNum));
+      let added = 0, updated = 0, dateChanged = 0;
+      for (const g of newGames) {
+        const prev = prevById[g.gameNum];
+        if (!prev) { added++; }
+        else {
+          const scoreChanged = (g.score || '') !== (prev.score || '') || (g.result || '') !== (prev.result || '');
+          const dateChg = (g.dateISO || '') !== (prev.dateISO || '');
+          const timeChanged = (g.time || '') !== (prev.time || '');
+          if (scoreChanged || dateChg || timeChanged) updated++;
+          if (dateChg) dateChanged++;
+        }
+      }
+      const removed = prevGames.filter(g => !newIds.has(g.gameNum)).length;
+      let parts = ['<strong>' + newGames.length + ' games</strong>'];
+      if (added > 0) parts.push('+' + added + ' new');
+      if (updated > 0) parts.push(updated + ' updated');
+      parts.push(removed + ' removed');
+      if (dateChanged > 0) parts.push('<span style="color:#dc2626">⚠️ ' + dateChanged + ' date changed</span>');
+      return parts.join(' · ');
     }
 
     function bsSetRebracket(val) {
@@ -10034,11 +10214,54 @@
       bsStep(7);
     }
 
+    function _detectGameConflicts(games) {
+      // Parse time string to minutes since midnight
+      function _timeToMins(t) {
+        if (!t) return -1;
+        const m = t.match(/(\d+):(\d+)\s*(am|pm)?/i);
+        if (!m) return -1;
+        let h = parseInt(m[1], 10), min = parseInt(m[2], 10);
+        const ap = (m[3] || '').toLowerCase();
+        if (ap === 'pm' && h !== 12) h += 12;
+        if (ap === 'am' && h === 12) h = 0;
+        return h * 60 + min;
+      }
+      const groups = {};
+      for (const g of games) {
+        const key = (g.dateISO || '') + '|' + (g.pool || '');
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(g);
+      }
+      const conflicts = [];
+      for (const [key, grp] of Object.entries(groups)) {
+        if (grp.length < 2) continue;
+        for (let i = 0; i < grp.length; i++) {
+          for (let j = i + 1; j < grp.length; j++) {
+            const t1 = _timeToMins(grp[i].time), t2 = _timeToMins(grp[j].time);
+            if (t1 < 0 || t2 < 0) continue;
+            const start1 = Math.min(t1, t2), start2 = Math.max(t1, t2);
+            if (start2 < start1 + 50) {
+              conflicts.push({ time: grp[i].time, pool: grp[i].pool || key.split('|')[1], games: [grp[i], grp[j]] });
+            }
+          }
+        }
+      }
+      return conflicts;
+    }
+
     async function bsDeploy() {
       const status = document.getElementById('bs-deploy-status');
       if (!S.bsync?.games?.length) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ No games to deploy — go back and scan a sheet first'; } return; }
       if (status) { status.style.color = 'var(--g400)'; status.textContent = '⏳ Deploying games…'; }
       try {
+        // Check for pool conflicts before deploying
+        const _conflicts = _detectGameConflicts(S.bsync.games);
+        if (_conflicts.length > 0) {
+          const _conflictLines = _conflicts.map(c => `• Pool ${c.pool || '?'} at ${c.time} — 2 games overlap`).join('\n');
+          const _proceed = confirm('⚠️ Pool conflicts detected:\n' + _conflictLines + '\n\nDeploy anyway?');
+          if (!_proceed) { if (status) status.textContent = ''; return; }
+        }
+
         // Preserve any existing game IDs matched by game number
         const existingByNum = {};
         for (const g of (S.tournament.games || [])) existingByNum[g.gameNum] = g;
@@ -10093,6 +10316,17 @@
         localStorage.setItem('ebadmin-bsync-team', S.bsync.teamName || '');
         localStorage.setItem('ebadmin-bsync-mins', S.bsync.pollMins || '0');
         localStorage.setItem('ebadmin-bsync-range', S.bsync.poolRange || '');
+
+        // Save deploy snapshot for rollback before writing
+        try {
+          localStorage.setItem('ebwp-last-deploy-snapshot', JSON.stringify({
+            ts: Date.now(),
+            tournament: JSON.parse(JSON.stringify(S.tournament)),
+            history: JSON.parse(JSON.stringify(S.history || [])),
+          }));
+          _updateRollbackTimestamp();
+        } catch (e) { /* non-fatal */ }
+        _auditLog('BSSync deployed: ' + games.length + ' games');
 
         const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
         if (!saveRes.ok) throw new Error('Games synced but save failed — tap 💾 Deploy in the header to retry');
@@ -10173,23 +10407,108 @@
       if (window._adminDirty) return;
       window._adminDirty = true;
       const btn = document.getElementById('deploy-btn');
-      if (!btn) return;
-      let dot = document.getElementById('admin-dirty-dot');
-      if (!dot) {
-        dot = document.createElement('span');
-        dot.id = 'admin-dirty-dot';
-        dot.title = 'Unsaved changes';
-        dot.style.cssText = 'display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-left:6px;vertical-align:middle;flex-shrink:0';
-        btn.style.position = 'relative';
-        btn.appendChild(dot);
+      if (btn) {
+        let dot = document.getElementById('admin-dirty-dot');
+        if (!dot) {
+          dot = document.createElement('span');
+          dot.id = 'admin-dirty-dot';
+          dot.title = 'Unsaved changes';
+          dot.style.cssText = 'display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-left:6px;vertical-align:middle;flex-shrink:0';
+          btn.style.position = 'relative';
+          btn.appendChild(dot);
+        }
       }
+      // Show sticky banner
+      let banner = document.getElementById('dirty-banner');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'dirty-banner';
+        banner.innerHTML = '⚠️ Unsaved changes — scroll down and tap 💾 Save & Deploy to publish <button onclick="_clearDirty()" style="margin-left:12px;background:rgba(0,0,0,.15);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:12px;color:#000">Dismiss</button>';
+        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#f59e0b;color:#000;text-align:center;padding:6px 12px;font-size:13px;font-weight:600';
+        document.body.prepend(banner);
+      }
+      banner.style.display = 'block';
+      document.body.style.paddingTop = '38px';
     }
 
     function _clearDirty() {
       window._adminDirty = false;
       const dot = document.getElementById('admin-dirty-dot');
       if (dot) dot.remove();
+      const banner = document.getElementById('dirty-banner');
+      if (banner) banner.style.display = 'none';
+      document.body.style.paddingTop = '';
     }
+
+    function _updateRollbackTimestamp() {
+      try {
+        const raw = localStorage.getItem('ebwp-last-deploy-snapshot');
+        if (!raw) return;
+        const snap = JSON.parse(raw);
+        const el = document.getElementById('rollback-ts');
+        if (el && snap.ts) {
+          const diff = Math.round((Date.now() - snap.ts) / 60000);
+          el.textContent = diff < 1 ? 'Last deploy: just now' : diff === 1 ? 'Last deploy: 1 min ago' : 'Last deploy: ' + diff + ' min ago';
+        }
+      } catch (e) { /* non-fatal */ }
+    }
+
+    async function _rollbackDeploy() {
+      try {
+        const raw = localStorage.getItem('ebwp-last-deploy-snapshot');
+        if (!raw) { showStatus('⚠️ No deploy snapshot found', 'warn'); return; }
+        const snap = JSON.parse(raw);
+        if (!snap?.tournament) { showStatus('⚠️ Snapshot is empty or corrupt', 'warn'); return; }
+        if (!confirm('↩ Roll back to previous deploy snapshot?\n\nThis will overwrite the current live data.')) return;
+        showStatus('↩ Rolling back…', 'info');
+        S.tournament = snap.tournament;
+        S.history = snap.history || [];
+        const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+        if (!saveRes.ok) throw new Error('Rollback save failed');
+        const deployRes = await api('POST', '/admin/deploy');
+        if (!deployRes.ok) throw new Error('Rollback deploy failed');
+        if (typeof _pushToFirebaseMirror === 'function') {
+          await _pushToFirebaseMirror(S.team, S.tournament, S.history || []);
+        }
+        _auditLog('Rolled back to previous deploy');
+        showStatus('✅ Rollback complete — previous deploy is now live', 'ok');
+        renderTab();
+      } catch (e) {
+        showStatus('❌ Rollback failed: ' + e.message, 'err');
+      }
+    }
+
+    // ── Audit log ────────────────────────────────────────────────────────────────
+    function _auditLog(action) {
+      try {
+        const raw = localStorage.getItem('ebwp-audit-log');
+        const log = raw ? JSON.parse(raw) : [];
+        log.unshift({ ts: Date.now(), action });
+        if (log.length > 50) log.length = 50;
+        localStorage.setItem('ebwp-audit-log', JSON.stringify(log));
+      } catch (e) { /* non-fatal */ }
+    }
+
+    function _renderAuditLog() {
+      try {
+        const raw = localStorage.getItem('ebwp-audit-log');
+        const log = raw ? JSON.parse(raw) : [];
+        const entries = log.slice(0, 20);
+        if (!entries.length) return '<li style="color:var(--g400);font-size:0.8rem">No entries yet.</li>';
+        return entries.map(e => {
+          const d = new Date(e.ts);
+          const ts = d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          return `<li style="font-size:0.8rem;padding:3px 0;border-bottom:1px solid var(--g100)">${esc(ts)} — ${esc(e.action)}</li>`;
+        }).join('');
+      } catch (e) { return '<li style="color:#dc2626">Error reading log</li>'; }
+    }
+
+    function _clearAuditLog() {
+      localStorage.removeItem('ebwp-audit-log');
+      const el = document.getElementById('audit-log-list');
+      if (el) el.innerHTML = '<li style="color:var(--g400);font-size:0.8rem">No entries yet.</li>';
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
 
     // Warn on unload if there are unsaved tournament fields
     window.addEventListener('beforeunload', function(e) {
@@ -11049,6 +11368,15 @@
         const prevSig = (S.tournament.games || []).map(sig).join(',');
         if (newSig === prevSig) return;
 
+        // Track added vs. updated for toast notification
+        const _prevGames = S.tournament.games || [];
+        const _prevIds = new Set(_prevGames.map(g => g.gameNum));
+        let _apAdded = 0, _apUpdated = 0;
+        for (const g of games) {
+          if (!_prevIds.has(g.gameNum)) { _apAdded++; }
+          else { _apUpdated++; }
+        }
+
         const existingByNum = {};
         for (const g of (S.tournament.games || [])) existingByNum[g.gameNum] = g;
         S.tournament.games = games.map(g => ({ ...g, id: existingByNum[g.gameNum]?.id || g.id }));
@@ -11083,10 +11411,28 @@
           if (typeof _pushToFirebaseMirror === 'function') {
             await _pushToFirebaseMirror(S.team, S.tournament, S.history || []);
           }
+          // Show change toast if something actually changed
+          if (_apAdded > 0 || _apUpdated > 0) {
+            _showSyncToast(_apAdded, _apUpdated);
+          }
         }
       } catch (e) {
         console.warn('[bsync] Auto-poll error:', e.message);
       }
+    }
+
+    function _showSyncToast(added, updated) {
+      let toast = document.getElementById('bs-sync-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'bs-sync-toast';
+        toast.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;background:#059669;color:white;padding:8px 14px;border-radius:20px;font-size:0.82rem;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.25);pointer-events:none;transition:opacity .4s';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = '🔄 Auto-sync: +' + added + ' new · ' + updated + ' updated';
+      toast.style.opacity = '1';
+      clearTimeout(toast._fadeTimer);
+      toast._fadeTimer = setTimeout(() => { toast.style.opacity = '0'; }, 4000);
     }
 
     async function syncGamesFromSheet() {
@@ -12041,6 +12387,16 @@
         }
         showStatus(adminT('publish_live_done'), 'ok');
         _clearDirty();
+        _auditLog('Deployed tournament');
+        // Save snapshot for rollback
+        try {
+          localStorage.setItem('ebwp-last-deploy-snapshot', JSON.stringify({
+            ts: Date.now(),
+            tournament: JSON.parse(JSON.stringify(S.tournament)),
+            history: JSON.parse(JSON.stringify(S.history || [])),
+          }));
+          _updateRollbackTimestamp();
+        } catch (e) { /* non-fatal */ }
       } catch (e) {
         showStatus('❌ ' + e.message, 'err');
       } finally {
