@@ -953,6 +953,70 @@
       color: var(--royal);
     }
 
+    .recovery-status-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .recovery-status-chip-ok {
+      background: #ecfdf3;
+      border-color: #86efac;
+      color: #166534;
+    }
+
+    .recovery-status-chip-info {
+      background: #eff6ff;
+      border-color: #93c5fd;
+      color: #1d4ed8;
+    }
+
+    .recovery-status-chip-warn {
+      background: #fff7ed;
+      border-color: #fdba74;
+      color: #9a3412;
+    }
+
+    .recovery-status-chip-err {
+      background: #fef2f2;
+      border-color: #fca5a5;
+      color: #b91c1c;
+    }
+
+    .recovery-status-chip-muted {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #475569;
+    }
+
+    .recovery-row-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .recovery-inline-chips {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin: 2px 0;
+    }
+
+    .recovery-copy {
+      font-size: 0.82rem;
+      color: var(--g600);
+      line-height: 1.5;
+    }
+
     .game-edit-icon {
       font-size: 1.1rem;
       color: var(--g400);
@@ -2004,6 +2068,52 @@
     @media (max-width: 760px) {
       .recovery-summary-strip {
         grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+
+      .recovery-summary-card {
+        padding: 8px 10px;
+      }
+
+      .recovery-summary-value {
+        font-size: 1.05rem;
+      }
+
+      .recovery-filter-row {
+        gap: 6px;
+      }
+
+      .recovery-filter-btn {
+        flex: 1 1 0;
+        justify-content: center;
+      }
+
+      .game-summary {
+        align-items: flex-start;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .game-info {
+        width: 100%;
+      }
+
+      .game-meta {
+        line-height: 1.4;
+      }
+
+      .recovery-row-actions {
+        width: 100%;
+        justify-content: stretch;
+      }
+
+      .recovery-row-actions .btn-save,
+      .recovery-row-actions .save-btn {
+        flex: 1 1 calc(50% - 4px);
+      }
+
+      .recovery-copy {
+        font-size: 0.78rem;
       }
     }
   </style>
@@ -14115,6 +14225,7 @@
       const needsActionCount = unresolvedConflicts.length + activeSessionCount + needsFinalizeEntries.length + draftActionCount;
       const recoveryFilter = S.recoveryFilter || 'needs-action';
       const lastRefreshLabel = S.recoveryLastRefreshAt ? new Date(S.recoveryLastRefreshAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '--';
+      const recoveryChip = (label, tone = 'muted') => `<span class="recovery-status-chip recovery-status-chip-${tone}">${esc(label)}</span>`;
 
       // ── Status summary pills ────────────────────────────────────────────
       const pills = [
@@ -14176,10 +14287,13 @@
           return `<div class="game-row"><div class="game-summary" style="cursor:default">
             <div class="game-info">
               <div class="game-opp" style="color:#dc2626">${esc(typeLabel)}: ${esc(conflict.gameId || 'unknown game')}</div>
+              <div class="recovery-inline-chips">${recoveryChip('Conflict', 'err')}</div>
               <div class="game-meta">${esc(auditBits)}</div>
             </div>
-            <button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700)"
-              onclick="resolveConflictAdmin('${esc(conflict.gameId)}','${esc(conflict.tournamentId || '_')}')">Dismiss</button>
+            <div class="recovery-row-actions">
+              <button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700)"
+                onclick="resolveConflictAdmin('${esc(conflict.gameId)}','${esc(conflict.tournamentId || '_')}')">Dismiss</button>
+            </div>
           </div></div>`;
         }).join('')}
       </div>
@@ -14210,13 +14324,17 @@
             ].filter(Boolean).join(' · ');
             const promoteLabel = stateLabel === 'final' ? 'Reopen' : 'Promote Final';
             const promoteAction = stateLabel === 'final' ? 'reopen' : 'promote';
+            const stateChip = needsFinal
+              ? recoveryChip('Needs Final', 'warn')
+              : recoveryChip(stateLabel === 'final' ? 'Final Saved' : stateLabel, stateLabel === 'final' ? 'ok' : 'info');
             return `<div class="game-row">
             <div class="game-summary" style="cursor:default">
               <div class="game-info">
                 <div class="game-opp">${esc(entry.opponent || entry.gameId || 'Scored game')}</div>
-                <div class="game-meta">${esc(scoreLabel)} · ${esc(stateLabel)}${needsFinal ? ' · ⚠ Needs Finalization' : ''}${auditBits ? ' · ' + esc(auditBits) : ''}</div>
+                <div class="recovery-inline-chips">${stateChip}</div>
+                <div class="game-meta">${esc(scoreLabel)}${auditBits ? ' · ' + esc(auditBits) : ''}</div>
               </div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+              <div class="recovery-row-actions">
                 <button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','${promoteAction}')">${promoteLabel}</button>
                 <button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','reset')">Reset</button>
               </div>
@@ -14228,12 +14346,12 @@
       html += `<div class="card" style="margin-bottom:10px">
       <div class="card-header" style="color:var(--royal)">🎯 Scored Games — ${esc(teamLabel)}</div>
       <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="recovery-row-actions" style="justify-content:flex-start">
           <button class="save-btn" onclick="syncOfficialSheetResultsAdmin()" style="background:var(--royal)">📥 Sync Official Sheet</button>
           <button class="save-btn" onclick="rebuildHistoryFromScoredGamesAdmin()" style="background:#2e7d32">🧱 Rebuild History</button>
         </div>
         ${needsFinalizeSummary}
-        <div style="font-size:0.82rem;color:var(--g600);line-height:1.5">
+        <div class="recovery-copy">
           Sync writes final scores into durable records. Rebuild History pushes finalized games to the spectator history view.
         </div>
         ${scoredRows}
@@ -14258,21 +14376,26 @@
             const teamSlot = esc(session.teamSlot || '');
             const gameIdShort = esc((entry.gameId || '').slice(-10));
             const identityChips = [
-              ageGroupLabel ? `<span style="padding:1px 7px;border-radius:99px;background:var(--g100);color:var(--g600);font-size:0.72rem">${ageGroupLabel}</span>` : '',
-              teamSlot ? `<span style="padding:1px 7px;border-radius:99px;background:#dbeafe;color:#1d4ed8;font-size:0.72rem;font-weight:700">Team ${teamSlot}</span>` : '',
-              gameIdShort ? `<span style="padding:1px 7px;border-radius:99px;background:var(--g100);color:var(--g400);font-size:0.72rem;font-family:monospace" title="${esc(entry.gameId || '')}">…${gameIdShort}</span>` : '',
+              ageGroupLabel ? recoveryChip(ageGroupLabel, 'muted') : '',
+              teamSlot ? recoveryChip(`Team ${teamSlot}`, 'info') : '',
+              gameIdShort ? `<span class="recovery-status-chip recovery-status-chip-muted" style="font-family:monospace" title="${esc(entry.gameId || '')}">…${gameIdShort}</span>` : '',
             ].filter(Boolean).join('');
             const canAct = ['open', 'stale', 'finalizing', 'conflict'].includes(effectiveStatus);
             const sessionTid = esc(entry.tournamentId || '_');
             const sessionGid = esc(entry.gameId);
+            const statusTone = effectiveStatus === 'open' ? 'ok'
+              : effectiveStatus === 'finalizing' || effectiveStatus === 'final-acked' ? 'info'
+              : effectiveStatus === 'stale' ? 'warn'
+              : effectiveStatus === 'conflict' ? 'err'
+              : 'muted';
             return `<div class="game-row">
             <div class="game-summary" style="cursor:default">
               <div class="game-info" style="gap:4px">
                 <div class="game-opp">${esc(session.opponent || entry.gameId || 'Active scorer session')}</div>
-                <div style="display:flex;gap:4px;flex-wrap:wrap;margin:2px 0">${identityChips}</div>
-                <div class="game-meta">${esc(scoreLabel)} · <span style="font-weight:700;color:${statusColor}">${esc(statusLabel)}</span> · hb ${esc(hbLabel)}${entry.deviceId ? ' · ' + esc(entry.deviceId.slice(0, 8)) : ''}</div>
+                <div class="recovery-inline-chips">${recoveryChip(statusLabel, statusTone)}${identityChips}</div>
+                <div class="game-meta">${esc(scoreLabel)} · hb ${esc(hbLabel)}${entry.deviceId ? ' · ' + esc(entry.deviceId.slice(0, 8)) : ''}</div>
               </div>
-              ${canAct ? `<button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700);white-space:nowrap" onclick="updateScorerSessionAdmin('${sessionGid}','${sessionTid}','force-close')">Force Close</button>` : ''}
+              ${canAct ? `<div class="recovery-row-actions"><button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700);white-space:nowrap" onclick="updateScorerSessionAdmin('${sessionGid}','${sessionTid}','force-close')">Force Close</button></div>` : ''}
             </div>
           </div>`;
           }).join('')
@@ -14280,7 +14403,7 @@
 
       html += `<div class="card" style="margin-bottom:10px">
       <div class="card-header" style="color:var(--royal)">📡 Active Scorer Sessions — ${esc(teamLabel)}</div>
-      <div style="padding:10px 14px;font-size:0.82rem;color:var(--g600);line-height:1.5">
+      <div class="recovery-copy" style="padding:10px 14px">
         Server-owned heartbeats. Force-close a stale session before a new device starts scoring the same game.
       </div>
       ${scorerSessionRows}
@@ -14306,13 +14429,15 @@
               eventCount ? `${eventCount} event${eventCount !== 1 ? 's' : ''}` : '',
               entry.conflict ? '⚠ Conflict detected' : '',
             ].filter(Boolean).join(' · ');
+            const tone = entry.conflict ? 'err' : sessionState === 'final-acked' ? 'ok' : sessionState === 'queued' || sessionState === 'retrying' ? 'warn' : 'info';
             return `<div class="game-row">
             <div class="game-summary" style="cursor:default">
               <div class="game-info">
                 <div class="game-opp">${esc(entry.session?.opponent || score.opponent || entry.gameId || 'Recovered draft')}</div>
-                <div class="game-meta">${esc(scoreLabel)} · ${esc(sessionState)}${auditBits ? ' · ' + esc(auditBits) : ''}</div>
+                <div class="recovery-inline-chips">${recoveryChip(entry.conflict ? 'Conflict' : sessionState, tone)}</div>
+                <div class="game-meta">${esc(scoreLabel)}${auditBits ? ' · ' + esc(auditBits) : ''}</div>
               </div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+              <div class="recovery-row-actions">
                 <button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','restore')">Restore Draft</button>
                 <button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','clear')">Clear</button>
               </div>
@@ -14323,7 +14448,7 @@
 
       html += `<div class="card" style="margin-bottom:10px">
       <div class="card-header" style="color:var(--royal)">🧾 Mirrored Scorer Drafts — ${esc(teamLabel)}</div>
-      <div style="padding:10px 14px;font-size:0.82rem;color:var(--g600);line-height:1.5">
+      <div class="recovery-copy" style="padding:10px 14px">
         Server-backed drafts. Use Restore Draft to rebuild a scored-game record from a mirrored draft if the original device was lost.
       </div>
       ${scorerDraftRows}

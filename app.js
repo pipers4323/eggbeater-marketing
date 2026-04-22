@@ -1642,19 +1642,39 @@ function getScopedTournamentGames(teamKey = '') {
 // Returns bracket paths for the currently selected team(s). Merges when A+B both selected.
 // A plain array (legacy format) belongs to the first team only.
 function getTournamentBracketPaths() {
-  const bp = TOURNAMENT.bracket?.paths;
-  if (bp) {
-    const letters = getActiveTeams();
-    if (!letters) return Array.isArray(bp) ? bp : null;  // single-team — return as-is
-    if (Array.isArray(bp)) {
-      return letters.includes('A') ? bp : null;
-    }
-    const paths = letters.flatMap(l => bp[l] || []);
-    return paths.length ? paths : null;
+  const groupKey = _activeAgeGroup || getSelectedTeam() || getSelectedTeams()[0] || '';
+  const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
+  const bp = tournament.bracket?.paths;
+  const ip = tournament.bracket?.importedPaths;
+  const normalizePathMap = map =>
+    map && !Array.isArray(map) && typeof map === 'object'
+      ? Object.values(map).flatMap(v => Array.isArray(v) ? v : [])
+      : [];
+  const importedFallback = () => {
+    if (Array.isArray(ip) && ip.length) return ip;
+    const keyedImported = normalizePathMap(ip);
+    return keyedImported.length ? keyedImported : null;
+  };
+
+  if (!bp) return importedFallback();
+
+  const letters = getActiveTeams();
+  if (!letters) {
+    if (Array.isArray(bp)) return bp;
+    const mergedPaths = normalizePathMap(bp);
+    return mergedPaths.length ? mergedPaths : importedFallback();
   }
-  // Fall back to paths imported via director tournament import
-  const ip = TOURNAMENT.bracket?.importedPaths;
-  return Array.isArray(ip) && ip.length ? ip : null;
+
+  const firstTeam = Array.isArray(tournament.teams) && tournament.teams.length
+    ? String(tournament.teams[0] || '').trim().toUpperCase()
+    : 'A';
+
+  if (Array.isArray(bp)) {
+    return letters.includes(firstTeam) ? bp : importedFallback();
+  }
+
+  const paths = letters.flatMap(l => bp[l] || []);
+  return paths.length ? paths : importedFallback();
 }
 
 function switchTeam(letter, groupKey) {
@@ -4601,9 +4621,11 @@ function _buildScoreDetailScorerPanel(game, s) {
       ${finalizeBanner}
       <div class="scoring-section score-detail-scoring-section">
         <div class="gs-bar">${gsBar}</div>
-        <div class="score-finalize-compact-wrap">${finalizeCompactBtn}</div>
-        <div class="score-detail-scorer-meta">
-          ${_renderScorerSyncStatusBadge(game, groupKey)}
+        <div class="score-detail-scorer-utility">
+          <div class="score-detail-scorer-meta">
+            ${_renderScorerSyncStatusBadge(game, groupKey)}
+          </div>
+          <div class="score-finalize-compact-wrap">${finalizeCompactBtn}</div>
         </div>
         ${timingRow}
         <div class="live-scoreboard">
@@ -7249,7 +7271,12 @@ function switchTab(tab) {
   if (tab !== 'scores') _setLiveBanner(false); // hide banner when leaving scores tab
   // Compact header on Scores tab — hides the subtitle (dates/venue) to free vertical space
   const _hdr = document.querySelector('.app-header');
-  if (_hdr) { _hdr.classList.toggle('scores-compact', tab === 'scores'); if (tab !== 'scores') _hdr.classList.remove('scoring-active'); syncHeaderHeight(); }
+  if (_hdr) {
+    _hdr.classList.toggle('scores-compact', tab === 'scores');
+    if (tab !== 'scores') _hdr.classList.remove('scoring-active');
+    updateHeaderCompaction();
+    syncHeaderHeight();
+  }
   // Sync selected tab to native Liquid Glass tab bar (iOS only, no-op elsewhere)
   try { window.webkit?.messageHandlers?.tabSync?.postMessage({ tab }); } catch(_){}
   if (tab === 'possible')    renderPossibleTab();
@@ -8225,7 +8252,7 @@ function buildScoreDetailPlayByPlay(g, liveScore = null) {
 function buildScorerInlineEventLog(events, currentPeriod = 0, gameId = null) {
   const nonState = (events || []).filter(e => e && e.type !== 'game_state');
   if (!nonState.length) {
-    return `<div class="score-detail-empty">No play-by-play events yet.</div>`;
+    return `<div class="score-detail-empty">No play-by-play yet. Record Goal, Attempt, Sprint Won, timeout, or GK Save and it will appear here immediately.</div>`;
   }
   const groups = {};
   for (const ev of nonState) {
@@ -9328,6 +9355,7 @@ function renderHeader() {
 
   // Render compact team indicator in header (tappable → opens Settings)
   renderTeamPicker();
+  updateHeaderCompaction();
   syncHeaderHeight();
 }
 
@@ -9490,6 +9518,40 @@ function renderTeamPicker() {
 function syncHeaderHeight() {
   const h = document.querySelector('.app-header');
   if (h) document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px');
+}
+
+function _getAppScrollTop() {
+  const c = document.querySelector('.app-container');
+  if (c) return c.scrollTop || 0;
+  return document.documentElement.scrollTop || document.body.scrollTop || 0;
+}
+
+function updateHeaderCompaction() {
+  const header = document.querySelector('.app-header');
+  if (!header) return;
+  const isNative = document.documentElement.classList.contains('native-ios')
+    || document.documentElement.classList.contains('native-android');
+  const shouldCompact = isNative
+    && !header.classList.contains('scoring-active')
+    && _getAppScrollTop() > 18;
+  header.classList.toggle('compact-scrolled', !!shouldCompact);
+  syncHeaderHeight();
+}
+
+function initHeaderCompactionWatcher() {
+  const scrollTarget = document.querySelector('.app-container') || window;
+  let rafPending = false;
+  const onScroll = () => {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(() => {
+      rafPending = false;
+      updateHeaderCompaction();
+    });
+  };
+  scrollTarget.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('scroll', onScroll, { passive: true });
+  updateHeaderCompaction();
 }
 
 // ─── RENDER: SCHEDULE TAB ─────────────────────────────────────────────────────
@@ -9966,8 +10028,14 @@ function renderGamesList() {
   if (!listGames.length) {
     const projected = nextObj?.type === 'pool' ? findProjectedNextOnly() : (nextObj?.type === 'bracket' ? nextObj : null);
     const projectedMatchesDay = !window._scheduleDay || projected?.game?.dateISO === window._scheduleDay;
+    const nextAlreadyFeatured = nextObj?.type === 'pool'
+      && (!window._scheduleDay || nextObj?.game?.dateISO === window._scheduleDay);
     if (projected?.type === 'bracket' && projectedMatchesDay) {
       listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule') + `<div class="games-section">${buildProjectedScoreCard(projected)}</div>`;
+      return;
+    }
+    if (nextAlreadyFeatured) {
+      listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule');
       return;
     }
     listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule') + `<p class="empty-msg polished-empty-msg" style="padding:24px 18px;">${escHtml(_scheduleEmptyMessage())}</p>`;
@@ -11721,7 +11789,11 @@ function init() {
   }, 300);
 
   // Keep --header-h updated so the desktop sidebar top offset stays correct
-  window.addEventListener('resize', syncHeaderHeight);
+  window.addEventListener('resize', () => {
+    updateHeaderCompaction();
+    syncHeaderHeight();
+  });
+  initHeaderCompactionWatcher();
 
   // Native Deep Linking (Widgets)
   if (typeof Capacitor !== 'undefined' && Capacitor.Plugins.App) {
