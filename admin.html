@@ -5427,7 +5427,7 @@
       const statusCls = current ? `tourn-status-${current.status || 'upcoming'}` : '';
       const statusLabel = current ? (current.status || 'upcoming') : '';
 
-      const _today = new Date().toISOString().split('T')[0];
+      const _today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time, not UTC
       const options = S.tournamentList.map(t => {
         const sel = t.id === S.tournamentId ? ' selected' : '';
         const icon = t.status === 'active' ? '● ' : t.status === 'archived' ? '○ ' : '◎ ';
