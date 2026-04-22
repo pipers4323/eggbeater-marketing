@@ -5693,7 +5693,7 @@
     /** Read-only game row for the Schedule tab */
     function _scheduleGameRow(g) {
       const capIcon = g.cap === 'Dark' ? '⚫' : '⚪';
-      const meta = [g.time, g.location, capIcon + ' ' + (g.cap || '—')].filter(Boolean).join(' · ');
+      const meta = [g.time, g.pool, g.location, capIcon + ' ' + (g.cap || '—')].filter(Boolean).join(' · ');
       const scoreHtml = (g.us !== undefined && g.us !== '' && g.them !== undefined && g.them !== '')
         ? `<span style="font-size:0.82rem;font-weight:700;color:${parseInt(g.us) > parseInt(g.them) ? 'var(--green)' : 'var(--red)'}">${esc(g.us)}–${esc(g.them)}</span>`
         : '';
@@ -7729,7 +7729,7 @@
 
       const rows = games.map(g => {
         const capIcon = g.cap === 'Dark' ? '⚫' : '⚪';
-        const meta = [g.time, g.location, capIcon + ' ' + (g.cap || '—')].filter(Boolean).join(' · ');
+        const meta = [g.time, g.pool, g.location, capIcon + ' ' + (g.cap || '—')].filter(Boolean).join(' · ');
         const isEditing = S.editingGame === g.id;
         if (isEditing) {
           return `<div class="game-row">
@@ -7812,7 +7812,7 @@
         <div class="info-field"><div class="info-label">${adminT('addgames_tournament_id')}</div><input class="info-input" id="ti-id" value="${esc(t.id || '')}" oninput="S.tournament.id=this.value"><div class="info-hint red">⚠ ${esc(adminT('addgames_tournament_id_hint'))}</div></div>
         <div class="info-field"><div class="info-label">${adminT('addgames_tournament_name')}</div><input class="info-input" id="ti-name" value="${esc(t.name || '')}" oninput="S.tournament.name=this.value;updateAdminHeader()"></div>
         <div class="info-field"><div class="info-label">${adminT('addgames_subtitle')}</div><input class="info-input" value="${esc(t.subtitle || '')}" oninput="S.tournament.subtitle=this.value"></div>
-        <div class="info-field"><div class="info-label">${adminT('addgames_dates')}</div><input class="info-input" value="${esc(t.dates || '')}" placeholder="April 25, 2026" oninput="S.tournament.dates=this.value"></div>
+        <div class="info-field"><div class="info-label">${adminT('addgames_dates')}</div><input class="info-input" value="${esc(t.dates || '')}" placeholder="April 25, 2026" oninput="S.tournament.dates=this.value"><div class="info-hint" style="margin-top:3px">ℹ️ Display only — to fix <em>game</em> dates use <strong>Step 4 date overrides</strong> in Bracket Sheet Sync.</div></div>
         <div class="info-field"><div class="info-label">${adminT('addgames_venue_name')}</div><input id="info-venue-input" class="info-input" value="${esc(t.location || '')}" placeholder="${esc(adminT('addgames_start_typing_venue'))}" spellcheck="false" autocomplete="off" oninput="S.tournament.location=this.value;this.setCustomValidity('')"><div class="info-hint">${esc(adminT('addgames_google_places_hint'))}</div></div>
         <div class="info-field"><div class="info-label">${adminT('addgames_venue_address')}</div><input id="info-address-input" class="info-input" value="${esc(t.address || '')}" placeholder="Full address" oninput="S.tournament.address=this.value"><div class="info-hint">Displayed on game cards.</div></div>
         <div class="info-field"><div class="info-label">${adminT('addgames_coming_soon')}</div><input class="info-input" value="${esc(t.comingSoon || '')}" placeholder="Schedule coming week of April 20" oninput="S.tournament.comingSoon=this.value"><div class="info-hint">${esc(adminT('addgames_coming_soon_hint'))}</div></div>
@@ -8985,17 +8985,35 @@
       return html;
     }
 
+    function _fmtLastSync(iso) {
+      if (!iso) return 'Never';
+      try {
+        const d = new Date(iso);
+        const diffMin = Math.round((Date.now() - d.getTime()) / 60000);
+        if (diffMin < 1) return 'Just now';
+        if (diffMin === 1) return '1 min ago';
+        if (diffMin < 60) return diffMin + ' min ago';
+        const h = Math.round(diffMin / 60);
+        if (h < 24) return h + ' hr' + (h > 1 ? 's' : '') + ' ago';
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          + ' at ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } catch { return ''; }
+    }
+
     function bsRenderDeploySummary(bs) {
       if (!bs) return '';
       var urlShort = (bs.sheetUrl || '').replace(/.*\/spreadsheets\/d\//, '').substring(0, 24) + '\u2026';
       var poolStr = bs.myPool ? ' \u00b7 ' + esc(bs.myPool) + ', Seed ' + bs.mySeed : '';
-      var rbStr = bs.rebracket ? 'Yes (' + esc(bs.rebracketRange || '') + ')' : 'No \u2014 single day';
+      var rbTeam = bs.bracketPathTeam && bs.bracketPathTeam !== 'All' ? ', Team ' + bs.bracketPathTeam : '';
+      var rbStr = bs.rebracket ? 'Yes (' + esc(bs.rebracketRange || '') + rbTeam + ')' : 'No \u2014 single day';
       var pollStr = bs.pollMins ? 'Every ' + bs.pollMins + ' min' : 'Manual only';
+      var syncStr = _fmtLastSync(bs.lastSync);
       return '<div>\ud83d\udcca <strong>Sheet:</strong> ' + esc(urlShort) + '</div>'
         + '<div>\ud83c\udfca <strong>Team:</strong> ' + esc(bs.teamName || '\u2014') + poolStr + '</div>'
         + '<div>\ud83d\udcc5 <strong>Games found:</strong> ' + ((bs.games || []).length) + '</div>'
         + '<div>\ud83c\udfc6 <strong>Re-bracket:</strong> ' + rbStr + '</div>'
-        + '<div>\ud83d\udd04 <strong>Auto-sync:</strong> ' + pollStr + '</div>';
+        + '<div>\ud83d\udd04 <strong>Auto-sync:</strong> ' + pollStr + '</div>'
+        + '<div id="bs-last-sync-row">\ud83d\udd52 <strong>Last synced:</strong> ' + esc(syncStr) + '</div>';
     }
 
     // bsWizardHtml: returns the full Bracket Sheet Sync <details> card as an HTML string.
@@ -9128,6 +9146,12 @@
         + '<input class="info-input" id="bs-rbrange" value="' + esc(bs.rebracketRange || '') + '" placeholder="J13:M29" autocomplete="off" style="margin-bottom:6px" onkeydown="if(event.key===\'Enter\')bsFetchRebracket()">'
         + '<button class="save-btn" style="width:100%;margin-bottom:6px" onclick="bsFetchRebracket()">Fetch Re-bracket &rarr;</button>'
         + '<div id="bs-s5-status" style="font-size:.8rem;margin-bottom:6px;min-height:1em"></div>'
+        + '<div id="bs-path-team-wrap" style="display:' + (bs.bracketPaths?.length ? 'block' : 'none') + ';margin-top:8px;padding:8px 10px;background:var(--g50);border-radius:6px;border:1px solid var(--g200)">'
+        + '<div style="font-size:.78rem;font-weight:700;color:var(--g600);margin-bottom:6px">Which team do these paths apply to?</div>'
+        + '<div style="display:flex;gap:6px">'
+        + ['A', 'B', 'All'].map(function(t2) { var isSel = (bs.bracketPathTeam || 'All') === t2; return '<button onclick="bsSetPathTeam(\'' + t2 + '\')" style="flex:1;padding:6px 0;border-radius:6px;border:2px solid ' + (isSel ? 'var(--royal)' : 'var(--g200)') + ';background:' + (isSel ? 'var(--royal)' : 'white') + ';color:' + (isSel ? 'white' : 'var(--g600)') + ';font-size:.82rem;font-weight:700;cursor:pointer">Team ' + t2 + '</button>'; }).join('')
+        + '</div>'
+        + '</div>'
         + '</div>'
         + '<div style="display:flex;gap:8px;margin-top:10px">'
         + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g300)" onclick="bsStep(4)">&larr; Back</button>'
@@ -9145,7 +9169,10 @@
         // Step 7
         + '<div id="bs-s7" style="display:' + (step === 7 ? 'block' : 'none') + '">'
         + '<div id="bs-deploy-summary" style="background:var(--g50);border:1px solid var(--g200);border-radius:8px;padding:10px 12px;font-size:.82rem;line-height:1.9;margin-bottom:12px">' + summaryHtml + '</div>'
-        + '<button class="save-btn" style="width:100%;background:var(--royal);color:white;font-size:1rem;padding:12px;margin-bottom:8px;border-radius:8px" onclick="bsDeploy()">&#x1f680; Deploy to App</button>'
+        + '<div style="display:flex;gap:8px;margin-bottom:8px">'
+        + '<button class="save-btn" style="flex:3;background:var(--royal);color:white;font-size:.95rem;padding:12px;border-radius:8px" onclick="bsDeploy()">&#x1f680; Deploy to App</button>'
+        + '<button id="bs-sync-now-btn" class="add-btn" style="flex:1;background:var(--g100);color:var(--g700);border:1px solid var(--g300);border-radius:8px;padding:12px;font-size:.82rem;font-weight:700;white-space:nowrap" onclick="bsSyncNow()">&#x1f504; Sync Now</button>'
+        + '</div>'
         + '<div id="bs-deploy-status" style="font-size:.85rem;text-align:center;margin-bottom:8px;min-height:1em;color:var(--g500)"></div>'
         + '<div style="display:flex;gap:8px">'
         + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g300)" onclick="bsStep(6)">&larr; Back</button>'
@@ -9821,6 +9848,10 @@
             ? `✅ Found ${n} bracket path${n !== 1 ? 's' : ''} for Pool ${pool} — will appear in the Possible tab after Deploy`
             : `⚠️ Re-bracket loaded but no paths found for Pool ${pool} — check the pool letter matches your sheet`;
         }
+        // Show team-slot picker when paths found (multi-team clubs need to key paths to A or B)
+        const teamWrap = document.getElementById('bs-path-team-wrap');
+        if (teamWrap) teamWrap.style.display = n > 0 ? 'block' : 'none';
+        if (n > 0 && !S.bsync.bracketPathTeam) bsSetPathTeam('All');
       } catch (e) {
         if (status) { status.style.color = '#dc2626'; status.textContent = '❌ ' + e.message; }
       }
@@ -10020,7 +10051,10 @@
         {
           const _bUpdate = {};
           if (S.bsync.bracketPaths?.length) {
-            _bUpdate.paths = S.bsync.bracketPaths;
+            // If admin selected a specific team slot, wrap paths as keyed object { A: [...] }
+            const _pathTeam = S.bsync.bracketPathTeam && S.bsync.bracketPathTeam !== 'All'
+              ? S.bsync.bracketPathTeam : null;
+            _bUpdate.paths = _pathTeam ? { [_pathTeam]: S.bsync.bracketPaths } : S.bsync.bracketPaths;
           } else if (S.bsync.rebracket === false) {
             // User chose "single day" — clear stale ARRAY bracket paths (auto-generated),
             // but preserve any manually-keyed object paths (e.g. { B: [...] }) set via console.
@@ -10088,6 +10122,94 @@
         if (status) { status.style.color = '#dc2626'; status.textContent = '❌ ' + e.message; }
       }
     }
+
+    // ── Sync Now — manual re-poll from step 7 ────────────────────────────────────
+    async function bsSyncNow() {
+      const btn = document.getElementById('bs-sync-now-btn');
+      const status = document.getElementById('bs-deploy-status');
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Syncing…'; }
+      if (status) { status.style.color = 'var(--g400)'; status.textContent = '⏳ Fetching sheet…'; }
+      try {
+        await bsAutoPoll();
+        const ts = S.tournament?.sheetSync?.lastSync;
+        const msg = ts
+          ? '✅ Synced at ' + new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : '✅ Sync complete';
+        if (status) { status.style.color = '#059669'; status.textContent = msg; }
+        // Refresh summary to show updated lastSync
+        const summaryEl = document.getElementById('bs-deploy-summary');
+        if (summaryEl && S.bsync) summaryEl.innerHTML = bsRenderDeploySummary(S.bsync);
+      } catch (e) {
+        if (status) { status.style.color = '#dc2626'; status.textContent = '❌ Sync failed: ' + e.message; }
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '🔄 Sync Now'; }
+      }
+    }
+
+    // ── Bracket path team selector ────────────────────────────────────────────────
+    function bsSetPathTeam(team) {
+      if (!S.bsync) return;
+      S.bsync.bracketPathTeam = team;
+      // Re-render team buttons
+      const wrap = document.getElementById('bs-path-team-wrap');
+      if (wrap) {
+        const btns = wrap.querySelectorAll('button');
+        btns.forEach(btn => {
+          const btnTeam = btn.textContent.replace('Team ', '');
+          const sel = btnTeam === team;
+          btn.style.background = sel ? 'var(--royal)' : 'white';
+          btn.style.color = sel ? 'white' : 'var(--g600)';
+          btn.style.borderColor = sel ? 'var(--royal)' : 'var(--g200)';
+        });
+      }
+    }
+
+    // ── Dirty-state tracking ──────────────────────────────────────────────────────
+    // Shows an amber dot on the Deploy button and warns on page unload when there
+    // are unsaved changes to tournament setup fields (name, dates, venue, games, etc.)
+    window._adminDirty = false;
+
+    function _setDirty() {
+      if (window._adminDirty) return;
+      window._adminDirty = true;
+      const btn = document.getElementById('deploy-btn');
+      if (!btn) return;
+      let dot = document.getElementById('admin-dirty-dot');
+      if (!dot) {
+        dot = document.createElement('span');
+        dot.id = 'admin-dirty-dot';
+        dot.title = 'Unsaved changes';
+        dot.style.cssText = 'display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-left:6px;vertical-align:middle;flex-shrink:0';
+        btn.style.position = 'relative';
+        btn.appendChild(dot);
+      }
+    }
+
+    function _clearDirty() {
+      window._adminDirty = false;
+      const dot = document.getElementById('admin-dirty-dot');
+      if (dot) dot.remove();
+    }
+
+    // Warn on unload if there are unsaved tournament fields
+    window.addEventListener('beforeunload', function(e) {
+      if (window._adminDirty) { e.preventDefault(); e.returnValue = ''; return ''; }
+    });
+
+    // Event delegation: mark dirty when tournament setup inputs change.
+    // Excludes BSSync (#bs-card), NJO (#njo-card), director section, and history forms.
+    document.addEventListener('input', function(e) {
+      if (!e.target.closest) return;
+      const t = e.target;
+      if (t.closest('#bs-card') || t.closest('#njo-card') || t.closest('.director-form') || t.closest('.history-form')) return;
+      if (t.closest('#tab-content')) _setDirty();
+    }, true);
+    document.addEventListener('change', function(e) {
+      if (!e.target.closest) return;
+      const t = e.target;
+      if (t.closest('#bs-card') || t.closest('#njo-card') || t.closest('.director-form') || t.closest('.history-form')) return;
+      if (t.closest('#tab-content')) _setDirty();
+    }, true);
 
     async function bsReset() {
       // Clear all wizard state — both in-memory and on the server so a hard
@@ -10726,9 +10848,22 @@
       return name.trim() || String(raw || '').trim();
     }
 
+    // Pause/resume poll when admin tab is hidden/shown — prevents stale writes
+    // while the admin is on another tab and never-opened re-bracket from firing.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (_bsPollTimer) { clearInterval(_bsPollTimer); _bsPollTimer = null; }
+      } else {
+        bsStartPoll();
+      }
+    });
+
     async function bsAutoPoll() {
       _restoreBsyncFromTournament();
       if (!S.bsync?.sheetId || !S.bsync?.teamName) return;
+      // Don't run while admin is mid-wizard (steps 2–6 have unsaved in-progress state)
+      const wStep = S.bsync?.step || 1;
+      if (wStep >= 2 && wStep <= 6) return;
       try {
         const csvUrl = bsCsvUrl(null);
         const resp = await fetch(csvUrl, { cache: 'no-store' });
@@ -11905,6 +12040,7 @@
           throw new Error(txt);
         }
         showStatus(adminT('publish_live_done'), 'ok');
+        _clearDirty();
       } catch (e) {
         showStatus('❌ ' + e.message, 'err');
       } finally {
