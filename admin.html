@@ -6299,6 +6299,42 @@
       }
     }
 
+    /**
+     * Scrub IndexedDB scorer-drafts / scorer-sessions / scorer-outbox entries for
+     * games belonging to `tournament`.  Called after any admin data wipe so the
+     * Recovery card in the parent app doesn't persist after a clear.
+     */
+    async function _clearScorerDraftsForTeam(tournament) {
+      try {
+        const gameIds = new Set((tournament?.games || []).map(g => String(g.id || '')).filter(Boolean));
+        if (!gameIds.size) return;
+        await new Promise(resolve => {
+          const req = indexedDB.open('ebwp-offline', 2);
+          req.onerror = () => resolve();
+          req.onsuccess = ev => {
+            const db = ev.target.result;
+            const stores = ['scorer-drafts', 'scorer-sessions', 'scorer-outbox'];
+            let pending = stores.length;
+            const done = () => { if (!--pending) resolve(); };
+            for (const storeName of stores) {
+              if (!db.objectStoreNames.contains(storeName)) { done(); continue; }
+              const tx = db.transaction(storeName, 'readwrite');
+              tx.oncomplete = done;
+              tx.onerror = done;
+              const os = tx.objectStore(storeName);
+              const getAllReq = os.getAll();
+              getAllReq.onsuccess = e2 => {
+                for (const item of (e2.target.result || [])) {
+                  const key = String(item.sessionKey || item.key || '');
+                  if ([...gameIds].some(id => key.includes(id))) os.delete(item.sessionKey ?? item.key);
+                }
+              };
+            }
+          };
+        });
+      } catch (_e) { /* non-fatal — scorer state is device-local only */ }
+    }
+
     async function clearAgeGroupData() {
       const teamLabel = ADMIN_TEAMS.find(t => t.key === S.team)?.label || S.team;
       const confirmed = confirm(
@@ -6338,6 +6374,10 @@
             });
           } catch (e) { /* OK if Firestore clear fails */ }
         }
+
+        // Clear local IndexedDB scorer state for this team's games so the Recovery
+        // card doesn't keep appearing after a data wipe.
+        await _clearScorerDraftsForTeam(S.tournament);
 
         showStatus(`✓ All ${teamLabel} data cleared`, 'ok');
         renderTab();

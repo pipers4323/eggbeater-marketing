@@ -13576,6 +13576,19 @@ async function _restoreScorerDraftsFromDB() {
       if ((session.status || 'open') !== 'open') continue;
       const score = draft.score;
       if (!_hasMeaningfulLiveScoreData(score)) continue;
+      // Orphan guard: if the game no longer exists in any loaded tournament,
+      // silently skip (and delete) the stale draft so it never shows in Recovery.
+      if (draft.gameId) {
+        const draftGroupKey = draft.groupKey || '';
+        const knownGames = (draftGroupKey && TEAM_CACHE[draftGroupKey])
+          ? (TEAM_CACHE[draftGroupKey].tournament?.games || [])
+          : (TOURNAMENT?.games || []);
+        if (knownGames.length > 0 && !knownGames.some(g => String(g.id) === String(draft.gameId))) {
+          // Game gone — delete the orphan draft from IndexedDB and skip
+          try { const _db = await _openScoreDB(); await _dbStoreDelete(_db, 'scorer-drafts', draft.sessionKey); } catch (_) {}
+          continue;
+        }
+      }
       const scopedKey = draft.scopedKey || _scopedGameKey(draft.gameId, draft.groupKey || '');
       const current = state.liveScores[scopedKey];
       if (_shouldPreserveLocalLiveScore(current, score, scopedKey, draft.groupKey || '')) continue;
