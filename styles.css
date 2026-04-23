@@ -3153,6 +3153,7 @@ h2 {
 .bracket-section {
   border-radius: var(--radius-sm);
   border: 1.5px solid var(--gray-200);
+  background: #ffffff;
   overflow: hidden;
   margin-bottom: 10px;
 }
@@ -3215,6 +3216,8 @@ h2 {
   }
 }
 #view-possible .bracket-section {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.08);
   box-shadow: var(--shadow);
 }
 [data-theme="dark"] #view-possible .card.tab-card {
@@ -3298,6 +3301,7 @@ h2 {
   display: flex;
   align-items: flex-start;
   padding: 10px 13px;
+  background: #ffffff;
   border-bottom: 1px solid var(--gray-100);
   gap: 10px;
 }
@@ -3331,7 +3335,7 @@ h2 {
 
 .bracket-step-meta {
   font-size: 0.79rem;
-  color: var(--gray-600);
+  color: var(--gray-700);
   display: flex;
   flex-direction: column;
   gap: 1px;

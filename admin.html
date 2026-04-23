@@ -12148,6 +12148,17 @@
       }
     }
 
+    function _cleanSyncToastText(msg) {
+      return String(msg || '')
+        .replace(/â€”/g, '—')
+        .replace(/â€“/g, '–')
+        .replace(/â€"/g, '—')
+        .replace(/â€'/g, "'")
+        .replace(/â€œ/g, '"')
+        .replace(/â€/g, '"')
+        .replace(/Â·/g, '·');
+    }
+
     function _showSyncToast(added, updated, errorMsg) {
       let toast = document.getElementById('bs-sync-toast');
       if (!toast) {
@@ -12157,7 +12168,7 @@
       }
       const isError = !!errorMsg;
       toast.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;color:white;padding:8px 14px;border-radius:20px;font-size:0.82rem;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.25);pointer-events:none;transition:opacity .4s;background:' + (isError ? '#dc2626' : '#059669');
-      toast.textContent = errorMsg || ('🔄 Auto-sync: +' + added + ' new · ' + updated + ' updated');
+      toast.textContent = _cleanSyncToastText(errorMsg || (`Auto-sync: +${added} new, ${updated} updated`));
       toast.style.opacity = '1';
       clearTimeout(toast._fadeTimer);
       toast._fadeTimer = setTimeout(() => { toast.style.opacity = '0'; }, isError ? 8000 : 4000);
