@@ -8436,7 +8436,7 @@ function buildTabRefreshButtonHtml(target = 'schedule') {
   const label = target === 'scores' ? 'Refresh Scores' : appT('schedule_force_refresh');
   const stampLabel = _formatLastRefreshLabel();
   return `<div class="${target}-refresh-wrap">
-    <button class="schedule-refresh-btn is-light ${target === 'scores' ? 'schedule-refresh-btn-compact' : ''}" onclick="forceAppRefresh(this)">
+    <button class="schedule-refresh-btn ${target === 'scores' ? 'is-light schedule-refresh-btn-compact' : ''}" onclick="forceAppRefresh(this)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       ${escHtml(label)}
     </button>
@@ -8466,6 +8466,18 @@ function _buildScheduleControlsHtml(dayPickerHtml = '', target = 'schedule') {
   return `<div class="tab-utility-row ${target}-utility-row">
     <div class="tab-utility-main">${dayPickerHtml || '<div class="tab-utility-spacer"></div>'}</div>
     ${buildTabRefreshButtonHtml(target)}
+  </div>`;
+}
+
+function _buildScoresTopUtilityHtml({ showLogin = false, scorerUnlocked = false, anyLive = false } = {}) {
+  const rightHtml = scorerUnlocked
+    ? `<div class="scores-top-status">🔓 Scorer Mode Active</div>`
+    : showLogin
+      ? `<button class="scores-top-login-btn" onclick="openScoringPasswordModal()">🔒 Login to Score</button>`
+      : `<div class="scores-top-status">${anyLive ? '🔴 Live Scores' : '📺 Scores'}</div>`;
+  return `<div class="scores-top-utility">
+    <div class="scores-top-utility-main">${buildTabRefreshButtonHtml('scores')}</div>
+    <div class="scores-top-utility-side">${rightHtml}</div>
   </div>`;
 }
 
@@ -8575,7 +8587,8 @@ function renderScoresTab() {
       : (scorerLocked
         ? `<div class="scorer-gate-bar"><button class="scorer-gate-btn" onclick="openScoringPasswordModal()">🔒 Login to Score</button></div>`
         : '');
-    let html = loginBar;
+    let html = _buildScoresTopUtilityHtml({ showLogin: scorerLocked, scorerUnlocked: anySlotUnlocked, anyLive: false });
+    if (anySlotUnlocked) html += loginBar;
     const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
     for (const { groupKey, letter } of scoreSlots) {
       const cache = TEAM_CACHE[groupKey];
@@ -8637,7 +8650,9 @@ const active = _dedupeScheduledGames(
       _activeAgeGroup = null;
       if (cache) { window.TOURNAMENT = _savedT; window.HISTORY_SEED = _savedH; }
     }
-    html = `<div class="scores-toolbar-wrap">${buildTabRefreshButtonHtml('scores')}</div>` + html;
+    if (!html.startsWith('<div class="scores-top-utility">')) {
+      html = _buildScoresTopUtilityHtml({ showLogin: scorerLocked, scorerUnlocked: anySlotUnlocked, anyLive: false }) + html;
+    }
     html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
     el.innerHTML = dirHtml + recoveryCard + html;
     return;
@@ -8683,12 +8698,9 @@ const active = _dedupeScheduledGames(
     }
 
     _setLiveBanner(anyLive);
-    const _guideLink = `<div class="scores-toolbar-wrap">${buildTabRefreshButtonHtml('scores')}</div><div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
+    const _guideLink = `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
     el.innerHTML = dirHtml + recoveryCard + `
-        <div class="viewer-tab-bar">
-          <span class="viewer-tab-label">${anyLive ? '🔴 Live Scores' : '📺 Scores'}</span>
-          <button class="viewer-tab-login-btn" onclick="openScoringPasswordModal()">🔒 Login to Score</button>
-        </div>
+        ${_buildScoresTopUtilityHtml({ showLogin: true, anyLive })}
         ${cardsHtml}${_guideLink}`;
     return;
   }
@@ -8766,7 +8778,7 @@ const active = _dedupeScheduledGames(
     html += `</div>`;
   }
 
-  html = `<div class="scores-toolbar-wrap">${buildTabRefreshButtonHtml('scores')}</div>` + html;
+  html = _buildScoresTopUtilityHtml({ scorerUnlocked: !!TOURNAMENT.scoringPassword, anyLive: liveGames.length > 0 }) + html;
   html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
   el.innerHTML = dirHtml + recoveryCard + html;
   // Feature 3: trigger score pulse check after DOM is updated
@@ -10522,18 +10534,8 @@ function renderPossibleTab() {
   if (!paths?.length) { emptyEl.innerHTML = appT('possible_no_data'); emptyEl.classList.remove('hidden'); return; }
   emptyEl.classList.add('hidden');
 
-  // Feature 9: Bracket visual tree — show above the paths list when data is available
-  const _bracketTreeHtml = renderBracketTree(paths);
-  if (_bracketTreeHtml) {
-    let _treeEl = document.getElementById('bracket-visual-tree');
-    if (!_treeEl) {
-      _treeEl = document.createElement('div');
-      _treeEl.id = 'bracket-visual-tree';
-      _treeEl.style.cssText = 'overflow-x:auto;margin:0 0 12px;';
-      listEl.parentNode.insertBefore(_treeEl, listEl);
-    }
-    _treeEl.innerHTML = _bracketTreeHtml;
-  }
+  const _existingTree = document.getElementById('bracket-visual-tree');
+  if (_existingTree) _existingTree.remove();
 
   const projected  = inferProjectedPath();
 const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && getTournamentGames().length > 0;
@@ -11377,6 +11379,18 @@ function renderHistoryTab() {
       shortName:   'SoCal International 2026',
       noStandings: true,
       filter:      e => /socal.?intl|socal.?international/i.test((e.name || '') + (e.id || '')),
+    },
+    {
+      heading:     'Marin Earth Day Cup · 2026',
+      shortName:   'Marin Earth Day Cup 2026',
+      noStandings: true,
+      filter:      e => /marin|earth.?day/i.test((e.name || '') + (e.id || '')),
+    },
+    {
+      heading:     'Cal Cup Finals · 2026',
+      shortName:   'Cal Cup Finals 2026',
+      noStandings: true,
+      filter:      e => /cal.?cup/i.test((e.name || '') + (e.id || '')),
     },
     {
       heading:   'Bay Area Water Polo League · Winter 2025–2026',
