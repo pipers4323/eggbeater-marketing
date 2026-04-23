@@ -412,3 +412,109 @@ eggbeater-waterpolo:
 ### Notes
 - This is an admin-only follow-up; it does not change the current native build source.
 - Full tournament-day validation is still scheduled in 3 days.
+
+---
+
+## 2026-04-23 Admin Recovery + Futures Import Stabilization
+
+### Current shipped web head
+```
+eggbeater-marketing:
+  0476d06  Preserve venue targets in hosted imports
+```
+
+### What was recovered and re-shipped after `admin.html` corruption
+- Superadmin recovery and club-picker flow restored
+  - superadmins land on club picker again
+  - `Switch Club` restored for superadmins
+- Standard `Bracket Sheet Sync` and separate `Futures Bracket Import Wizard` both restored
+- Mobile admin header / drawer UI re-applied
+  - compact logo/header treatment
+  - overflow / More drawer actions
+  - drawer `Switch Club`
+- Team manager UI polish re-applied
+- Remaining admin surface polish from the missing recovery window re-applied
+
+### Futures wizard work completed
+- Google Sheets API path is now live in the Futures wizard
+- Google OAuth/browser flow is wired and tested
+- Futures flow stays inside the Futures wizard card instead of jumping into the standard wizard
+- Legend detection hardened for:
+  - merged labels
+  - offset labels
+  - shared-tab mixed age-group sheets
+- Fixed stale `gid` state overriding the active pasted sheet URL
+- Hardened Sheets API fetch path
+  - timeout on stuck legend reads
+  - removed fragile `fields=` filter that caused 400s
+- Fixed missing helper regression:
+  - `normalizeOpponentName is not defined`
+- Fixed 18u parsing issues on the shared Futures tab
+  - pool now comes from the actual pool column
+  - mixed-age schedule scanning filters correctly by selected group
+  - downstream `W-Game` / `L-Game` follow-on paths are detected
+- Follow-on path detection generalized for imported teams instead of one narrow hard-coded case
+- `14u Blue` bracket path wipeout investigated and addressed
+  - root destructive deploy bug fixed
+  - rerunning the Futures import restored the missing Blue path
+
+### New manual correction support in the wizard
+- Malformed sheet rows can now be fixed directly in Step 4 and the fixes persist
+- Current manual correction support:
+  - date overrides
+  - per-row manual fixes for malformed imported rows
+    - game number
+    - opponent
+    - time
+    - location
+- These corrections persist in `tournament.sheetSync` and are re-applied on later syncs
+
+### Venue / maps fix (new)
+- Imported games now support a separate directions target behind the displayed venue label
+- Step 4 now includes `Confirm venue directions target`
+  - short venue label stays visible on the spectator card
+  - directions use the confirmed Google location / full address
+- Venue targets are now preserved across later syncs
+  - they are only replaced if the sheet venue itself changes
+- This preservation rule now applies across:
+  - Futures wizard
+  - standard `Bracket Sheet Sync`
+  - `Import from Hosted Tournament`
+- Spectator app now prefers the saved directions target instead of routing only from the raw display label
+
+### BSSync / deploy fixes verified live in this window
+- `bsAutoPoll` and deploy path fixes remained in place
+- Tournament metadata inferred from sheet deploy
+- Header refresh after deploy fixed
+- lingering `stayTuned` flag cleared on normal deploy
+- keyed bracket paths preserved on deploy instead of being overwritten
+
+### Practical validation completed
+- Real Futures Google auth flow works
+- Real 16u Futures import works
+- Real 18u Futures import works
+- Real Santa Cruz imports worked after malformed-row handling
+- Venue confirmation flow worked across all teams tested by the user
+
+### What still remains worth testing
+- Standard non-Futures bracket import should get one more live smoke test after all Futures work:
+  - paste URL
+  - fetch pools
+  - find team
+  - game scan
+  - re-bracket fetch
+  - deploy
+- Native/web parity still needs a fresh pass in `eggbeater-waterpolo`
+  - all current work above was done in `eggbeater-marketing`
+  - if native build parity matters for this admin surface, mirror the shared changes there
+
+### Notes for the next agent
+- `admin.html` went through a broad recovery from `old_admin.html`, then targeted re-application passes
+- Do not assume the file is byte-identical to a pre-corruption snapshot; treat current state as reconciled-by-behavior
+- The user is specifically nervous about lost work from the recovery window, so claims about “everything is included” should stay evidence-based
+- If anything around venue sync regresses again, inspect these concepts first:
+  - `sourceLocation`
+  - `locationAddress`
+  - `locationQuery`
+  - `venueOverrides`
+  - `bsPreserveManualLocation()`
