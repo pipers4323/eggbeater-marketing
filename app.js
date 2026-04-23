@@ -9867,7 +9867,7 @@ function renderNextGameCard() {
     if ((allPoolDone || tournamentPast) && !TOURNAMENT.upcomingMode && !TOURNAMENT.comingSoon) {
       section.innerHTML = `
         <div class="next-game-wrap">
-          <div class="next-game-card next-complete">
+          <div class="next-game-card game-card game-card-featured next-complete">
             <div class="next-label">${tournamentPast ? appT('next_tournament_complete') : appT('next_all_games_complete')}</div>
             <div class="next-vs">${tournamentPast ? appT('next_check_history_final') : appT('next_no_more_scheduled')}</div>
             <div class="next-meta"><span>Record: ${getPoolRecord()} — ${tournamentPast ? appT('next_waiting_update') : appT('next_check_history_results')}</span></div>
@@ -9902,7 +9902,7 @@ function renderNextGameCard() {
     section.innerHTML = `
       ${nextDateHeader}
       <div class="next-game-wrap">
-        <div class="next-game-card${nextCapBgClass}${nextLive ? ' next-game-live next-game-card-clickable' : ''}"${nextLive ? ` onclick="openLiveGameFromSchedule('${escHtml(_gameRef(g))}')"` : ''}>
+        <div class="next-game-card game-card game-card-featured${nextCapBgClass}${nextLive ? ' next-game-live next-game-card-clickable' : ''}"${nextLive ? ` onclick="openLiveGameFromSchedule('${escHtml(_gameRef(g))}')"` : ''}>
           <div class="next-game-card-top">
             ${g.gameNum ? `<div class="next-game-num">${escHtml(g.gameNum)}</div>` : ''}
             ${nextLive ? `<span class="live-badge-next">🔴 LIVE</span>` : ''}
@@ -9925,7 +9925,7 @@ function renderNextGameCard() {
       : g.date ? escHtml(g.date) : 'Time TBD';
     section.innerHTML = `
       <div class="next-game-wrap">
-        <div class="next-game-card next-projected">
+        <div class="next-game-card game-card game-card-featured next-projected">
           ${g.gameNum ? `<div class="next-game-num">${escHtml(g.gameNum)}</div>` : ''}
           <div class="next-label">${appT('next_projected_next')} · ${escHtml(next.pathLabel || '')}</div>
           <div class="next-vs">${escHtml(normalizeOpponentName(g.desc || 'Bracket Game'))}</div>
