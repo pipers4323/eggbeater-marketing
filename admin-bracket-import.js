@@ -148,27 +148,58 @@
     );
   }
 
+  async function bsFetchJson(url, accessToken, label) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const resp = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        signal: controller.signal,
+      });
+      let payload = null;
+      try {
+        payload = await resp.json();
+      } catch {
+        payload = null;
+      }
+      if (!resp.ok) {
+        const apiMsg = payload?.error?.message || payload?.error_description || '';
+        throw new Error(`${label} failed (HTTP ${resp.status})${apiMsg ? ' — ' + apiMsg : ''}`);
+      }
+      return payload;
+    } catch (err) {
+      if (err?.name === 'AbortError') {
+        throw new Error(`${label} timed out after 15 seconds`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   async function bsFetchGoogleSheetGrid({ sheetId, sheetGid, accessToken }) {
     if (!sheetId) throw new Error('Missing sheet ID');
     if (!accessToken) throw new Error('Missing Google access token');
 
-    const metaResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets(properties(sheetId,title,gridProperties))`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!metaResp.ok) throw new Error('Google Sheets metadata fetch failed (HTTP ' + metaResp.status + ')');
-    const meta = await metaResp.json();
+    const meta = await bsFetchJson(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets(properties(sheetId,title,gridProperties))`,
+      accessToken,
+      'Google Sheets metadata fetch'
+    );
     const sheets = meta?.sheets || [];
     const target = sheets.find(s => String(s?.properties?.sheetId) === String(sheetGid))
       || sheets[0];
     if (!target?.properties?.title) throw new Error('Could not find the requested sheet tab');
     const sheetTitle = target.properties.title;
     const encodedRange = encodeURIComponent(`'${sheetTitle.replace(/'/g, "''")}'`);
-    const gridResp = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?includeGridData=true&ranges=${encodedRange}&fields=sheets(properties(sheetId,title),data(rowData(values(formattedValue,effectiveFormat(backgroundColor,backgroundColorStyle))))`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+    const fields = encodeURIComponent(
+      'sheets(properties(sheetId,title),data(rowData(values(formattedValue,effectiveFormat(backgroundColor,backgroundColorStyle)))))'
     );
-    if (!gridResp.ok) throw new Error('Google Sheets grid fetch failed (HTTP ' + gridResp.status + ')');
-    const gridJson = await gridResp.json();
+    const gridJson = await bsFetchJson(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?includeGridData=true&ranges=${encodedRange}&fields=${fields}`,
+      accessToken,
+      'Google Sheets grid fetch'
+    );
     const gridSheet = (gridJson?.sheets || [])[0];
     if (!gridSheet) throw new Error('No grid data returned for the selected tab');
     const rowData = gridSheet?.data?.[0]?.rowData || [];
