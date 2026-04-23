@@ -2764,8 +2764,9 @@ h2 {
 
 @media (max-width: 720px) {
   .scores-list-card {
-    padding: 11px 13px;
-    border-radius: 14px;
+    padding: 10px 12px;
+    border-radius: 13px;
+    margin-bottom: 7px;
   }
 
   .scores-list-top,
@@ -2783,21 +2784,25 @@ h2 {
   }
 
   .scores-list-top {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
 
   .scores-list-meta {
-    gap: 7px;
-    margin-bottom: 9px;
+    gap: 6px;
+    margin-bottom: 7px;
     font-size: 0.78rem;
   }
 
   .scores-list-vs {
-    font-size: 0.95rem;
+    font-size: 0.92rem;
   }
 
   .scores-list-score {
-    font-size: 1.28rem;
+    font-size: 1.2rem;
+  }
+
+  .scores-list-age-label {
+    margin-bottom: 4px;
   }
 
   .scores-detail-meta {
@@ -7765,10 +7770,42 @@ details[open] .help-chevron { transform: rotate(180deg); }
   .scores-toolbar-wrap {
     padding-left: 10px;
     padding-right: 10px;
+    padding-top: 6px;
+    padding-bottom: 3px;
   }
 
   .tab-last-updated {
     font-size: 0.66rem;
+  }
+
+  .full-draw-live-indicator {
+    font-size: 0.68rem;
+  }
+
+  .full-draw-title {
+    font-size: 0.96rem;
+  }
+
+  .full-draw-kicker {
+    font-size: 0.68rem;
+  }
+
+  .full-draw-path-title,
+  .full-draw-step-desc {
+    font-size: 0.9rem;
+  }
+
+  .full-draw-step-shell {
+    padding: 12px;
+  }
+
+  .full-draw-step-meta {
+    gap: 6px;
+    font-size: 0.74rem;
+  }
+
+  .full-draw-pool-row {
+    padding: 9px 10px;
   }
 }
 
