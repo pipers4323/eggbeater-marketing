@@ -2465,6 +2465,79 @@ h2 {
   color: #475569;
 }
 
+.scorer-last-ack {
+  font-size: 0.73rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.scorer-last-ack.is-acked {
+  color: #166534;
+}
+
+.scorer-unsynced-wrap {
+  margin: 4px 0 10px;
+}
+
+.scorer-unsynced-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+}
+
+.scorer-unsynced-banner-ok,
+.scorer-unsynced-banner-info {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.scorer-unsynced-banner-warn {
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
+.scorer-unsynced-banner-err {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.scorer-unsynced-copy {
+  min-width: 0;
+}
+
+.scorer-unsynced-title {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.scorer-unsynced-note {
+  margin-top: 2px;
+  font-size: 0.74rem;
+  color: #475569;
+}
+
+.scorer-unsynced-retry-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #1d4ed8;
+  color: #fff;
+  font-size: 0.74rem;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.scorer-unsynced-retry-btn:hover {
+  background: #1e40af;
+}
+
 .recovered-drafts-card {
   margin-bottom: 12px;
   border: 1px solid #fcd34d;
@@ -10364,5 +10437,172 @@ html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section 
 html.native-android[data-theme="dark"] .game-card.cap-white-bg .scoring-section .ls-share-btn {
   opacity: 1 !important;
   filter: none !important;
+}
+
+/* Native tournament-day cleanup:
+   keep only the bottom schedule refresh button,
+   keep bracket/full-draw readable in both themes,
+   and fix dark-mode score detail tabs. */
+html.native-ios .tab-utility-row.schedule-utility-row .schedule-refresh-wrap,
+html.native-android .tab-utility-row.schedule-utility-row .schedule-refresh-wrap {
+  display: none !important;
+}
+
+html.native-ios .scores-detail-tab:not(.active),
+html.native-android .scores-detail-tab:not(.active),
+html.native-ios[data-theme="dark"] .scores-detail-tab:not(.active),
+html.native-android[data-theme="dark"] .scores-detail-tab:not(.active) {
+  background: #111827 !important;
+  border-color: #374151 !important;
+  color: #f8fafc !important;
+}
+
+html.native-ios .scores-detail-tab:not(.active) *,
+html.native-android .scores-detail-tab:not(.active) *,
+html.native-ios[data-theme="dark"] .scores-detail-tab:not(.active) *,
+html.native-android[data-theme="dark"] .scores-detail-tab:not(.active) * {
+  color: #f8fafc !important;
+  -webkit-text-fill-color: #f8fafc !important;
+}
+
+html.native-ios .scores-detail-tab.active,
+html.native-android .scores-detail-tab.active,
+html.native-ios .scores-detail-tab.active *,
+html.native-android .scores-detail-tab.active * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.native-ios #view-possible .card.tab-card,
+html.native-android #view-possible .card.tab-card,
+html.native-ios[data-theme="dark"] #view-possible .card.tab-card,
+html.native-android[data-theme="dark"] #view-possible .card.tab-card {
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.1) !important;
+}
+
+html.native-ios #view-possible > .card.tab-card h2,
+html.native-ios #view-possible > .card.tab-card p,
+html.native-ios #view-possible > .card.tab-card .step-desc,
+html.native-ios #view-possible > .card.tab-card .possible-desc,
+html.native-ios #view-possible > .card.tab-card .history-subtitle,
+html.native-ios #view-possible > .card.tab-card .scores-slot-label,
+html.native-ios #view-possible > .card.tab-card .empty-msg,
+html.native-android #view-possible > .card.tab-card h2,
+html.native-android #view-possible > .card.tab-card p,
+html.native-android #view-possible > .card.tab-card .step-desc,
+html.native-android #view-possible > .card.tab-card .possible-desc,
+html.native-android #view-possible > .card.tab-card .history-subtitle,
+html.native-android #view-possible > .card.tab-card .scores-slot-label,
+html.native-android #view-possible > .card.tab-card .empty-msg {
+  color: #1f2937 !important;
+  opacity: 1 !important;
+}
+
+html.native-ios #view-possible .bracket-section,
+html.native-android #view-possible .bracket-section,
+html.native-ios[data-theme="dark"] #view-possible .bracket-section,
+html.native-android[data-theme="dark"] #view-possible .bracket-section {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08) !important;
+}
+
+html.native-ios #view-possible .bracket-section:not(.projected) .bracket-header,
+html.native-android #view-possible .bracket-section:not(.projected) .bracket-header,
+html.native-ios[data-theme="dark"] #view-possible .bracket-section:not(.projected) .bracket-header,
+html.native-android[data-theme="dark"] #view-possible .bracket-section:not(.projected) .bracket-header {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+html.native-ios #view-possible .bracket-section:not(.projected) .bracket-title,
+html.native-ios #view-possible .bracket-section:not(.projected) .bracket-step-desc,
+html.native-ios #view-possible .bracket-section:not(.projected) .bracket-step-meta,
+html.native-ios #view-possible .bracket-section:not(.projected) .bracket-qualifier,
+html.native-ios #view-possible .bracket-section:not(.projected) .bracket-step-num,
+html.native-ios #view-possible .bracket-section:not(.projected) .bracket-official-badge,
+html.native-android #view-possible .bracket-section:not(.projected) .bracket-title,
+html.native-android #view-possible .bracket-section:not(.projected) .bracket-step-desc,
+html.native-android #view-possible .bracket-section:not(.projected) .bracket-step-meta,
+html.native-android #view-possible .bracket-section:not(.projected) .bracket-qualifier,
+html.native-android #view-possible .bracket-section:not(.projected) .bracket-step-num,
+html.native-android #view-possible .bracket-section:not(.projected) .bracket-official-badge {
+  color: #1f2937 !important;
+}
+
+html.native-ios #view-possible .bracket-official-badge,
+html.native-android #view-possible .bracket-official-badge {
+  background: rgba(29, 78, 216, 0.08) !important;
+  border-color: rgba(29, 78, 216, 0.18) !important;
+}
+
+html.native-ios #view-possible .full-draw-section,
+html.native-ios #view-possible .full-draw-pool-card,
+html.native-ios #view-possible .full-draw-path-card,
+html.native-ios #view-possible .full-draw-step-shell,
+html.native-android #view-possible .full-draw-section,
+html.native-android #view-possible .full-draw-pool-card,
+html.native-android #view-possible .full-draw-path-card,
+html.native-android #view-possible .full-draw-step-shell,
+html.native-ios[data-theme="dark"] #view-possible .full-draw-section,
+html.native-ios[data-theme="dark"] #view-possible .full-draw-pool-card,
+html.native-ios[data-theme="dark"] #view-possible .full-draw-path-card,
+html.native-ios[data-theme="dark"] #view-possible .full-draw-step-shell,
+html.native-android[data-theme="dark"] #view-possible .full-draw-section,
+html.native-android[data-theme="dark"] #view-possible .full-draw-pool-card,
+html.native-android[data-theme="dark"] #view-possible .full-draw-path-card,
+html.native-android[data-theme="dark"] #view-possible .full-draw-step-shell {
+  background: #ffffff !important;
+  border-color: #dbeafe !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08) !important;
+}
+
+html.native-ios #view-possible .full-draw-title,
+html.native-ios #view-possible .full-draw-kicker,
+html.native-ios #view-possible .full-draw-path-title,
+html.native-ios #view-possible .full-draw-step-desc,
+html.native-ios #view-possible .full-draw-pool-name,
+html.native-ios #view-possible .full-draw-note,
+html.native-ios #view-possible .full-draw-legend-item,
+html.native-ios #view-possible .full-draw-step-meta,
+html.native-ios #view-possible .full-draw-pool-metrics,
+html.native-ios #view-possible .full-draw-empty-copy,
+html.native-ios #view-possible .full-draw-live-indicator,
+html.native-ios #view-possible .full-draw-pool-rank,
+html.native-android #view-possible .full-draw-title,
+html.native-android #view-possible .full-draw-kicker,
+html.native-android #view-possible .full-draw-path-title,
+html.native-android #view-possible .full-draw-step-desc,
+html.native-android #view-possible .full-draw-pool-name,
+html.native-android #view-possible .full-draw-note,
+html.native-android #view-possible .full-draw-legend-item,
+html.native-android #view-possible .full-draw-step-meta,
+html.native-android #view-possible .full-draw-pool-metrics,
+html.native-android #view-possible .full-draw-empty-copy,
+html.native-android #view-possible .full-draw-live-indicator,
+html.native-android #view-possible .full-draw-pool-rank {
+  color: #334155 !important;
+  opacity: 1 !important;
+}
+
+html.native-ios #view-possible .full-draw-title,
+html.native-ios #view-possible .full-draw-kicker,
+html.native-ios #view-possible .full-draw-path-title,
+html.native-ios #view-possible .full-draw-step-desc,
+html.native-ios #view-possible .full-draw-pool-name,
+html.native-android #view-possible .full-draw-title,
+html.native-android #view-possible .full-draw-kicker,
+html.native-android #view-possible .full-draw-path-title,
+html.native-android #view-possible .full-draw-step-desc,
+html.native-android #view-possible .full-draw-pool-name {
+  color: #1e3a8a !important;
+}
+
+html.native-ios #view-possible .full-draw-pool-chip,
+html.native-android #view-possible .full-draw-pool-chip {
+  color: #1e3a8a !important;
+  background: #dbeafe !important;
 }
 

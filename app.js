@@ -2643,9 +2643,19 @@ const $ = id => document.getElementById(_renderSuffix ? id + _renderSuffix : id)
                || document.getElementById(id);
 
 function escHtml(str) {
-  return String(str || '')
+  return normalizeDisplayText(str)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function normalizeDisplayText(str) {
+  return String(str || '')
+    .replace(/â€”/g, '—')
+    .replace(/â€“/g, '–')
+    .replace(/â€"/g, '—')
+    .replace(/â€'/g, "'")
+    .replace(/â€œ/g, '"')
+    .replace(/â€/g, '"');
 }
 
 function normalizeOpponentName(name) {
@@ -3508,18 +3518,83 @@ function _renderScorerDataAuthority(gameOrRef, explicitGroupKey = '') {
   return `<div id="${elementId}" class="scorer-data-authority scorer-data-authority-${authorityMeta.tone}">${escHtml(authorityMeta.text)}</div>`;
 }
 
+function _renderScorerLastAck(gameOrRef, explicitGroupKey = '') {
+  const statusObj = _getScorerSyncStatus(gameOrRef, explicitGroupKey);
+  const acked = statusObj && ['acked', 'final-acked'].includes(statusObj.status || '');
+  const stamp = acked && statusObj.updatedAt
+    ? new Date(Number(statusObj.updatedAt)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })
+    : '';
+  const elementId = `scorer-last-ack-${_gameIdOnly(gameOrRef)}`;
+  return `<div id="${elementId}" class="scorer-last-ack${acked ? ' is-acked' : ''}">${escHtml(acked ? `Last server ack ${stamp}` : 'No server ack yet')}</div>`;
+}
+
+function _hasUnsyncedScorerChanges(statusObj) {
+  const status = String(statusObj?.status || 'idle').trim();
+  return ['sending', 'queued', 'retrying', 'failed', 'rejected', 'pending', 'local-final'].includes(status);
+}
+
+async function retryScorerSyncForGame(gameOrRef, explicitGroupKey = '') {
+  const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
+  const scopedKey = _scopedGameKey(gameOrRef, groupKey);
+  const live = state.liveScores[scopedKey];
+  let attempted = 0;
+  if (_hasMeaningfulLiveScoreData(live)) {
+    attempted++;
+    broadcastLiveScore(scopedKey);
+  }
+  await _syncPendingScores();
+  if (attempted) showToast('Retrying scorer sync', 'warn');
+}
+
+function _renderScorerUnsyncedBanner(gameOrRef, explicitGroupKey = '') {
+  const statusObj = _getScorerSyncStatus(gameOrRef, explicitGroupKey);
+  const statusMeta = _scorerSyncStatusLabel(statusObj);
+  const show = _hasUnsyncedScorerChanges(statusObj);
+  const elementId = `scorer-unsynced-wrap-${_gameIdOnly(gameOrRef)}`;
+  if (!show) return `<div id="${elementId}" class="scorer-unsynced-wrap" hidden></div>`;
+  return `<div id="${elementId}" class="scorer-unsynced-wrap">
+    <div class="scorer-unsynced-banner scorer-unsynced-banner-${statusMeta.tone}">
+      <div class="scorer-unsynced-copy">
+        <div class="scorer-unsynced-title">Unsynced changes</div>
+        <div class="scorer-unsynced-note">${escHtml(statusMeta.text)}. Keep this device open until server sync completes.</div>
+      </div>
+      <button class="scorer-unsynced-retry-btn" onclick="retryScorerSyncForGame('${escHtml(_gameRef(gameOrRef))}','${escHtml(_contextGroupKey(gameOrRef, explicitGroupKey))}')">Retry All Sync</button>
+    </div>
+  </div>`;
+}
+
 function _refreshScorerSyncStatusUI(gameOrRef, explicitGroupKey = '') {
+  const statusObj = _getScorerSyncStatus(gameOrRef, explicitGroupKey);
   const el = document.getElementById(`scorer-sync-status-${_gameIdOnly(gameOrRef)}`);
-  const statusMeta = _scorerSyncStatusLabel(_getScorerSyncStatus(gameOrRef, explicitGroupKey));
+  const statusMeta = _scorerSyncStatusLabel(statusObj);
   if (el) {
     el.className = `scorer-sync-status scorer-sync-status-${statusMeta.tone}`;
     el.textContent = statusMeta.text;
   }
   const authorityEl = document.getElementById(`scorer-sync-authority-${_gameIdOnly(gameOrRef)}`);
   if (authorityEl) {
-    const authorityMeta = _scorerDataAuthorityLabel(_getScorerSyncStatus(gameOrRef, explicitGroupKey));
+    const authorityMeta = _scorerDataAuthorityLabel(statusObj);
     authorityEl.className = `scorer-data-authority scorer-data-authority-${authorityMeta.tone}`;
     authorityEl.textContent = authorityMeta.text;
+  }
+  const lastAckEl = document.getElementById(`scorer-last-ack-${_gameIdOnly(gameOrRef)}`);
+  if (lastAckEl) {
+    const acked = statusObj && ['acked', 'final-acked'].includes(statusObj.status || '');
+    const stamp = acked && statusObj.updatedAt
+      ? new Date(Number(statusObj.updatedAt)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })
+      : '';
+    lastAckEl.className = `scorer-last-ack${acked ? ' is-acked' : ''}`;
+    lastAckEl.textContent = acked ? `Last server ack ${stamp}` : 'No server ack yet';
+  }
+  const unsyncedWrap = document.getElementById(`scorer-unsynced-wrap-${_gameIdOnly(gameOrRef)}`);
+  if (unsyncedWrap) {
+    if (_hasUnsyncedScorerChanges(statusObj)) {
+      unsyncedWrap.hidden = false;
+      unsyncedWrap.innerHTML = _renderScorerUnsyncedBanner(gameOrRef, explicitGroupKey).replace(/^<div[^>]*>|<\/div>$/g, '');
+    } else {
+      unsyncedWrap.hidden = true;
+      unsyncedWrap.innerHTML = '';
+    }
   }
 }
 
@@ -4698,9 +4773,11 @@ function _buildScoreDetailScorerPanel(game, s) {
           <div class="score-detail-scorer-meta">
             ${_renderScorerSyncStatusBadge(game, groupKey)}
             ${_renderScorerDataAuthority(game, groupKey)}
+            ${_renderScorerLastAck(game, groupKey)}
           </div>
           <div class="score-finalize-compact-wrap">${finalizeCompactBtn}</div>
         </div>
+        ${_renderScorerUnsyncedBanner(game, groupKey)}
         ${timingRow}
         <div class="live-scoreboard">
           <div class="ls-team">
@@ -8504,7 +8581,7 @@ function buildProjectedScoreCard(next) {
 function _buildScheduleControlsHtml(dayPickerHtml = '', target = 'schedule') {
   return `<div class="tab-utility-row ${target}-utility-row">
     <div class="tab-utility-main">${dayPickerHtml || '<div class="tab-utility-spacer"></div>'}</div>
-    ${buildTabRefreshButtonHtml(target)}
+    ${target === 'scores' ? buildTabRefreshButtonHtml(target) : ''}
   </div>`;
 }
 
@@ -9469,7 +9546,7 @@ function renderHeader() {
 
   $('header-tournament-name').innerHTML =
     (isUpcoming ? '<em>Upcoming Tournament:</em> ' : '') + escHtml(headerName);
-  $('header-tournament-dates').textContent = headerSub;
+  $('header-tournament-dates').textContent = normalizeDisplayText(headerSub);
 
   // Render compact team indicator in header (tappable → opens Settings)
   renderTeamPicker();
