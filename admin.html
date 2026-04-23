@@ -12,6 +12,7 @@
   <link rel="manifest" href="admin-manifest.json">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-admin.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-admin-512.png">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     *,
     *::before,
@@ -3655,6 +3656,10 @@
 
     // ─── LOGOUT & CLUB SWITCHING ────────────────────────────────────────────────
 
+    function getAdminAppRoot() {
+      return document.getElementById('admin-app') || document.getElementById('club-dashboard');
+    }
+
     async function doLogout() {
       if (!confirm(adminT('auth_logout_confirm'))) return;
       try { if (typeof fbSignOut === 'function') await fbSignOut(); } catch (e) { }
@@ -3665,8 +3670,10 @@
       S.history = [];
       S.roster = null;
       localStorage.removeItem('ebadmin-saved-pw');
-      document.getElementById('admin-app').setAttribute('hidden', '');
-      document.getElementById('club-dashboard').style.display = 'none';
+      const adminRoot = getAdminAppRoot();
+      if (adminRoot) adminRoot.setAttribute('hidden', '');
+      const clubDash = document.getElementById('club-dashboard');
+      if (clubDash && clubDash !== adminRoot) clubDash.style.display = 'none';
       document.getElementById('login-screen').style.display = '';
       _resetGoogleBtn();
       showStatus(adminT('auth_logged_out'), 'info');
@@ -3674,7 +3681,8 @@
 
     async function switchClub() {
       // Go back to the club dashboard
-      document.getElementById('admin-app').setAttribute('hidden', '');
+      const adminRoot = getAdminAppRoot();
+      if (adminRoot) adminRoot.setAttribute('hidden', '');
       showClubDashboard();
     }
 
@@ -3682,12 +3690,24 @@
 
     async function showClubDashboard() {
       document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('admin-app').setAttribute('hidden', '');
-      document.getElementById('club-dashboard').style.display = '';
+      const adminRoot = getAdminAppRoot();
+      const clubDash = document.getElementById('club-dashboard');
+      const listEl = document.getElementById('club-dashboard-list');
+      if (!clubDash || !listEl || !document.getElementById('admin-app')) {
+        if (clubDash) {
+          clubDash.style.display = '';
+          clubDash.removeAttribute('hidden');
+        }
+        showStatus('');
+        applyAdminTranslations();
+        return _doAdminLoad();
+      }
+      if (adminRoot) adminRoot.setAttribute('hidden', '');
+      clubDash.style.display = '';
       applyAdminTranslations();
       showStatus('');
 
-      const listEl = document.getElementById('club-dashboard-list');
+
       listEl.innerHTML = `<div style="text-align:center;color:var(--g400);padding:20px">${t('Loading clubs…')}</div>`;
 
       try {
@@ -3807,7 +3827,8 @@
         await _doAdminLoad();
       } catch (e) {
         showStatus('Failed: ' + e.message, 'err');
-        document.getElementById('club-dashboard').style.display = '';
+        const clubDash = document.getElementById('club-dashboard');
+      if (clubDash) clubDash.style.display = '';
       }
     }
 
@@ -4137,7 +4158,8 @@
 
     async function _doAdminLoad() {
       document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('admin-app').removeAttribute('hidden');
+      const adminRoot = getAdminAppRoot();
+      if (adminRoot) adminRoot.removeAttribute('hidden');
       applyAdminTranslations();
       // Sync header height now that admin-app is visible (sidebar needs correct padding-top)
       requestAnimationFrame(() => syncAdminHeaderHeight());
@@ -8564,7 +8586,7 @@
         <div class="info-field"><div class="info-label">${adminT('addgames_tournament_id')}</div><input class="info-input" id="ti-id" value="${esc(t.id || '')}" oninput="S.tournament.id=this.value"><div class="info-hint red">⚠ ${esc(adminT('addgames_tournament_id_hint'))}</div></div>
         <div class="info-field"><div class="info-label">${adminT('addgames_tournament_name')}</div><input class="info-input" id="ti-name" value="${esc(t.name || '')}" oninput="S.tournament.name=this.value;updateAdminHeader()"></div>
         <div class="info-field"><div class="info-label">${adminT('addgames_subtitle')}</div><input class="info-input" value="${esc(t.subtitle || '')}" oninput="S.tournament.subtitle=this.value"></div>
-        <div class="info-field"><div class="info-label">${adminT('addgames_dates')}</div><input class="info-input" value="${esc(t.dates || '')}" placeholder="April 25, 2026" oninput="S.tournament.dates=this.value"><div class="info-hint" style="margin-top:3px">ℹ️ Display only — to fix <em>game</em> dates use <strong>Step 4 date overrides</strong> in Bracket Sheet Sync.</div></div>
+        <div class="info-field"><div class="info-label">${adminT('addgames_dates')}</div><input class="info-input" value="${esc(t.dates || '')}" placeholder="April 25, 2026" oninput="S.tournament.dates=this.value"><div class="info-hint" style="margin-top:3px">ℹ️ Display only — to fix <em>game</em> dates use <strong>Step 4 date overrides</strong> in Futures Bracket Import Wizard.</div></div>
         <div class="info-field"><div class="info-label">${adminT('addgames_venue_name')}</div><input id="info-venue-input" class="info-input" value="${esc(t.location || '')}" placeholder="${esc(adminT('addgames_start_typing_venue'))}" spellcheck="false" autocomplete="off" oninput="S.tournament.location=this.value;this.setCustomValidity('')"><div class="info-hint">${esc(adminT('addgames_google_places_hint'))}</div></div>
         <div class="info-field"><div class="info-label">${adminT('addgames_venue_address')}</div><input id="info-address-input" class="info-input" value="${esc(t.address || '')}" placeholder="Full address" oninput="S.tournament.address=this.value"><div class="info-hint">Displayed on game cards.</div></div>
         <div class="info-field"><div class="info-label">${adminT('addgames_coming_soon')}</div><input class="info-input" value="${esc(t.comingSoon || '')}" placeholder="Schedule coming week of April 20" oninput="S.tournament.comingSoon=this.value"><div class="info-hint">${esc(adminT('addgames_coming_soon_hint'))}</div></div>
@@ -9769,7 +9791,7 @@
         + '<div id="bs-last-sync-row">\ud83d\udd52 <strong>Last synced:</strong> ' + esc(syncStr) + '</div>';
     }
 
-    // bsWizardHtml: returns the full Bracket Sheet Sync <details> card as an HTML string.
+    // bsWizardHtml: returns the full Futures Bracket Import Wizard <details> card as an HTML string.
     // Called inline from renderAddGamesTab() via ${bsWizardHtml()} — no placeholder needed.
     function bsWizardHtml() {
       if (!S.bsync) {
@@ -9807,7 +9829,7 @@
       var s4dis = (bs.games && bs.games.length) ? '' : ' disabled';
       var hasDraft = !!(localStorage.getItem('ebwp-bsync-draft-' + S.team));
       return '<details class="card collapsible-card" id="bs-card"' + ((bs.sheetUrl || (bs.step && bs.step > 1)) ? ' open' : '') + '>'
-        + '<summary class="card-header collapsible-header">&#x1f4ca; Bracket Sheet Sync <span style="font-size:0.72rem;font-weight:400;color:var(--g400);margin-left:8px">' + (hasDraft ? '| <a href="#" onclick="event.preventDefault();_bsClearWizardDraft()" style="color:#92400e;text-decoration:none">🗑 Clear draft</a>' : '') + '</span><span class="collapse-icon">&#9662;</span></summary>'
+        + '<summary class="card-header collapsible-header">&#x1f4ca; Futures Bracket Import Wizard <span style="font-size:0.72rem;font-weight:400;color:var(--g400);margin-left:8px">' + (hasDraft ? '| <a href="#" onclick="event.preventDefault();_bsClearWizardDraft()" style="color:#92400e;text-decoration:none">🗑 Clear draft</a>' : '') + '</span><span class="collapse-icon">&#9662;</span></summary>'
         + '<div style="padding:10px 14px">'
         + '<div id="bs-draft-banner" style="display:' + (hasDraft && step >= 2 ? 'block' : 'none') + ';background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:8px 12px;font-size:0.8rem;color:#92400e;margin-bottom:10px">⚡ Draft restored from your last session. <a href="#" onclick="event.preventDefault();_bsClearWizardDraft()" style="color:#92400e;font-weight:700">Start fresh</a></div>'
         + '<div style="display:flex;gap:3px;margin-bottom:10px" id="bs-stepbar">' + dots + '</div>'
@@ -9821,20 +9843,17 @@
         + '<div style="margin-bottom:12px;padding:10px 12px;background:var(--g50);border-radius:8px;border:1px solid var(--g200)">'
         + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--g700)">'
         + '<input type="checkbox" id="bs-cc-chk" ' + (bs.colorCoded ? 'checked' : '') + ' onchange="bsToggleColorCoded(this.checked)" style="width:15px;height:15px;accent-color:var(--royal);flex-shrink:0">'
-        + 'Age groups separated by row colour'
+        + 'Use Futures color-aware import'
         + '</label>'
         + '<div id="bs-cc-fields" style="display:' + (bs.colorCoded ? 'block' : 'none') + ';margin-top:8px">'
-        + '<div style="font-size:.78rem;color:var(--g500);margin-bottom:6px">Which cells show the age group colour key? e.g. <code style="background:white;padding:1px 4px;border-radius:3px;border:1px solid var(--g200)">A18, B18</code></div>'
+        + '<div style="font-size:.78rem;color:var(--g500);margin-bottom:6px">Which cells show the age-group color key? Use this for Futures tabs where 16u and 18u share pool letters. Example: <code style="background:white;padding:1px 4px;border-radius:3px;border:1px solid var(--g200)">A18, B18</code></div>'
         + '<div style="display:flex;gap:6px;margin-bottom:6px">'
         + '<input class="info-input" id="bs-cc-cells" value="' + esc(bs.legendCells || '') + '" placeholder="A18, B18" style="flex:1;font-family:monospace;font-size:.84rem" onkeydown="if(event.key===\'Enter\')bsDetectAgeGroups()">'
         + '<button class="save-btn" style="padding:8px 14px;white-space:nowrap;font-size:.82rem" onclick="bsDetectAgeGroups()">Detect &rarr;</button>'
         + '</div>'
         + '<div id="bs-cc-status" style="font-size:.78rem;min-height:1.2em;margin-bottom:4px"></div>'
         + '<div id="bs-cc-groups" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
-        + (bs.ageGroups && bs.ageGroups.length
-          ? '<span style="font-size:.78rem;color:var(--g600);font-weight:600;margin-right:2px">My age group:</span>'
-          + bs.ageGroups.map(function (ag, i) { return '<button onclick="bsSelectAgeGroup(' + i + ')" style="padding:3px 12px;border-radius:16px;border:2px solid ' + (bs.myAgeGroupIdx === i ? 'var(--royal)' : 'var(--g200)') + ';background:' + (bs.myAgeGroupIdx === i ? 'var(--royal)' : 'white') + ';color:' + (bs.myAgeGroupIdx === i ? 'white' : 'var(--g600)') + ';font-size:.8rem;font-weight:600;cursor:pointer">' + esc(ag) + '</button>'; }).join('')
-          : '')
+        + (bs.ageGroups && bs.ageGroups.length ? bsRenderAgeGroupButtons(bs.ageGroups) : '')
         + '</div>'
         + '</div>'
         + '</div>'
@@ -10017,6 +10036,66 @@
       if (rangeOrNull) url += '&range=' + encodeURIComponent(rangeOrNull);
       return url;
     }
+    const BS_GOOGLE_CLIENT_ID = '334438983134-th4thsf0upc8pabe245d2l41fon2oun9.apps.googleusercontent.com';
+    let _bsSheetsAccessToken = '';
+    let _bsColorGridCache = null;
+
+    function bsGetSelectedAgeGroup() {
+      return S.bsync?.myAgeGroup || ((S.bsync?.ageGroups || [])[S.bsync?.myAgeGroupIdx || 0] || '');
+    }
+
+    function bsGetLegendSwatch(ageGroup) {
+      const color = S.bsync?.legendColors?.[ageGroup] || '';
+      if (!color) return '';
+      return '<span style="display:inline-block;width:10px;height:10px;border-radius:999px;background:' + esc(color) + ';box-shadow:0 0 0 2px rgba(255,255,255,.65)"></span>';
+    }
+
+    function bsRenderAgeGroupButtons(ageGroups) {
+      const selected = bsGetSelectedAgeGroup();
+      return '<span style="font-size:.78rem;color:var(--g600);font-weight:600;margin-right:2px">My age group:</span>'
+        + (ageGroups || []).map(function (ag, i) {
+          const sel = ag === selected || (!selected && i === 0);
+          return '<button onclick="bsSelectAgeGroup(' + i + ')" id="bs-ag-btn-' + i + '" style="padding:4px 12px;border-radius:16px;border:2px solid ' + (sel ? 'var(--royal)' : 'var(--g200)') + ';background:' + (sel ? 'var(--royal)' : 'white') + ';color:' + (sel ? 'white' : 'var(--g600)') + ';font-size:.8rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px">' + bsGetLegendSwatch(ag) + '<span>' + esc(ag) + '</span></button>';
+        }).join('');
+    }
+
+    async function bsEnsureSheetsReadToken() {
+      if (_bsSheetsAccessToken) return _bsSheetsAccessToken;
+      if (!window.google?.accounts?.oauth2) throw new Error('Google Sheets auth is not loaded yet - refresh and try again');
+      return await new Promise((resolve, reject) => {
+        const tc = google.accounts.oauth2.initTokenClient({
+          client_id: BS_GOOGLE_CLIENT_ID,
+          scope: 'https://www.googleapis.com/auth/spreadsheets.readonly',
+          callback: (resp) => {
+            if (resp?.error) { reject(new Error(resp.error)); return; }
+            _bsSheetsAccessToken = resp.access_token || '';
+            if (!_bsSheetsAccessToken) { reject(new Error('Google Sheets auth token was empty')); return; }
+            resolve(_bsSheetsAccessToken);
+          },
+        });
+        tc.requestAccessToken({ prompt: 'consent' });
+      });
+    }
+
+    async function bsEnsureColorGridData() {
+      if (_bsColorGridCache && _bsColorGridCache.sheetId === S.bsync?.sheetId && _bsColorGridCache.sheetGid === String(S.bsync?.sheetGid || '')) {
+        return _bsColorGridCache.gridData;
+      }
+      const accessToken = await bsEnsureSheetsReadToken();
+      const gridData = await window.AdminBracketImport.bsFetchGoogleSheetGrid({
+        sheetId: S.bsync?.sheetId,
+        sheetGid: S.bsync?.sheetGid,
+        accessToken,
+      });
+      _bsColorGridCache = { sheetId: S.bsync?.sheetId, sheetGid: String(S.bsync?.sheetGid || ''), gridData };
+      return gridData;
+    }
+
+    function bsExtractColorGridRows(rangeA1) {
+      const gridData = _bsColorGridCache?.gridData;
+      if (!gridData) throw new Error('Colour-coded sheet data is not loaded yet');
+      return window.AdminBracketImport.bsExtractGridRows(gridData, rangeA1, bsGetSelectedAgeGroup(), S.bsync?.rowAgeGroups || []);
+    }
     // ─────────────────────────────────────────────────────────────────────────────
 
     function bsStep1Next() {
@@ -10054,59 +10133,35 @@
       const cells = (document.getElementById('bs-cc-cells')?.value || '').trim();
       const status = document.getElementById('bs-cc-status');
       const groups = document.getElementById('bs-cc-groups');
-      if (!cells) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter legend cells first (e.g. A18, B18)'; } return; }
-      const _urlVal = (document.getElementById('bs-url')?.value || '').trim();
+      if (!cells) { if (status) { status.style.color = '#dc2626'; status.textContent = 'Enter legend cells first (for example A18, B18)'; } return; }
+      const urlVal = (document.getElementById('bs-url')?.value || '').trim();
       const sheetId = S.bsync?.sheetId || (() => {
-        const m = _urlVal.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+        const m = urlVal.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
         return m ? m[1] : null;
       })();
-      if (!sheetId) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter the sheet URL first'; } return; }
+      if (!sheetId) { if (status) { status.style.color = '#dc2626'; status.textContent = 'Enter the sheet URL first'; } return; }
       S.bsync.legendCells = cells;
       if (S.bsync) S.bsync.sheetId = sheetId;
-      // Also extract sheetGid from the URL field if not already set — bsStep1Next()
-      // normally does this, but the user may click Detect before clicking Next.
       if (S.bsync && !S.bsync.sheetGid) {
-        const _gidM = _urlVal.match(/[#?&]gid=(\d+)/);
-        if (_gidM) { S.bsync.sheetGid = _gidM[1]; localStorage.setItem('ebadmin-bsync-gid', _gidM[1]); }
+        const gidMatch = urlVal.match(/[#?&]gid=(\d+)/);
+        if (gidMatch) { S.bsync.sheetGid = gidMatch[1]; localStorage.setItem('ebadmin-bsync-gid', gidMatch[1]); }
       }
-      if (status) { status.style.color = 'var(--g400)'; status.textContent = '\u23f3 Reading legend cells\u2026'; }
+      if (status) { status.style.color = 'var(--g400)'; status.textContent = 'Reading legend cells...'; }
       if (groups) groups.innerHTML = '';
       try {
-        // Parse refs like "A12, A18" → [{col:0,row:11},{col:0,row:17}]
-        const refs = cells.split(/[\s,]+/).map(r => r.trim().toUpperCase()).filter(Boolean);
-        const parsed = refs.map(ref => {
-          const m = ref.match(/^([A-Z]+)(\d+)$/);
-          if (!m) return null;
-          let col = 0; for (const ch of m[1]) col = col * 26 + (ch.charCodeAt(0) - 64); col--;
-          return { ref, col, row: parseInt(m[2]) - 1 };
-        }).filter(Boolean);
-        if (!parsed.length) throw new Error('Could not parse cell references — use format A12, A18');
-        // Fetch a range that spans ALL referenced rows (handles cells in different rows)
-        // gviz range is end-exclusive, so fetch maxRow+1 to ensure the last row is included
-        const minRow = Math.min(...parsed.map(p => p.row)) + 1; // 1-indexed
-        const maxRow = Math.max(...parsed.map(p => p.row)) + 1;
-        const csvUrl = bsCsvUrl(minRow + ':' + (maxRow + 1));
-        const resp = await fetch(csvUrl, { cache: 'no-store' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — check sheet is "Anyone with the link can view"');
-        const text = await resp.text();
-        const rows = parseCSV(text);
-        if (!rows.length) throw new Error('No data returned for that row range');
-        // Map each ref to the correct fetched row (offset from minRow)
-        const agLabels = parsed.map(p => {
-          const rowOffset = p.row - (minRow - 1); // 0-indexed into fetched rows
-          const row = rows[rowOffset] || [];
-          return (row[p.col] || '').trim();
-        }).filter(Boolean);
-        if (!agLabels.length) throw new Error('Cells appear empty — check the row number in your cell refs');
-        S.bsync.ageGroups = agLabels;
-        S.bsync.legendParsed = parsed;
+        const gridData = await bsEnsureColorGridData();
+        const parsed = window.AdminBracketImport.bsBuildColorCodedAgeGroups(gridData, cells);
+        S.bsync.ageGroups = parsed.ageGroups || [];
+        S.bsync.legendParsed = parsed.legendParsed || [];
+        S.bsync.legendColors = parsed.legendColors || {};
+        S.bsync.rowAgeGroups = parsed.rowAgeGroups || [];
         S.bsync.myAgeGroupIdx = 0;
-        S.bsync.myAgeGroup = agLabels[0];
-        if (status) { status.style.color = '#059669'; status.textContent = '\u2705 Found: ' + agLabels.join(' \u00b7 ') + ' \u2014 tap yours below'; }
-        if (groups) groups.innerHTML = '<span style="font-size:.78rem;color:var(--g600);font-weight:600;margin-right:2px">My age group:</span>'
-          + agLabels.map(function (ag, i) { return '<button onclick="bsSelectAgeGroup(' + i + ')" id="bs-ag-btn-' + i + '" style="padding:3px 12px;border-radius:16px;border:2px solid ' + (i === 0 ? 'var(--royal)' : 'var(--g200)') + ';background:' + (i === 0 ? 'var(--royal)' : 'white') + ';color:' + (i === 0 ? 'white' : 'var(--g600)') + ';font-size:.8rem;font-weight:600;cursor:pointer">' + esc(ag) + '</button>'; }).join('');
+        S.bsync.myAgeGroup = (parsed.ageGroups || [])[0] || '';
+        if (!S.bsync.ageGroups.length) throw new Error('No age groups found from the colour legend');
+        if (status) { status.style.color = '#059669'; status.textContent = 'Found: ' + S.bsync.ageGroups.join(' | ') + ' - tap yours below'; }
+        if (groups) groups.innerHTML = bsRenderAgeGroupButtons(S.bsync.ageGroups);
       } catch (e) {
-        if (status) { status.style.color = '#dc2626'; status.textContent = '\u274c ' + e.message; }
+        if (status) { status.style.color = '#dc2626'; status.textContent = 'Error: ' + e.message; }
       }
     }
 
@@ -10129,20 +10184,23 @@
       const range = (document.getElementById('bs-poolrange')?.value || '').trim();
       const status = document.getElementById('bs-s2-status');
       const preview = document.getElementById('bs-pool-preview');
-      if (!range) { if (status) status.textContent = '⚠️ Enter a cell range like J3:M6'; return; }
-      if (!S.bsync?.sheetId) { if (status) status.textContent = '⚠️ Go back and set a sheet URL first'; return; }
+      if (!range) { if (status) status.textContent = 'Enter a cell range like J3:M6'; return; }
+      if (!S.bsync?.sheetId) { if (status) status.textContent = 'Go back and set a sheet URL first'; return; }
       S.bsync.poolRange = range;
-      if (status) { status.style.color = 'var(--g400)'; status.textContent = '⏳ Fetching pools…'; }
+      if (status) { status.style.color = 'var(--g400)'; status.textContent = 'Fetching pools...'; }
       if (preview) preview.innerHTML = '';
       try {
-        const csvUrl = bsCsvUrl(range);
-        const resp = await fetch(csvUrl, { cache: 'no-store' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — make sure the sheet is set to "Anyone with the link can view"');
-        const text = await resp.text();
-        const rows = parseCSV(text);
-        if (!rows.length) throw new Error('No data found in that range — check the cell range');
+        const rows = S.bsync?.colorCoded
+          ? bsExtractColorGridRows(range)
+          : await (async () => {
+            const csvUrl = bsCsvUrl(range);
+            const resp = await fetch(csvUrl, { cache: 'no-store' });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status + ' - make sure the sheet is set to "Anyone with the link can view"');
+            const text = await resp.text();
+            return parseCSV(text);
+          })();
+        if (!rows.length) throw new Error('No data found in that range - check the cell range');
 
-        // First row: if all cells are non-numeric short text, treat as pool name headers
         const firstRow = rows[0];
         let headers, dataRows;
         const looksLikeHeaders = firstRow.some(c => c.trim()) &&
@@ -10161,11 +10219,11 @@
         });
         S.bsync.pools = pools;
 
-        if (status) { status.style.color = '#059669'; status.textContent = `✅ Found ${headers.length} pool(s) — review below`; }
+        if (status) { status.style.color = '#059669'; status.textContent = `Found ${headers.length} pool(s) - review below`; }
         if (preview) preview.innerHTML = bsRenderPoolPreview(pools, '') +
-          `<button class="save-btn" style="width:100%;margin-top:10px" onclick="bsStep(3);document.getElementById('bs-s3-pools').innerHTML=bsRenderPoolPreview(S.bsync.pools,S.bsync.teamName)">Looks Good →</button>`;
+          `<button class="save-btn" style="width:100%;margin-top:10px" onclick="bsStep(3);document.getElementById('bs-s3-pools').innerHTML=bsRenderPoolPreview(S.bsync.pools,S.bsync.teamName)">Looks Good -></button>`;
       } catch (e) {
-        if (status) { status.style.color = '#dc2626'; status.textContent = '❌ ' + e.message; }
+        if (status) { status.style.color = '#dc2626'; status.textContent = 'Error: ' + e.message; }
       }
     }
 
@@ -10382,11 +10440,15 @@
       if (status4) { status4.style.color = 'var(--g400)'; status4.textContent = '⏳ Scanning schedule sheet for games…'; }
       if (preview) preview.innerHTML = '';
       try {
-        const csvUrl = bsCsvUrl(null);
-        const resp = await fetch(csvUrl, { cache: 'no-store' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const text = await resp.text();
-        const allRows = parseCSV(text);
+        const allRows = S.bsync?.colorCoded
+          ? bsExtractColorGridRows(null)
+          : await (async () => {
+            const csvUrl = bsCsvUrl(null);
+            const resp = await fetch(csvUrl, { cache: 'no-store' });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const text = await resp.text();
+            return parseCSV(text);
+          })();
         // Support multi-team (comma-separated): match games for any listed team
         const _teamNamesLower = (S.bsync.teamNames && S.bsync.teamNames.length ? S.bsync.teamNames : [S.bsync.teamName || '']).map(n => n.toLowerCase()).filter(Boolean);
         const teamNameLower = _teamNamesLower[0] || '';
@@ -10674,16 +10736,20 @@
     async function bsFetchRebracket() {
       const range = (document.getElementById('bs-rbrange')?.value || '').trim();
       const status = document.getElementById('bs-s5-status');
-      if (!range) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter a range like J13:M29'; } return; }
+      if (!range) { if (status) { status.style.color = '#dc2626'; status.textContent = 'Enter a range like J13:M29'; } return; }
       if (!S.bsync?.sheetId) return;
       S.bsync.rebracketRange = range;
-      if (status) { status.style.color = 'var(--g400)'; status.textContent = '⏳ Fetching re-bracket…'; }
+      if (status) { status.style.color = 'var(--g400)'; status.textContent = 'Fetching re-bracket...'; }
       try {
-        const csvUrl = bsCsvUrl(range);
-        const resp = await fetch(csvUrl, { cache: 'no-store' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — make sure the sheet is publicly viewable');
-        const text = await resp.text();
-        const rows = parseCSV(text);
+        const rows = S.bsync?.colorCoded
+          ? bsExtractColorGridRows(range)
+          : await (async () => {
+            const csvUrl = bsCsvUrl(range);
+            const resp = await fetch(csvUrl, { cache: 'no-store' });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status + ' - make sure the sheet is publicly viewable');
+            const text = await resp.text();
+            return parseCSV(text);
+          })();
         if (!rows.length) throw new Error('No data found in that range');
         const pool = ((S.bsync.myPool || '').match(/^([A-Z])/i)?.[1] || '').toUpperCase();
         const seedingMap = bsParseRebracket(rows);
@@ -10695,21 +10761,17 @@
         if (status) {
           status.style.color = n > 0 ? '#059669' : '#d97706';
           status.textContent = n > 0
-            ? `✅ Found ${n} bracket path${n !== 1 ? 's' : ''} for Pool ${pool} — will appear in the Possible tab after Deploy`
-            : `⚠️ Re-bracket loaded but no paths found for Pool ${pool} — check the pool letter matches your sheet`;
+            ? `Found ${n} bracket path${n !== 1 ? 's' : ''} for Pool ${pool} - will appear in the Possible tab after Deploy`
+            : `Re-bracket loaded but no paths found for Pool ${pool} - check the pool letter matches your sheet`;
         }
-        // Show team-slot picker when paths found (multi-team clubs need to key paths to A or B)
         const teamWrap = document.getElementById('bs-path-team-wrap');
         if (teamWrap) teamWrap.style.display = n > 0 ? 'block' : 'none';
         if (n > 0 && !S.bsync.bracketPathTeam) bsSetPathTeam('All');
       } catch (e) {
-        if (status) { status.style.color = '#dc2626'; status.textContent = '❌ ' + e.message; }
+        if (status) { status.style.color = '#dc2626'; status.textContent = 'Error: ' + e.message; }
       }
     }
 
-    // ─── BRACKET SHEET WIZARD — BRACKET PATH HELPERS ─────────────────────────
-
-    // Parse "VENUE NAME #N" → { venue, poolNum }  e.g. "NORCO HS #2" → { venue:"NORCO HS", poolNum:"2" }
     function bsParseLocation(raw) {
       if (!window.AdminBracketImport?.bsParseLocation) return { venue: raw || '', poolNum: '' };
       return window.AdminBracketImport.bsParseLocation(raw);
@@ -12256,7 +12318,7 @@
           if (/^\d+[A-Z]+X?$/.test((rows[1] || [])[rows[0].length - 1] || '') || /\d{2}[A-Z]/.test(lastColSamples)) {
             gmidCol = rows[0].length - 1;
           } else {
-            throw new Error('This doesn\'t look like an NJO Master By Division sheet — no GMID column found. Use the regular Bracket Sheet Sync wizard instead.');
+            throw new Error('This doesn\'t look like an NJO Master By Division sheet — no GMID column found. Use the regular Futures Bracket Import Wizard wizard instead.');
           }
         }
 

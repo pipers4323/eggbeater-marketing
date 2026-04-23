@@ -68,6 +68,214 @@
     return seedingMap;
   }
 
+  function bsColLabelToIndex(label) {
+    let col = 0;
+    for (const ch of String(label || '').toUpperCase()) {
+      if (ch < 'A' || ch > 'Z') continue;
+      col = col * 26 + (ch.charCodeAt(0) - 64);
+    }
+    return Math.max(0, col - 1);
+  }
+
+  function bsParseCellRef(ref) {
+    const m = String(ref || '').trim().toUpperCase().match(/^([A-Z]+)(\d+)$/);
+    if (!m) return null;
+    return {
+      ref: m[0],
+      col: bsColLabelToIndex(m[1]),
+      row: Math.max(0, parseInt(m[2], 10) - 1),
+    };
+  }
+
+  function bsParseA1Range(range) {
+    const text = String(range || '').trim();
+    if (!text) return null;
+    const m = text.match(/^(?:[^!]+!)?([A-Z]+)(\d+):([A-Z]+)(\d+)$/i);
+    if (m) {
+      return {
+        startCol: bsColLabelToIndex(m[1]),
+        startRow: Math.max(0, parseInt(m[2], 10) - 1),
+        endCol: bsColLabelToIndex(m[3]),
+        endRow: Math.max(0, parseInt(m[4], 10) - 1),
+      };
+    }
+    const rowOnly = text.match(/^(\d+):(\d+)$/);
+    if (rowOnly) {
+      return {
+        startCol: 0,
+        startRow: Math.max(0, parseInt(rowOnly[1], 10) - 1),
+        endCol: Infinity,
+        endRow: Math.max(0, parseInt(rowOnly[2], 10) - 1),
+      };
+    }
+    return null;
+  }
+
+  function bsRgbToHex(rgb) {
+    if (!rgb) return '';
+    const vals = ['red', 'green', 'blue'].map(k => {
+      const v = Math.max(0, Math.min(1, Number(rgb[k] || 0)));
+      return Math.round(v * 255);
+    });
+    return '#' + vals.map(v => v.toString(16).padStart(2, '0')).join('');
+  }
+
+  function bsNormalizeCellColor(value) {
+    const hex = bsRgbToHex(value).toLowerCase();
+    if (!hex || hex === '#ffffff' || hex === '#000000') return '';
+    return hex;
+  }
+
+  function bsHexDistance(a, b) {
+    if (!a || !b) return Number.POSITIVE_INFINITY;
+    const av = a.replace('#', '');
+    const bv = b.replace('#', '');
+    if (av.length !== 6 || bv.length !== 6) return Number.POSITIVE_INFINITY;
+    const numsA = [0, 2, 4].map(i => parseInt(av.slice(i, i + 2), 16));
+    const numsB = [0, 2, 4].map(i => parseInt(bv.slice(i, i + 2), 16));
+    return Math.sqrt(numsA.reduce((sum, cur, idx) => sum + Math.pow(cur - numsB[idx], 2), 0));
+  }
+
+  function bsCellValue(cell) {
+    return String(cell?.formattedValue || '').trim();
+  }
+
+  function bsCellColor(cell) {
+    return bsNormalizeCellColor(
+      cell?.effectiveFormat?.backgroundColorStyle?.rgbColor ||
+      cell?.effectiveFormat?.backgroundColor ||
+      null
+    );
+  }
+
+  async function bsFetchGoogleSheetGrid({ sheetId, sheetGid, accessToken }) {
+    if (!sheetId) throw new Error('Missing sheet ID');
+    if (!accessToken) throw new Error('Missing Google access token');
+
+    const metaResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets(properties(sheetId,title,gridProperties))`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!metaResp.ok) throw new Error('Google Sheets metadata fetch failed (HTTP ' + metaResp.status + ')');
+    const meta = await metaResp.json();
+    const sheets = meta?.sheets || [];
+    const target = sheets.find(s => String(s?.properties?.sheetId) === String(sheetGid))
+      || sheets[0];
+    if (!target?.properties?.title) throw new Error('Could not find the requested sheet tab');
+    const sheetTitle = target.properties.title;
+    const encodedRange = encodeURIComponent(`'${sheetTitle.replace(/'/g, "''")}'`);
+    const gridResp = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?includeGridData=true&ranges=${encodedRange}&fields=sheets(properties(sheetId,title),data(rowData(values(formattedValue,effectiveFormat(backgroundColor,backgroundColorStyle))))`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (!gridResp.ok) throw new Error('Google Sheets grid fetch failed (HTTP ' + gridResp.status + ')');
+    const gridJson = await gridResp.json();
+    const gridSheet = (gridJson?.sheets || [])[0];
+    if (!gridSheet) throw new Error('No grid data returned for the selected tab');
+    const rowData = gridSheet?.data?.[0]?.rowData || [];
+    const maxCols = rowData.reduce((max, row) => Math.max(max, (row?.values || []).length), 0);
+    const rows = rowData.map(row => {
+      const vals = row?.values || [];
+      return Array.from({ length: maxCols }, (_, idx) => vals[idx] || null);
+    });
+    const values = rows.map(row => row.map(bsCellValue));
+    return {
+      sheetTitle,
+      sheetGid: String(target.properties.sheetId),
+      rows,
+      values,
+      maxCols,
+    };
+  }
+
+  function bsBuildColorLegend(gridData, refs) {
+    const parsedRefs = refs
+      .map(bsParseCellRef)
+      .filter(Boolean);
+    if (!parsedRefs.length) throw new Error('Could not parse legend cell refs');
+    const entries = parsedRefs.map(ref => {
+      const cell = gridData?.rows?.[ref.row]?.[ref.col] || null;
+      const label = bsCellValue(cell);
+      const color = bsCellColor(cell);
+      return { ...ref, label, color };
+    }).filter(entry => entry.label);
+    if (!entries.length) throw new Error('Legend cells appear empty');
+    if (entries.some(entry => !entry.color)) {
+      throw new Error('Legend cells need fill colors so the importer can separate age groups');
+    }
+    return entries;
+  }
+
+  function bsAssignRowAgeGroups(gridData, legendEntries) {
+    const colorMap = Object.fromEntries(legendEntries.map(entry => [entry.label, entry.color]));
+    const rowAgeGroups = new Array((gridData?.rows || []).length).fill('');
+    let active = '';
+    for (let ri = 0; ri < (gridData?.rows || []).length; ri++) {
+      const row = gridData.rows[ri] || [];
+      const counts = {};
+      let strongest = '';
+      let strongestCount = 0;
+      for (const cell of row) {
+        const value = bsCellValue(cell);
+        if (!value) continue;
+        const color = bsCellColor(cell);
+        if (!color) continue;
+        let bestLabel = '';
+        let bestDist = 70;
+        for (const entry of legendEntries) {
+          const dist = bsHexDistance(color, entry.color);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestLabel = entry.label;
+          }
+        }
+        if (!bestLabel) continue;
+        counts[bestLabel] = (counts[bestLabel] || 0) + 1;
+        if (counts[bestLabel] > strongestCount) {
+          strongest = bestLabel;
+          strongestCount = counts[bestLabel];
+        }
+      }
+      if (!strongest) {
+        const rowText = row.map(bsCellValue).join(' ').toLowerCase();
+        const labelHit = legendEntries.find(entry => rowText.includes(String(entry.label || '').toLowerCase()));
+        if (labelHit) strongest = labelHit.label;
+      }
+      if (strongest) active = strongest;
+      const hasContent = row.some(cell => bsCellValue(cell));
+      rowAgeGroups[ri] = hasContent ? active : '';
+    }
+    return { rowAgeGroups, colorMap };
+  }
+
+  function bsBuildColorCodedAgeGroups(gridData, legendCells) {
+    const refs = String(legendCells || '').split(/[\s,]+/).map(part => part.trim()).filter(Boolean);
+    const legendEntries = bsBuildColorLegend(gridData, refs);
+    const { rowAgeGroups, colorMap } = bsAssignRowAgeGroups(gridData, legendEntries);
+    return {
+      ageGroups: legendEntries.map(entry => entry.label),
+      legendParsed: legendEntries.map(entry => ({ ref: entry.ref, row: entry.row, col: entry.col })),
+      legendColors: colorMap,
+      rowAgeGroups,
+    };
+  }
+
+  function bsExtractGridRows(gridData, range, selectedAgeGroup, rowAgeGroups) {
+    const values = gridData?.values || [];
+    const bounds = range ? bsParseA1Range(range) : null;
+    const startRow = bounds ? bounds.startRow : 0;
+    const endRow = bounds ? Math.min(values.length - 1, bounds.endRow) : values.length - 1;
+    const startCol = bounds ? bounds.startCol : 0;
+    const endCol = bounds ? Math.min((gridData?.maxCols || 0) - 1, bounds.endCol) : (gridData?.maxCols || 0) - 1;
+    const rows = [];
+    for (let ri = startRow; ri <= endRow; ri++) {
+      const rowAge = rowAgeGroups?.[ri] || '';
+      if (selectedAgeGroup && rowAge && rowAge !== selectedAgeGroup) continue;
+      const row = values[ri] || [];
+      rows.push(row.slice(startCol, endCol + 1).map(cell => String(cell || '').trim()));
+    }
+    return rows;
+  }
+
   function bsComputeBracketPaths(allRows, seedingMap, myPool, cols, helpers) {
     const { parseDateToISO, isoToDate } = helpers;
     const poolUpper = String(myPool || '').replace(/^pool\s*/i, '').trim().toUpperCase();
@@ -315,6 +523,9 @@
     bsParseLocation,
     bsExtractBracketCode,
     bsBracketGameDesc,
+    bsFetchGoogleSheetGrid,
+    bsBuildColorCodedAgeGroups,
+    bsExtractGridRows,
     bsParseRebracket,
     bsComputeBracketPaths,
     bsComputeKap7FuturesSpecialPaths,
