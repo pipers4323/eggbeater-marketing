@@ -1726,17 +1726,30 @@ function _pruneLegacyCombinedHistoryEntries(history) {
   const entries = Array.isArray(history) ? history : [];
   if (!entries.length) return entries;
   const splitTournamentIds = new Set();
+  const splitSignatures = new Set();
+  const signatureFor = (entry) => [
+    String(entry?.name || '').trim().toLowerCase(),
+    String(entry?.dates || '').trim().toLowerCase(),
+    String(entry?.location || '').trim().toLowerCase(),
+  ].join('::');
   entries.forEach(entry => {
     const letter = _historyEntryTeamLetter(entry?.team);
     if ((letter === 'A' || letter === 'B') && entry?.tournamentId) {
       splitTournamentIds.add(String(entry.tournamentId));
     }
+    if (letter === 'A' || letter === 'B') {
+      const sig = signatureFor(entry);
+      if (sig !== '::::') splitSignatures.add(sig);
+    }
   });
-  if (!splitTournamentIds.size) return entries;
+  if (!splitTournamentIds.size && !splitSignatures.size) return entries;
   return entries.filter(entry => {
     const letter = _historyEntryTeamLetter(entry?.team);
     const tournamentId = String(entry?.tournamentId || '');
-    if (!tournamentId || !splitTournamentIds.has(tournamentId)) return true;
+    const sig = signatureFor(entry);
+    const hasSplitSibling = (tournamentId && splitTournamentIds.has(tournamentId))
+      || (sig !== '::::' && splitSignatures.has(sig));
+    if (!hasSplitSibling) return true;
     if (letter === 'A' || letter === 'B') return true;
     return false;
   });
