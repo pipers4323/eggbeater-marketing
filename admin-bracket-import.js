@@ -438,8 +438,11 @@
     return paths;
   }
 
-  function bsIsKap7FuturesSheet(state) {
-    return state?.bsync?.sheetId === '1n7y7fVM7RWku9yzqyx5sIxwdOTvDuXInV-Q0nLW9c7c';
+  function bsIsFuturesWinLossSheet(state, allRows) {
+    if (state?.bsync?.wizardMode !== 'futures') return false;
+    return (allRows || []).some(row =>
+      Array.isArray(row) && row.some(cell => /\b[WL]-?Game\s*\d+\b/i.test(String(cell || '').trim()))
+    );
   }
 
   function bsBuildKap7RowContext(allRows, helpers) {
@@ -597,7 +600,7 @@
   }
 
   function bsComputeKap7FuturesSpecialPaths({ allRows, games, state, helpers }) {
-    if (!bsIsKap7FuturesSheet(state)) return null;
+    if (!bsIsFuturesWinLossSheet(state, allRows)) return null;
     if (!Array.isArray(allRows) || !allRows.length || !Array.isArray(games) || !games.length) return null;
     const rowContext = bsBuildKap7RowContext(allRows, helpers);
     const sectionRows = bsCollectKap7SectionRows(allRows, rowContext, helpers);

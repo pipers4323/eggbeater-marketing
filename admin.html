@@ -10611,7 +10611,9 @@
             </div>`
 
           ).join('') + `<div style="padding-top:6px;font-size:.75rem;color:var(--g400)">Cap colour = ${S.bsync.teamName}'s cap. Tap Continue to set re-bracket options.</div>`
-            + (specialTeamPaths?.B?.length ? `<div style="padding-top:6px;font-size:.75rem;color:var(--royal);font-weight:600">680 Blue will project only within Independence HS: win vs ARWPC → Game 6, loss vs ARWPC → Game 5. 680 Red has no additional bracket games on this sheet.</div>` : '');
+            + (specialTeamPaths && Object.values(specialTeamPaths).some(paths => (paths || []).length)
+              ? `<div style="padding-top:6px;font-size:.75rem;color:var(--royal);font-weight:600">Detected Futures win/loss follow-on paths for the imported team(s). These possible games will be included in the bracket data on deploy.</div>`
+              : '');
           // Prepare date overrides UI
           const uniqueDates = [...new Set(games.map(g => g.dateISO || g.date))].filter(Boolean).sort();
           const oList = document.getElementById('bs-s4-override-list');
