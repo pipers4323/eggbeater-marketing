@@ -10417,7 +10417,8 @@
 
     function bsComputeKap7FuturesSpecialPaths(allRows, cols, games) {
       if (S.bsync?.sheetId !== '1n7y7fVM7RWku9yzqyx5sIxwdOTvDuXInV-Q0nLW9c7c') return null;
-      if (!/14u girls/i.test(String(S.bsync?.myAgeGroup || ''))) return null;
+      const ageGroupLabel = String(S.bsync?.myAgeGroup || '');
+      if (!/14u/i.test(ageGroupLabel)) return null;
       if (!Array.isArray(allRows) || !allRows.length || !Array.isArray(games) || !games.length) return null;
 
       const rowDate = new Array(allRows.length).fill('');
