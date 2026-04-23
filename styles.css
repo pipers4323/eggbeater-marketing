@@ -10518,6 +10518,25 @@ html.native-android .scores-detail-tab.active * {
   -webkit-text-fill-color: #ffffff !important;
 }
 
+html.native-ios #view-possible .bracket-draw-toggle-btn,
+html.native-android #view-possible .bracket-draw-toggle-btn,
+html.native-ios[data-theme="dark"] #view-possible .bracket-draw-toggle-btn,
+html.native-android[data-theme="dark"] #view-possible .bracket-draw-toggle-btn {
+  background: transparent !important;
+  color: #1f2937 !important;
+  -webkit-text-fill-color: #1f2937 !important;
+  opacity: 1 !important;
+}
+
+html.native-ios #view-possible .bracket-draw-toggle-btn.is-active,
+html.native-android #view-possible .bracket-draw-toggle-btn.is-active,
+html.native-ios[data-theme="dark"] #view-possible .bracket-draw-toggle-btn.is-active,
+html.native-android[data-theme="dark"] #view-possible .bracket-draw-toggle-btn.is-active {
+  background: var(--royal) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
 html.native-ios #view-possible .card.tab-card,
 html.native-android #view-possible .card.tab-card,
 html.native-ios[data-theme="dark"] #view-possible .card.tab-card,
@@ -10649,5 +10668,50 @@ html.native-ios #view-possible .full-draw-pool-chip,
 html.native-android #view-possible .full-draw-pool-chip {
   color: #1e3a8a !important;
   background: #dbeafe !important;
+}
+
+html.native-ios #view-possible .full-draw-section-head,
+html.native-ios #view-possible .full-draw-focus-pill,
+html.native-ios #view-possible .full-draw-team-pill,
+html.native-ios #view-possible .full-draw-seed,
+html.native-ios #view-possible .full-draw-pool-row,
+html.native-ios #view-possible .full-draw-path-qualifier,
+html.native-ios #view-possible .full-draw-empty,
+html.native-ios #view-possible .full-draw-empty-icon,
+html.native-ios #view-possible .full-draw-step-state,
+html.native-ios #view-possible .full-draw-game-chip,
+html.native-android #view-possible .full-draw-section-head,
+html.native-android #view-possible .full-draw-focus-pill,
+html.native-android #view-possible .full-draw-team-pill,
+html.native-android #view-possible .full-draw-seed,
+html.native-android #view-possible .full-draw-pool-row,
+html.native-android #view-possible .full-draw-path-qualifier,
+html.native-android #view-possible .full-draw-empty,
+html.native-android #view-possible .full-draw-empty-icon,
+html.native-android #view-possible .full-draw-step-state,
+html.native-android #view-possible .full-draw-game-chip,
+html.native-ios[data-theme="dark"] #view-possible .full-draw-section-head,
+html.native-ios[data-theme="dark"] #view-possible .full-draw-focus-pill,
+html.native-ios[data-theme="dark"] #view-possible .full-draw-team-pill,
+html.native-ios[data-theme="dark"] #view-possible .full-draw-seed,
+html.native-ios[data-theme="dark"] #view-possible .full-draw-pool-row,
+html.native-ios[data-theme="dark"] #view-possible .full-draw-path-qualifier,
+html.native-ios[data-theme="dark"] #view-possible .full-draw-empty,
+html.native-ios[data-theme="dark"] #view-possible .full-draw-empty-icon,
+html.native-ios[data-theme="dark"] #view-possible .full-draw-step-state,
+html.native-ios[data-theme="dark"] #view-possible .full-draw-game-chip,
+html.native-android[data-theme="dark"] #view-possible .full-draw-section-head,
+html.native-android[data-theme="dark"] #view-possible .full-draw-focus-pill,
+html.native-android[data-theme="dark"] #view-possible .full-draw-team-pill,
+html.native-android[data-theme="dark"] #view-possible .full-draw-seed,
+html.native-android[data-theme="dark"] #view-possible .full-draw-pool-row,
+html.native-android[data-theme="dark"] #view-possible .full-draw-path-qualifier,
+html.native-android[data-theme="dark"] #view-possible .full-draw-empty,
+html.native-android[data-theme="dark"] #view-possible .full-draw-empty-icon,
+html.native-android[data-theme="dark"] #view-possible .full-draw-step-state,
+html.native-android[data-theme="dark"] #view-possible .full-draw-game-chip {
+  color: #1f2937 !important;
+  -webkit-text-fill-color: #1f2937 !important;
+  opacity: 1 !important;
 }
 
