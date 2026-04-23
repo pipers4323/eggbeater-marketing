@@ -11523,6 +11523,13 @@ async function reloadTournamentJs() {
 }
 
 function buildSheetConfigFromTournament(tournament) {
+  const asPathArray = (paths) => {
+    if (Array.isArray(paths)) return paths;
+    if (paths && typeof paths === 'object') {
+      return Object.values(paths).flatMap(value => Array.isArray(value) ? value : []);
+    }
+    return [];
+  };
   const colIndex = value => {
     if (Number.isInteger(value)) return value;
     if (typeof value === 'number' && Number.isFinite(value)) return Math.trunc(value);
@@ -11544,7 +11551,7 @@ function buildSheetConfigFromTournament(tournament) {
   (tournament?.games || []).forEach(g => {
     if (g?.dateISO) dates.add(g.dateISO);
   });
-  (tournament?.bracket?.paths || []).forEach(path => {
+  asPathArray(tournament?.bracket?.paths).forEach(path => {
     (path?.steps || []).forEach(step => {
       if (step?.dateISO) dates.add(step.dateISO);
     });
