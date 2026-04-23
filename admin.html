@@ -2137,6 +2137,154 @@
       font-size: 0.82rem;
     }
 
+    .recovery-card {
+      margin-bottom: 10px;
+    }
+
+    .recovery-card-alert {
+      border-color: #fca5a5;
+      background: #fff1f2;
+    }
+
+    .recovery-card-header-royal {
+      color: var(--royal);
+    }
+
+    .recovery-card-header-err {
+      color: #dc2626;
+    }
+
+    .recovery-card-body {
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .recovery-card-body-tight {
+      padding: 10px 14px;
+    }
+
+    .recovery-card-copy-err {
+      color: #7f1d1d;
+    }
+
+    .recovery-row-static {
+      cursor: default;
+    }
+
+    .recovery-info-tight {
+      gap: 4px;
+    }
+
+    .recovery-game-opp-err {
+      color: #dc2626;
+    }
+
+    .recovery-gameid-chip {
+      font-family: monospace;
+    }
+
+    .recovery-toolbar {
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .recovery-toolbar-title {
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: var(--g700);
+    }
+
+    .recovery-toolbar-spacer {
+      flex: 1;
+    }
+
+    .recovery-toolbar-meta {
+      font-size: 0.7rem;
+      color: var(--g300);
+      white-space: nowrap;
+    }
+
+    .recovery-status-inline {
+      font-size: 0.82rem;
+    }
+
+    .recovery-actions-start {
+      justify-content: flex-start;
+    }
+
+    .recovery-copy-pad {
+      padding: 10px 14px;
+    }
+
+    .recovery-callout-warn {
+      padding: 10px 12px;
+      border: 1px solid #facc15;
+      border-radius: 10px;
+      background: #fffbeb;
+      color: #78350f;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .recovery-all-clear {
+      margin-bottom: 10px;
+      text-align: center;
+      padding: 28px 20px;
+    }
+
+    .recovery-all-clear-icon {
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+
+    .recovery-all-clear-title {
+      font-weight: 700;
+      color: var(--g700);
+      margin-bottom: 4px;
+    }
+
+    .recovery-all-clear-copy {
+      font-size: 0.82rem;
+      color: var(--g400);
+    }
+
+    .recovery-btn-sm {
+      padding: 6px 10px;
+      font-size: 0.76rem;
+    }
+
+    .recovery-btn-md {
+      padding: 8px 10px;
+      font-size: 0.76rem;
+    }
+
+    .recovery-btn-neutral {
+      background: var(--g100);
+      color: var(--g700);
+    }
+
+    .recovery-btn-warn {
+      background: #fff7ed;
+      color: #9a3412;
+      white-space: nowrap;
+    }
+
+    .recovery-btn-danger {
+      background: var(--red);
+    }
+
+    .recovery-btn-primary {
+      background: var(--royal);
+    }
+
+    .recovery-btn-success {
+      background: #2e7d32;
+    }
     @media (max-width: 760px) {
       .recovery-summary-strip {
         grid-template-columns: 1fr 1fr;
@@ -14163,7 +14311,7 @@
         // When only one season, surface it in the card header and skip the subheader row
         const singleSeasonBadge = !multiSeason && seasonOrder[0] && seasonOrder[0] !== 'Unsorted'
           ? ` <span style="font-size:0.72rem;font-weight:400;color:var(--g400);margin-left:4px">${esc(seasonOrder[0])}</span>` : '';
-        html += `<div class="card" style="margin-bottom:10px">
+        html += `<div class="card recovery-card">
       <div class="card-header">üìã Tournament History ‚Äî ${esc(teamLabel)} (${entries.length})${singleSeasonBadge}</div>`;
         for (const season of seasonOrder) {
           const seasonEntries = bySeason[season];
@@ -14193,7 +14341,7 @@
         }
         html += `</div>`;
       } else {
-        html += `<div class="card" style="margin-bottom:10px">
+        html += `<div class="card recovery-card">
       <div class="card-header">üìã Tournament History ‚Äî ${esc(teamLabel)}</div>
       <div style="padding:20px;text-align:center;color:var(--g400)">
         <div style="font-size:1.5rem;margin-bottom:6px">üì≠</div>
@@ -14332,6 +14480,12 @@
         if (type === 'conflict') return true;
         return !!entry?.conflict || String(entry?.computedStatus || entry?.status || '').trim() === 'conflict';
       }
+      if (mode === 'needs-final') {
+        if (type === 'scored') return !!entry?.needsFinalization || String(entry?.score?.gameState || '').trim() !== 'final';
+        if (type === 'session') return String(entry?.computedStatus || entry?.status || entry?.session?.status || '').trim() === 'finalizing';
+        if (type === 'draft') return ['pending', 'local-final', 'finalizing'].includes(String(entry?.status || entry?.session?.status || '').trim());
+        return false;
+      }
       if (type === 'conflict') return true;
       if (type === 'scored') return !!entry?.needsFinalization || String(entry?.score?.gameState || '').trim() !== 'final';
       if (type === 'session') return recoverySessionNeedsAction(entry);
@@ -14360,14 +14514,14 @@
     }
 
     // ‚îÄ‚îÄ renderRecoveryAdminTab ‚Äî live scoring operations, sessions, drafts, conflicts ‚îÄ‚îÄ
-        function renderRecoveryConflictCard(conflicts, teamLabel, recoveryChip) {
+            function renderRecoveryConflictCard(conflicts, teamLabel, recoveryChip) {
       if (!conflicts.length) return '';
-      return `<div class="card" style="margin-bottom:10px;border-color:#fca5a5;background:#fff1f2">
-      <div class="card-header" style="color:#dc2626">Conflicts - ${esc(teamLabel)}</div>
-      <div style="padding:10px 14px;font-size:0.82rem;color:#7f1d1d;line-height:1.5">
+      return `<div class="card recovery-card recovery-card-alert">
+      <div class="card-header recovery-card-header-err">Conflicts - ${esc(teamLabel)}</div>
+      <div class="recovery-copy recovery-card-body-tight recovery-card-copy-err">
         Two devices tried to own the same scorer session. Force-close the losing session in Active Sessions below, then dismiss here.
       </div>
-      <div style="display:flex;flex-direction:column">
+      <div class="recovery-card-body-tight">
         ${conflicts.map(conflict => {
           const stamp = conflict.updatedAt ? new Date(conflict.updatedAt).toLocaleString() : '';
           const typeLabel = { 'multi-device': 'Multi-device conflict' }[conflict.type] || conflict.type;
@@ -14377,14 +14531,14 @@
             stamp,
             conflict.occurrences > 1 ? `${conflict.occurrences}x occurred` : '',
           ].filter(Boolean).join(' ∑ ');
-          return `<div class="game-row"><div class="game-summary" style="cursor:default">
+          return `<div class="game-row"><div class="game-summary recovery-row-static">
             <div class="game-info">
-              <div class="game-opp" style="color:#dc2626">${esc(typeLabel)}: ${esc(conflict.gameId || 'unknown game')}</div>
+              <div class="game-opp recovery-game-opp-err">${esc(typeLabel)}: ${esc(conflict.gameId || 'unknown game')}</div>
               <div class="recovery-inline-chips">${recoveryChip('Conflict', 'err')}</div>
               <div class="game-meta">${esc(auditBits)}</div>
             </div>
             <div class="recovery-row-actions">
-              <button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700)"
+              <button class="btn-save recovery-btn-sm recovery-btn-neutral"
                 onclick="resolveConflictAdmin('${esc(conflict.gameId)}','${esc(conflict.tournamentId || '_')}')">Dismiss</button>
             </div>
           </div></div>`;
@@ -14393,7 +14547,7 @@
     </div>`;
     }
 
-    function renderRecoveryScoredRows(entries, recoveryChip) {
+        function renderRecoveryScoredRows(entries, recoveryChip) {
       if (!entries.length) return `${renderRecoveryEmptyState("No durable scored games for this age group yet.")}`;
       return entries.map(entry => {
         const score = entry.score || {};
@@ -14412,11 +14566,11 @@
         const promoteLabel = stateLabel === 'final' ? 'Reopen' : 'Promote Final';
         const promoteAction = stateLabel === 'final' ? 'reopen' : 'promote';
         const stateChip = needsFinal ? recoveryChip('Needs Final', 'warn') : recoveryChip(stateLabel === 'final' ? 'Final Saved' : stateLabel, stateLabel === 'final' ? 'ok' : 'info');
-        return `<div class="game-row"><div class="game-summary" style="cursor:default"><div class="game-info"><div class="game-opp">${esc(entry.opponent || entry.gameId || 'Scored game')}</div><div class="recovery-inline-chips">${stateChip}</div><div class="game-meta">${esc(scoreLabel)}${auditBits ? ' ∑ ' + esc(auditBits) : ''}</div></div><div class="recovery-row-actions"><button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','${promoteAction}')">${promoteLabel}</button><button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','reset')">Reset</button></div></div></div>`;
+        return `<div class="game-row"><div class="game-summary recovery-row-static"><div class="game-info"><div class="game-opp">${esc(entry.opponent || entry.gameId || 'Scored game')}</div><div class="recovery-inline-chips">${stateChip}</div><div class="game-meta">${esc(scoreLabel)}${auditBits ? ' ∑ ' + esc(auditBits) : ''}</div></div><div class="recovery-row-actions"><button class="btn-save recovery-btn-md" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','${promoteAction}')">${promoteLabel}</button><button class="btn-save recovery-btn-md recovery-btn-danger" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','reset')">Reset</button></div></div></div>`;
       }).join('');
     }
 
-    function renderRecoverySessionRows(entries, recoveryChip) {
+        function renderRecoverySessionRows(entries, recoveryChip) {
       if (!entries.length) return `${renderRecoveryEmptyState("No active scorer sessions for this age group.")}`;
       return entries.map(entry => {
         const session = entry.session || {};
@@ -14428,16 +14582,16 @@
         const ageGroupLabel = esc(entry.ageGroup || session.groupKey || '');
         const teamSlot = esc(session.teamSlot || '');
         const gameIdShort = esc((entry.gameId || '').slice(-10));
-        const identityChips = [ageGroupLabel ? recoveryChip(ageGroupLabel, 'muted') : '', teamSlot ? recoveryChip(`Team ${teamSlot}`, 'info') : '', effectiveStatus === 'stale' ? recoveryChip('Stale session', 'warn') : '', gameIdShort ? `<span class="recovery-status-chip recovery-status-chip-muted" style="font-family:monospace" title="${esc(entry.gameId || '')}">...${gameIdShort}</span>` : ''].filter(Boolean).join('');
+        const identityChips = [ageGroupLabel ? recoveryChip(ageGroupLabel, 'muted') : '', teamSlot ? recoveryChip(`Team ${teamSlot}`, 'info') : '', effectiveStatus === 'stale' ? recoveryChip('Stale session', 'warn') : '', gameIdShort ? `<span class="recovery-status-chip recovery-status-chip-muted recovery-gameid-chip" title="${esc(entry.gameId || '')}">...${gameIdShort}</span>` : ''].filter(Boolean).join('');
         const canAct = ['open', 'stale', 'finalizing', 'conflict'].includes(effectiveStatus);
         const sessionTid = esc(entry.tournamentId || '_');
         const sessionGid = esc(entry.gameId);
         const statusTone = effectiveStatus === 'open' ? 'ok' : effectiveStatus === 'finalizing' || effectiveStatus === 'final-acked' ? 'info' : effectiveStatus === 'stale' ? 'warn' : effectiveStatus === 'conflict' ? 'err' : 'muted';
-        return `<div class="game-row"><div class="game-summary" style="cursor:default"><div class="game-info" style="gap:4px"><div class="game-opp">${esc(session.opponent || entry.gameId || 'Active scorer session')}</div><div class="recovery-inline-chips">${recoveryChip(statusLabel, statusTone)}${identityChips}</div><div class="game-meta">${esc(scoreLabel)} ∑ hb ${esc(hbLabel)}${entry.deviceId ? ' ∑ ' + esc(entry.deviceId.slice(0, 8)) : ''}</div></div>${canAct ? `<div class="recovery-row-actions"><button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700);white-space:nowrap" onclick="updateScorerSessionAdmin('${sessionGid}','${sessionTid}','force-close')">Force Close</button></div>` : ''}</div></div>`;
+        return `<div class="game-row"><div class="game-summary recovery-row-static"><div class="game-info recovery-info-tight"><div class="game-opp">${esc(session.opponent || entry.gameId || 'Active scorer session')}</div><div class="recovery-inline-chips">${recoveryChip(statusLabel, statusTone)}${identityChips}</div><div class="game-meta">${esc(scoreLabel)} ∑ hb ${esc(hbLabel)}${entry.deviceId ? ' ∑ ' + esc(entry.deviceId.slice(0, 8)) : ''}</div></div>${canAct ? `<div class="recovery-row-actions"><button class="btn-save recovery-btn-sm recovery-btn-neutral" onclick="updateScorerSessionAdmin('${sessionGid}','${sessionTid}','force-close')">Force Close</button><button class="btn-save recovery-btn-sm recovery-btn-warn" onclick="updateScorerSessionAdmin('${sessionGid}','${sessionTid}','clear-lock')">Clear Lock</button></div>` : ''}</div></div>`;
       }).join('');
     }
 
-    function renderRecoveryDraftRows(entries, recoveryChip) {
+        function renderRecoveryDraftRows(entries, recoveryChip) {
       if (!entries.length) return `${renderRecoveryEmptyState("No mirrored scorer drafts for this age group.")}`;
       return entries.map(entry => {
         const score = entry.score || {};
@@ -14447,7 +14601,10 @@
         const sessionState = String(entry.status || entry.session?.status || 'open').trim() || 'open';
         const auditBits = [stamp ? 'Updated ' + stamp : '', entry.deviceId ? 'Device ' + entry.deviceId.slice(0, 8) : '', eventCount ? `${eventCount} event${eventCount !== 1 ? 's' : ''}` : '', entry.conflict ? 'Conflict detected' : ''].filter(Boolean).join(' ∑ ');
         const tone = entry.conflict ? 'err' : sessionState === 'final-acked' ? 'ok' : sessionState === 'queued' || sessionState === 'retrying' ? 'warn' : 'info';
-        return `<div class="game-row"><div class="game-summary" style="cursor:default"><div class="game-info"><div class="game-opp">${esc(entry.session?.opponent || score.opponent || entry.gameId || 'Recovered draft')}</div><div class="recovery-inline-chips">${recoveryChip(entry.conflict ? 'Conflict' : sessionState, tone)}</div><div class="game-meta">${esc(scoreLabel)}${auditBits ? ' ∑ ' + esc(auditBits) : ''}</div></div><div class="recovery-row-actions"><button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','restore')">Restore Draft</button><button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','clear')">Clear</button></div></div></div>`;
+        const mirroredChip = recoveryChip('Mirrored Draft', 'info');
+        const finalChip = sessionState === 'final-acked' ? recoveryChip('Final Saved', 'ok') : '';
+        const localOnlyChip = !entry?.scoredGameExists ? recoveryChip('No Durable Game Yet', 'warn') : '';
+        return `<div class="game-row"><div class="game-summary recovery-row-static"><div class="game-info"><div class="game-opp">${esc(entry.session?.opponent || score.opponent || entry.gameId || 'Recovered draft')}</div><div class="recovery-inline-chips">${recoveryChip(entry.conflict ? 'Conflict' : sessionState, tone)}${mirroredChip}${localOnlyChip}${finalChip}</div><div class="game-meta">${esc(scoreLabel)}${auditBits ? ' ∑ ' + esc(auditBits) : ''}</div></div><div class="recovery-row-actions"><button class="btn-save recovery-btn-md" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','restore')">Restore Draft</button><button class="btn-save recovery-btn-md recovery-btn-danger" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','clear')">Clear</button></div></div></div>`;
       }).join('');
     }
 
@@ -14455,7 +14612,7 @@
       const teamObj = getAdminTeams().find(t => t.key === S.team);
       const teamLabel = teamObj ? teamObj.label : S.team;
       const scoredEntries = Object.values(S.scoredGames || {}).sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
-      const scorerDraftEntries = (S.scorerDrafts || []).slice().sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+      const scorerDraftEntries = (S.scorerDrafts || []).slice().map(entry => ({ ...entry, scoredGameExists: scoredEntries.some(scored => String(scored.gameId || '') === String(entry.gameId || '')) })).sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
       const scorerSessionEntries = (S.scorerSessions || []).slice().sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
       const needsFinalizeEntries = scoredEntries.filter(entry => !!entry.needsFinalization);
       const unresolvedConflicts = (S.conflicts || []).filter(c => !c.resolved);
@@ -14485,17 +14642,20 @@
       const filteredScorerSessionEntries = scorerSessionEntries.filter(entry => recoveryFilterMatches(recoveryFilter, 'session', entry));
       const filteredScorerDraftEntries = scorerDraftEntries.filter(entry => recoveryFilterMatches(recoveryFilter, 'draft', entry));
       const needsFinalizeSummary = needsFinalizeEntries.length
-        ? `<div style="padding:10px 12px;border:1px solid #facc15;border-radius:10px;background:#fffbeb;color:#78350f;font-size:0.82rem;font-weight:700">${needsFinalizeEntries.length} game(s) need finalization - close them out before the next round.</div>`
+        ? `<div class="recovery-callout-warn">${needsFinalizeEntries.length} game(s) need finalization - close them out before the next round.</div>`
         : '';
 
-      let html = `<div class="card" style="margin-bottom:10px">
-      <div style="padding:12px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span style="font-weight:800;font-size:0.9rem;color:var(--g700)">Scoring Recovery - ${esc(teamLabel)}</span>
+      let html = `<div class="card recovery-card">
+      <div class="recovery-toolbar">
+        <span class="recovery-toolbar-title">Scoring Recovery - ${esc(teamLabel)}</span>
         ${pills}
-        <div style="flex:1"></div>
-        <span style="font-size:0.7rem;color:var(--g300);white-space:nowrap">last refresh ${esc(lastRefreshLabel)} | auto-refresh 30s</span>
-        <button class="save-btn" onclick="refreshScoredGamesAdmin()" style="background:var(--g100);color:var(--g700)">Refresh All</button>
-        <span id="scored-games-status" style="font-size:0.82rem"></span>
+        <div class="recovery-toolbar-spacer"></div>
+        <span class="recovery-toolbar-meta">last refresh ${esc(lastRefreshLabel)} | auto-refresh 30s</span>
+        <button class="save-btn recovery-btn-neutral" onclick="refreshScoredGamesAdmin()">Refresh All</button>
+        <button class="save-btn recovery-btn-primary" onclick="exportRecoveryData('drafts')">Export Drafts</button>
+        <button class="save-btn recovery-btn-primary" onclick="exportRecoveryData('sessions')">Export Sessions</button>
+        <button class="save-btn recovery-btn-primary" onclick="exportRecoveryData('conflicts')">Export Conflicts</button>
+        <span id="scored-games-status" class="recovery-status-inline"></span>
       </div>
       <div class="recovery-summary-strip">
         <div class="recovery-summary-card recovery-summary-card-alert"><span class="recovery-summary-label">Needs Action</span><span class="recovery-summary-value">${needsActionCount}</span></div>
@@ -14506,6 +14666,7 @@
       <div class="recovery-filter-row">
         <button class="recovery-filter-btn ${recoveryFilter === 'needs-action' ? 'active' : ''}" onclick="setRecoveryFilter('needs-action')">Needs Action</button>
         <button class="recovery-filter-btn ${recoveryFilter === 'conflicts' ? 'active' : ''}" onclick="setRecoveryFilter('conflicts')">Conflicts Only</button>
+        <button class="recovery-filter-btn ${recoveryFilter === 'needs-final' ? 'active' : ''}" onclick="setRecoveryFilter('needs-final')">Needs Final</button>
         <button class="recovery-filter-btn ${recoveryFilter === 'all' ? 'active' : ''}" onclick="setRecoveryFilter('all')">Show All</button>
       </div>
       <div class="recovery-health-strip">
@@ -14520,12 +14681,12 @@
 
       html += renderRecoveryConflictCard(unresolvedConflicts, teamLabel, recoveryChip);
 
-      html += `<div class="card" style="margin-bottom:10px">
-      <div class="card-header" style="color:var(--royal)">Scored Games - ${esc(teamLabel)}</div>
-      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
-        <div class="recovery-row-actions" style="justify-content:flex-start">
-          <button class="save-btn" onclick="syncOfficialSheetResultsAdmin()" style="background:var(--royal)">Sync Official Sheet</button>
-          <button class="save-btn" onclick="rebuildHistoryFromScoredGamesAdmin()" style="background:#2e7d32">Rebuild History</button>
+      html += `<div class="card recovery-card">
+      <div class="card-header recovery-card-header-royal">Scored Games - ${esc(teamLabel)}</div>
+      <div class="recovery-card-body">
+        <div class="recovery-row-actions recovery-actions-start">
+          <button class="save-btn recovery-btn-primary" onclick="syncOfficialSheetResultsAdmin()">Sync Official Sheet</button>
+          <button class="save-btn recovery-btn-success" onclick="rebuildHistoryFromScoredGamesAdmin()">Rebuild History</button>
         </div>
         ${needsFinalizeSummary}
         <div class="recovery-copy">Sync writes final scores into durable records. Rebuild History pushes finalized games to the spectator history view.</div>
@@ -14533,24 +14694,24 @@
       </div>
     </div>`;
 
-      html += `<div class="card" style="margin-bottom:10px">
-      <div class="card-header" style="color:var(--royal)">Active Scorer Sessions - ${esc(teamLabel)}</div>
-      <div class="recovery-copy" style="padding:10px 14px">Server-owned heartbeats. Force-close a stale session before a new device starts scoring the same game.</div>
+      html += `<div class="card recovery-card">
+      <div class="card-header recovery-card-header-royal">Active Scorer Sessions - ${esc(teamLabel)}</div>
+      <div class="recovery-copy recovery-copy-pad">Server-owned heartbeats. Force-close a stale session before a new device starts scoring the same game.</div>
       ${renderRecoverySessionRows(filteredScorerSessionEntries, recoveryChip)}
     </div>`;
 
-      html += `<div class="card" style="margin-bottom:10px">
-      <div class="card-header" style="color:var(--royal)">Mirrored Scorer Drafts - ${esc(teamLabel)}</div>
-      <div class="recovery-copy" style="padding:10px 14px">Server-backed drafts. Use Restore Draft to rebuild a scored-game record from a mirrored draft if the original device was lost.</div>
+      html += `<div class="card recovery-card">
+      <div class="card-header recovery-card-header-royal">Mirrored Scorer Drafts - ${esc(teamLabel)}</div>
+      <div class="recovery-copy recovery-copy-pad">Server-backed drafts. Use Restore Draft to rebuild a scored-game record from a mirrored draft if the original device was lost.</div>
       ${renderRecoveryDraftRows(filteredScorerDraftEntries, recoveryChip)}
     </div>`;
 
       const allEmpty = !unresolvedConflicts.length && !scoredEntries.length && !scorerSessionEntries.length && !scorerDraftEntries.length;
       if (allEmpty) {
-        html += `<div class="card" style="margin-bottom:10px;text-align:center;padding:28px 20px">
-        <div style="font-size:2rem;margin-bottom:8px">OK</div>
-        <div style="font-weight:700;color:var(--g700);margin-bottom:4px">All clear</div>
-        <div style="font-size:0.82rem;color:var(--g400)">No active scorer sessions, pending drafts, or conflicts.<br>Hit <strong>Refresh All</strong> if you're expecting live data.</div>
+        html += `<div class="card recovery-all-clear">
+        <div class="recovery-all-clear-icon">OK</div>
+        <div class="recovery-all-clear-title">All clear</div>
+        <div class="recovery-all-clear-copy">No active scorer sessions, pending drafts, or conflicts.<br>Hit <strong>Refresh All</strong> if you're expecting live data.</div>
       </div>`;
       }
 
@@ -14585,8 +14746,27 @@
     }
 
     function setRecoveryFilter(mode = 'needs-action') {
-      S.recoveryFilter = ['all', 'conflicts', 'needs-action'].includes(mode) ? mode : 'needs-action';
+      S.recoveryFilter = ['all', 'conflicts', 'needs-action', 'needs-final'].includes(mode) ? mode : 'needs-action';
       renderTab();
+    }
+
+    function exportRecoveryData(kind = 'drafts') {
+      const fileMap = {
+        drafts: { data: S.scorerDrafts || [], filename: 'scorer-drafts-' + (S.team || 'team') + '.json' },
+        sessions: { data: S.scorerSessions || [], filename: 'scorer-sessions-' + (S.team || 'team') + '.json' },
+        conflicts: { data: S.conflicts || [], filename: 'scorer-conflicts-' + (S.team || 'team') + '.json' },
+      };
+      const payload = fileMap[kind] || fileMap.drafts;
+      const blob = new Blob([JSON.stringify(payload.data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = payload.filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(a.href);
+        a.remove();
+      }, 0);
     }
 
 
@@ -17442,11 +17622,11 @@
           </div>`;
         }).join('');
 
-        return `<div class="card" style="margin-bottom:10px">
+        return `<div class="card recovery-card">
           <div class="card-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span>${esc(teamLabel)}</span>
             ${group.tournamentName ? `<span style="font-size:0.75rem;font-weight:400;color:var(--g400)">${esc(group.tournamentName)}</span>` : ''}
-            <div style="flex:1"></div>
+            <div class="recovery-toolbar-spacer"></div>
             <span style="font-size:0.72rem;color:var(--g400)">${games.length} game${games.length !== 1 ? 's' : ''}</span>
           </div>
           ${rows || '<div style="padding:16px 14px;color:var(--g400);font-size:.85rem">No games deployed for this group</div>'}
@@ -17462,11 +17642,11 @@
         totalIssues? `<span style="padding:2px 9px;border-radius:99px;background:#fee2e2;color:#dc2626;font-size:0.75rem;font-weight:700">‚ö†Ô∏è ${totalIssues} need attention</span>` : '',
       ].filter(Boolean).join('');
 
-      return `<div class="card" style="margin-bottom:10px">
-        <div style="padding:12px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      return `<div class="card recovery-card">
+        <div class="recovery-toolbar">
           <span style="font-weight:800;font-size:0.9rem;color:var(--g700)">üìä Tournament Overview</span>
           ${pills}
-          <div style="flex:1"></div>
+          <div class="recovery-toolbar-spacer"></div>
           <span style="font-size:0.7rem;color:var(--g300);white-space:nowrap">${agoLabel ? 'Updated ' + esc(agoLabel) : ''} ¬∑ auto 15s</span>
           <button class="save-btn" onclick="refreshDirDashboard()" style="background:var(--g100);color:var(--g700)">‚Üª Refresh</button>
         </div>

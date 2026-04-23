@@ -374,3 +374,41 @@ eggbeater-waterpolo:
 - [ ] Confirm Bracket `My Path` and `Full Draw` text are readable in both light and dark mode
 - [ ] Confirm `Play-by-Play` inactive button text is readable in native dark mode
 - [ ] Confirm header copy no longer shows `â€“` mojibake in native
+
+---
+
+## 2026-04-22 Admin Recovery Cleanup Commit
+
+### Latest shipped heads
+```
+eggbeater-marketing:
+  PENDING  Admin recovery cleanup/refactor commit after native fix pass
+
+eggbeater-waterpolo:
+  33fc3c4  Sync native schedule and bracket readability fixes
+```
+
+### Included in the admin cleanup/refactor pass
+- Admin Recovery filters
+  - `Conflicts Only`
+  - `Needs Final`
+  - `Show All`
+- Active session actions
+  - `Force Close`
+  - `Clear Lock`
+- Mirrored draft state distinction
+  - `Mirrored Draft`
+  - `No Durable Game Yet`
+  - `Final Saved`
+- Lightweight admin exports
+  - drafts
+  - sessions
+  - conflicts
+- Recovery UI cleanup
+  - shared recovery card classes
+  - shared toolbar / summary / button styles
+  - reduced inline styling in recovery render paths
+
+### Notes
+- This is an admin-only follow-up; it does not change the current native build source.
+- Full tournament-day validation is still scheduled in 3 days.
