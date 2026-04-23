@@ -11099,6 +11099,8 @@
 
         if (status) { status.style.color = '#059669'; status.textContent = `✅ ${games.length} game(s) imported and LIVE in spectator app!${S.bsync.pollMins ? ` Auto-sync every ${S.bsync.pollMins} min.` : ''} Fill in tournament name/dates below and tap 💾 Save & Deploy to publish those details.`; }
         if (S.bsync.pollMins > 0) bsStartPoll();
+        updateAdminHeader();
+        renderTab();
         // Scroll to Game/Tournament Setup so admin fills in name, dates, venue, etc. before deploying
         setTimeout(() => {
           const setupEl = Array.from(document.querySelectorAll('#tab-content details')).find(d => {
@@ -13187,6 +13189,8 @@
           throw new Error(txt);
         }
         showStatus(adminT('publish_live_done'), 'ok');
+        updateAdminHeader();
+        renderTab();
         _clearDirty();
         _auditLog('Deployed tournament');
         // Save snapshot for rollback
