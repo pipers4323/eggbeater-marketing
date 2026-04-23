@@ -10925,6 +10925,28 @@
       return conflicts;
     }
 
+    function bsMergeBracketPaths(existingPaths, incomingPaths, explicitTeam) {
+      const isKeyed = existingPaths && !Array.isArray(existingPaths) && typeof existingPaths === 'object';
+      const cloneKeyed = (obj) => Object.fromEntries(Object.entries(obj || {}).map(([k, v]) => [k, Array.isArray(v) ? [...v] : []]));
+      if (incomingPaths && !Array.isArray(incomingPaths) && typeof incomingPaths === 'object') {
+        const merged = isKeyed ? cloneKeyed(existingPaths) : {};
+        Object.entries(incomingPaths).forEach(([team, paths]) => {
+          merged[team] = Array.isArray(paths) ? [...paths] : [];
+        });
+        return merged;
+      }
+      if (!Array.isArray(incomingPaths)) return isKeyed ? cloneKeyed(existingPaths) : incomingPaths;
+      if (!isKeyed) return incomingPaths;
+      const merged = cloneKeyed(existingPaths);
+      const existingTeams = Object.keys(merged);
+      const targetTeam = explicitTeam
+        || (Array.isArray(S.tournament?.teams) && S.tournament.teams.length === 1 ? String(S.tournament.teams[0] || '').trim().toUpperCase() : '')
+        || (existingTeams.length === 1 ? existingTeams[0] : '');
+      if (!targetTeam) return merged;
+      merged[targetTeam] = [...incomingPaths];
+      return merged;
+    }
+
     async function bsDeploy() {
       const status = document.getElementById('bs-deploy-status');
       if (!S.bsync?.games?.length) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ No games to deploy — go back and scan a sheet first'; } return; }
@@ -10949,17 +10971,18 @@
         S.tournament.games = games;
         {
           const _bUpdate = {};
+          const _existingPaths = S.tournament.bracket?.paths;
           if (S.bsync.teamBracketPaths && Object.keys(S.bsync.teamBracketPaths).some(k => (S.bsync.teamBracketPaths[k] || []).length)) {
-            _bUpdate.paths = S.bsync.teamBracketPaths;
+            _bUpdate.paths = bsMergeBracketPaths(_existingPaths, S.bsync.teamBracketPaths, null);
           } else if (S.bsync.bracketPaths?.length) {
             // If admin selected a specific team slot, wrap paths as keyed object { A: [...] }
             const _pathTeam = S.bsync.bracketPathTeam && S.bsync.bracketPathTeam !== 'All'
               ? S.bsync.bracketPathTeam : null;
-            _bUpdate.paths = _pathTeam ? { [_pathTeam]: S.bsync.bracketPaths } : S.bsync.bracketPaths;
+            const _incomingPaths = _pathTeam ? { [_pathTeam]: S.bsync.bracketPaths } : S.bsync.bracketPaths;
+            _bUpdate.paths = bsMergeBracketPaths(_existingPaths, _incomingPaths, _pathTeam);
           } else if (S.bsync.rebracket === false) {
             // User chose "single day" — clear stale ARRAY bracket paths (auto-generated),
             // but preserve any manually-keyed object paths (e.g. { B: [...] }) set via console.
-            const _existingPaths = S.tournament.bracket?.paths;
             const _hasKeyedPaths = _existingPaths && !Array.isArray(_existingPaths)
               && typeof _existingPaths === 'object' && Object.keys(_existingPaths).length > 0;
             if (!_hasKeyedPaths) _bUpdate.paths = [];
