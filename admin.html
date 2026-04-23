@@ -10019,6 +10019,65 @@
       if (!rows.length) throw new Error('No rows found for the selected age group in that range');
       return rows;
     }
+
+    function bsInferTournamentName(allRows) {
+      for (let ri = 0; ri < Math.min((allRows || []).length, 10); ri++) {
+        const text = (allRows[ri] || [])
+          .map(v => String(v || '').trim())
+          .filter(Boolean)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (!text) continue;
+        if (/^(date|location|host|game\s*#)\b/i.test(text)) continue;
+        if (parseDateToISO(text)) continue;
+        if (text.length < 12) continue;
+        return text;
+      }
+      return '';
+    }
+
+    function bsInferTournamentDates(allRows, games) {
+      const dateSet = new Set();
+      (games || []).forEach(g => { if (g?.dateISO) dateSet.add(g.dateISO); });
+      for (let ri = 0; ri < Math.min((allRows || []).length, 14); ri++) {
+        for (const cell of (allRows[ri] || [])) {
+          const iso = parseDateToISO(String(cell || '').trim());
+          if (iso) dateSet.add(iso);
+        }
+      }
+      const dates = [...dateSet].sort();
+      if (!dates.length) return '';
+      if (dates.length === 1) return isoToDate(dates[0]);
+      return `${isoToDate(dates[0])} - ${isoToDate(dates[dates.length - 1])}`;
+    }
+
+    function bsInferTournamentLocation(games) {
+      const venues = [...new Set((games || []).map(g => String(g?.location || '').trim()).filter(Boolean))];
+      if (!venues.length) return '';
+      if (venues.length === 1) return venues[0];
+      return 'Multiple Sites';
+    }
+
+    function bsApplyInferredTournamentInfo(allRows, games) {
+      if (!S.tournament) return;
+      const isBlankName = !S.tournament.name || S.tournament.name === 'New Tournament' || S.tournament.name === 'Stay Tuned!';
+      if (isBlankName) {
+        const inferredName = bsInferTournamentName(allRows);
+        if (inferredName) S.tournament.name = inferredName;
+      }
+      if (!S.tournament.dates) {
+        const inferredDates = bsInferTournamentDates(allRows, games);
+        if (inferredDates) S.tournament.dates = inferredDates;
+      }
+      if (!S.tournament.location) {
+        const inferredLocation = bsInferTournamentLocation(games);
+        if (inferredLocation) S.tournament.location = inferredLocation;
+      }
+      if (!S.tournament.subtitle && S.bsync?.myAgeGroup) {
+        S.tournament.subtitle = S.bsync.myAgeGroup;
+      }
+    }
     // ─────────────────────────────────────────────────────────────────────────────
 
     function bsApplySheetUrl(url) {
@@ -10971,6 +11030,7 @@
         }));
         games.sort((a, b) => gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum));
         S.tournament.games = games;
+        bsApplyInferredTournamentInfo(S.bsync.allRows || [], games);
         {
           const _bUpdate = {};
           const _existingPaths = S.tournament.bracket?.paths;
