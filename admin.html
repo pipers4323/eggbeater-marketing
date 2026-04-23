@@ -10414,7 +10414,7 @@
         }
 
         // ── Auto-detect column structure from first header row containing "white" + "dark" ──
-        let dateCol = 0, locationCol = 1, timeCol = 2, whiteCol = 3, darkCol = 5, gameNumCol = -1, poolCol = -1;
+        let dateCol = 0, locationCol = 1, timeCol = 2, whiteCol = 3, darkCol = 5, gameNumCol = -1, poolCol = -1, groupCol = -1;
         let dataStartRow = 0;
         for (let ri = 0; ri < Math.min(allRows.length, 40); ri++) {
           const lower = allRows[ri].map(function (c) { return (c || '').toLowerCase().trim(); });
@@ -10428,6 +10428,7 @@
               else if (gameNumCol === -1 && (c.startsWith('gm') || c.startsWith('game'))) gameNumCol = ci;
               if (c === 'time' || c.startsWith('time')) timeCol = ci;
               if (c === 'pool' || c === 'venue' || c === 'field') poolCol = ci;
+              if (c === 'group' || c.includes('group')) groupCol = ci;
               if (c === 'date') dateCol = ci;
               if (c.includes('location')) locationCol = ci;
             }
@@ -10468,7 +10469,7 @@
         }
 
         S.bsync.allRows = allRows;
-        S.bsync.cols = { dateCol, timeCol, whiteCol, darkCol, locCol: poolCol >= 0 ? poolCol : (locationCol >= 0 ? locationCol : 1), dataStartRow };
+        S.bsync.cols = { dateCol, timeCol, whiteCol, darkCol, groupCol, locCol: poolCol >= 0 ? poolCol : (locationCol >= 0 ? locationCol : 1), dataStartRow };
         const agLabel = (S.bsync.colorCoded && S.bsync.myAgeGroup) ? ' (' + S.bsync.myAgeGroup + ')' : '';
         const _dateFix = _dateFixCount > 0 ? ` ⚠️ Auto-fixed ${_dateFixCount} date(s) with wrong year (${_badYears.join(', ')})` : '';
 
@@ -10517,6 +10518,9 @@
           const isWhite = _teamNamesLower.some(n => white.toLowerCase().includes(n));
           const isBlue = _teamNamesLower.some(n => dark.toLowerCase().includes(n));
           if (!isWhite && !isBlue) continue;
+          const _wantedGroup = ((S.bsync.myPool || '').match(/[A-Z]/i)?.[0] || '').toUpperCase();
+          const _rowGroup = groupCol >= 0 ? ((row[groupCol] || '').trim().match(/[A-Z]/i)?.[0] || '').toUpperCase() : '';
+          if (S.bsync.colorCoded && _wantedGroup && _rowGroup && _rowGroup !== _wantedGroup) continue;
 
           // Skip seeding/bracket-assignment rows that appear before the first date-section
           // header. Those rows have team names (bracket position labels) but no time value
@@ -10532,7 +10536,7 @@
           // Venue: always from the section-header pre-pass (never from the pool# column)
           const gameLocation = _rowLoc[ri] || '';
           // Pool: col E often holds a bare court/pool number ("1", "2") — format as "Pool N"
-          const _poolRaw = poolCol >= 0 ? (row[poolCol] || '').trim() : '';
+          const _poolRaw = groupCol >= 0 ? (row[groupCol] || '').trim() : (poolCol >= 0 ? (row[poolCol] || '').trim() : '');
           const _locRaw  = locationCol >= 0 ? (row[locationCol] || '').trim() : '';
           let gamePool = '';
           if (_poolRaw) {
@@ -11872,7 +11876,7 @@
         const teamNameLower = _apTeamNamesLower[0] || '';
 
         // Auto-detect column structure
-        let dateCol = 0, locationCol = 1, timeCol = 2, whiteCol = 3, darkCol = 5, gameNumCol = -1, poolCol = -1, scoreCol = -1, resCol = -1;
+        let dateCol = 0, locationCol = 1, timeCol = 2, whiteCol = 3, darkCol = 5, gameNumCol = -1, poolCol = -1, groupCol = -1, scoreCol = -1, resCol = -1;
         let whiteScoreCol = -1, darkScoreCol = -1;
         let dataStartRow = 0;
         for (let ri = 0; ri < Math.min(allRows.length, 40); ri++) {
@@ -11887,6 +11891,7 @@
               else if (gameNumCol === -1 && (c.startsWith('gm') || c.startsWith('game'))) gameNumCol = ci;
               if (c === 'time' || c.startsWith('time')) timeCol = ci;
               if (c === 'pool' || c === 'venue' || c === 'field') poolCol = ci;
+              if (c === 'group' || c.includes('group')) groupCol = ci;
               if (c === 'date') dateCol = ci;
               if (c.includes('location')) locationCol = ci;
               if (c === 'score' || c.includes('score')) scoreCol = ci;
@@ -11946,6 +11951,9 @@
           const isWhite = _apTeamNamesLower.some(n => white.toLowerCase().includes(n));
           const isBlue  = _apTeamNamesLower.some(n => blue.toLowerCase().includes(n));
           if (!isWhite && !isBlue) continue;
+          const _wantedGroup = ((S.bsync.myPool || '').match(/[A-Z]/i)?.[0] || '').toUpperCase();
+          const _rowGroup = groupCol >= 0 ? ((row[groupCol] || '').trim().match(/[A-Z]/i)?.[0] || '').toUpperCase() : '';
+          if (S.bsync.colorCoded && _wantedGroup && _rowGroup && _rowGroup !== _wantedGroup) continue;
           const rawGnum = gameNumCol >= 0 ? (row[gameNumCol] || '').trim() : '';
           const _apDateCell = (dateCol >= 0 ? (row[dateCol] || '').trim() : '');
           const dateRaw = (parseDateToISO(_apDateCell) ? _apDateCell : '') || _apRowDate[ri] || '';
@@ -11953,7 +11961,7 @@
           // Venue: always from the section-header pre-pass (never from the pool# column)
           const _apGameLocation = _apRowLoc[ri] || '';
           // Pool: col after dark often holds a bare court number ("1","2") — format as "Pool N"
-          const _apPoolRaw = poolCol >= 0 ? (row[poolCol] || '').trim() : '';
+          const _apPoolRaw = groupCol >= 0 ? (row[groupCol] || '').trim() : (poolCol >= 0 ? (row[poolCol] || '').trim() : '');
           const _apLocRaw  = locationCol >= 0 ? (row[locationCol] || '').trim() : '';
           let _apGamePool = '';
           if (_apPoolRaw) {

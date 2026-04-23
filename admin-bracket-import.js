@@ -329,9 +329,10 @@
     const startCol = bounds ? bounds.startCol : 0;
     const endCol = bounds ? Math.min((gridData?.maxCols || 0) - 1, bounds.endCol) : (gridData?.maxCols || 0) - 1;
     const rows = [];
+    const shouldFilterByAge = !!selectedAgeGroup && !!bounds;
     for (let ri = startRow; ri <= endRow; ri++) {
       const rowAge = rowAgeGroups?.[ri] || '';
-      if (selectedAgeGroup && rowAge && rowAge !== selectedAgeGroup) continue;
+      if (shouldFilterByAge && rowAge && rowAge !== selectedAgeGroup) continue;
       const row = values[ri] || [];
       rows.push(row.slice(startCol, endCol + 1).map(cell => String(cell || '').trim()));
     }
