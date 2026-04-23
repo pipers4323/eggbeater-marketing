@@ -31,7 +31,7 @@
 
 html, body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  background: var(--gray-100); /* Default light gray for desktop */
+  background: linear-gradient(180deg, var(--royal) 0%, var(--royal-dark) 100%);
   color: var(--gray-900);
   width: 100%;
   height: 100%;
@@ -80,6 +80,7 @@ body {
   min-height: 0; /* Required for flex children to shrink correctly */
   margin: 0 auto;
   padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 16px);
+  background: linear-gradient(180deg, rgba(28, 69, 178, 0.98) 0%, rgba(19, 52, 145, 0.98) 100%);
   overflow-y: auto; /* Enable scrolling on the app container itself */
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -6104,6 +6105,9 @@ body.modal-open { overflow: hidden; }
   justify-content: space-between;
   gap: 10px;
   padding: 10px 12px 6px;
+  background: linear-gradient(180deg, rgba(18, 53, 156, 0.96) 0%, rgba(23, 63, 170, 0.92) 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 10px 24px rgba(8, 27, 88, 0.18);
 }
 .scores-top-utility-main {
   flex: 1;
@@ -6155,9 +6159,10 @@ body.modal-open { overflow: hidden; }
   position: sticky;
   top: 0;
   z-index: 3;
-  background: linear-gradient(180deg, rgba(241,245,249,0.98) 0%, rgba(226,232,240,0.94) 100%);
+  background: linear-gradient(180deg, rgba(18, 53, 156, 0.96) 0%, rgba(23, 63, 170, 0.92) 100%);
   backdrop-filter: blur(6px);
-  border-bottom: 1px solid rgba(148,163,184,0.32);
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 10px 24px rgba(8, 27, 88, 0.18);
 }
 .tab-utility-row .schedule-refresh-wrap,
 .scores-toolbar-wrap .scores-refresh-wrap {
@@ -6197,13 +6202,6 @@ body.modal-open { overflow: hidden; }
   color: rgba(255,255,255,0.72);
   white-space: nowrap;
 }
-.schedule-utility-row .tab-last-updated {
-  color: var(--gray-600);
-}
-
-.scores-toolbar-wrap .tab-last-updated {
-  color: var(--gray-500);
-}
 
 .day-chips {
   display: flex;
@@ -6233,12 +6231,28 @@ body.modal-open { overflow: hidden; }
   box-shadow: 0 8px 20px rgba(15,23,42,0.12);
 }
 .polished-empty-msg {
-  border: 1px solid var(--gray-200);
+  border: 1px solid rgba(255,255,255,0.18);
   border-radius: 16px;
   margin: 10px 12px 0;
-  background: rgba(255,255,255,0.82);
-  color: var(--gray-600);
-  box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+  background: rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.9);
+  box-shadow: 0 10px 24px rgba(8, 27, 88, 0.18);
+}
+
+.scores-empty-msg {
+  color: rgba(255,255,255,0.82);
+}
+
+.scores-guide-link {
+  text-align: center;
+  padding: 18px 0 4px;
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.85);
+}
+
+.scores-guide-link a {
+  color: #fff;
+  font-weight: 700;
 }
 
 /* Live score summary bar — shown below the game header when remote live */
@@ -7606,7 +7620,7 @@ details[open] .help-chevron { transform: rotate(180deg); }
    ══════════════════════════════════════════════════════════════════════════ */
 @media (min-width: 1024px) {
   html, body {
-    background: var(--gray-100); /* Ensure desktop has the intended light gray background */
+    background: linear-gradient(180deg, var(--royal) 0%, var(--royal-dark) 100%);
   }
 
   /* ── Compact header ─────────────────────────────────────────────────── */

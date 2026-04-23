@@ -8651,7 +8651,7 @@ const active = _dedupeScheduledGames(
       html += `<div class="scores-slot-header"><span class="scores-slot-label">${escHtml(slotLabel)}</span></div>`;
 
       if (!active.length) {
-        html += `<p class="empty-msg" style="padding:8px 12px 16px">No active games.</p>`;
+        html += `<p class="empty-msg scores-empty-msg" style="padding:8px 12px 16px">No active games.</p>`;
         continue;
       }
 
@@ -8692,7 +8692,7 @@ const active = _dedupeScheduledGames(
     if (!html.startsWith('<div class="scores-top-utility">')) {
       html = _buildScoresTopUtilityHtml({ showLogin: scorerLocked, scorerUnlocked: anySlotUnlocked, anyLive: false }) + html;
     }
-    html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
+    html += `<div class="scores-guide-link">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener">Read the guide here →</a></div>`;
     el.innerHTML = dirHtml + recoveryCard + html;
     return;
   }
@@ -8737,7 +8737,7 @@ const active = _dedupeScheduledGames(
     }
 
     _setLiveBanner(anyLive);
-    const _guideLink = `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
+    const _guideLink = `<div class="scores-guide-link">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener">Read the guide here →</a></div>`;
     el.innerHTML = dirHtml + recoveryCard + `
         ${_buildScoresTopUtilityHtml({ showLogin: true, anyLive })}
         ${cardsHtml}${_guideLink}`;
@@ -8818,7 +8818,7 @@ const active = _dedupeScheduledGames(
   }
 
   html = _buildScoresTopUtilityHtml({ scorerUnlocked: !!TOURNAMENT.scoringPassword, anyLive: liveGames.length > 0 }) + html;
-  html += `<div style="text-align:center;padding:18px 0 4px;font-size:0.82rem;color:rgba(255,255,255,0.85)">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener" style="color:#fff;font-weight:600">Read the guide here →</a></div>`;
+  html += `<div class="scores-guide-link">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener">Read the guide here →</a></div>`;
   el.innerHTML = dirHtml + recoveryCard + html;
   // Feature 3: trigger score pulse check after DOM is updated
   requestAnimationFrame(_checkAndPulseScores);
