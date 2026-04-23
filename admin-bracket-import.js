@@ -1,4 +1,172 @@
 (function () {
+  function bsParseLocation(raw) {
+    const m = String(raw || '').match(/^(.+?)\s*#\s*(\d+)$/);
+    return m ? { venue: m[1].trim(), poolNum: m[2] } : { venue: String(raw || ''), poolNum: '' };
+  }
+
+  function bsExtractBracketCode(raw) {
+    const m = String(raw || '').match(/^([A-Z]\d+)[-\u2013( ]/i);
+    return m ? m[1].toUpperCase() : null;
+  }
+
+  function bsBracketGameDesc(raw) {
+    const text = String(raw || '').trim();
+    const m = text.match(/^([A-Z]\d+)[-\u2013( ]*(\d+(?:st|nd|rd|th))\s*([A-Z])\)?[-\u2013 ]*$/i);
+    if (m) return `${m[2]} ${m[3]}`;
+    const fb = text.match(/^[A-Z]\d+[-\u2013( ]+(.+)$/i);
+    return fb ? fb[1].replace(/[-\u2013) ]+$/, '').trim() : (text || 'TBD');
+  }
+
+  function bsParseRebracket(rows) {
+    const seedingMap = {};
+    let fmt1Hits = 0;
+    for (const row of rows || []) {
+      for (const cell of row || []) {
+        if (/^([A-Z]\d+)[-\u2013( ]*(\d+(?:st|nd|rd|th))\s*([A-Z])\)?[-\u2013 ]*$/i.test(String(cell || '').trim())) fmt1Hits++;
+      }
+    }
+
+    if (fmt1Hits > 0) {
+      for (const row of rows || []) {
+        for (const cell of row || []) {
+          const m = String(cell || '').trim().match(/^([A-Z]\d+)[-\u2013( ]*(\d+(?:st|nd|rd|th))\s*([A-Z])\)?[-\u2013 ]*$/i);
+          if (m) seedingMap[(m[2] + ' ' + m[3]).toLowerCase()] = m[1].toUpperCase();
+        }
+      }
+      return seedingMap;
+    }
+
+    let headerRow = null;
+    let headerRowIdx = -1;
+    for (let ri = 0; ri < (rows || []).length; ri++) {
+      const nonEmpty = (rows[ri] || []).filter(c => String(c || '').trim());
+      if (nonEmpty.length >= 2 && /^[A-Z]\b/i.test(nonEmpty[0] || '')) {
+        headerRow = rows[ri];
+        headerRowIdx = ri;
+        break;
+      }
+    }
+    if (!headerRow) return seedingMap;
+
+    const colLetters = {};
+    for (let ci = 0; ci < headerRow.length; ci++) {
+      const lm = String(headerRow[ci] || '').trim().match(/^([A-Z])\b/i);
+      if (lm) colLetters[ci] = lm[1].toUpperCase();
+    }
+    for (let ri = headerRowIdx + 1; ri < rows.length; ri++) {
+      const row = rows[ri] || [];
+      const rowNum = String(row[0] || '').trim();
+      if (!/^\d+$/.test(rowNum)) continue;
+      for (let ci = 1; ci < row.length; ci++) {
+        const cell = String(row[ci] || '').trim();
+        const grpLetter = colLetters[ci];
+        if (!cell || !grpLetter) continue;
+        const vm = cell.match(/^(\d+(?:st|nd|rd|th))\s+([A-Z])$/i);
+        if (vm) seedingMap[(vm[1] + ' ' + vm[2]).toLowerCase()] = grpLetter + rowNum;
+      }
+    }
+    return seedingMap;
+  }
+
+  function bsComputeBracketPaths(allRows, seedingMap, myPool, cols, helpers) {
+    const { parseDateToISO, isoToDate } = helpers;
+    const poolUpper = String(myPool || '').replace(/^pool\s*/i, '').trim().toUpperCase();
+    if (!poolUpper || !/^[A-Z]$/.test(poolUpper) || !Array.isArray(allRows) || !allRows.length) return [];
+    const { dateCol = 0, timeCol = 2, whiteCol = 3, darkCol = 5, locCol = 1, dataStartRow = 0 } = cols || {};
+
+    const codeToGames = {};
+    for (let ri = dataStartRow; ri < allRows.length; ri++) {
+      const row = allRows[ri] || [];
+      const rawWhite = String(row[whiteCol] || '').trim();
+      const rawBlue = String(row[darkCol] || '').trim();
+      const wCode = bsExtractBracketCode(rawWhite);
+      const bCode = bsExtractBracketCode(rawBlue);
+      if (!wCode && !bCode) continue;
+      const rawTime = String(row[timeCol] || '').trim();
+      const rawDate = dateCol >= 0 ? String(row[dateCol] || '').trim() : '';
+      const rawLoc = locCol >= 0 ? String(row[locCol] || '').trim() : '';
+      const locP = bsParseLocation(rawLoc);
+      const dateISO = parseDateToISO(rawDate);
+      let timeFmt = rawTime;
+      if (rawTime && !/am|pm/i.test(rawTime)) {
+        const hm = rawTime.match(/^(\d{1,2}):/);
+        if (hm) {
+          const h = parseInt(hm[1], 10);
+          timeFmt = rawTime + (h >= 7 && h <= 11 ? ' AM' : ' PM');
+        }
+      }
+      const game = {
+        white: rawWhite,
+        blue: rawBlue,
+        whiteCode: wCode,
+        blueCode: bCode,
+        time: timeFmt,
+        dateISO,
+        date: dateISO ? isoToDate(dateISO) : rawDate,
+        location: locP.venue + (locP.poolNum ? ' Pool ' + locP.poolNum : ''),
+      };
+      if (wCode) (codeToGames[wCode] = codeToGames[wCode] || []).push(game);
+      if (bCode) (codeToGames[bCode] = codeToGames[bCode] || []).push(game);
+    }
+
+    function getReachable(startCode) {
+      const visited = new Set();
+      const reachable = [];
+      const queue = [startCode];
+      while (queue.length) {
+        const code = queue.shift();
+        if (visited.has(code)) continue;
+        visited.add(code);
+        for (const g of (codeToGames[code] || [])) {
+          if (!reachable.includes(g)) reachable.push(g);
+        }
+        const grp = code.match(/^([A-Z])/)?.[1];
+        if (grp) {
+          const wc = seedingMap[('1st ' + grp).toLowerCase()];
+          const lc = seedingMap[('2nd ' + grp).toLowerCase()];
+          if (wc && !visited.has(wc)) queue.push(wc);
+          if (lc && !visited.has(lc)) queue.push(lc);
+        }
+      }
+      return reachable;
+    }
+
+    const paths = [];
+    for (const ord of ['1st', '2nd', '3rd', '4th', '5th']) {
+      const startCode = seedingMap[(ord + ' ' + poolUpper).toLowerCase()];
+      if (!startCode) continue;
+      const reachable = getReachable(startCode);
+      if (!reachable.length) continue;
+      const byDate = {};
+      const dateOrder = [];
+      for (const g of reachable) {
+        const dk = g.dateISO || g.date || 'TBD';
+        if (!byDate[dk]) {
+          byDate[dk] = [];
+          dateOrder.push(dk);
+        }
+        byDate[dk].push(g);
+      }
+      for (const dk of [...new Set(dateOrder)].sort()) {
+        const dg = byDate[dk];
+        paths.push({
+          id: 'bs-' + ord.replace(/\W/g, '') + poolUpper + '-' + dk,
+          label: 'If ' + ord + ' in Pool ' + poolUpper + ' \u2014 ' + dg.length + ' possible game' + (dg.length !== 1 ? 's' : ''),
+          qualifier: 'Bracket games your team could play if they finish ' + ord + ' in Pool ' + poolUpper + '.',
+          steps: dg.map(g => ({
+            gameNum: '',
+            desc: bsBracketGameDesc(g.white) + ' vs ' + bsBracketGameDesc(g.blue),
+            time: g.time || 'TBD',
+            date: g.date || dk,
+            dateISO: g.dateISO || '',
+            location: g.location || '',
+          })),
+        });
+      }
+    }
+    return paths;
+  }
+
   function bsIsKap7Futures14uSheet(state) {
     if (state?.bsync?.sheetId !== '1n7y7fVM7RWku9yzqyx5sIxwdOTvDuXInV-Q0nLW9c7c') return false;
     return /14u/i.test(String(state?.bsync?.myAgeGroup || ''));
@@ -144,6 +312,11 @@
   }
 
   window.AdminBracketImport = {
+    bsParseLocation,
+    bsExtractBracketCode,
+    bsBracketGameDesc,
+    bsParseRebracket,
+    bsComputeBracketPaths,
     bsComputeKap7FuturesSpecialPaths,
   };
 })();

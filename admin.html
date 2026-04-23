@@ -355,6 +355,56 @@
       flex: 1;
     }
 
+    .admin-header-copy {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .admin-header-copy-main {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .admin-header-tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .admin-mobile-overflow {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, .25);
+      background: rgba(255, 255, 255, .12);
+      color: white;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .admin-header-utility-btn {
+      flex-shrink: 0;
+      background: rgba(255,255,255,.15);
+      color: white;
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
     .admin-header-spacer {
       flex: 1;
     }
@@ -433,22 +483,16 @@
 
     /* ── Global action bar (second header row) ── */
     .admin-global-bar {
-      display: flex;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
       align-items: center;
-      gap: 8px;
-      padding: 5px 12px 8px;
+      gap: 10px;
+      padding: 8px 12px 10px;
       padding-left: max(12px, env(safe-area-inset-left, 0px));
       padding-right: max(12px, env(safe-area-inset-right, 0px));
       background: rgba(0, 0, 0, .14);
       border-top: 1px solid rgba(255, 255, 255, .08);
       width: 100%;
-      overflow-x: auto;
-      flex-wrap: nowrap;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .admin-global-bar::-webkit-scrollbar {
-      display: none;
     }
 
     .admin-global-label {
@@ -457,8 +501,16 @@
       text-transform: uppercase;
       letter-spacing: .06em;
       color: rgba(255, 255, 255, .45);
-      margin-right: 2px;
-      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .admin-global-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      min-width: 0;
+      flex-wrap: wrap;
     }
 
     .global-btn {
@@ -500,8 +552,8 @@
     .admin-team-pills {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      padding: 8px 14px;
+      gap: 10px;
+      padding: 10px 14px 8px;
       padding-left: max(14px, env(safe-area-inset-left, 0px));
       padding-right: max(14px, env(safe-area-inset-right, 0px));
       background: rgba(0, 0, 0, .12);
@@ -538,6 +590,98 @@
       background: white;
       color: var(--royal);
       border-color: white;
+    }
+    .admin-team-summary {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .admin-team-current {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .18);
+      color: white;
+      font-weight: 800;
+      font-size: 0.84rem;
+      min-width: 0;
+    }
+
+    .admin-team-current-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .admin-team-count {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, .78);
+      white-space: nowrap;
+    }
+
+    .admin-team-manage-btn {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, .28);
+      background: rgba(255, 255, 255, .12);
+      color: white;
+      font-weight: 800;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    .admin-team-manager {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 8px;
+      padding: 0 14px 12px;
+      background: rgba(0, 0, 0, .12);
+      border-top: 1px solid rgba(255, 255, 255, .05);
+    }
+
+    .admin-team-manager.hidden {
+      display: none;
+    }
+
+    .admin-pill-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .admin-pill-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .admin-team-target-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      border: none;
+      cursor: pointer;
+      background: rgba(37, 99, 235, .12);
+      color: var(--royal);
+      flex-shrink: 0;
+    }
+
+    .admin-team-target-toggle.active {
+      background: var(--royal);
+      color: white;
     }
 
     /* ── Tournament selector strip ── */
@@ -657,7 +801,7 @@
       background: white;
       border-bottom: 1px solid var(--g200);
       position: sticky;
-      top: calc(60px + env(safe-area-inset-top, 0));
+      top: var(--admin-header-h, calc(60px + env(safe-area-inset-top, 0)));
       z-index: 99;
       justify-content: stretch;
     }
@@ -781,6 +925,71 @@
     .admin-more-chevron {
       color: #d1d5db !important;
       flex-shrink: 0;
+    }
+    .admin-more-section {
+      padding: 0 20px 14px;
+    }
+
+    .admin-more-section-title {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--g400);
+      margin-bottom: 10px;
+    }
+
+    .admin-more-quick-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .admin-more-quick-btn {
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--g200);
+      background: #fff;
+      color: var(--g900);
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .admin-more-quick-btn.primary {
+      background: var(--royal);
+      border-color: var(--royal);
+      color: white;
+    }
+
+    .admin-more-quick-btn.accent {
+      border-color: rgba(22, 163, 74, .35);
+      color: var(--green);
+    }
+
+    .admin-more-quick-btn.warning {
+      border-color: rgba(217, 119, 6, .35);
+      color: var(--amber);
+    }
+
+    .admin-more-select-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: var(--g50);
+      border: 1px solid var(--g200);
+    }
+
+    .admin-lang-select.admin-lang-select-dark {
+      color: var(--g900);
+      width: 100%;
+      background-image: linear-gradient(45deg, transparent 50%, var(--g600) 50%), linear-gradient(135deg, var(--g600) 50%, transparent 50%);
+      background-position: calc(100% - 8px) calc(50% - 1px), calc(100% - 4px) calc(50% - 1px);
+      background-size: 4px 4px, 4px 4px;
+      background-repeat: no-repeat;
     }
 
     .admin-more-divider {
@@ -1874,7 +2083,181 @@
     }
 
     /* ── iPad / Tablet (768px – 1023px) ───────────────────────────────────── */
-    @media (min-width: 768px) and (max-width: 1023px) {
+    
+    @media (max-width: 767px) {
+      .eggbeater-poweredby-bar {
+        display: none !important;
+      }
+
+      .admin-logo-wrap {
+        min-height: 56px;
+        padding: 8px 14px 6px;
+      }
+
+      .admin-logo-wrap.has-custom-logo {
+        min-height: 78px;
+      }
+
+      .admin-logo-img {
+        max-height: 44px;
+      }
+
+      .admin-custom-logo-wrap {
+        padding: 6px 14px 2px;
+        min-height: 74px;
+      }
+
+      .admin-custom-logo-img {
+        max-height: 72px;
+      }
+
+      .admin-header-bar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+        gap: 10px;
+        padding: 10px 12px;
+      }
+
+      .admin-header-copy {
+        align-items: flex-start;
+      }
+
+      .admin-header-copy-main {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 3px;
+      }
+
+      .admin-header-title {
+        font-size: 1rem;
+      }
+
+      .admin-header-sub {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.25;
+        font-size: 0.8rem;
+      }
+
+      .admin-header-tools {
+        display: none;
+      }
+
+      .admin-mobile-overflow {
+        display: inline-flex;
+      }
+
+      .admin-tourn-strip {
+        padding: 10px 12px 8px;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .tourn-select {
+        flex: 1 1 100%;
+      }
+
+      .admin-team-pills {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 10px 12px 8px;
+      }
+
+      .admin-team-summary {
+        flex-wrap: wrap;
+      }
+
+      .admin-team-current {
+        width: 100%;
+      }
+
+      .admin-team-count {
+        width: 100%;
+        padding-left: 2px;
+      }
+
+      .admin-team-manage-btn {
+        width: 100%;
+      }
+
+      .admin-team-manager {
+        grid-template-columns: 1fr;
+        padding: 0 12px 12px;
+      }
+
+      .admin-global-bar {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 10px 12px 12px;
+      }
+
+      .admin-global-label {
+        grid-column: 1 / -1;
+      }
+
+      .admin-global-actions {
+        grid-column: 1 / -1;
+        justify-content: stretch;
+      }
+
+      .global-btn {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 0;
+        padding: 10px 12px;
+        text-align: center;
+      }
+
+      .admin-tabs {
+        gap: 8px;
+        justify-content: flex-start;
+        overflow-x: auto;
+        white-space: nowrap;
+        padding: 10px 12px;
+        background: rgba(255, 255, 255, .96);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+
+      .tab-btn {
+        flex: 0 0 auto;
+        min-width: 116px;
+        padding: 10px 14px;
+        border-radius: 14px;
+        border: 1px solid var(--g200);
+        border-bottom: 1px solid var(--g200);
+      }
+
+      .tab-btn.active {
+        background: rgba(0, 40, 104, .08);
+        border-color: rgba(0, 40, 104, .2);
+      }
+
+      .tab-btn svg {
+        margin-right: 8px;
+        margin-bottom: 0;
+      }
+
+      #tab-content {
+        padding: 12px 8px 18px;
+      }
+
+      #status-bar {
+        left: 12px;
+        right: 12px;
+        max-width: none;
+        bottom: calc(12px + env(safe-area-inset-bottom, 0));
+        border-radius: 14px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+      }
+
+      .admin-more-quick-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+@media (min-width: 768px) and (max-width: 1023px) {
 
       /* Use the full width but keep it clean */
       #admin-app {
@@ -2606,193 +2989,45 @@
         <img src="logo_large.svg" alt="Eggbeater Water Polo" class="admin-logo-img">
       </div>
       <div class="admin-header-bar">
-        <span id="dashboard-header-title" class="admin-header-title">{{ t('Super Admin Dashboard') }}</span>
-        <span id="dashboard-header-sub" class="admin-header-sub">{{ t('Select a club to manage') }}</span>
-        <div class="admin-header-spacer"></div>
-        <div class="admin-lang-wrap">
-          <label class="admin-lang-label" for="dashboard-lang-picker">{{ t('Lang') }}</label>
-          <select id="dashboard-lang-picker" class="admin-lang-select" onchange="setAdminLang(this.value)"
-            aria-label="Select admin language">
-            <option value="en">EN</option>
-            <option value="es">ES</option>
-            <option value="fr">FR</option>
-          </select>
-        </div>
-        <button class="save-btn"
-          style="background:var(--red);color:white;border-color:var(--red);padding:4px 14px;font-size:0.78rem"
-          onclick="doLogout()">🚪 {{ t('Logout') }}</button>
-      </div>
-    </header>
-    <div style="max-width:1100px;margin:0 auto;padding:24px 20px 40px">
-      <div id="club-dashboard-list"
-        style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:28px">
-        <div style="text-align:center;color:var(--g400);padding:20px;grid-column:1/-1">{{ t('Loading clubs…') }}</div>
-      </div>
-
-      <!-- Platform Admin Actions -->
-      <div style="border-top:2px solid var(--g200);padding-top:20px">
-        <div style="font-size:0.95rem;font-weight:700;color:var(--royal);margin-bottom:12px">{{ t('⚙️ Platform Admin')
-          }}</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
-          <!-- Add New Club -->
-          <div style="background:white;border:1px solid var(--g200);border-radius:var(--radius);padding:14px 16px">
-            <div style="font-size:0.85rem;font-weight:600;margin-bottom:8px">{{ t('➕ Add New Club') }}</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <input id="new-club-id" class="info-input" style="flex:1 1 120px;margin:0;font-size:0.82rem"
-                placeholder="{{ t('Club ID (e.g. bay-area-aquatics)') }}">
-              <input id="new-club-name" class="info-input" style="flex:1 1 160px;margin:0;font-size:0.82rem"
-                placeholder="{{ t('Display Name') }}">
-            </div>
-            <button class="save-btn"
-              style="width:100%;margin-top:8px;background:var(--royal);color:white;border-color:var(--royal)"
-              onclick="createNewClub()">{{ t('Create Club') }}</button>
-          </div>
-
-          <!-- Platform Stats -->
-          <div id="platform-stats"
-            style="background:white;border:1px solid var(--g200);border-radius:var(--radius);padding:14px 16px">
-            <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px">{{ t('📊 Platform Overview') }}</div>
-            <div id="platform-stats-body" style="font-size:0.82rem;color:var(--g400)">{{ t('Loading…') }}</div>
+        <div class="admin-header-copy">
+          <div class="admin-header-copy-main">
+            <span id="admin-header-title" class="admin-header-title">{{ t('Admin') }}</span>
+            <span id="header-sub" class="admin-header-sub">{{ t('Loading...') }}</span>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Admin App ──────────────────────────────────────────────────────────── -->
-  <div id="admin-app" hidden>
-
-    <header class="admin-header">
-      <div class="admin-logo-wrap">
-        <!-- Default: eggbeater brand logo (recolored to club primary color) -->
-        <img src="logo_large.svg" alt="Eggbeater Water Polo" class="admin-logo-img">
-        <!-- Custom club logo (shown when club has uploaded their own logo) -->
-        <div class="admin-custom-logo-wrap hidden">
-          <img class="admin-custom-logo-img" alt="">
+        <div class="admin-header-tools">
+          <div class="admin-lang-wrap">
+            <label class="admin-lang-label" for="admin-header-lang-picker">{{ t('Lang') }}</label>
+            <select id="admin-header-lang-picker" class="admin-lang-select" onchange="setAdminLang(this.value)"
+              aria-label="Select admin language">
+              <option value="en">EN</option>
+              <option value="es">ES</option>
+              <option value="fr">FR</option>
+            </select>
+          </div>
+          <button id="switch-club-btn" class="admin-header-utility-btn hidden" onclick="switchClub()" title="{{ t('Switch Club (SuperAdmin)') }}">{{ t('Switch Club') }}</button>
+          <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">{{ t('�Y'� Deploy Current Group') }}</button>
         </div>
-      </div>
-      <!-- "Brought to you by eggbeater" — full-bleed bar, only shown when club has a custom logo -->
-      <div class="eggbeater-poweredby-bar admin-poweredby-bar hidden">
-        <span>{{ t('brought to you by') }}</span>
-        <img src="logo_large.svg" class="eggbeater-inline-logo" alt="{{ t('eggbeater') }}">
-      </div>
-      <div class="admin-header-bar">
-        <span id="admin-header-title" class="admin-header-title">{{ t('Admin') }}</span>
-        <span id="header-sub" class="admin-header-sub">{{ t('Loading…') }}</span>
-        <div class="admin-lang-wrap">
-          <label class="admin-lang-label" for="admin-header-lang-picker">{{ t('Lang') }}</label>
-          <select id="admin-header-lang-picker" class="admin-lang-select" onchange="setAdminLang(this.value)"
-            aria-label="Select admin language">
-            <option value="en">EN</option>
-            <option value="es">ES</option>
-            <option value="fr">FR</option>
-          </select>
-        </div>
-        <button id="switch-club-btn" onclick="switchClub()"
-          style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px"
-          title="{{ t('Switch Club (SuperAdmin)') }}">{{ t('🔀 Switch Club') }}</button>
-        <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">{{ t('💾 Deploy Current Group') }}</button>
+        <button class="admin-mobile-overflow" type="button" onclick="toggleAdminMore()" aria-label="Open admin actions">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <line x1="4" y1="6" x2="20" y2="6" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="18" x2="20" y2="18" />
+          </svg>
+        </button>
       </div>
       <!-- Phase 3: Tournament selector -->
       <div class="admin-tourn-strip" id="admin-tourn-strip"></div>
       <!-- Age group / team manager -->
       <div class="admin-team-pills" id="admin-team-pills"></div>
       <div class="admin-team-manager hidden" id="admin-team-manager"></div>
-      <style>
-        .admin-team-pills {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-          padding: 10px 12px 6px;
-        }
-
-        .admin-pill {
-          flex: 0 0 auto;
-          padding: 6px 12px;
-          border-radius: 20px;
-          background: var(--royal-lt);
-          color: var(--royal);
-          font-weight: 700;
-          font-size: 0.82rem;
-          cursor: pointer;
-          border: none;
-        }
-
-        .admin-team-summary {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          min-width: 0;
-          flex: 1;
-        }
-
-        .admin-team-current {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 12px;
-          border-radius: 999px;
-          background: rgba(255, 255, 255, .18);
-          color: white;
-          font-weight: 800;
-          font-size: 0.84rem;
-          min-width: 0;
-        }
-
-        .admin-team-current-text {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .admin-team-count {
-          font-size: 0.72rem;
-          font-weight: 700;
-          color: rgba(255, 255, 255, .78);
-          white-space: nowrap;
-        }
-
-        .admin-team-manage-btn {
-          flex: 0 0 auto;
-          padding: 8px 12px;
-          border-radius: 999px;
-          border: 1px solid rgba(255, 255, 255, .28);
-          background: rgba(255, 255, 255, .12);
-          color: white;
-          font-weight: 800;
-          font-size: 0.78rem;
-          cursor: pointer;
-        }
-
-        .admin-team-manager {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-          gap: 8px;
-          padding: 0 12px 12px;
-        }
-
-        .admin-team-manager.hidden {
-          display: none;
-        }
-
-        @media (min-width: 1024px) {
-          .admin-team-pills {
-            padding: 12px 24px 8px;
-          }
-
-          .admin-team-manager {
-            padding: 0 24px 14px;
-          }
-        }
-      </style>
-      <!-- Global actions row — operates across all age groups at once -->
+<!-- Global actions row operates across all age groups at once -->
       <div class="admin-global-bar">
         <span class="admin-global-label">{{ t('All groups:') }}</span>
-        <button class="global-btn global-btn-upcoming" id="upcoming-all-btn" onclick="setAllUpcomingMode()">{{ t('📅 Set
-          All → Upcoming') }}</button>
-        <button class="global-btn global-btn-deploy" id="deploy-all-btn" onclick="deployAll()">{{ t('🌐 Deploy All')
-          }}</button>
+        <div class="admin-global-actions">
+          <button class="global-btn global-btn-upcoming" id="upcoming-all-btn" onclick="setAllUpcomingMode()">{{ t('Set All to Upcoming') }}</button>
+          <button class="global-btn global-btn-deploy" id="deploy-all-btn" onclick="deployAll()">{{ t('Deploy All') }}</button>
+        </div>
       </div>
     </header>
 
@@ -2845,7 +3080,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
-        <span id="admin-tab-teamcomm">{{ t('Team Comm') }}</span><span class="tab-crown" style="display:none"> 👑</span>
+        <span id="admin-tab-teamcomm">{{ t('Team Comm') }}</span><span class="tab-crown hidden"> 👑</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="director" onclick="switchTab('director')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2855,7 +3090,7 @@
           <line x1="8" y1="21" x2="16" y2="21" />
           <line x1="12" y1="17" x2="12" y2="21" />
         </svg>
-        <span id="admin-tab-director">{{ t('Director') }}</span><span class="tab-crown" style="display:none"> 👑</span>
+        <span id="admin-tab-director">{{ t('Director') }}</span><span class="tab-crown hidden"> 👑</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="archive" onclick="switchTab('archive')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2870,7 +3105,7 @@
           <path d="M12 8v4l3 3" />
           <circle cx="12" cy="12" r="10" />
         </svg>
-        <span id="admin-tab-history">{{ t('History') }}</span><span class="tab-crown" style="display:none"> 👑</span>
+        <span id="admin-tab-history">{{ t('History') }}</span><span class="tab-crown hidden"> 👑</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="recovery" onclick="switchTab('recovery')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -2902,6 +3137,24 @@
       <div class="admin-more-sheet">
         <div class="admin-more-handle"></div>
         <div class="admin-more-items">
+          <div class="admin-more-section">
+            <div class="admin-more-section-title">Quick actions</div>
+            <div class="admin-more-quick-grid">
+              <button class="admin-more-quick-btn primary" type="button" onclick="toggleAdminMore(); createNewTournament()">{{ t('New Tournament') }}</button>
+              <button class="admin-more-quick-btn accent" type="button" onclick="toggleAdminMore(); saveAndDeploy()">{{ t('Deploy Current Group') }}</button>
+              <button id="switch-club-btn-drawer" class="admin-more-quick-btn warning hidden" type="button" onclick="toggleAdminMore(); switchClub()">{{ t('Switch Club') }}</button>
+            </div>
+          </div>
+          <div class="admin-more-section">
+            <div class="admin-more-section-title">Admin language</div>
+            <div class="admin-more-select-wrap">
+              <select id="admin-more-lang-picker" class="admin-lang-select admin-lang-select-dark" onchange="setAdminLang(this.value)" aria-label="Select admin language">
+                <option value="en">EN</option>
+                <option value="es">ES</option>
+                <option value="fr">FR</option>
+              </select>
+            </div>
+          </div>
           <button class="admin-more-item" onclick="adminMoreNav('clubinfo')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 21h18" />
@@ -2929,7 +3182,7 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
-            <span>{{ t('Team Communication') }}<span class="tab-crown" style="display:none"> 👑</span></span>
+            <span>{{ t('Team Communication') }}<span class="tab-crown hidden"> 👑</span></span>
             <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
@@ -2943,7 +3196,7 @@
               <line x1="8" y1="21" x2="16" y2="21" />
               <line x1="12" y1="17" x2="12" y2="21" />
             </svg>
-            <span>{{ t('Director Package') }}<span class="tab-crown" style="display:none"> 👑</span></span>
+            <span>{{ t('Director Package') }}<span class="tab-crown hidden"> 👑</span></span>
             <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
@@ -2967,7 +3220,7 @@
               <path d="M12 8v4l3 3" />
               <circle cx="12" cy="12" r="10" />
             </svg>
-            <span>{{ t('History') }}<span class="tab-crown" style="display:none"> 👑</span></span>
+            <span>{{ t('History') }}<span class="tab-crown hidden"> 👑</span></span>
             <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
@@ -3890,7 +4143,9 @@
       requestAnimationFrame(() => syncAdminHeaderHeight());
       // Show Switch Club button for superadmin (password login)
       const switchBtn = document.getElementById('switch-club-btn');
-      if (switchBtn) switchBtn.style.display = S.authMode === 'password' ? '' : 'none';
+      const switchDrawerBtn = document.getElementById('switch-club-btn-drawer');
+      if (switchBtn) switchBtn.classList.toggle('hidden', S.authMode !== 'password');
+      if (switchDrawerBtn) switchDrawerBtn.classList.toggle('hidden', S.authMode !== 'password');
 
       // Phase 3: restore club ID and load cloud tournament list from Firestore
       // We MUST do this before loadClubSettings() so the api() helper has the correct club context.
@@ -5411,8 +5666,10 @@
     function applyAdminTranslations() {
       const dashboardPicker = document.getElementById('dashboard-lang-picker');
       const adminPicker = document.getElementById('admin-header-lang-picker');
+      const adminMorePicker = document.getElementById('admin-more-lang-picker');
       if (dashboardPicker) dashboardPicker.value = getAdminLang();
       if (adminPicker) adminPicker.value = getAdminLang();
+      if (adminMorePicker) adminMorePicker.value = getAdminLang();
       const map = {
         'dashboard-header-title': 'dashboard_title',
         'dashboard-header-sub': 'dashboard_sub',
@@ -5737,7 +5994,6 @@
       const manager = document.getElementById('admin-team-manager');
       if (!container || !manager) return;
       const teams = getAdminTeams();
-      // If current team isn't in the list, switch to first valid team
       if (!teams.find(t => t.key === S.team)) {
         S.team = teams[0].key;
         refreshAdminData();
@@ -5759,15 +6015,14 @@
       manager.innerHTML = teams.map(t => {
         const targetActive = selectedTargets.includes(t.key);
         return `<button class="admin-pill${t.key === S.team ? ' active' : ''}"
-                         onclick="onAdminTeamChange('${t.key}')"
-                         style="display:flex;align-items:center;justify-content:space-between;gap:8px;position:relative">
-                  <span style="display:inline-flex;align-items:center;gap:6px;min-width:0">
+                         onclick="onAdminTeamChange('${t.key}')">
+                  <span class="admin-pill-group">
                     ${_statusDot(t.key)}
-                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.label)}</span>
+                    <span class="admin-pill-label">${esc(t.label)}</span>
                   </span>
                   <span onclick="event.stopPropagation();toggleTournamentShellTarget('${t.key}')"
-                        title="${targetActive ? 'Included in shared tournament deploy' : 'Exclude from shared tournament deploy'}"
-                        style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;font-size:0.72rem;font-weight:800;background:${targetActive ? 'var(--royal)' : 'rgba(37,99,235,.12)'};color:${targetActive ? 'white' : 'var(--royal)'}">${targetActive ? '✓' : '+'}</span>
+                        class="admin-team-target-toggle${targetActive ? ' active' : ''}"
+                        title="${targetActive ? 'Included in shared tournament deploy' : 'Exclude from shared tournament deploy'}">${targetActive ? '???' : '+'}</span>
                 </button>`;
       }).join('');
     }
@@ -10456,158 +10711,28 @@
 
     // Parse "VENUE NAME #N" → { venue, poolNum }  e.g. "NORCO HS #2" → { venue:"NORCO HS", poolNum:"2" }
     function bsParseLocation(raw) {
-      const m = (raw || '').match(/^(.+?)\s*#\s*(\d+)$/);
-      return m ? { venue: m[1].trim(), poolNum: m[2] } : { venue: raw || '', poolNum: '' };
+      if (!window.AdminBracketImport?.bsParseLocation) return { venue: raw || '', poolNum: '' };
+      return window.AdminBracketImport.bsParseLocation(raw);
     }
 
-    // Extract bracket code prefix: "F1 - 1st B" → "F1", "G1(1stA) - " -> "G1",  "LOSER #1" → null
     function bsExtractBracketCode(raw) {
-      const m = (raw || '').match(/^([A-Z]\d+)[-–( ]/i);
-      return m ? m[1].toUpperCase() : null;
+      return window.AdminBracketImport?.bsExtractBracketCode ? window.AdminBracketImport.bsExtractBracketCode(raw) : null;
     }
 
-    // Human-readable description for a bracket team cell: "F1 - 1st B" → "1st B", "G1(1stA) - " -> "1st A"
     function bsBracketGameDesc(raw) {
-      const m = (raw || '').trim().match(/^([A-Z]\d+)[-–( ]*(\d+(?:st|nd|rd|th))\s*([A-Z])\)?[-– ]*$/i);
-      if (m) return `${m[2]} ${m[3]}`; // normalize to "1st A"
-      const fb = (raw || '').trim().match(/^[A-Z]\d+[-–( ]+(.+)$/i);
-      return fb ? fb[1].replace(/[-–) ]+$/, '').trim() : (raw || 'TBD');
+      return window.AdminBracketImport?.bsBracketGameDesc ? window.AdminBracketImport.bsBracketGameDesc(raw) : (raw || 'TBD');
     }
 
-    // Parse rebracket CSV rows → seeding map { "1st b" → "F1", "2nd b" → "H1", … }
-    // Handles two formats:
-    //   Format 1 (explicit): cells like "E1 - 1st A", "F1 - 1st B"
-    //   Format 2 (implicit): header row "Q (1st-4th)", data rows [1, "1st L", "3rd L", …]
     function bsParseRebracket(rows) {
-      const seedingMap = {};
-
-      let fmt1Hits = 0;
-      for (const row of rows) {
-        for (const cell of row) {
-          if (/^([A-Z]\d+)[-–( ]*(\d+(?:st|nd|rd|th))\s*([A-Z])\)?[-– ]*$/i.test((cell || '').trim())) fmt1Hits++;
-        }
-      }
-
-      if (fmt1Hits > 0) {
-        for (const row of rows) {
-          for (const cell of row) {
-            const m = (cell || '').trim().match(/^([A-Z]\d+)[-–( ]*(\d+(?:st|nd|rd|th))\s*([A-Z])\)?[-– ]*$/i);
-            if (m) seedingMap[(m[2] + ' ' + m[3]).toLowerCase()] = m[1].toUpperCase();
-          }
-        }
-      } else {
-        let headerRow = null, headerRowIdx = -1;
-        for (let ri = 0; ri < rows.length; ri++) {
-          const nonEmpty = rows[ri].filter(c => (c || '').trim());
-          if (nonEmpty.length >= 2 && /^[A-Z]\b/i.test(nonEmpty[0] || '')) {
-            headerRow = rows[ri]; headerRowIdx = ri; break;
-          }
-        }
-        if (headerRow) {
-          const colLetters = {};
-          for (let ci = 0; ci < headerRow.length; ci++) {
-            const lm = (headerRow[ci] || '').trim().match(/^([A-Z])\b/i);
-            if (lm) colLetters[ci] = lm[1].toUpperCase();
-          }
-          for (let ri = headerRowIdx + 1; ri < rows.length; ri++) {
-            const row = rows[ri];
-            const rowNum = (row[0] || '').trim();
-            if (!rowNum || !/^\d+$/.test(rowNum)) continue;
-            for (let ci = 1; ci < row.length; ci++) {
-              const cell = (row[ci] || '').trim();
-              const grpLetter = colLetters[ci];
-              if (!cell || !grpLetter) continue;
-              const vm = cell.match(/^(\d+(?:st|nd|rd|th))\s+([A-Z])$/i);
-              if (vm) seedingMap[(vm[1] + ' ' + vm[2]).toLowerCase()] = grpLetter + rowNum;
-            }
-          }
-        }
-      }
-      return seedingMap;
+      return window.AdminBracketImport?.bsParseRebracket ? window.AdminBracketImport.bsParseRebracket(rows) : {};
     }
 
-    // Scan full schedule CSV + seeding map → bracket path objects for the Possible tab
     function bsComputeBracketPaths(allRows, seedingMap, myPool, cols) {
-      const poolUpper = (myPool || '').replace(/^pool\s*/i, '').trim().toUpperCase();
-      if (!poolUpper || !/^[A-Z]$/.test(poolUpper) || !allRows?.length) return [];
-      const { dateCol = 0, timeCol = 2, whiteCol = 3, darkCol = 5, locCol = 1, dataStartRow = 0 } = cols || {};
-
-      const codeToGames = {};
-      for (let ri = dataStartRow; ri < allRows.length; ri++) {
-        const row = allRows[ri];
-        const rawWhite = (row[whiteCol] || '').trim();
-        const rawBlue = (row[darkCol] || '').trim();
-        const wCode = bsExtractBracketCode(rawWhite);
-        const bCode = bsExtractBracketCode(rawBlue);
-        if (!wCode && !bCode) continue;
-        const rawTime = (row[timeCol] || '').trim();
-        const rawDate = dateCol >= 0 ? (row[dateCol] || '').trim() : '';
-        const rawLoc = locCol >= 0 ? (row[locCol] || '').trim() : '';
-        const locP = bsParseLocation(rawLoc);
-        const dateISO = parseDateToISO(rawDate);
-        let timeFmt = rawTime;
-        if (rawTime && !/am|pm/i.test(rawTime)) {
-          const hm = rawTime.match(/^(\d{1,2}):/);
-          if (hm) { const h = parseInt(hm[1], 10); timeFmt = rawTime + (h >= 7 && h <= 11 ? ' AM' : ' PM'); }
-        }
-        const game = {
-          white: rawWhite, blue: rawBlue, whiteCode: wCode, blueCode: bCode,
-          time: timeFmt, dateISO,
-          date: dateISO ? isoToDate(dateISO) : rawDate,
-          location: locP.venue + (locP.poolNum ? ' Pool ' + locP.poolNum : ''),
-        };
-        if (wCode) { (codeToGames[wCode] = codeToGames[wCode] || []).push(game); }
-        if (bCode) { (codeToGames[bCode] = codeToGames[bCode] || []).push(game); }
-      }
-
-      function getReachable(startCode) {
-        const visited = new Set(), reachable = [], queue = [startCode];
-        while (queue.length) {
-          const code = queue.shift();
-          if (visited.has(code)) continue;
-          visited.add(code);
-          for (const g of (codeToGames[code] || [])) { if (!reachable.includes(g)) reachable.push(g); }
-          const grp = code.match(/^([A-Z])/)?.[1];
-          if (grp) {
-            const wc = seedingMap[('1st ' + grp).toLowerCase()];
-            const lc = seedingMap[('2nd ' + grp).toLowerCase()];
-            if (wc && !visited.has(wc)) queue.push(wc);
-            if (lc && !visited.has(lc)) queue.push(lc);
-          }
-        }
-        return reachable;
-      }
-
-      const paths = [];
-      for (const ord of ['1st', '2nd', '3rd', '4th', '5th']) {
-        const startCode = seedingMap[(ord + ' ' + poolUpper).toLowerCase()];
-        if (!startCode) continue;
-        const reachable = getReachable(startCode);
-        if (!reachable.length) continue;
-        const byDate = {}, dateOrder = [];
-        for (const g of reachable) {
-          const dk = g.dateISO || g.date || 'TBD';
-          if (!byDate[dk]) { byDate[dk] = []; dateOrder.push(dk); }
-          byDate[dk].push(g);
-        }
-        for (const dk of [...new Set(dateOrder)].sort()) {
-          const dg = byDate[dk];
-          paths.push({
-            id: 'bs-' + ord.replace(/\W/g, '') + poolUpper + '-' + dk,
-            label: 'If ' + ord + ' in Pool ' + poolUpper + ' \u2014 ' + dg.length + ' possible game' + (dg.length !== 1 ? 's' : ''),
-            qualifier: 'Bracket games your team could play if they finish ' + ord + ' in Pool ' + poolUpper + '.',
-            steps: dg.map(g => ({
-              gameNum: '',
-              desc: bsBracketGameDesc(g.white) + ' vs ' + bsBracketGameDesc(g.blue),
-              time: g.time || 'TBD',
-              date: g.date || dk,
-              dateISO: g.dateISO || '',
-              location: g.location || '',
-            })),
-          });
-        }
-      }
-      return paths;
+      if (!window.AdminBracketImport?.bsComputeBracketPaths) return [];
+      return window.AdminBracketImport.bsComputeBracketPaths(allRows, seedingMap, myPool, cols, {
+        parseDateToISO,
+        isoToDate,
+      });
     }
 
     function bsComputeKap7FuturesSpecialPaths(allRows, cols, games) {
@@ -17712,7 +17837,7 @@
   </script>
 
   <!-- Google Maps Places API for venue autocomplete -->
-  <script src="admin-bracket-import.js?v=1"></script>
+  <script src="admin-bracket-import.js?v=2"></script>
   <script>function onGoogleMapsLoad() { if (typeof initPlacesAutocomplete === 'function' && document.getElementById('info-venue-input')) initPlacesAutocomplete(); }</script>
   <script async defer
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyALS7O7coExR8-7VPDBMMA0Hp6dhoe-zQg&libraries=places&callback=onGoogleMapsLoad"></script>
