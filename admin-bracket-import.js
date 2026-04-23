@@ -192,11 +192,8 @@
     if (!target?.properties?.title) throw new Error('Could not find the requested sheet tab');
     const sheetTitle = target.properties.title;
     const encodedRange = encodeURIComponent(`'${sheetTitle.replace(/'/g, "''")}'`);
-    const fields = encodeURIComponent(
-      'sheets(properties(sheetId,title),data(rowData(values(formattedValue,effectiveFormat(backgroundColor,backgroundColorStyle)))))'
-    );
     const gridJson = await bsFetchJson(
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?includeGridData=true&ranges=${encodedRange}&fields=${fields}`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?includeGridData=true&ranges=${encodedRange}`,
       accessToken,
       'Google Sheets grid fetch'
     );
