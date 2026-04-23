@@ -355,6 +355,56 @@
       flex: 1;
     }
 
+    .admin-header-copy {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .admin-header-copy-main {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .admin-header-tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .admin-mobile-overflow {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, .25);
+      background: rgba(255, 255, 255, .12);
+      color: white;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .admin-header-utility-btn {
+      flex-shrink: 0;
+      background: rgba(255,255,255,.15);
+      color: white;
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
     .admin-header-spacer {
       flex: 1;
     }
@@ -459,6 +509,13 @@
       color: rgba(255, 255, 255, .45);
       margin-right: 2px;
       flex-shrink: 0;
+    }
+
+    .admin-global-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
     }
 
     .global-btn {
@@ -2138,6 +2195,92 @@
     }
 
     @media (max-width: 760px) {
+      .admin-header-copy {
+        align-items: flex-start;
+      }
+
+      .admin-header-copy-main {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 3px;
+      }
+
+      .admin-header-title {
+        font-size: 1rem;
+      }
+
+      .admin-header-sub {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.25;
+        font-size: 0.8rem;
+      }
+
+      .admin-header-tools {
+        display: none;
+      }
+
+      .admin-mobile-overflow {
+        display: inline-flex;
+      }
+
+      .admin-tourn-strip {
+        padding: 10px 12px 8px;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .tourn-select {
+        flex: 1 1 100%;
+      }
+
+      .admin-team-pills {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 10px 12px 8px;
+      }
+
+      .admin-team-summary {
+        flex-wrap: wrap;
+      }
+
+      .admin-team-current {
+        width: 100%;
+      }
+
+      .admin-team-count {
+        width: 100%;
+        padding-left: 2px;
+      }
+
+      .admin-team-manage-btn {
+        width: 100%;
+      }
+
+      .admin-team-manager {
+        grid-template-columns: 1fr;
+        padding: 0 12px 12px;
+      }
+
+      .admin-global-bar {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 10px 12px 12px;
+      }
+
+      .admin-global-actions {
+        width: 100%;
+        justify-content: stretch;
+        flex-wrap: wrap;
+      }
+
+      .global-btn {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 0;
+      }
+
       .recovery-summary-strip {
         grid-template-columns: 1fr 1fr;
         gap: 6px;
@@ -2529,21 +2672,33 @@
         <img src="logo_large.svg" class="eggbeater-inline-logo" alt="{{ t('eggbeater') }}">
       </div>
       <div class="admin-header-bar">
-        <span id="admin-header-title" class="admin-header-title">{{ t('Admin') }}</span>
-        <span id="header-sub" class="admin-header-sub">{{ t('Loading…') }}</span>
-        <div class="admin-lang-wrap">
-          <label class="admin-lang-label" for="admin-header-lang-picker">{{ t('Lang') }}</label>
-          <select id="admin-header-lang-picker" class="admin-lang-select" onchange="setAdminLang(this.value)"
-            aria-label="Select admin language">
-            <option value="en">EN</option>
-            <option value="es">ES</option>
-            <option value="fr">FR</option>
-          </select>
+        <div class="admin-header-copy">
+          <div class="admin-header-copy-main">
+            <span id="admin-header-title" class="admin-header-title">{{ t('Admin') }}</span>
+            <span id="header-sub" class="admin-header-sub">{{ t('Loading…') }}</span>
+          </div>
         </div>
-        <button id="switch-club-btn" onclick="switchClub()"
-          style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px"
-          title="{{ t('Switch Club (SuperAdmin)') }}">{{ t('🔀 Switch Club') }}</button>
-        <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">{{ t('💾 Deploy Current Group') }}</button>
+        <div class="admin-header-tools">
+          <div class="admin-lang-wrap">
+            <label class="admin-lang-label" for="admin-header-lang-picker">{{ t('Lang') }}</label>
+            <select id="admin-header-lang-picker" class="admin-lang-select" onchange="setAdminLang(this.value)"
+              aria-label="Select admin language">
+              <option value="en">EN</option>
+              <option value="es">ES</option>
+              <option value="fr">FR</option>
+            </select>
+          </div>
+          <button id="switch-club-btn" class="admin-header-utility-btn hidden" onclick="switchClub()"
+            title="{{ t('Switch Club (SuperAdmin)') }}">{{ t('Switch Club') }}</button>
+          <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">{{ t('💾 Deploy Current Group') }}</button>
+        </div>
+        <button class="admin-mobile-overflow" type="button" onclick="toggleAdminMore()" aria-label="Open admin actions">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <line x1="4" y1="6" x2="20" y2="6" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="18" x2="20" y2="18" />
+          </svg>
+        </button>
       </div>
       <!-- Phase 3: Tournament selector -->
       <div class="admin-tourn-strip" id="admin-tourn-strip"></div>
@@ -2641,10 +2796,12 @@
       <!-- Global actions row — operates across all age groups at once -->
       <div class="admin-global-bar">
         <span class="admin-global-label">{{ t('All groups:') }}</span>
-        <button class="global-btn global-btn-upcoming" id="upcoming-all-btn" onclick="setAllUpcomingMode()">{{ t('📅 Set
-          All → Upcoming') }}</button>
-        <button class="global-btn global-btn-deploy" id="deploy-all-btn" onclick="deployAll()">{{ t('🌐 Deploy All')
-          }}</button>
+        <div class="admin-global-actions">
+          <button class="global-btn global-btn-upcoming" id="upcoming-all-btn" onclick="setAllUpcomingMode()">{{ t('📅 Set
+            All → Upcoming') }}</button>
+          <button class="global-btn global-btn-deploy" id="deploy-all-btn" onclick="deployAll()">{{ t('🌐 Deploy All')
+            }}</button>
+        </div>
       </div>
     </header>
 
@@ -2754,6 +2911,24 @@
       <div class="admin-more-sheet">
         <div class="admin-more-handle"></div>
         <div class="admin-more-items">
+          <div class="admin-more-section">
+            <div class="admin-more-section-title">Quick actions</div>
+            <div class="admin-more-quick-grid">
+              <button class="admin-more-quick-btn primary" type="button" onclick="toggleAdminMore(); createNewTournament()">{{ t('New Tournament') }}</button>
+              <button class="admin-more-quick-btn accent" type="button" onclick="toggleAdminMore(); saveAndDeploy()">{{ t('Deploy Current Group') }}</button>
+              <button id="switch-club-btn-drawer" class="admin-more-quick-btn warning hidden" type="button" onclick="toggleAdminMore(); switchClub()">{{ t('Switch Club') }}</button>
+            </div>
+          </div>
+          <div class="admin-more-section">
+            <div class="admin-more-section-title">Admin language</div>
+            <div class="admin-more-select-wrap">
+              <select id="admin-more-lang-picker" class="admin-lang-select admin-lang-select-dark" onchange="setAdminLang(this.value)" aria-label="Select admin language">
+                <option value="en">EN</option>
+                <option value="es">ES</option>
+                <option value="fr">FR</option>
+              </select>
+            </div>
+          </div>
           <button class="admin-more-item" onclick="adminMoreNav('clubinfo')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 21h18" />
@@ -3754,7 +3929,9 @@
       requestAnimationFrame(() => syncAdminHeaderHeight());
       // Show Switch Club button for any recognized superadmin.
       const switchBtn = document.getElementById('switch-club-btn');
-      if (switchBtn) switchBtn.style.display = S.isSuperAdmin ? '' : 'none';
+      const switchDrawerBtn = document.getElementById('switch-club-btn-drawer');
+      if (switchBtn) switchBtn.classList.toggle('hidden', !S.isSuperAdmin);
+      if (switchDrawerBtn) switchDrawerBtn.classList.toggle('hidden', !S.isSuperAdmin);
 
       // Phase 3: restore club ID and load cloud tournament list from Firestore
       // We MUST do this before loadClubSettings() so the api() helper has the correct club context.
@@ -5275,8 +5452,10 @@
     function applyAdminTranslations() {
       const dashboardPicker = document.getElementById('dashboard-lang-picker');
       const adminPicker = document.getElementById('admin-header-lang-picker');
+      const morePicker = document.getElementById('admin-more-lang-picker');
       if (dashboardPicker) dashboardPicker.value = getAdminLang();
       if (adminPicker) adminPicker.value = getAdminLang();
+      if (morePicker) morePicker.value = getAdminLang();
       const map = {
         'dashboard-header-title': 'dashboard_title',
         'dashboard-header-sub': 'dashboard_sub',
