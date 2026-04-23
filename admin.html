@@ -8333,7 +8333,7 @@
       if (!S.bsync) {
         const _lsUrl = localStorage.getItem('ebadmin-bsync-url') || '';
         const _lsGidM = _lsUrl.match(/[#?&]gid=(\d+)/);
-        S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] || '', sheetGid: localStorage.getItem('ebadmin-bsync-gid') || (_lsGidM ? _lsGidM[1] : ''), poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '' };
+        S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] || '', sheetGid: localStorage.getItem('ebadmin-bsync-gid') || (_lsGidM ? _lsGidM[1] : ''), poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', wizardMode: 'standard' };
       }
       const bs = S.bsync;
       // Advanced Import parent accordion: auto-open if any wizard is active
@@ -8362,7 +8362,7 @@
     <details class="card collapsible-card" id="advanced-import-card"${_advOpen ? ' open' : ''}>
       <summary class="card-header collapsible-header">🔧 Advanced Import <span class="collapse-icon">▾</span></summary>
       <div style="display:flex;flex-direction:column;gap:8px;padding:8px 0 4px">
-        ${bsWizardHtml()}
+        ${bsWizardHtml('standard')}
         ${bsFuturesWizardLauncherHtml()}
         ${dirImportWizardHtml()}
         ${njoWizardHtml()}
@@ -9594,9 +9594,9 @@
         + '<div id="bs-last-sync-row">\ud83d\udd52 <strong>Last synced:</strong> ' + esc(syncStr) + '</div>';
     }
 
-    // bsWizardHtml: returns the full Bracket Sheet Sync <details> card as an HTML string.
-    // Called inline from renderAddGamesTab() via ${bsWizardHtml()} — no placeholder needed.
-    function bsWizardHtml() {
+    // bsWizardHtml: renders either the standard CSV wizard or the Futures color-aware wizard.
+    function bsWizardHtml(mode) {
+      const wizardMode = mode === 'futures' ? 'futures' : 'standard';
       if (!S.bsync) {
         _restoreBsyncFromTournament();
         if (!S.bsync) {
@@ -9614,11 +9614,29 @@
             rebracket: false,
             rebracketRange: '',
             pollMins: parseInt(localStorage.getItem('ebadmin-bsync-mins') || '10', 10),
-            pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: ''
+            pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', wizardMode: 'standard'
           };
         }
       }
       var bs = S.bsync;
+      if (!bs.wizardMode) bs.wizardMode = bs.colorCoded ? 'futures' : 'standard';
+      var isFutures = wizardMode === 'futures';
+      var isActive = (bs.wizardMode || 'standard') === wizardMode;
+      var cardId = isFutures ? 'bs-futures-card' : 'bs-card';
+      var title = isFutures ? '🧭 Futures Bracket Import Wizard' : '&#x1f4ca; Bracket Sheet Sync';
+      var introHint = isFutures
+        ? 'Use this when a Futures sheet shares one tab across multiple age groups and the age groups are separated by legend colors instead of separate tabs.'
+        : 'Use this for the standard public Google Sheets / CSV-style bracket import flow.';
+      var launchLabel = isFutures ? 'Open Futures color-aware import' : 'Open standard CSV import';
+      if (!isActive) {
+        return '<details class="card collapsible-card" id="' + cardId + '">'
+          + '<summary class="card-header collapsible-header">' + title + ' <span class="collapse-icon">&#9662;</span></summary>'
+          + '<div style="padding:10px 14px 14px">'
+          + '<div class="info-hint" style="margin-bottom:10px">' + introHint + '</div>'
+          + '<button class="save-btn" style="width:100%" onclick="bsOpenWizardMode(\'' + wizardMode + '\')">' + launchLabel + '</button>'
+          + '</div>'
+          + '</details>';
+      }
       var step = bs.step || 1;
       var dots = [1, 2, 3, 4, 5, 6].map(function (n) { return '<div id="bs-dot-' + n + '" style="flex:1;height:5px;border-radius:3px;background:' + (step >= n ? 'var(--royal)' : 'var(--g200)') + '"></div>'; }).join('');
       var curMins = (bs.pollMins === undefined) ? 10 : bs.pollMins;
@@ -9631,8 +9649,11 @@
       var rbNoCo = !bs.rebracket ? 'white' : 'var(--g600)';
       var s4dis = (bs.games && bs.games.length) ? '' : ' disabled';
       var hasDraft = !!(localStorage.getItem('ebwp-bsync-draft-' + S.team));
-      return '<details class="card collapsible-card" id="bs-card"' + ((bs.sheetUrl || (bs.step && bs.step > 1)) ? ' open' : '') + '>'
-        + '<summary class="card-header collapsible-header">&#x1f4ca; Bracket Sheet Sync <span style="font-size:0.72rem;font-weight:400;color:var(--g400);margin-left:8px">' + (hasDraft ? '| <a href="#" onclick="event.preventDefault();_bsClearWizardDraft()" style="color:#92400e;text-decoration:none">🗑 Clear draft</a>' : '') + '</span><span class="collapse-icon">&#9662;</span></summary>'
+      var sheetHint = isFutures
+        ? 'Sign in with Google when prompted so Eggbeater can read the legend colors on the sheet.'
+        : 'The sheet must be publicly viewable (Share &rarr; Anyone with the link).';
+      return '<details class="card collapsible-card" id="' + cardId + '" open>'
+        + '<summary class="card-header collapsible-header">' + title + ' <span style="font-size:0.72rem;font-weight:400;color:var(--g400);margin-left:8px">' + (hasDraft ? '| <a href="#" onclick="event.preventDefault();_bsClearWizardDraft()" style="color:#92400e;text-decoration:none">🗑 Clear draft</a>' : '') + '</span><span class="collapse-icon">&#9662;</span></summary>'
         + '<div style="padding:10px 14px">'
         + '<div id="bs-draft-banner" style="display:' + (hasDraft && step >= 2 ? 'block' : 'none') + ';background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:8px 12px;font-size:0.8rem;color:#92400e;margin-bottom:10px">⚡ Draft restored from your last session. <a href="#" onclick="event.preventDefault();_bsClearWizardDraft()" style="color:#92400e;font-weight:700">Start fresh</a></div>'
         + '<div style="display:flex;gap:3px;margin-bottom:10px" id="bs-stepbar">' + dots + '</div>'
@@ -9640,15 +9661,15 @@
         // Step 1
         + '<div id="bs-s1" style="display:' + (step === 1 ? 'block' : 'none') + '">'
         + '<div class="info-label" style="margin-bottom:4px">Paste your Google Sheets URL</div>'
-        + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">The sheet must be publicly viewable (Share &rarr; Anyone with the link).</div>'
+        + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">' + sheetHint + '</div>'
         + '<input class="info-input" id="bs-url" type="url" value="' + esc(bs.sheetUrl || '') + '" placeholder="https://docs.google.com/spreadsheets/d/\u2026" autocomplete="off" spellcheck="false" style="margin-bottom:12px" onkeydown="if(event.key===\'Enter\')bsStep1Next()">'
-        // Colour-coded age groups option — shown BEFORE Next so it's always visible
-        + '<div style="margin-bottom:12px;padding:10px 12px;background:var(--g50);border-radius:8px;border:1px solid var(--g200)">'
+        + (isFutures
+          ? '<div style="margin-bottom:12px;padding:10px 12px;background:var(--g50);border-radius:8px;border:1px solid var(--g200)">'
         + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--g700)">'
-        + '<input type="checkbox" id="bs-cc-chk" ' + (bs.colorCoded ? 'checked' : '') + ' onchange="bsToggleColorCoded(this.checked)" style="width:15px;height:15px;accent-color:var(--royal);flex-shrink:0">'
+        + '<input type="checkbox" id="bs-cc-chk" checked disabled style="width:15px;height:15px;accent-color:var(--royal);flex-shrink:0">'
         + 'Age groups separated by row colour'
         + '</label>'
-        + '<div id="bs-cc-fields" style="display:' + (bs.colorCoded ? 'block' : 'none') + ';margin-top:8px">'
+        + '<div id="bs-cc-fields" style="display:block;margin-top:8px">'
         + '<div style="font-size:.78rem;color:var(--g500);margin-bottom:6px">Which cells show the age group colour key? e.g. <code style="background:white;padding:1px 4px;border-radius:3px;border:1px solid var(--g200)">A18, B18</code></div>'
         + '<div style="display:flex;gap:6px;margin-bottom:6px">'
         + '<input class="info-input" id="bs-cc-cells" value="' + esc(bs.legendCells || '') + '" placeholder="A18, B18" style="flex:1;font-family:monospace;font-size:.84rem" onkeydown="if(event.key===\'Enter\')bsDetectAgeGroups()">'
@@ -9663,6 +9684,7 @@
         + '</div>'
         + '</div>'
         + '</div>'
+          : '')
         + '<div style="margin-bottom:12px;padding:10px 12px;background:var(--g50);border-radius:8px;border:1px solid var(--g200)">'
         + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--g700)">'
         + '<input type="checkbox" id="bs-cf-chk" ' + (bs.courseFormat ? 'checked' : '') + ' onchange="bsToggleCourseFormat(this.checked)" style="width:15px;height:15px;accent-color:var(--royal);flex-shrink:0">'
@@ -9766,17 +9788,18 @@
     function renderBsWizard() { }
 
     function bsFuturesWizardLauncherHtml() {
-      const active = !!S.bsync?.colorCoded;
-      return `<details class="card collapsible-card" id="bs-futures-launcher"${active ? ' open' : ''}>
-        <summary class="card-header collapsible-header">🧭 Futures Bracket Import Wizard <span class="collapse-icon">▾</span></summary>
-        <div style="padding:10px 14px 14px">
-          <div class="info-hint" style="margin-bottom:10px">Use this when a Futures sheet shares one tab across multiple age groups and the age groups are separated by legend colors instead of separate tabs.</div>
-          <button class="save-btn" style="width:100%" onclick="bsLaunchFuturesWizard()">${active ? 'Continue Futures color-aware import' : 'Start Futures color-aware import'}</button>
-        </div>
-      </details>`;
+      return bsWizardHtml('futures');
     }
 
     function bsLaunchFuturesWizard() {
+      bsOpenWizardMode('futures');
+    }
+
+    function bsLaunchStandardWizard() {
+      bsOpenWizardMode('standard');
+    }
+
+    function bsOpenWizardMode(mode) {
       if (!S.bsync) {
         const url = localStorage.getItem('ebadmin-bsync-url') || '';
         const sheetId = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] || '';
@@ -9800,19 +9823,26 @@
           legendCells: '',
           ageGroups: [],
           myAgeGroupIdx: 0,
-          myAgeGroup: ''
+          myAgeGroup: '',
+          wizardMode: 'standard'
         };
       }
       if (S.bsync?.sheetUrl) bsApplySheetUrl(S.bsync.sheetUrl);
       S.bsync.step = 1;
-      S.bsync.colorCoded = true;
-      S.bsync.legendCells = S.bsync.legendCells || '';
-      S.bsync.ageGroups = Array.isArray(S.bsync.ageGroups) ? S.bsync.ageGroups : [];
+      S.bsync.wizardMode = mode === 'futures' ? 'futures' : 'standard';
+      S.bsync.colorCoded = S.bsync.wizardMode === 'futures';
+      S.bsync.legendCells = S.bsync.colorCoded ? (S.bsync.legendCells || '') : '';
+      S.bsync.ageGroups = S.bsync.colorCoded && Array.isArray(S.bsync.ageGroups) ? S.bsync.ageGroups : [];
       S.bsync.myAgeGroupIdx = 0;
       S.bsync.myAgeGroup = '';
+      if (!S.bsync.colorCoded) {
+        S.bsync.rowAgeGroups = [];
+        S.bsync.legendParsed = [];
+        S.bsync.legendColors = {};
+      }
       renderTab();
       requestAnimationFrame(() => {
-        const card = document.getElementById('bs-card');
+        const card = document.getElementById(S.bsync.wizardMode === 'futures' ? 'bs-futures-card' : 'bs-card');
         if (card) {
           card.open = true;
           card.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -10046,6 +10076,7 @@
         S.bsync.myAgeGroupIdx = 0;
         S.bsync.rowAgeGroups = [];
         S.bsync.legendColors = {};
+        S.bsync.wizardMode = 'standard';
       }
     }
 
@@ -11163,20 +11194,20 @@
     document.addEventListener('input', function(e) {
       if (!e.target.closest) return;
       const t = e.target;
-      if (t.closest('#bs-card') || t.closest('#njo-card') || t.closest('.director-form') || t.closest('.history-form')) return;
+      if (t.closest('#bs-card') || t.closest('#bs-futures-card') || t.closest('#njo-card') || t.closest('.director-form') || t.closest('.history-form')) return;
       if (t.closest('#tab-content')) _setDirty();
     }, true);
     document.addEventListener('change', function(e) {
       if (!e.target.closest) return;
       const t = e.target;
-      if (t.closest('#bs-card') || t.closest('#njo-card') || t.closest('.director-form') || t.closest('.history-form')) return;
+      if (t.closest('#bs-card') || t.closest('#bs-futures-card') || t.closest('#njo-card') || t.closest('.director-form') || t.closest('.history-form')) return;
       if (t.closest('#tab-content')) _setDirty();
     }, true);
 
     async function bsReset() {
       // Clear all wizard state — both in-memory and on the server so a hard
       // refresh doesn't restore the old setup via _restoreBsyncFromTournament()
-      S.bsync = { step: 1, sheetUrl: '', sheetId: '', sheetGid: '', poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '' };
+      S.bsync = { step: 1, sheetUrl: '', sheetId: '', sheetGid: '', poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', wizardMode: 'standard' };
       ['ebadmin-bsync-url', 'ebadmin-bsync-gid', 'ebadmin-bsync-team', 'ebadmin-bsync-range', 'ebadmin-bsync-mins'].forEach(k => localStorage.removeItem(k));
       if (S.tournament) delete S.tournament.sheetSync;
       bsStep(1);
@@ -11736,6 +11767,7 @@
         colorCoded: !!sync.colorCoded,
         legendCells: sync.legendCells || '',
         myAgeGroup: sync.myAgeGroup || '',
+        wizardMode: sync.colorCoded ? 'futures' : 'standard',
         lastSync: sync.lastSync || '',
         dateOverrides: sync.dateOverrides || null,
         games: Array.isArray(S.tournament?.games) ? [...S.tournament.games] : [],
