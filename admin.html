@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -12,7 +12,6 @@
   <link rel="manifest" href="admin-manifest.json">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-admin.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-admin-512.png">
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     *,
     *::before,
@@ -356,56 +355,6 @@
       flex: 1;
     }
 
-    .admin-header-copy {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-      flex: 1;
-    }
-
-    .admin-header-copy-main {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-      flex: 1;
-    }
-
-    .admin-header-tools {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-
-    .admin-mobile-overflow {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, .25);
-      background: rgba(255, 255, 255, .12);
-      color: white;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-
-    .admin-header-utility-btn {
-      flex-shrink: 0;
-      background: rgba(255,255,255,.15);
-      color: white;
-      border: 1px solid rgba(255,255,255,.3);
-      border-radius: 8px;
-      padding: 7px 12px;
-      font-size: 0.72rem;
-      font-weight: 800;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
     .admin-header-spacer {
       flex: 1;
     }
@@ -484,16 +433,22 @@
 
     /* ── Global action bar (second header row) ── */
     .admin-global-bar {
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr);
+      display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 12px 10px;
+      gap: 8px;
+      padding: 5px 12px 8px;
       padding-left: max(12px, env(safe-area-inset-left, 0px));
       padding-right: max(12px, env(safe-area-inset-right, 0px));
       background: rgba(0, 0, 0, .14);
       border-top: 1px solid rgba(255, 255, 255, .08);
       width: 100%;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-global-bar::-webkit-scrollbar {
+      display: none;
     }
 
     .admin-global-label {
@@ -502,16 +457,8 @@
       text-transform: uppercase;
       letter-spacing: .06em;
       color: rgba(255, 255, 255, .45);
-      white-space: nowrap;
-    }
-
-    .admin-global-actions {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 8px;
-      min-width: 0;
-      flex-wrap: wrap;
+      margin-right: 2px;
+      flex-shrink: 0;
     }
 
     .global-btn {
@@ -553,8 +500,8 @@
     .admin-team-pills {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
-      padding: 10px 14px 8px;
+      gap: 6px;
+      padding: 8px 14px;
       padding-left: max(14px, env(safe-area-inset-left, 0px));
       padding-right: max(14px, env(safe-area-inset-right, 0px));
       background: rgba(0, 0, 0, .12);
@@ -591,98 +538,6 @@
       background: white;
       color: var(--royal);
       border-color: white;
-    }
-    .admin-team-summary {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      min-width: 0;
-      flex: 1;
-    }
-
-    .admin-team-current {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, .18);
-      color: white;
-      font-weight: 800;
-      font-size: 0.84rem;
-      min-width: 0;
-    }
-
-    .admin-team-current-text {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .admin-team-count {
-      font-size: 0.74rem;
-      font-weight: 700;
-      color: rgba(255, 255, 255, .78);
-      white-space: nowrap;
-    }
-
-    .admin-team-manage-btn {
-      flex: 0 0 auto;
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, .28);
-      background: rgba(255, 255, 255, .12);
-      color: white;
-      font-weight: 800;
-      font-size: 0.78rem;
-      cursor: pointer;
-    }
-
-    .admin-team-manager {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 8px;
-      padding: 0 14px 12px;
-      background: rgba(0, 0, 0, .12);
-      border-top: 1px solid rgba(255, 255, 255, .05);
-    }
-
-    .admin-team-manager.hidden {
-      display: none;
-    }
-
-    .admin-pill-group {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-    }
-
-    .admin-pill-label {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .admin-team-target-toggle {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      height: 20px;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 800;
-      border: none;
-      cursor: pointer;
-      background: rgba(37, 99, 235, .12);
-      color: var(--royal);
-      flex-shrink: 0;
-    }
-
-    .admin-team-target-toggle.active {
-      background: var(--royal);
-      color: white;
     }
 
     /* ── Tournament selector strip ── */
@@ -802,7 +657,7 @@
       background: white;
       border-bottom: 1px solid var(--g200);
       position: sticky;
-      top: var(--admin-header-h, calc(60px + env(safe-area-inset-top, 0)));
+      top: calc(60px + env(safe-area-inset-top, 0));
       z-index: 99;
       justify-content: stretch;
     }
@@ -926,71 +781,6 @@
     .admin-more-chevron {
       color: #d1d5db !important;
       flex-shrink: 0;
-    }
-    .admin-more-section {
-      padding: 0 20px 14px;
-    }
-
-    .admin-more-section-title {
-      font-size: 0.72rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: var(--g400);
-      margin-bottom: 10px;
-    }
-
-    .admin-more-quick-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .admin-more-quick-btn {
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: 1px solid var(--g200);
-      background: #fff;
-      color: var(--g900);
-      font: inherit;
-      font-weight: 800;
-      cursor: pointer;
-      text-align: left;
-    }
-
-    .admin-more-quick-btn.primary {
-      background: var(--royal);
-      border-color: var(--royal);
-      color: white;
-    }
-
-    .admin-more-quick-btn.accent {
-      border-color: rgba(22, 163, 74, .35);
-      color: var(--green);
-    }
-
-    .admin-more-quick-btn.warning {
-      border-color: rgba(217, 119, 6, .35);
-      color: var(--amber);
-    }
-
-    .admin-more-select-wrap {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      border-radius: 12px;
-      background: var(--g50);
-      border: 1px solid var(--g200);
-    }
-
-    .admin-lang-select.admin-lang-select-dark {
-      color: var(--g900);
-      width: 100%;
-      background-image: linear-gradient(45deg, transparent 50%, var(--g600) 50%), linear-gradient(135deg, var(--g600) 50%, transparent 50%);
-      background-position: calc(100% - 8px) calc(50% - 1px), calc(100% - 4px) calc(50% - 1px);
-      background-size: 4px 4px, 4px 4px;
-      background-repeat: no-repeat;
     }
 
     .admin-more-divider {
@@ -2084,181 +1874,7 @@
     }
 
     /* ── iPad / Tablet (768px – 1023px) ───────────────────────────────────── */
-    
-    @media (max-width: 767px) {
-      .eggbeater-poweredby-bar {
-        display: none !important;
-      }
-
-      .admin-logo-wrap {
-        min-height: 56px;
-        padding: 8px 14px 6px;
-      }
-
-      .admin-logo-wrap.has-custom-logo {
-        min-height: 78px;
-      }
-
-      .admin-logo-img {
-        max-height: 44px;
-      }
-
-      .admin-custom-logo-wrap {
-        padding: 6px 14px 2px;
-        min-height: 74px;
-      }
-
-      .admin-custom-logo-img {
-        max-height: 72px;
-      }
-
-      .admin-header-bar {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: start;
-        gap: 10px;
-        padding: 10px 12px;
-      }
-
-      .admin-header-copy {
-        align-items: flex-start;
-      }
-
-      .admin-header-copy-main {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 3px;
-      }
-
-      .admin-header-title {
-        font-size: 1rem;
-      }
-
-      .admin-header-sub {
-        white-space: normal;
-        overflow: visible;
-        text-overflow: clip;
-        line-height: 1.25;
-        font-size: 0.8rem;
-      }
-
-      .admin-header-tools {
-        display: none;
-      }
-
-      .admin-mobile-overflow {
-        display: inline-flex;
-      }
-
-      .admin-tourn-strip {
-        padding: 10px 12px 8px;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-
-      .tourn-select {
-        flex: 1 1 100%;
-      }
-
-      .admin-team-pills {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-        padding: 10px 12px 8px;
-      }
-
-      .admin-team-summary {
-        flex-wrap: wrap;
-      }
-
-      .admin-team-current {
-        width: 100%;
-      }
-
-      .admin-team-count {
-        width: 100%;
-        padding-left: 2px;
-      }
-
-      .admin-team-manage-btn {
-        width: 100%;
-      }
-
-      .admin-team-manager {
-        grid-template-columns: 1fr;
-        padding: 0 12px 12px;
-      }
-
-      .admin-global-bar {
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        padding: 10px 12px 12px;
-      }
-
-      .admin-global-label {
-        grid-column: 1 / -1;
-      }
-
-      .admin-global-actions {
-        grid-column: 1 / -1;
-        justify-content: stretch;
-      }
-
-      .global-btn {
-        flex: 1 1 calc(50% - 4px);
-        min-width: 0;
-        padding: 10px 12px;
-        text-align: center;
-      }
-
-      .admin-tabs {
-        gap: 8px;
-        justify-content: flex-start;
-        overflow-x: auto;
-        white-space: nowrap;
-        padding: 10px 12px;
-        background: rgba(255, 255, 255, .96);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-      }
-
-      .tab-btn {
-        flex: 0 0 auto;
-        min-width: 116px;
-        padding: 10px 14px;
-        border-radius: 14px;
-        border: 1px solid var(--g200);
-        border-bottom: 1px solid var(--g200);
-      }
-
-      .tab-btn.active {
-        background: rgba(0, 40, 104, .08);
-        border-color: rgba(0, 40, 104, .2);
-      }
-
-      .tab-btn svg {
-        margin-right: 8px;
-        margin-bottom: 0;
-      }
-
-      #tab-content {
-        padding: 12px 8px 18px;
-      }
-
-      #status-bar {
-        left: 12px;
-        right: 12px;
-        max-width: none;
-        bottom: calc(12px + env(safe-area-inset-bottom, 0));
-        border-radius: 14px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
-      }
-
-      .admin-more-quick-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-@media (min-width: 768px) and (max-width: 1023px) {
+    @media (min-width: 768px) and (max-width: 1023px) {
 
       /* Use the full width but keep it clean */
       #admin-app {
@@ -2521,154 +2137,6 @@
       font-size: 0.82rem;
     }
 
-    .recovery-card {
-      margin-bottom: 10px;
-    }
-
-    .recovery-card-alert {
-      border-color: #fca5a5;
-      background: #fff1f2;
-    }
-
-    .recovery-card-header-royal {
-      color: var(--royal);
-    }
-
-    .recovery-card-header-err {
-      color: #dc2626;
-    }
-
-    .recovery-card-body {
-      padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .recovery-card-body-tight {
-      padding: 10px 14px;
-    }
-
-    .recovery-card-copy-err {
-      color: #7f1d1d;
-    }
-
-    .recovery-row-static {
-      cursor: default;
-    }
-
-    .recovery-info-tight {
-      gap: 4px;
-    }
-
-    .recovery-game-opp-err {
-      color: #dc2626;
-    }
-
-    .recovery-gameid-chip {
-      font-family: monospace;
-    }
-
-    .recovery-toolbar {
-      padding: 12px 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .recovery-toolbar-title {
-      font-weight: 800;
-      font-size: 0.9rem;
-      color: var(--g700);
-    }
-
-    .recovery-toolbar-spacer {
-      flex: 1;
-    }
-
-    .recovery-toolbar-meta {
-      font-size: 0.7rem;
-      color: var(--g300);
-      white-space: nowrap;
-    }
-
-    .recovery-status-inline {
-      font-size: 0.82rem;
-    }
-
-    .recovery-actions-start {
-      justify-content: flex-start;
-    }
-
-    .recovery-copy-pad {
-      padding: 10px 14px;
-    }
-
-    .recovery-callout-warn {
-      padding: 10px 12px;
-      border: 1px solid #facc15;
-      border-radius: 10px;
-      background: #fffbeb;
-      color: #78350f;
-      font-size: 0.82rem;
-      font-weight: 700;
-    }
-
-    .recovery-all-clear {
-      margin-bottom: 10px;
-      text-align: center;
-      padding: 28px 20px;
-    }
-
-    .recovery-all-clear-icon {
-      font-size: 2rem;
-      margin-bottom: 8px;
-    }
-
-    .recovery-all-clear-title {
-      font-weight: 700;
-      color: var(--g700);
-      margin-bottom: 4px;
-    }
-
-    .recovery-all-clear-copy {
-      font-size: 0.82rem;
-      color: var(--g400);
-    }
-
-    .recovery-btn-sm {
-      padding: 6px 10px;
-      font-size: 0.76rem;
-    }
-
-    .recovery-btn-md {
-      padding: 8px 10px;
-      font-size: 0.76rem;
-    }
-
-    .recovery-btn-neutral {
-      background: var(--g100);
-      color: var(--g700);
-    }
-
-    .recovery-btn-warn {
-      background: #fff7ed;
-      color: #9a3412;
-      white-space: nowrap;
-    }
-
-    .recovery-btn-danger {
-      background: var(--red);
-    }
-
-    .recovery-btn-primary {
-      background: var(--royal);
-    }
-
-    .recovery-btn-success {
-      background: #2e7d32;
-    }
     @media (max-width: 760px) {
       .recovery-summary-strip {
         grid-template-columns: 1fr 1fr;
@@ -2990,45 +2458,193 @@
         <img src="logo_large.svg" alt="Eggbeater Water Polo" class="admin-logo-img">
       </div>
       <div class="admin-header-bar">
-        <div class="admin-header-copy">
-          <div class="admin-header-copy-main">
-            <span id="admin-header-title" class="admin-header-title">{{ t('Admin') }}</span>
-            <span id="header-sub" class="admin-header-sub">{{ t('Loading...') }}</span>
+        <span id="dashboard-header-title" class="admin-header-title">{{ t('Super Admin Dashboard') }}</span>
+        <span id="dashboard-header-sub" class="admin-header-sub">{{ t('Select a club to manage') }}</span>
+        <div class="admin-header-spacer"></div>
+        <div class="admin-lang-wrap">
+          <label class="admin-lang-label" for="dashboard-lang-picker">{{ t('Lang') }}</label>
+          <select id="dashboard-lang-picker" class="admin-lang-select" onchange="setAdminLang(this.value)"
+            aria-label="Select admin language">
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="fr">FR</option>
+          </select>
+        </div>
+        <button class="save-btn"
+          style="background:var(--red);color:white;border-color:var(--red);padding:4px 14px;font-size:0.78rem"
+          onclick="doLogout()">🚪 {{ t('Logout') }}</button>
+      </div>
+    </header>
+    <div style="max-width:1100px;margin:0 auto;padding:24px 20px 40px">
+      <div id="club-dashboard-list"
+        style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:28px">
+        <div style="text-align:center;color:var(--g400);padding:20px;grid-column:1/-1">{{ t('Loading clubs…') }}</div>
+      </div>
+
+      <!-- Platform Admin Actions -->
+      <div style="border-top:2px solid var(--g200);padding-top:20px">
+        <div style="font-size:0.95rem;font-weight:700;color:var(--royal);margin-bottom:12px">{{ t('⚙️ Platform Admin')
+          }}</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
+          <!-- Add New Club -->
+          <div style="background:white;border:1px solid var(--g200);border-radius:var(--radius);padding:14px 16px">
+            <div style="font-size:0.85rem;font-weight:600;margin-bottom:8px">{{ t('➕ Add New Club') }}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <input id="new-club-id" class="info-input" style="flex:1 1 120px;margin:0;font-size:0.82rem"
+                placeholder="{{ t('Club ID (e.g. bay-area-aquatics)') }}">
+              <input id="new-club-name" class="info-input" style="flex:1 1 160px;margin:0;font-size:0.82rem"
+                placeholder="{{ t('Display Name') }}">
+            </div>
+            <button class="save-btn"
+              style="width:100%;margin-top:8px;background:var(--royal);color:white;border-color:var(--royal)"
+              onclick="createNewClub()">{{ t('Create Club') }}</button>
+          </div>
+
+          <!-- Platform Stats -->
+          <div id="platform-stats"
+            style="background:white;border:1px solid var(--g200);border-radius:var(--radius);padding:14px 16px">
+            <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px">{{ t('📊 Platform Overview') }}</div>
+            <div id="platform-stats-body" style="font-size:0.82rem;color:var(--g400)">{{ t('Loading…') }}</div>
           </div>
         </div>
-        <div class="admin-header-tools">
-          <div class="admin-lang-wrap">
-            <label class="admin-lang-label" for="admin-header-lang-picker">{{ t('Lang') }}</label>
-            <select id="admin-header-lang-picker" class="admin-lang-select" onchange="setAdminLang(this.value)"
-              aria-label="Select admin language">
-              <option value="en">EN</option>
-              <option value="es">ES</option>
-              <option value="fr">FR</option>
-            </select>
-          </div>
-          <button id="switch-club-btn" class="admin-header-utility-btn hidden" onclick="switchClub()" title="{{ t('Switch Club (SuperAdmin)') }}">{{ t('Switch Club') }}</button>
-          <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">{{ t('�Y'� Deploy Current Group') }}</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Admin App ──────────────────────────────────────────────────────────── -->
+  <div id="admin-app" hidden>
+
+    <header class="admin-header">
+      <div class="admin-logo-wrap">
+        <!-- Default: eggbeater brand logo (recolored to club primary color) -->
+        <img src="logo_large.svg" alt="Eggbeater Water Polo" class="admin-logo-img">
+        <!-- Custom club logo (shown when club has uploaded their own logo) -->
+        <div class="admin-custom-logo-wrap hidden">
+          <img class="admin-custom-logo-img" alt="">
         </div>
-        <button class="admin-mobile-overflow" type="button" onclick="toggleAdminMore()" aria-label="Open admin actions">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <line x1="4" y1="6" x2="20" y2="6" />
-            <line x1="4" y1="12" x2="20" y2="12" />
-            <line x1="4" y1="18" x2="20" y2="18" />
-          </svg>
-        </button>
+      </div>
+      <!-- "Brought to you by eggbeater" — full-bleed bar, only shown when club has a custom logo -->
+      <div class="eggbeater-poweredby-bar admin-poweredby-bar hidden">
+        <span>{{ t('brought to you by') }}</span>
+        <img src="logo_large.svg" class="eggbeater-inline-logo" alt="{{ t('eggbeater') }}">
+      </div>
+      <div class="admin-header-bar">
+        <span id="admin-header-title" class="admin-header-title">{{ t('Admin') }}</span>
+        <span id="header-sub" class="admin-header-sub">{{ t('Loading…') }}</span>
+        <div class="admin-lang-wrap">
+          <label class="admin-lang-label" for="admin-header-lang-picker">{{ t('Lang') }}</label>
+          <select id="admin-header-lang-picker" class="admin-lang-select" onchange="setAdminLang(this.value)"
+            aria-label="Select admin language">
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="fr">FR</option>
+          </select>
+        </div>
+        <button id="switch-club-btn" onclick="switchClub()"
+          style="display:none;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-right:4px"
+          title="{{ t('Switch Club (SuperAdmin)') }}">{{ t('🔀 Switch Club') }}</button>
+        <button class="deploy-btn" id="deploy-btn" onclick="saveAndDeploy()">{{ t('💾 Deploy Current Group') }}</button>
       </div>
       <!-- Phase 3: Tournament selector -->
       <div class="admin-tourn-strip" id="admin-tourn-strip"></div>
       <!-- Age group / team manager -->
       <div class="admin-team-pills" id="admin-team-pills"></div>
       <div class="admin-team-manager hidden" id="admin-team-manager"></div>
-<!-- Global actions row operates across all age groups at once -->
+      <style>
+        .admin-team-pills {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 10px 12px 6px;
+        }
+
+        .admin-pill {
+          flex: 0 0 auto;
+          padding: 6px 12px;
+          border-radius: 20px;
+          background: var(--royal-lt);
+          color: var(--royal);
+          font-weight: 700;
+          font-size: 0.82rem;
+          cursor: pointer;
+          border: none;
+        }
+
+        .admin-team-summary {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 1;
+        }
+
+        .admin-team-current {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, .18);
+          color: white;
+          font-weight: 800;
+          font-size: 0.84rem;
+          min-width: 0;
+        }
+
+        .admin-team-current-text {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .admin-team-count {
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: rgba(255, 255, 255, .78);
+          white-space: nowrap;
+        }
+
+        .admin-team-manage-btn {
+          flex: 0 0 auto;
+          padding: 8px 12px;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, .28);
+          background: rgba(255, 255, 255, .12);
+          color: white;
+          font-weight: 800;
+          font-size: 0.78rem;
+          cursor: pointer;
+        }
+
+        .admin-team-manager {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 8px;
+          padding: 0 12px 12px;
+        }
+
+        .admin-team-manager.hidden {
+          display: none;
+        }
+
+        @media (min-width: 1024px) {
+          .admin-team-pills {
+            padding: 12px 24px 8px;
+          }
+
+          .admin-team-manager {
+            padding: 0 24px 14px;
+          }
+        }
+      </style>
+      <!-- Global actions row — operates across all age groups at once -->
       <div class="admin-global-bar">
         <span class="admin-global-label">{{ t('All groups:') }}</span>
-        <div class="admin-global-actions">
-          <button class="global-btn global-btn-upcoming" id="upcoming-all-btn" onclick="setAllUpcomingMode()">{{ t('Set All to Upcoming') }}</button>
-          <button class="global-btn global-btn-deploy" id="deploy-all-btn" onclick="deployAll()">{{ t('Deploy All') }}</button>
-        </div>
+        <button class="global-btn global-btn-upcoming" id="upcoming-all-btn" onclick="setAllUpcomingMode()">{{ t('📅 Set
+          All → Upcoming') }}</button>
+        <button class="global-btn global-btn-deploy" id="deploy-all-btn" onclick="deployAll()">{{ t('🌐 Deploy All')
+          }}</button>
       </div>
     </header>
 
@@ -3081,7 +2697,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
-        <span id="admin-tab-teamcomm">{{ t('Team Comm') }}</span><span class="tab-crown hidden"> 👑</span>
+        <span id="admin-tab-teamcomm">{{ t('Team Comm') }}</span><span class="tab-crown" style="display:none"> 👑</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="director" onclick="switchTab('director')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -3091,7 +2707,7 @@
           <line x1="8" y1="21" x2="16" y2="21" />
           <line x1="12" y1="17" x2="12" y2="21" />
         </svg>
-        <span id="admin-tab-director">{{ t('Director') }}</span><span class="tab-crown hidden"> 👑</span>
+        <span id="admin-tab-director">{{ t('Director') }}</span><span class="tab-crown" style="display:none"> 👑</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="archive" onclick="switchTab('archive')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -3106,7 +2722,7 @@
           <path d="M12 8v4l3 3" />
           <circle cx="12" cy="12" r="10" />
         </svg>
-        <span id="admin-tab-history">{{ t('History') }}</span><span class="tab-crown hidden"> 👑</span>
+        <span id="admin-tab-history">{{ t('History') }}</span><span class="tab-crown" style="display:none"> 👑</span>
       </button>
       <button class="tab-btn admin-desktop-item" data-tab="recovery" onclick="switchTab('recovery')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -3138,24 +2754,6 @@
       <div class="admin-more-sheet">
         <div class="admin-more-handle"></div>
         <div class="admin-more-items">
-          <div class="admin-more-section">
-            <div class="admin-more-section-title">Quick actions</div>
-            <div class="admin-more-quick-grid">
-              <button class="admin-more-quick-btn primary" type="button" onclick="toggleAdminMore(); createNewTournament()">{{ t('New Tournament') }}</button>
-              <button class="admin-more-quick-btn accent" type="button" onclick="toggleAdminMore(); saveAndDeploy()">{{ t('Deploy Current Group') }}</button>
-              <button id="switch-club-btn-drawer" class="admin-more-quick-btn warning hidden" type="button" onclick="toggleAdminMore(); switchClub()">{{ t('Switch Club') }}</button>
-            </div>
-          </div>
-          <div class="admin-more-section">
-            <div class="admin-more-section-title">Admin language</div>
-            <div class="admin-more-select-wrap">
-              <select id="admin-more-lang-picker" class="admin-lang-select admin-lang-select-dark" onchange="setAdminLang(this.value)" aria-label="Select admin language">
-                <option value="en">EN</option>
-                <option value="es">ES</option>
-                <option value="fr">FR</option>
-              </select>
-            </div>
-          </div>
           <button class="admin-more-item" onclick="adminMoreNav('clubinfo')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 21h18" />
@@ -3183,7 +2781,7 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
-            <span>{{ t('Team Communication') }}<span class="tab-crown hidden"> 👑</span></span>
+            <span>{{ t('Team Communication') }}<span class="tab-crown" style="display:none"> 👑</span></span>
             <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
@@ -3197,7 +2795,7 @@
               <line x1="8" y1="21" x2="16" y2="21" />
               <line x1="12" y1="17" x2="12" y2="21" />
             </svg>
-            <span>{{ t('Director Package') }}<span class="tab-crown hidden"> 👑</span></span>
+            <span>{{ t('Director Package') }}<span class="tab-crown" style="display:none"> 👑</span></span>
             <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
@@ -3221,7 +2819,7 @@
               <path d="M12 8v4l3 3" />
               <circle cx="12" cy="12" r="10" />
             </svg>
-            <span>{{ t('History') }}<span class="tab-crown hidden"> 👑</span></span>
+            <span>{{ t('History') }}<span class="tab-crown" style="display:none"> 👑</span></span>
             <svg class="admin-more-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
@@ -3414,18 +3012,28 @@
       localStorage.setItem('ebadmin-clubId', savedClubId);
       if (typeof fbSetClubId === 'function') fbSetClubId(savedClubId);
 
+      let access = { isAdmin: true, isSuperAdmin: false, clubName: '' };
       if (typeof fbCheckAdminAccess === 'function') {
-        const access = await fbCheckAdminAccess(savedClubId);
+        access = await fbCheckAdminAccess(savedClubId);
         if (!access.isAdmin) {
           if (!access.clubName) {
             await fbEnsureClub('My Club', user.uid);
+            access = { isAdmin: true, isSuperAdmin: false, clubName: 'My Club' };
           } else {
             S.idToken = null;
             S.authMode = '';
+            S.isSuperAdmin = false;
             const email = user.email || localStorage.getItem('ebwp-auth-email') || 'this account';
             throw new Error(`You (${email}) are not an admin for "${access.clubName || savedClubId}". Ask an existing admin to invite that email or add your UID: ${user.uid}`);
           }
         }
+      }
+
+      S.isSuperAdmin = !!access.isSuperAdmin || mode === 'password';
+      if (S.isSuperAdmin && !inviteClubId) {
+        showStatus('', 'info');
+        await showClubDashboard();
+        return;
       }
 
       rcLoginForClub(savedClubId);
@@ -3620,6 +3228,7 @@
       if (!pw) return;
       S.pw = pw;
       S.authMode = 'password';
+      S.isSuperAdmin = true;
       showStatus('Signing in…', 'info');
       try {
         const res = await api('GET', '/admin/data');
@@ -3656,24 +3265,19 @@
 
     // ─── LOGOUT & CLUB SWITCHING ────────────────────────────────────────────────
 
-    function getAdminAppRoot() {
-      return document.getElementById('admin-app') || document.getElementById('club-dashboard');
-    }
-
     async function doLogout() {
       if (!confirm(adminT('auth_logout_confirm'))) return;
       try { if (typeof fbSignOut === 'function') await fbSignOut(); } catch (e) { }
       S.idToken = '';
       S.pw = '';
       S.authMode = '';
+      S.isSuperAdmin = false;
       S.tournament = null;
       S.history = [];
       S.roster = null;
       localStorage.removeItem('ebadmin-saved-pw');
-      const adminRoot = getAdminAppRoot();
-      if (adminRoot) adminRoot.setAttribute('hidden', '');
-      const clubDash = document.getElementById('club-dashboard');
-      if (clubDash && clubDash !== adminRoot) clubDash.style.display = 'none';
+      document.getElementById('admin-app').setAttribute('hidden', '');
+      document.getElementById('club-dashboard').style.display = 'none';
       document.getElementById('login-screen').style.display = '';
       _resetGoogleBtn();
       showStatus(adminT('auth_logged_out'), 'info');
@@ -3681,8 +3285,7 @@
 
     async function switchClub() {
       // Go back to the club dashboard
-      const adminRoot = getAdminAppRoot();
-      if (adminRoot) adminRoot.setAttribute('hidden', '');
+      document.getElementById('admin-app').setAttribute('hidden', '');
       showClubDashboard();
     }
 
@@ -3690,24 +3293,12 @@
 
     async function showClubDashboard() {
       document.getElementById('login-screen').style.display = 'none';
-      const adminRoot = getAdminAppRoot();
-      const clubDash = document.getElementById('club-dashboard');
-      const listEl = document.getElementById('club-dashboard-list');
-      if (!clubDash || !listEl || !document.getElementById('admin-app')) {
-        if (clubDash) {
-          clubDash.style.display = '';
-          clubDash.removeAttribute('hidden');
-        }
-        showStatus('');
-        applyAdminTranslations();
-        return _doAdminLoad();
-      }
-      if (adminRoot) adminRoot.setAttribute('hidden', '');
-      clubDash.style.display = '';
+      document.getElementById('admin-app').setAttribute('hidden', '');
+      document.getElementById('club-dashboard').style.display = '';
       applyAdminTranslations();
       showStatus('');
 
-
+      const listEl = document.getElementById('club-dashboard-list');
       listEl.innerHTML = `<div style="text-align:center;color:var(--g400);padding:20px">${t('Loading clubs…')}</div>`;
 
       try {
@@ -3827,8 +3418,7 @@
         await _doAdminLoad();
       } catch (e) {
         showStatus('Failed: ' + e.message, 'err');
-        const clubDash = document.getElementById('club-dashboard');
-      if (clubDash) clubDash.style.display = '';
+        document.getElementById('club-dashboard').style.display = '';
       }
     }
 
@@ -4158,16 +3748,13 @@
 
     async function _doAdminLoad() {
       document.getElementById('login-screen').style.display = 'none';
-      const adminRoot = getAdminAppRoot();
-      if (adminRoot) adminRoot.removeAttribute('hidden');
+      document.getElementById('admin-app').removeAttribute('hidden');
       applyAdminTranslations();
       // Sync header height now that admin-app is visible (sidebar needs correct padding-top)
       requestAnimationFrame(() => syncAdminHeaderHeight());
-      // Show Switch Club button for superadmin (password login)
+      // Show Switch Club button for any recognized superadmin.
       const switchBtn = document.getElementById('switch-club-btn');
-      const switchDrawerBtn = document.getElementById('switch-club-btn-drawer');
-      if (switchBtn) switchBtn.classList.toggle('hidden', S.authMode !== 'password');
-      if (switchDrawerBtn) switchDrawerBtn.classList.toggle('hidden', S.authMode !== 'password');
+      if (switchBtn) switchBtn.style.display = S.isSuperAdmin ? '' : 'none';
 
       // Phase 3: restore club ID and load cloud tournament list from Firestore
       // We MUST do this before loadClubSettings() so the api() helper has the correct club context.
@@ -5688,10 +5275,8 @@
     function applyAdminTranslations() {
       const dashboardPicker = document.getElementById('dashboard-lang-picker');
       const adminPicker = document.getElementById('admin-header-lang-picker');
-      const adminMorePicker = document.getElementById('admin-more-lang-picker');
       if (dashboardPicker) dashboardPicker.value = getAdminLang();
       if (adminPicker) adminPicker.value = getAdminLang();
-      if (adminMorePicker) adminMorePicker.value = getAdminLang();
       const map = {
         'dashboard-header-title': 'dashboard_title',
         'dashboard-header-sub': 'dashboard_sub',
@@ -6016,6 +5601,7 @@
       const manager = document.getElementById('admin-team-manager');
       if (!container || !manager) return;
       const teams = getAdminTeams();
+      // If current team isn't in the list, switch to first valid team
       if (!teams.find(t => t.key === S.team)) {
         S.team = teams[0].key;
         refreshAdminData();
@@ -6037,14 +5623,15 @@
       manager.innerHTML = teams.map(t => {
         const targetActive = selectedTargets.includes(t.key);
         return `<button class="admin-pill${t.key === S.team ? ' active' : ''}"
-                         onclick="onAdminTeamChange('${t.key}')">
-                  <span class="admin-pill-group">
+                         onclick="onAdminTeamChange('${t.key}')"
+                         style="display:flex;align-items:center;justify-content:space-between;gap:8px;position:relative">
+                  <span style="display:inline-flex;align-items:center;gap:6px;min-width:0">
                     ${_statusDot(t.key)}
-                    <span class="admin-pill-label">${esc(t.label)}</span>
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.label)}</span>
                   </span>
                   <span onclick="event.stopPropagation();toggleTournamentShellTarget('${t.key}')"
-                        class="admin-team-target-toggle${targetActive ? ' active' : ''}"
-                        title="${targetActive ? 'Included in shared tournament deploy' : 'Exclude from shared tournament deploy'}">${targetActive ? '???' : '+'}</span>
+                        title="${targetActive ? 'Included in shared tournament deploy' : 'Exclude from shared tournament deploy'}"
+                        style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;font-size:0.72rem;font-weight:800;background:${targetActive ? 'var(--royal)' : 'rgba(37,99,235,.12)'};color:${targetActive ? 'white' : 'var(--royal)'}">${targetActive ? '✓' : '+'}</span>
                 </button>`;
       }).join('');
     }
@@ -8561,6 +8148,7 @@
       <summary class="card-header collapsible-header">🔧 Advanced Import <span class="collapse-icon">▾</span></summary>
       <div style="display:flex;flex-direction:column;gap:8px;padding:8px 0 4px">
         ${bsWizardHtml()}
+        ${bsFuturesWizardLauncherHtml()}
         ${dirImportWizardHtml()}
         ${njoWizardHtml()}
       </div>
@@ -8586,7 +8174,7 @@
         <div class="info-field"><div class="info-label">${adminT('addgames_tournament_id')}</div><input class="info-input" id="ti-id" value="${esc(t.id || '')}" oninput="S.tournament.id=this.value"><div class="info-hint red">⚠ ${esc(adminT('addgames_tournament_id_hint'))}</div></div>
         <div class="info-field"><div class="info-label">${adminT('addgames_tournament_name')}</div><input class="info-input" id="ti-name" value="${esc(t.name || '')}" oninput="S.tournament.name=this.value;updateAdminHeader()"></div>
         <div class="info-field"><div class="info-label">${adminT('addgames_subtitle')}</div><input class="info-input" value="${esc(t.subtitle || '')}" oninput="S.tournament.subtitle=this.value"></div>
-        <div class="info-field"><div class="info-label">${adminT('addgames_dates')}</div><input class="info-input" value="${esc(t.dates || '')}" placeholder="April 25, 2026" oninput="S.tournament.dates=this.value"><div class="info-hint" style="margin-top:3px">ℹ️ Display only — to fix <em>game</em> dates use <strong>Step 4 date overrides</strong> in Futures Bracket Import Wizard.</div></div>
+        <div class="info-field"><div class="info-label">${adminT('addgames_dates')}</div><input class="info-input" value="${esc(t.dates || '')}" placeholder="April 25, 2026" oninput="S.tournament.dates=this.value"><div class="info-hint" style="margin-top:3px">ℹ️ Display only — to fix <em>game</em> dates use <strong>Step 4 date overrides</strong> in Bracket Sheet Sync.</div></div>
         <div class="info-field"><div class="info-label">${adminT('addgames_venue_name')}</div><input id="info-venue-input" class="info-input" value="${esc(t.location || '')}" placeholder="${esc(adminT('addgames_start_typing_venue'))}" spellcheck="false" autocomplete="off" oninput="S.tournament.location=this.value;this.setCustomValidity('')"><div class="info-hint">${esc(adminT('addgames_google_places_hint'))}</div></div>
         <div class="info-field"><div class="info-label">${adminT('addgames_venue_address')}</div><input id="info-address-input" class="info-input" value="${esc(t.address || '')}" placeholder="Full address" oninput="S.tournament.address=this.value"><div class="info-hint">Displayed on game cards.</div></div>
         <div class="info-field"><div class="info-label">${adminT('addgames_coming_soon')}</div><input class="info-input" value="${esc(t.comingSoon || '')}" placeholder="Schedule coming week of April 20" oninput="S.tournament.comingSoon=this.value"><div class="info-hint">${esc(adminT('addgames_coming_soon_hint'))}</div></div>
@@ -9791,7 +9379,7 @@
         + '<div id="bs-last-sync-row">\ud83d\udd52 <strong>Last synced:</strong> ' + esc(syncStr) + '</div>';
     }
 
-    // bsWizardHtml: returns the full Futures Bracket Import Wizard <details> card as an HTML string.
+    // bsWizardHtml: returns the full Bracket Sheet Sync <details> card as an HTML string.
     // Called inline from renderAddGamesTab() via ${bsWizardHtml()} — no placeholder needed.
     function bsWizardHtml() {
       if (!S.bsync) {
@@ -9829,7 +9417,7 @@
       var s4dis = (bs.games && bs.games.length) ? '' : ' disabled';
       var hasDraft = !!(localStorage.getItem('ebwp-bsync-draft-' + S.team));
       return '<details class="card collapsible-card" id="bs-card"' + ((bs.sheetUrl || (bs.step && bs.step > 1)) ? ' open' : '') + '>'
-        + '<summary class="card-header collapsible-header">&#x1f4ca; Futures Bracket Import Wizard <span style="font-size:0.72rem;font-weight:400;color:var(--g400);margin-left:8px">' + (hasDraft ? '| <a href="#" onclick="event.preventDefault();_bsClearWizardDraft()" style="color:#92400e;text-decoration:none">🗑 Clear draft</a>' : '') + '</span><span class="collapse-icon">&#9662;</span></summary>'
+        + '<summary class="card-header collapsible-header">&#x1f4ca; Bracket Sheet Sync <span style="font-size:0.72rem;font-weight:400;color:var(--g400);margin-left:8px">' + (hasDraft ? '| <a href="#" onclick="event.preventDefault();_bsClearWizardDraft()" style="color:#92400e;text-decoration:none">🗑 Clear draft</a>' : '') + '</span><span class="collapse-icon">&#9662;</span></summary>'
         + '<div style="padding:10px 14px">'
         + '<div id="bs-draft-banner" style="display:' + (hasDraft && step >= 2 ? 'block' : 'none') + ';background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:8px 12px;font-size:0.8rem;color:#92400e;margin-bottom:10px">⚡ Draft restored from your last session. <a href="#" onclick="event.preventDefault();_bsClearWizardDraft()" style="color:#92400e;font-weight:700">Start fresh</a></div>'
         + '<div style="display:flex;gap:3px;margin-bottom:10px" id="bs-stepbar">' + dots + '</div>'
@@ -9843,17 +9431,20 @@
         + '<div style="margin-bottom:12px;padding:10px 12px;background:var(--g50);border-radius:8px;border:1px solid var(--g200)">'
         + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--g700)">'
         + '<input type="checkbox" id="bs-cc-chk" ' + (bs.colorCoded ? 'checked' : '') + ' onchange="bsToggleColorCoded(this.checked)" style="width:15px;height:15px;accent-color:var(--royal);flex-shrink:0">'
-        + 'Use Futures color-aware import'
+        + 'Age groups separated by row colour'
         + '</label>'
         + '<div id="bs-cc-fields" style="display:' + (bs.colorCoded ? 'block' : 'none') + ';margin-top:8px">'
-        + '<div style="font-size:.78rem;color:var(--g500);margin-bottom:6px">Which cells show the age-group color key? Use this for Futures tabs where 16u and 18u share pool letters. Example: <code style="background:white;padding:1px 4px;border-radius:3px;border:1px solid var(--g200)">A18, B18</code></div>'
+        + '<div style="font-size:.78rem;color:var(--g500);margin-bottom:6px">Which cells show the age group colour key? e.g. <code style="background:white;padding:1px 4px;border-radius:3px;border:1px solid var(--g200)">A18, B18</code></div>'
         + '<div style="display:flex;gap:6px;margin-bottom:6px">'
         + '<input class="info-input" id="bs-cc-cells" value="' + esc(bs.legendCells || '') + '" placeholder="A18, B18" style="flex:1;font-family:monospace;font-size:.84rem" onkeydown="if(event.key===\'Enter\')bsDetectAgeGroups()">'
         + '<button class="save-btn" style="padding:8px 14px;white-space:nowrap;font-size:.82rem" onclick="bsDetectAgeGroups()">Detect &rarr;</button>'
         + '</div>'
         + '<div id="bs-cc-status" style="font-size:.78rem;min-height:1.2em;margin-bottom:4px"></div>'
         + '<div id="bs-cc-groups" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
-        + (bs.ageGroups && bs.ageGroups.length ? bsRenderAgeGroupButtons(bs.ageGroups) : '')
+        + (bs.ageGroups && bs.ageGroups.length
+          ? '<span style="font-size:.78rem;color:var(--g600);font-weight:600;margin-right:2px">My age group:</span>'
+          + bs.ageGroups.map(function (ag, i) { return '<button onclick="bsSelectAgeGroup(' + i + ')" style="padding:3px 12px;border-radius:16px;border:2px solid ' + (bs.myAgeGroupIdx === i ? 'var(--royal)' : 'var(--g200)') + ';background:' + (bs.myAgeGroupIdx === i ? 'var(--royal)' : 'white') + ';color:' + (bs.myAgeGroupIdx === i ? 'white' : 'var(--g600)') + ';font-size:.8rem;font-weight:600;cursor:pointer">' + esc(ag) + '</button>'; }).join('')
+          : '')
         + '</div>'
         + '</div>'
         + '</div>'
@@ -9959,6 +9550,57 @@
     // Wizard is now rendered inline via ${bsWizardHtml()} in renderAddGamesTab(). No-op kept for compatibility.
     function renderBsWizard() { }
 
+    function bsFuturesWizardLauncherHtml() {
+      const active = !!S.bsync?.colorCoded;
+      return `<details class="card collapsible-card" id="bs-futures-launcher"${active ? ' open' : ''}>
+        <summary class="card-header collapsible-header">🧭 Futures Bracket Import Wizard <span class="collapse-icon">▾</span></summary>
+        <div style="padding:10px 14px 14px">
+          <div class="info-hint" style="margin-bottom:10px">Use this when a Futures sheet shares one tab across 16u and 18u and the age groups are separated by legend colors instead of separate tabs.</div>
+          <button class="save-btn" style="width:100%" onclick="bsLaunchFuturesWizard()">${active ? 'Continue Futures color-aware import' : 'Start Futures color-aware import'}</button>
+        </div>
+      </details>`;
+    }
+
+    function bsLaunchFuturesWizard() {
+      if (!S.bsync) {
+        const url = localStorage.getItem('ebadmin-bsync-url') || '';
+        const sheetId = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] || '';
+        const gidMInit = url.match(/[#?&]gid=(\d+)/);
+        S.bsync = {
+          step: 1,
+          sheetUrl: url,
+          sheetId: sheetId,
+          sheetGid: localStorage.getItem('ebadmin-bsync-gid') || (gidMInit ? gidMInit[1] : ''),
+          poolRange: localStorage.getItem('ebadmin-bsync-range') || '',
+          teamName: localStorage.getItem('ebadmin-bsync-team') || '',
+          rebracket: false,
+          rebracketRange: '',
+          pollMins: parseInt(localStorage.getItem('ebadmin-bsync-mins') || '10', 10),
+          pools: null,
+          myPool: '',
+          mySeed: 0,
+          games: [],
+          bracketPaths: null,
+          colorCoded: false,
+          legendCells: '',
+          ageGroups: [],
+          myAgeGroupIdx: 0,
+          myAgeGroup: ''
+        };
+      }
+      S.bsync.step = 1;
+      S.bsync.colorCoded = true;
+      S.bsync.legendCells = S.bsync.legendCells || '';
+      S.bsync.ageGroups = Array.isArray(S.bsync.ageGroups) ? S.bsync.ageGroups : [];
+      S.bsync.myAgeGroupIdx = 0;
+      S.bsync.myAgeGroup = '';
+      renderTab();
+      requestAnimationFrame(() => {
+        const card = document.getElementById('bs-card');
+        if (card) card.open = true;
+      });
+    }
+
     // ── BSSync wizard draft persistence ──────────────────────────────────────────
     function _bsSaveWizard() {
       if (!S.bsync) return;
@@ -10036,66 +9678,6 @@
       if (rangeOrNull) url += '&range=' + encodeURIComponent(rangeOrNull);
       return url;
     }
-    const BS_GOOGLE_CLIENT_ID = '334438983134-th4thsf0upc8pabe245d2l41fon2oun9.apps.googleusercontent.com';
-    let _bsSheetsAccessToken = '';
-    let _bsColorGridCache = null;
-
-    function bsGetSelectedAgeGroup() {
-      return S.bsync?.myAgeGroup || ((S.bsync?.ageGroups || [])[S.bsync?.myAgeGroupIdx || 0] || '');
-    }
-
-    function bsGetLegendSwatch(ageGroup) {
-      const color = S.bsync?.legendColors?.[ageGroup] || '';
-      if (!color) return '';
-      return '<span style="display:inline-block;width:10px;height:10px;border-radius:999px;background:' + esc(color) + ';box-shadow:0 0 0 2px rgba(255,255,255,.65)"></span>';
-    }
-
-    function bsRenderAgeGroupButtons(ageGroups) {
-      const selected = bsGetSelectedAgeGroup();
-      return '<span style="font-size:.78rem;color:var(--g600);font-weight:600;margin-right:2px">My age group:</span>'
-        + (ageGroups || []).map(function (ag, i) {
-          const sel = ag === selected || (!selected && i === 0);
-          return '<button onclick="bsSelectAgeGroup(' + i + ')" id="bs-ag-btn-' + i + '" style="padding:4px 12px;border-radius:16px;border:2px solid ' + (sel ? 'var(--royal)' : 'var(--g200)') + ';background:' + (sel ? 'var(--royal)' : 'white') + ';color:' + (sel ? 'white' : 'var(--g600)') + ';font-size:.8rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px">' + bsGetLegendSwatch(ag) + '<span>' + esc(ag) + '</span></button>';
-        }).join('');
-    }
-
-    async function bsEnsureSheetsReadToken() {
-      if (_bsSheetsAccessToken) return _bsSheetsAccessToken;
-      if (!window.google?.accounts?.oauth2) throw new Error('Google Sheets auth is not loaded yet - refresh and try again');
-      return await new Promise((resolve, reject) => {
-        const tc = google.accounts.oauth2.initTokenClient({
-          client_id: BS_GOOGLE_CLIENT_ID,
-          scope: 'https://www.googleapis.com/auth/spreadsheets.readonly',
-          callback: (resp) => {
-            if (resp?.error) { reject(new Error(resp.error)); return; }
-            _bsSheetsAccessToken = resp.access_token || '';
-            if (!_bsSheetsAccessToken) { reject(new Error('Google Sheets auth token was empty')); return; }
-            resolve(_bsSheetsAccessToken);
-          },
-        });
-        tc.requestAccessToken({ prompt: 'consent' });
-      });
-    }
-
-    async function bsEnsureColorGridData() {
-      if (_bsColorGridCache && _bsColorGridCache.sheetId === S.bsync?.sheetId && _bsColorGridCache.sheetGid === String(S.bsync?.sheetGid || '')) {
-        return _bsColorGridCache.gridData;
-      }
-      const accessToken = await bsEnsureSheetsReadToken();
-      const gridData = await window.AdminBracketImport.bsFetchGoogleSheetGrid({
-        sheetId: S.bsync?.sheetId,
-        sheetGid: S.bsync?.sheetGid,
-        accessToken,
-      });
-      _bsColorGridCache = { sheetId: S.bsync?.sheetId, sheetGid: String(S.bsync?.sheetGid || ''), gridData };
-      return gridData;
-    }
-
-    function bsExtractColorGridRows(rangeA1) {
-      const gridData = _bsColorGridCache?.gridData;
-      if (!gridData) throw new Error('Colour-coded sheet data is not loaded yet');
-      return window.AdminBracketImport.bsExtractGridRows(gridData, rangeA1, bsGetSelectedAgeGroup(), S.bsync?.rowAgeGroups || []);
-    }
     // ─────────────────────────────────────────────────────────────────────────────
 
     function bsStep1Next() {
@@ -10133,35 +9715,59 @@
       const cells = (document.getElementById('bs-cc-cells')?.value || '').trim();
       const status = document.getElementById('bs-cc-status');
       const groups = document.getElementById('bs-cc-groups');
-      if (!cells) { if (status) { status.style.color = '#dc2626'; status.textContent = 'Enter legend cells first (for example A18, B18)'; } return; }
-      const urlVal = (document.getElementById('bs-url')?.value || '').trim();
+      if (!cells) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter legend cells first (e.g. A18, B18)'; } return; }
+      const _urlVal = (document.getElementById('bs-url')?.value || '').trim();
       const sheetId = S.bsync?.sheetId || (() => {
-        const m = urlVal.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+        const m = _urlVal.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
         return m ? m[1] : null;
       })();
-      if (!sheetId) { if (status) { status.style.color = '#dc2626'; status.textContent = 'Enter the sheet URL first'; } return; }
+      if (!sheetId) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter the sheet URL first'; } return; }
       S.bsync.legendCells = cells;
       if (S.bsync) S.bsync.sheetId = sheetId;
+      // Also extract sheetGid from the URL field if not already set — bsStep1Next()
+      // normally does this, but the user may click Detect before clicking Next.
       if (S.bsync && !S.bsync.sheetGid) {
-        const gidMatch = urlVal.match(/[#?&]gid=(\d+)/);
-        if (gidMatch) { S.bsync.sheetGid = gidMatch[1]; localStorage.setItem('ebadmin-bsync-gid', gidMatch[1]); }
+        const _gidM = _urlVal.match(/[#?&]gid=(\d+)/);
+        if (_gidM) { S.bsync.sheetGid = _gidM[1]; localStorage.setItem('ebadmin-bsync-gid', _gidM[1]); }
       }
-      if (status) { status.style.color = 'var(--g400)'; status.textContent = 'Reading legend cells...'; }
+      if (status) { status.style.color = 'var(--g400)'; status.textContent = '\u23f3 Reading legend cells\u2026'; }
       if (groups) groups.innerHTML = '';
       try {
-        const gridData = await bsEnsureColorGridData();
-        const parsed = window.AdminBracketImport.bsBuildColorCodedAgeGroups(gridData, cells);
-        S.bsync.ageGroups = parsed.ageGroups || [];
-        S.bsync.legendParsed = parsed.legendParsed || [];
-        S.bsync.legendColors = parsed.legendColors || {};
-        S.bsync.rowAgeGroups = parsed.rowAgeGroups || [];
+        // Parse refs like "A12, A18" → [{col:0,row:11},{col:0,row:17}]
+        const refs = cells.split(/[\s,]+/).map(r => r.trim().toUpperCase()).filter(Boolean);
+        const parsed = refs.map(ref => {
+          const m = ref.match(/^([A-Z]+)(\d+)$/);
+          if (!m) return null;
+          let col = 0; for (const ch of m[1]) col = col * 26 + (ch.charCodeAt(0) - 64); col--;
+          return { ref, col, row: parseInt(m[2]) - 1 };
+        }).filter(Boolean);
+        if (!parsed.length) throw new Error('Could not parse cell references — use format A12, A18');
+        // Fetch a range that spans ALL referenced rows (handles cells in different rows)
+        // gviz range is end-exclusive, so fetch maxRow+1 to ensure the last row is included
+        const minRow = Math.min(...parsed.map(p => p.row)) + 1; // 1-indexed
+        const maxRow = Math.max(...parsed.map(p => p.row)) + 1;
+        const csvUrl = bsCsvUrl(minRow + ':' + (maxRow + 1));
+        const resp = await fetch(csvUrl, { cache: 'no-store' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — check sheet is "Anyone with the link can view"');
+        const text = await resp.text();
+        const rows = parseCSV(text);
+        if (!rows.length) throw new Error('No data returned for that row range');
+        // Map each ref to the correct fetched row (offset from minRow)
+        const agLabels = parsed.map(p => {
+          const rowOffset = p.row - (minRow - 1); // 0-indexed into fetched rows
+          const row = rows[rowOffset] || [];
+          return (row[p.col] || '').trim();
+        }).filter(Boolean);
+        if (!agLabels.length) throw new Error('Cells appear empty — check the row number in your cell refs');
+        S.bsync.ageGroups = agLabels;
+        S.bsync.legendParsed = parsed;
         S.bsync.myAgeGroupIdx = 0;
-        S.bsync.myAgeGroup = (parsed.ageGroups || [])[0] || '';
-        if (!S.bsync.ageGroups.length) throw new Error('No age groups found from the colour legend');
-        if (status) { status.style.color = '#059669'; status.textContent = 'Found: ' + S.bsync.ageGroups.join(' | ') + ' - tap yours below'; }
-        if (groups) groups.innerHTML = bsRenderAgeGroupButtons(S.bsync.ageGroups);
+        S.bsync.myAgeGroup = agLabels[0];
+        if (status) { status.style.color = '#059669'; status.textContent = '\u2705 Found: ' + agLabels.join(' \u00b7 ') + ' \u2014 tap yours below'; }
+        if (groups) groups.innerHTML = '<span style="font-size:.78rem;color:var(--g600);font-weight:600;margin-right:2px">My age group:</span>'
+          + agLabels.map(function (ag, i) { return '<button onclick="bsSelectAgeGroup(' + i + ')" id="bs-ag-btn-' + i + '" style="padding:3px 12px;border-radius:16px;border:2px solid ' + (i === 0 ? 'var(--royal)' : 'var(--g200)') + ';background:' + (i === 0 ? 'var(--royal)' : 'white') + ';color:' + (i === 0 ? 'white' : 'var(--g600)') + ';font-size:.8rem;font-weight:600;cursor:pointer">' + esc(ag) + '</button>'; }).join('');
       } catch (e) {
-        if (status) { status.style.color = '#dc2626'; status.textContent = 'Error: ' + e.message; }
+        if (status) { status.style.color = '#dc2626'; status.textContent = '\u274c ' + e.message; }
       }
     }
 
@@ -10184,23 +9790,20 @@
       const range = (document.getElementById('bs-poolrange')?.value || '').trim();
       const status = document.getElementById('bs-s2-status');
       const preview = document.getElementById('bs-pool-preview');
-      if (!range) { if (status) status.textContent = 'Enter a cell range like J3:M6'; return; }
-      if (!S.bsync?.sheetId) { if (status) status.textContent = 'Go back and set a sheet URL first'; return; }
+      if (!range) { if (status) status.textContent = '⚠️ Enter a cell range like J3:M6'; return; }
+      if (!S.bsync?.sheetId) { if (status) status.textContent = '⚠️ Go back and set a sheet URL first'; return; }
       S.bsync.poolRange = range;
-      if (status) { status.style.color = 'var(--g400)'; status.textContent = 'Fetching pools...'; }
+      if (status) { status.style.color = 'var(--g400)'; status.textContent = '⏳ Fetching pools…'; }
       if (preview) preview.innerHTML = '';
       try {
-        const rows = S.bsync?.colorCoded
-          ? bsExtractColorGridRows(range)
-          : await (async () => {
-            const csvUrl = bsCsvUrl(range);
-            const resp = await fetch(csvUrl, { cache: 'no-store' });
-            if (!resp.ok) throw new Error('HTTP ' + resp.status + ' - make sure the sheet is set to "Anyone with the link can view"');
-            const text = await resp.text();
-            return parseCSV(text);
-          })();
-        if (!rows.length) throw new Error('No data found in that range - check the cell range');
+        const csvUrl = bsCsvUrl(range);
+        const resp = await fetch(csvUrl, { cache: 'no-store' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — make sure the sheet is set to "Anyone with the link can view"');
+        const text = await resp.text();
+        const rows = parseCSV(text);
+        if (!rows.length) throw new Error('No data found in that range — check the cell range');
 
+        // First row: if all cells are non-numeric short text, treat as pool name headers
         const firstRow = rows[0];
         let headers, dataRows;
         const looksLikeHeaders = firstRow.some(c => c.trim()) &&
@@ -10219,11 +9822,11 @@
         });
         S.bsync.pools = pools;
 
-        if (status) { status.style.color = '#059669'; status.textContent = `Found ${headers.length} pool(s) - review below`; }
+        if (status) { status.style.color = '#059669'; status.textContent = `✅ Found ${headers.length} pool(s) — review below`; }
         if (preview) preview.innerHTML = bsRenderPoolPreview(pools, '') +
-          `<button class="save-btn" style="width:100%;margin-top:10px" onclick="bsStep(3);document.getElementById('bs-s3-pools').innerHTML=bsRenderPoolPreview(S.bsync.pools,S.bsync.teamName)">Looks Good -></button>`;
+          `<button class="save-btn" style="width:100%;margin-top:10px" onclick="bsStep(3);document.getElementById('bs-s3-pools').innerHTML=bsRenderPoolPreview(S.bsync.pools,S.bsync.teamName)">Looks Good →</button>`;
       } catch (e) {
-        if (status) { status.style.color = '#dc2626'; status.textContent = 'Error: ' + e.message; }
+        if (status) { status.style.color = '#dc2626'; status.textContent = '❌ ' + e.message; }
       }
     }
 
@@ -10440,15 +10043,11 @@
       if (status4) { status4.style.color = 'var(--g400)'; status4.textContent = '⏳ Scanning schedule sheet for games…'; }
       if (preview) preview.innerHTML = '';
       try {
-        const allRows = S.bsync?.colorCoded
-          ? bsExtractColorGridRows(null)
-          : await (async () => {
-            const csvUrl = bsCsvUrl(null);
-            const resp = await fetch(csvUrl, { cache: 'no-store' });
-            if (!resp.ok) throw new Error('HTTP ' + resp.status);
-            const text = await resp.text();
-            return parseCSV(text);
-          })();
+        const csvUrl = bsCsvUrl(null);
+        const resp = await fetch(csvUrl, { cache: 'no-store' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const text = await resp.text();
+        const allRows = parseCSV(text);
         // Support multi-team (comma-separated): match games for any listed team
         const _teamNamesLower = (S.bsync.teamNames && S.bsync.teamNames.length ? S.bsync.teamNames : [S.bsync.teamName || '']).map(n => n.toLowerCase()).filter(Boolean);
         const teamNameLower = _teamNamesLower[0] || '';
@@ -10736,20 +10335,16 @@
     async function bsFetchRebracket() {
       const range = (document.getElementById('bs-rbrange')?.value || '').trim();
       const status = document.getElementById('bs-s5-status');
-      if (!range) { if (status) { status.style.color = '#dc2626'; status.textContent = 'Enter a range like J13:M29'; } return; }
+      if (!range) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter a range like J13:M29'; } return; }
       if (!S.bsync?.sheetId) return;
       S.bsync.rebracketRange = range;
-      if (status) { status.style.color = 'var(--g400)'; status.textContent = 'Fetching re-bracket...'; }
+      if (status) { status.style.color = 'var(--g400)'; status.textContent = '⏳ Fetching re-bracket…'; }
       try {
-        const rows = S.bsync?.colorCoded
-          ? bsExtractColorGridRows(range)
-          : await (async () => {
-            const csvUrl = bsCsvUrl(range);
-            const resp = await fetch(csvUrl, { cache: 'no-store' });
-            if (!resp.ok) throw new Error('HTTP ' + resp.status + ' - make sure the sheet is publicly viewable');
-            const text = await resp.text();
-            return parseCSV(text);
-          })();
+        const csvUrl = bsCsvUrl(range);
+        const resp = await fetch(csvUrl, { cache: 'no-store' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — make sure the sheet is publicly viewable');
+        const text = await resp.text();
+        const rows = parseCSV(text);
         if (!rows.length) throw new Error('No data found in that range');
         const pool = ((S.bsync.myPool || '').match(/^([A-Z])/i)?.[1] || '').toUpperCase();
         const seedingMap = bsParseRebracket(rows);
@@ -10761,40 +10356,174 @@
         if (status) {
           status.style.color = n > 0 ? '#059669' : '#d97706';
           status.textContent = n > 0
-            ? `Found ${n} bracket path${n !== 1 ? 's' : ''} for Pool ${pool} - will appear in the Possible tab after Deploy`
-            : `Re-bracket loaded but no paths found for Pool ${pool} - check the pool letter matches your sheet`;
+            ? `✅ Found ${n} bracket path${n !== 1 ? 's' : ''} for Pool ${pool} — will appear in the Possible tab after Deploy`
+            : `⚠️ Re-bracket loaded but no paths found for Pool ${pool} — check the pool letter matches your sheet`;
         }
+        // Show team-slot picker when paths found (multi-team clubs need to key paths to A or B)
         const teamWrap = document.getElementById('bs-path-team-wrap');
         if (teamWrap) teamWrap.style.display = n > 0 ? 'block' : 'none';
         if (n > 0 && !S.bsync.bracketPathTeam) bsSetPathTeam('All');
       } catch (e) {
-        if (status) { status.style.color = '#dc2626'; status.textContent = 'Error: ' + e.message; }
+        if (status) { status.style.color = '#dc2626'; status.textContent = '❌ ' + e.message; }
       }
     }
 
+    // ─── BRACKET SHEET WIZARD — BRACKET PATH HELPERS ─────────────────────────
+
+    // Parse "VENUE NAME #N" → { venue, poolNum }  e.g. "NORCO HS #2" → { venue:"NORCO HS", poolNum:"2" }
     function bsParseLocation(raw) {
-      if (!window.AdminBracketImport?.bsParseLocation) return { venue: raw || '', poolNum: '' };
-      return window.AdminBracketImport.bsParseLocation(raw);
+      const m = (raw || '').match(/^(.+?)\s*#\s*(\d+)$/);
+      return m ? { venue: m[1].trim(), poolNum: m[2] } : { venue: raw || '', poolNum: '' };
     }
 
+    // Extract bracket code prefix: "F1 - 1st B" → "F1", "G1(1stA) - " -> "G1",  "LOSER #1" → null
     function bsExtractBracketCode(raw) {
-      return window.AdminBracketImport?.bsExtractBracketCode ? window.AdminBracketImport.bsExtractBracketCode(raw) : null;
+      const m = (raw || '').match(/^([A-Z]\d+)[-–( ]/i);
+      return m ? m[1].toUpperCase() : null;
     }
 
+    // Human-readable description for a bracket team cell: "F1 - 1st B" → "1st B", "G1(1stA) - " -> "1st A"
     function bsBracketGameDesc(raw) {
-      return window.AdminBracketImport?.bsBracketGameDesc ? window.AdminBracketImport.bsBracketGameDesc(raw) : (raw || 'TBD');
+      const m = (raw || '').trim().match(/^([A-Z]\d+)[-–( ]*(\d+(?:st|nd|rd|th))\s*([A-Z])\)?[-– ]*$/i);
+      if (m) return `${m[2]} ${m[3]}`; // normalize to "1st A"
+      const fb = (raw || '').trim().match(/^[A-Z]\d+[-–( ]+(.+)$/i);
+      return fb ? fb[1].replace(/[-–) ]+$/, '').trim() : (raw || 'TBD');
     }
 
+    // Parse rebracket CSV rows → seeding map { "1st b" → "F1", "2nd b" → "H1", … }
+    // Handles two formats:
+    //   Format 1 (explicit): cells like "E1 - 1st A", "F1 - 1st B"
+    //   Format 2 (implicit): header row "Q (1st-4th)", data rows [1, "1st L", "3rd L", …]
     function bsParseRebracket(rows) {
-      return window.AdminBracketImport?.bsParseRebracket ? window.AdminBracketImport.bsParseRebracket(rows) : {};
+      const seedingMap = {};
+
+      let fmt1Hits = 0;
+      for (const row of rows) {
+        for (const cell of row) {
+          if (/^([A-Z]\d+)[-–( ]*(\d+(?:st|nd|rd|th))\s*([A-Z])\)?[-– ]*$/i.test((cell || '').trim())) fmt1Hits++;
+        }
+      }
+
+      if (fmt1Hits > 0) {
+        for (const row of rows) {
+          for (const cell of row) {
+            const m = (cell || '').trim().match(/^([A-Z]\d+)[-–( ]*(\d+(?:st|nd|rd|th))\s*([A-Z])\)?[-– ]*$/i);
+            if (m) seedingMap[(m[2] + ' ' + m[3]).toLowerCase()] = m[1].toUpperCase();
+          }
+        }
+      } else {
+        let headerRow = null, headerRowIdx = -1;
+        for (let ri = 0; ri < rows.length; ri++) {
+          const nonEmpty = rows[ri].filter(c => (c || '').trim());
+          if (nonEmpty.length >= 2 && /^[A-Z]\b/i.test(nonEmpty[0] || '')) {
+            headerRow = rows[ri]; headerRowIdx = ri; break;
+          }
+        }
+        if (headerRow) {
+          const colLetters = {};
+          for (let ci = 0; ci < headerRow.length; ci++) {
+            const lm = (headerRow[ci] || '').trim().match(/^([A-Z])\b/i);
+            if (lm) colLetters[ci] = lm[1].toUpperCase();
+          }
+          for (let ri = headerRowIdx + 1; ri < rows.length; ri++) {
+            const row = rows[ri];
+            const rowNum = (row[0] || '').trim();
+            if (!rowNum || !/^\d+$/.test(rowNum)) continue;
+            for (let ci = 1; ci < row.length; ci++) {
+              const cell = (row[ci] || '').trim();
+              const grpLetter = colLetters[ci];
+              if (!cell || !grpLetter) continue;
+              const vm = cell.match(/^(\d+(?:st|nd|rd|th))\s+([A-Z])$/i);
+              if (vm) seedingMap[(vm[1] + ' ' + vm[2]).toLowerCase()] = grpLetter + rowNum;
+            }
+          }
+        }
+      }
+      return seedingMap;
     }
 
+    // Scan full schedule CSV + seeding map → bracket path objects for the Possible tab
     function bsComputeBracketPaths(allRows, seedingMap, myPool, cols) {
-      if (!window.AdminBracketImport?.bsComputeBracketPaths) return [];
-      return window.AdminBracketImport.bsComputeBracketPaths(allRows, seedingMap, myPool, cols, {
-        parseDateToISO,
-        isoToDate,
-      });
+      const poolUpper = (myPool || '').replace(/^pool\s*/i, '').trim().toUpperCase();
+      if (!poolUpper || !/^[A-Z]$/.test(poolUpper) || !allRows?.length) return [];
+      const { dateCol = 0, timeCol = 2, whiteCol = 3, darkCol = 5, locCol = 1, dataStartRow = 0 } = cols || {};
+
+      const codeToGames = {};
+      for (let ri = dataStartRow; ri < allRows.length; ri++) {
+        const row = allRows[ri];
+        const rawWhite = (row[whiteCol] || '').trim();
+        const rawBlue = (row[darkCol] || '').trim();
+        const wCode = bsExtractBracketCode(rawWhite);
+        const bCode = bsExtractBracketCode(rawBlue);
+        if (!wCode && !bCode) continue;
+        const rawTime = (row[timeCol] || '').trim();
+        const rawDate = dateCol >= 0 ? (row[dateCol] || '').trim() : '';
+        const rawLoc = locCol >= 0 ? (row[locCol] || '').trim() : '';
+        const locP = bsParseLocation(rawLoc);
+        const dateISO = parseDateToISO(rawDate);
+        let timeFmt = rawTime;
+        if (rawTime && !/am|pm/i.test(rawTime)) {
+          const hm = rawTime.match(/^(\d{1,2}):/);
+          if (hm) { const h = parseInt(hm[1], 10); timeFmt = rawTime + (h >= 7 && h <= 11 ? ' AM' : ' PM'); }
+        }
+        const game = {
+          white: rawWhite, blue: rawBlue, whiteCode: wCode, blueCode: bCode,
+          time: timeFmt, dateISO,
+          date: dateISO ? isoToDate(dateISO) : rawDate,
+          location: locP.venue + (locP.poolNum ? ' Pool ' + locP.poolNum : ''),
+        };
+        if (wCode) { (codeToGames[wCode] = codeToGames[wCode] || []).push(game); }
+        if (bCode) { (codeToGames[bCode] = codeToGames[bCode] || []).push(game); }
+      }
+
+      function getReachable(startCode) {
+        const visited = new Set(), reachable = [], queue = [startCode];
+        while (queue.length) {
+          const code = queue.shift();
+          if (visited.has(code)) continue;
+          visited.add(code);
+          for (const g of (codeToGames[code] || [])) { if (!reachable.includes(g)) reachable.push(g); }
+          const grp = code.match(/^([A-Z])/)?.[1];
+          if (grp) {
+            const wc = seedingMap[('1st ' + grp).toLowerCase()];
+            const lc = seedingMap[('2nd ' + grp).toLowerCase()];
+            if (wc && !visited.has(wc)) queue.push(wc);
+            if (lc && !visited.has(lc)) queue.push(lc);
+          }
+        }
+        return reachable;
+      }
+
+      const paths = [];
+      for (const ord of ['1st', '2nd', '3rd', '4th', '5th']) {
+        const startCode = seedingMap[(ord + ' ' + poolUpper).toLowerCase()];
+        if (!startCode) continue;
+        const reachable = getReachable(startCode);
+        if (!reachable.length) continue;
+        const byDate = {}, dateOrder = [];
+        for (const g of reachable) {
+          const dk = g.dateISO || g.date || 'TBD';
+          if (!byDate[dk]) { byDate[dk] = []; dateOrder.push(dk); }
+          byDate[dk].push(g);
+        }
+        for (const dk of [...new Set(dateOrder)].sort()) {
+          const dg = byDate[dk];
+          paths.push({
+            id: 'bs-' + ord.replace(/\W/g, '') + poolUpper + '-' + dk,
+            label: 'If ' + ord + ' in Pool ' + poolUpper + ' \u2014 ' + dg.length + ' possible game' + (dg.length !== 1 ? 's' : ''),
+            qualifier: 'Bracket games your team could play if they finish ' + ord + ' in Pool ' + poolUpper + '.',
+            steps: dg.map(g => ({
+              gameNum: '',
+              desc: bsBracketGameDesc(g.white) + ' vs ' + bsBracketGameDesc(g.blue),
+              time: g.time || 'TBD',
+              date: g.date || dk,
+              dateISO: g.dateISO || '',
+              location: g.location || '',
+            })),
+          });
+        }
+      }
+      return paths;
     }
 
     function bsComputeKap7FuturesSpecialPaths(allRows, cols, games) {
@@ -12318,7 +12047,7 @@
           if (/^\d+[A-Z]+X?$/.test((rows[1] || [])[rows[0].length - 1] || '') || /\d{2}[A-Z]/.test(lastColSamples)) {
             gmidCol = rows[0].length - 1;
           } else {
-            throw new Error('This doesn\'t look like an NJO Master By Division sheet — no GMID column found. Use the regular Futures Bracket Import Wizard wizard instead.');
+            throw new Error('This doesn\'t look like an NJO Master By Division sheet — no GMID column found. Use the regular Bracket Sheet Sync wizard instead.');
           }
         }
 
@@ -14498,7 +14227,7 @@
         // When only one season, surface it in the card header and skip the subheader row
         const singleSeasonBadge = !multiSeason && seasonOrder[0] && seasonOrder[0] !== 'Unsorted'
           ? ` <span style="font-size:0.72rem;font-weight:400;color:var(--g400);margin-left:4px">${esc(seasonOrder[0])}</span>` : '';
-        html += `<div class="card recovery-card">
+        html += `<div class="card" style="margin-bottom:10px">
       <div class="card-header">📋 Tournament History — ${esc(teamLabel)} (${entries.length})${singleSeasonBadge}</div>`;
         for (const season of seasonOrder) {
           const seasonEntries = bySeason[season];
@@ -14528,7 +14257,7 @@
         }
         html += `</div>`;
       } else {
-        html += `<div class="card recovery-card">
+        html += `<div class="card" style="margin-bottom:10px">
       <div class="card-header">📋 Tournament History — ${esc(teamLabel)}</div>
       <div style="padding:20px;text-align:center;color:var(--g400)">
         <div style="font-size:1.5rem;margin-bottom:6px">📭</div>
@@ -14667,12 +14396,6 @@
         if (type === 'conflict') return true;
         return !!entry?.conflict || String(entry?.computedStatus || entry?.status || '').trim() === 'conflict';
       }
-      if (mode === 'needs-final') {
-        if (type === 'scored') return !!entry?.needsFinalization || String(entry?.score?.gameState || '').trim() !== 'final';
-        if (type === 'session') return String(entry?.computedStatus || entry?.status || entry?.session?.status || '').trim() === 'finalizing';
-        if (type === 'draft') return ['pending', 'local-final', 'finalizing'].includes(String(entry?.status || entry?.session?.status || '').trim());
-        return false;
-      }
       if (type === 'conflict') return true;
       if (type === 'scored') return !!entry?.needsFinalization || String(entry?.score?.gameState || '').trim() !== 'final';
       if (type === 'session') return recoverySessionNeedsAction(entry);
@@ -14701,14 +14424,14 @@
     }
 
     // ── renderRecoveryAdminTab — live scoring operations, sessions, drafts, conflicts ──
-            function renderRecoveryConflictCard(conflicts, teamLabel, recoveryChip) {
+        function renderRecoveryConflictCard(conflicts, teamLabel, recoveryChip) {
       if (!conflicts.length) return '';
-      return `<div class="card recovery-card recovery-card-alert">
-      <div class="card-header recovery-card-header-err">Conflicts - ${esc(teamLabel)}</div>
-      <div class="recovery-copy recovery-card-body-tight recovery-card-copy-err">
+      return `<div class="card" style="margin-bottom:10px;border-color:#fca5a5;background:#fff1f2">
+      <div class="card-header" style="color:#dc2626">Conflicts - ${esc(teamLabel)}</div>
+      <div style="padding:10px 14px;font-size:0.82rem;color:#7f1d1d;line-height:1.5">
         Two devices tried to own the same scorer session. Force-close the losing session in Active Sessions below, then dismiss here.
       </div>
-      <div class="recovery-card-body-tight">
+      <div style="display:flex;flex-direction:column">
         ${conflicts.map(conflict => {
           const stamp = conflict.updatedAt ? new Date(conflict.updatedAt).toLocaleString() : '';
           const typeLabel = { 'multi-device': 'Multi-device conflict' }[conflict.type] || conflict.type;
@@ -14717,15 +14440,15 @@
             conflict.incomingDeviceId ? 'Challenger: ' + conflict.incomingDeviceId.slice(0, 8) : '',
             stamp,
             conflict.occurrences > 1 ? `${conflict.occurrences}x occurred` : '',
-          ].filter(Boolean).join(' � ');
-          return `<div class="game-row"><div class="game-summary recovery-row-static">
+          ].filter(Boolean).join(' � ');
+          return `<div class="game-row"><div class="game-summary" style="cursor:default">
             <div class="game-info">
-              <div class="game-opp recovery-game-opp-err">${esc(typeLabel)}: ${esc(conflict.gameId || 'unknown game')}</div>
+              <div class="game-opp" style="color:#dc2626">${esc(typeLabel)}: ${esc(conflict.gameId || 'unknown game')}</div>
               <div class="recovery-inline-chips">${recoveryChip('Conflict', 'err')}</div>
               <div class="game-meta">${esc(auditBits)}</div>
             </div>
             <div class="recovery-row-actions">
-              <button class="btn-save recovery-btn-sm recovery-btn-neutral"
+              <button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700)"
                 onclick="resolveConflictAdmin('${esc(conflict.gameId)}','${esc(conflict.tournamentId || '_')}')">Dismiss</button>
             </div>
           </div></div>`;
@@ -14734,7 +14457,7 @@
     </div>`;
     }
 
-        function renderRecoveryScoredRows(entries, recoveryChip) {
+    function renderRecoveryScoredRows(entries, recoveryChip) {
       if (!entries.length) return `${renderRecoveryEmptyState("No durable scored games for this age group yet.")}`;
       return entries.map(entry => {
         const score = entry.score || {};
@@ -14749,15 +14472,15 @@
           !needsFinal && confirmedStamp ? 'Finalized ' + confirmedStamp : '',
           entry.finalizedBy ? 'by ' + entry.finalizedBy : '',
           entry.finalizedSource ? 'via ' + entry.finalizedSource : '',
-        ].filter(Boolean).join(' � ');
+        ].filter(Boolean).join(' � ');
         const promoteLabel = stateLabel === 'final' ? 'Reopen' : 'Promote Final';
         const promoteAction = stateLabel === 'final' ? 'reopen' : 'promote';
         const stateChip = needsFinal ? recoveryChip('Needs Final', 'warn') : recoveryChip(stateLabel === 'final' ? 'Final Saved' : stateLabel, stateLabel === 'final' ? 'ok' : 'info');
-        return `<div class="game-row"><div class="game-summary recovery-row-static"><div class="game-info"><div class="game-opp">${esc(entry.opponent || entry.gameId || 'Scored game')}</div><div class="recovery-inline-chips">${stateChip}</div><div class="game-meta">${esc(scoreLabel)}${auditBits ? ' � ' + esc(auditBits) : ''}</div></div><div class="recovery-row-actions"><button class="btn-save recovery-btn-md" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','${promoteAction}')">${promoteLabel}</button><button class="btn-save recovery-btn-md recovery-btn-danger" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','reset')">Reset</button></div></div></div>`;
+        return `<div class="game-row"><div class="game-summary" style="cursor:default"><div class="game-info"><div class="game-opp">${esc(entry.opponent || entry.gameId || 'Scored game')}</div><div class="recovery-inline-chips">${stateChip}</div><div class="game-meta">${esc(scoreLabel)}${auditBits ? ' � ' + esc(auditBits) : ''}</div></div><div class="recovery-row-actions"><button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','${promoteAction}')">${promoteLabel}</button><button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','reset')">Reset</button></div></div></div>`;
       }).join('');
     }
 
-        function renderRecoverySessionRows(entries, recoveryChip) {
+    function renderRecoverySessionRows(entries, recoveryChip) {
       if (!entries.length) return `${renderRecoveryEmptyState("No active scorer sessions for this age group.")}`;
       return entries.map(entry => {
         const session = entry.session || {};
@@ -14769,16 +14492,16 @@
         const ageGroupLabel = esc(entry.ageGroup || session.groupKey || '');
         const teamSlot = esc(session.teamSlot || '');
         const gameIdShort = esc((entry.gameId || '').slice(-10));
-        const identityChips = [ageGroupLabel ? recoveryChip(ageGroupLabel, 'muted') : '', teamSlot ? recoveryChip(`Team ${teamSlot}`, 'info') : '', effectiveStatus === 'stale' ? recoveryChip('Stale session', 'warn') : '', gameIdShort ? `<span class="recovery-status-chip recovery-status-chip-muted recovery-gameid-chip" title="${esc(entry.gameId || '')}">...${gameIdShort}</span>` : ''].filter(Boolean).join('');
+        const identityChips = [ageGroupLabel ? recoveryChip(ageGroupLabel, 'muted') : '', teamSlot ? recoveryChip(`Team ${teamSlot}`, 'info') : '', effectiveStatus === 'stale' ? recoveryChip('Stale session', 'warn') : '', gameIdShort ? `<span class="recovery-status-chip recovery-status-chip-muted" style="font-family:monospace" title="${esc(entry.gameId || '')}">...${gameIdShort}</span>` : ''].filter(Boolean).join('');
         const canAct = ['open', 'stale', 'finalizing', 'conflict'].includes(effectiveStatus);
         const sessionTid = esc(entry.tournamentId || '_');
         const sessionGid = esc(entry.gameId);
         const statusTone = effectiveStatus === 'open' ? 'ok' : effectiveStatus === 'finalizing' || effectiveStatus === 'final-acked' ? 'info' : effectiveStatus === 'stale' ? 'warn' : effectiveStatus === 'conflict' ? 'err' : 'muted';
-        return `<div class="game-row"><div class="game-summary recovery-row-static"><div class="game-info recovery-info-tight"><div class="game-opp">${esc(session.opponent || entry.gameId || 'Active scorer session')}</div><div class="recovery-inline-chips">${recoveryChip(statusLabel, statusTone)}${identityChips}</div><div class="game-meta">${esc(scoreLabel)} � hb ${esc(hbLabel)}${entry.deviceId ? ' � ' + esc(entry.deviceId.slice(0, 8)) : ''}</div></div>${canAct ? `<div class="recovery-row-actions"><button class="btn-save recovery-btn-sm recovery-btn-neutral" onclick="updateScorerSessionAdmin('${sessionGid}','${sessionTid}','force-close')">Force Close</button><button class="btn-save recovery-btn-sm recovery-btn-warn" onclick="updateScorerSessionAdmin('${sessionGid}','${sessionTid}','clear-lock')">Clear Lock</button></div>` : ''}</div></div>`;
+        return `<div class="game-row"><div class="game-summary" style="cursor:default"><div class="game-info" style="gap:4px"><div class="game-opp">${esc(session.opponent || entry.gameId || 'Active scorer session')}</div><div class="recovery-inline-chips">${recoveryChip(statusLabel, statusTone)}${identityChips}</div><div class="game-meta">${esc(scoreLabel)} � hb ${esc(hbLabel)}${entry.deviceId ? ' � ' + esc(entry.deviceId.slice(0, 8)) : ''}</div></div>${canAct ? `<div class="recovery-row-actions"><button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700);white-space:nowrap" onclick="updateScorerSessionAdmin('${sessionGid}','${sessionTid}','force-close')">Force Close</button></div>` : ''}</div></div>`;
       }).join('');
     }
 
-        function renderRecoveryDraftRows(entries, recoveryChip) {
+    function renderRecoveryDraftRows(entries, recoveryChip) {
       if (!entries.length) return `${renderRecoveryEmptyState("No mirrored scorer drafts for this age group.")}`;
       return entries.map(entry => {
         const score = entry.score || {};
@@ -14786,12 +14509,9 @@
         const stamp = entry.updatedAt ? new Date(entry.updatedAt).toLocaleString() : '';
         const eventCount = Array.isArray(score.events) ? score.events.filter(ev => ev && ev.type !== 'game_state').length : 0;
         const sessionState = String(entry.status || entry.session?.status || 'open').trim() || 'open';
-        const auditBits = [stamp ? 'Updated ' + stamp : '', entry.deviceId ? 'Device ' + entry.deviceId.slice(0, 8) : '', eventCount ? `${eventCount} event${eventCount !== 1 ? 's' : ''}` : '', entry.conflict ? 'Conflict detected' : ''].filter(Boolean).join(' � ');
+        const auditBits = [stamp ? 'Updated ' + stamp : '', entry.deviceId ? 'Device ' + entry.deviceId.slice(0, 8) : '', eventCount ? `${eventCount} event${eventCount !== 1 ? 's' : ''}` : '', entry.conflict ? 'Conflict detected' : ''].filter(Boolean).join(' � ');
         const tone = entry.conflict ? 'err' : sessionState === 'final-acked' ? 'ok' : sessionState === 'queued' || sessionState === 'retrying' ? 'warn' : 'info';
-        const mirroredChip = recoveryChip('Mirrored Draft', 'info');
-        const finalChip = sessionState === 'final-acked' ? recoveryChip('Final Saved', 'ok') : '';
-        const localOnlyChip = !entry?.scoredGameExists ? recoveryChip('No Durable Game Yet', 'warn') : '';
-        return `<div class="game-row"><div class="game-summary recovery-row-static"><div class="game-info"><div class="game-opp">${esc(entry.session?.opponent || score.opponent || entry.gameId || 'Recovered draft')}</div><div class="recovery-inline-chips">${recoveryChip(entry.conflict ? 'Conflict' : sessionState, tone)}${mirroredChip}${localOnlyChip}${finalChip}</div><div class="game-meta">${esc(scoreLabel)}${auditBits ? ' � ' + esc(auditBits) : ''}</div></div><div class="recovery-row-actions"><button class="btn-save recovery-btn-md" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','restore')">Restore Draft</button><button class="btn-save recovery-btn-md recovery-btn-danger" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','clear')">Clear</button></div></div></div>`;
+        return `<div class="game-row"><div class="game-summary" style="cursor:default"><div class="game-info"><div class="game-opp">${esc(entry.session?.opponent || score.opponent || entry.gameId || 'Recovered draft')}</div><div class="recovery-inline-chips">${recoveryChip(entry.conflict ? 'Conflict' : sessionState, tone)}</div><div class="game-meta">${esc(scoreLabel)}${auditBits ? ' � ' + esc(auditBits) : ''}</div></div><div class="recovery-row-actions"><button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','restore')">Restore Draft</button><button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','clear')">Clear</button></div></div></div>`;
       }).join('');
     }
 
@@ -14799,7 +14519,7 @@
       const teamObj = getAdminTeams().find(t => t.key === S.team);
       const teamLabel = teamObj ? teamObj.label : S.team;
       const scoredEntries = Object.values(S.scoredGames || {}).sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
-      const scorerDraftEntries = (S.scorerDrafts || []).slice().map(entry => ({ ...entry, scoredGameExists: scoredEntries.some(scored => String(scored.gameId || '') === String(entry.gameId || '')) })).sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+      const scorerDraftEntries = (S.scorerDrafts || []).slice().sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
       const scorerSessionEntries = (S.scorerSessions || []).slice().sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
       const needsFinalizeEntries = scoredEntries.filter(entry => !!entry.needsFinalization);
       const unresolvedConflicts = (S.conflicts || []).filter(c => !c.resolved);
@@ -14829,20 +14549,17 @@
       const filteredScorerSessionEntries = scorerSessionEntries.filter(entry => recoveryFilterMatches(recoveryFilter, 'session', entry));
       const filteredScorerDraftEntries = scorerDraftEntries.filter(entry => recoveryFilterMatches(recoveryFilter, 'draft', entry));
       const needsFinalizeSummary = needsFinalizeEntries.length
-        ? `<div class="recovery-callout-warn">${needsFinalizeEntries.length} game(s) need finalization - close them out before the next round.</div>`
+        ? `<div style="padding:10px 12px;border:1px solid #facc15;border-radius:10px;background:#fffbeb;color:#78350f;font-size:0.82rem;font-weight:700">${needsFinalizeEntries.length} game(s) need finalization - close them out before the next round.</div>`
         : '';
 
-      let html = `<div class="card recovery-card">
-      <div class="recovery-toolbar">
-        <span class="recovery-toolbar-title">Scoring Recovery - ${esc(teamLabel)}</span>
+      let html = `<div class="card" style="margin-bottom:10px">
+      <div style="padding:12px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-weight:800;font-size:0.9rem;color:var(--g700)">Scoring Recovery - ${esc(teamLabel)}</span>
         ${pills}
-        <div class="recovery-toolbar-spacer"></div>
-        <span class="recovery-toolbar-meta">last refresh ${esc(lastRefreshLabel)} | auto-refresh 30s</span>
-        <button class="save-btn recovery-btn-neutral" onclick="refreshScoredGamesAdmin()">Refresh All</button>
-        <button class="save-btn recovery-btn-primary" onclick="exportRecoveryData('drafts')">Export Drafts</button>
-        <button class="save-btn recovery-btn-primary" onclick="exportRecoveryData('sessions')">Export Sessions</button>
-        <button class="save-btn recovery-btn-primary" onclick="exportRecoveryData('conflicts')">Export Conflicts</button>
-        <span id="scored-games-status" class="recovery-status-inline"></span>
+        <div style="flex:1"></div>
+        <span style="font-size:0.7rem;color:var(--g300);white-space:nowrap">last refresh ${esc(lastRefreshLabel)} | auto-refresh 30s</span>
+        <button class="save-btn" onclick="refreshScoredGamesAdmin()" style="background:var(--g100);color:var(--g700)">Refresh All</button>
+        <span id="scored-games-status" style="font-size:0.82rem"></span>
       </div>
       <div class="recovery-summary-strip">
         <div class="recovery-summary-card recovery-summary-card-alert"><span class="recovery-summary-label">Needs Action</span><span class="recovery-summary-value">${needsActionCount}</span></div>
@@ -14853,7 +14570,6 @@
       <div class="recovery-filter-row">
         <button class="recovery-filter-btn ${recoveryFilter === 'needs-action' ? 'active' : ''}" onclick="setRecoveryFilter('needs-action')">Needs Action</button>
         <button class="recovery-filter-btn ${recoveryFilter === 'conflicts' ? 'active' : ''}" onclick="setRecoveryFilter('conflicts')">Conflicts Only</button>
-        <button class="recovery-filter-btn ${recoveryFilter === 'needs-final' ? 'active' : ''}" onclick="setRecoveryFilter('needs-final')">Needs Final</button>
         <button class="recovery-filter-btn ${recoveryFilter === 'all' ? 'active' : ''}" onclick="setRecoveryFilter('all')">Show All</button>
       </div>
       <div class="recovery-health-strip">
@@ -14868,12 +14584,12 @@
 
       html += renderRecoveryConflictCard(unresolvedConflicts, teamLabel, recoveryChip);
 
-      html += `<div class="card recovery-card">
-      <div class="card-header recovery-card-header-royal">Scored Games - ${esc(teamLabel)}</div>
-      <div class="recovery-card-body">
-        <div class="recovery-row-actions recovery-actions-start">
-          <button class="save-btn recovery-btn-primary" onclick="syncOfficialSheetResultsAdmin()">Sync Official Sheet</button>
-          <button class="save-btn recovery-btn-success" onclick="rebuildHistoryFromScoredGamesAdmin()">Rebuild History</button>
+      html += `<div class="card" style="margin-bottom:10px">
+      <div class="card-header" style="color:var(--royal)">Scored Games - ${esc(teamLabel)}</div>
+      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+        <div class="recovery-row-actions" style="justify-content:flex-start">
+          <button class="save-btn" onclick="syncOfficialSheetResultsAdmin()" style="background:var(--royal)">Sync Official Sheet</button>
+          <button class="save-btn" onclick="rebuildHistoryFromScoredGamesAdmin()" style="background:#2e7d32">Rebuild History</button>
         </div>
         ${needsFinalizeSummary}
         <div class="recovery-copy">Sync writes final scores into durable records. Rebuild History pushes finalized games to the spectator history view.</div>
@@ -14881,24 +14597,24 @@
       </div>
     </div>`;
 
-      html += `<div class="card recovery-card">
-      <div class="card-header recovery-card-header-royal">Active Scorer Sessions - ${esc(teamLabel)}</div>
-      <div class="recovery-copy recovery-copy-pad">Server-owned heartbeats. Force-close a stale session before a new device starts scoring the same game.</div>
+      html += `<div class="card" style="margin-bottom:10px">
+      <div class="card-header" style="color:var(--royal)">Active Scorer Sessions - ${esc(teamLabel)}</div>
+      <div class="recovery-copy" style="padding:10px 14px">Server-owned heartbeats. Force-close a stale session before a new device starts scoring the same game.</div>
       ${renderRecoverySessionRows(filteredScorerSessionEntries, recoveryChip)}
     </div>`;
 
-      html += `<div class="card recovery-card">
-      <div class="card-header recovery-card-header-royal">Mirrored Scorer Drafts - ${esc(teamLabel)}</div>
-      <div class="recovery-copy recovery-copy-pad">Server-backed drafts. Use Restore Draft to rebuild a scored-game record from a mirrored draft if the original device was lost.</div>
+      html += `<div class="card" style="margin-bottom:10px">
+      <div class="card-header" style="color:var(--royal)">Mirrored Scorer Drafts - ${esc(teamLabel)}</div>
+      <div class="recovery-copy" style="padding:10px 14px">Server-backed drafts. Use Restore Draft to rebuild a scored-game record from a mirrored draft if the original device was lost.</div>
       ${renderRecoveryDraftRows(filteredScorerDraftEntries, recoveryChip)}
     </div>`;
 
       const allEmpty = !unresolvedConflicts.length && !scoredEntries.length && !scorerSessionEntries.length && !scorerDraftEntries.length;
       if (allEmpty) {
-        html += `<div class="card recovery-all-clear">
-        <div class="recovery-all-clear-icon">OK</div>
-        <div class="recovery-all-clear-title">All clear</div>
-        <div class="recovery-all-clear-copy">No active scorer sessions, pending drafts, or conflicts.<br>Hit <strong>Refresh All</strong> if you're expecting live data.</div>
+        html += `<div class="card" style="margin-bottom:10px;text-align:center;padding:28px 20px">
+        <div style="font-size:2rem;margin-bottom:8px">OK</div>
+        <div style="font-weight:700;color:var(--g700);margin-bottom:4px">All clear</div>
+        <div style="font-size:0.82rem;color:var(--g400)">No active scorer sessions, pending drafts, or conflicts.<br>Hit <strong>Refresh All</strong> if you're expecting live data.</div>
       </div>`;
       }
 
@@ -14933,27 +14649,8 @@
     }
 
     function setRecoveryFilter(mode = 'needs-action') {
-      S.recoveryFilter = ['all', 'conflicts', 'needs-action', 'needs-final'].includes(mode) ? mode : 'needs-action';
+      S.recoveryFilter = ['all', 'conflicts', 'needs-action'].includes(mode) ? mode : 'needs-action';
       renderTab();
-    }
-
-    function exportRecoveryData(kind = 'drafts') {
-      const fileMap = {
-        drafts: { data: S.scorerDrafts || [], filename: 'scorer-drafts-' + (S.team || 'team') + '.json' },
-        sessions: { data: S.scorerSessions || [], filename: 'scorer-sessions-' + (S.team || 'team') + '.json' },
-        conflicts: { data: S.conflicts || [], filename: 'scorer-conflicts-' + (S.team || 'team') + '.json' },
-      };
-      const payload = fileMap[kind] || fileMap.drafts;
-      const blob = new Blob([JSON.stringify(payload.data, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = payload.filename;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        URL.revokeObjectURL(a.href);
-        a.remove();
-      }, 0);
     }
 
 
@@ -17809,11 +17506,11 @@
           </div>`;
         }).join('');
 
-        return `<div class="card recovery-card">
+        return `<div class="card" style="margin-bottom:10px">
           <div class="card-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span>${esc(teamLabel)}</span>
             ${group.tournamentName ? `<span style="font-size:0.75rem;font-weight:400;color:var(--g400)">${esc(group.tournamentName)}</span>` : ''}
-            <div class="recovery-toolbar-spacer"></div>
+            <div style="flex:1"></div>
             <span style="font-size:0.72rem;color:var(--g400)">${games.length} game${games.length !== 1 ? 's' : ''}</span>
           </div>
           ${rows || '<div style="padding:16px 14px;color:var(--g400);font-size:.85rem">No games deployed for this group</div>'}
@@ -17829,11 +17526,11 @@
         totalIssues? `<span style="padding:2px 9px;border-radius:99px;background:#fee2e2;color:#dc2626;font-size:0.75rem;font-weight:700">⚠️ ${totalIssues} need attention</span>` : '',
       ].filter(Boolean).join('');
 
-      return `<div class="card recovery-card">
-        <div class="recovery-toolbar">
+      return `<div class="card" style="margin-bottom:10px">
+        <div style="padding:12px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-weight:800;font-size:0.9rem;color:var(--g700)">📊 Tournament Overview</span>
           ${pills}
-          <div class="recovery-toolbar-spacer"></div>
+          <div style="flex:1"></div>
           <span style="font-size:0.7rem;color:var(--g300);white-space:nowrap">${agoLabel ? 'Updated ' + esc(agoLabel) : ''} · auto 15s</span>
           <button class="save-btn" onclick="refreshDirDashboard()" style="background:var(--g100);color:var(--g700)">↻ Refresh</button>
         </div>
@@ -17899,7 +17596,7 @@
   </script>
 
   <!-- Google Maps Places API for venue autocomplete -->
-  <script src="admin-bracket-import.js?v=2"></script>
+  <script src="admin-bracket-import.js?v=1"></script>
   <script>function onGoogleMapsLoad() { if (typeof initPlacesAutocomplete === 'function' && document.getElementById('info-venue-input')) initPlacesAutocomplete(); }</script>
   <script async defer
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyALS7O7coExR8-7VPDBMMA0Hp6dhoe-zQg&libraries=places&callback=onGoogleMapsLoad"></script>

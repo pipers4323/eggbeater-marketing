@@ -349,11 +349,6 @@ async function fbGetIdToken(forceRefresh) {
 async function fbCheckAdminAccess(clubId) {
   if (!fbReady() || !_fbUser) return { isAdmin: false, isSuperAdmin: false, clubName: '' };
   try {
-    const doc = await _fbDb.collection('clubs').doc(clubId).get();
-    if (!doc.exists) return { isAdmin: false, isSuperAdmin: false, clubName: '' };
-    const data = doc.data();
-    const adminUIDs = data.adminUIDs || [];
-    const superAdminUIDs = data.superAdminUIDs || [];
     const userEmail = _fbNormalizeEmail(_fbUser.email || localStorage.getItem('ebwp-auth-email'));
     const matchesAdmin = entry => {
       if (entry === _fbUser.uid) return true;
@@ -363,9 +358,29 @@ async function fbCheckAdminAccess(clubId) {
       }
       return false;
     };
+    const doc = await _fbDb.collection('clubs').doc(clubId).get();
+    if (!doc.exists) {
+      const snapshot = await _fbDb.collection('clubs').get();
+      const anySuperAdmin = snapshot.docs.some(clubDoc => {
+        const data = clubDoc.data() || {};
+        return (data.superAdminUIDs || []).some(matchesAdmin);
+      });
+      return { isAdmin: anySuperAdmin, isSuperAdmin: anySuperAdmin, clubName: '' };
+    }
+    const data = doc.data();
+    const adminUIDs = data.adminUIDs || [];
+    const superAdminUIDs = data.superAdminUIDs || [];
+    let isSuperAdmin = superAdminUIDs.some(matchesAdmin);
+    if (!isSuperAdmin) {
+      const snapshot = await _fbDb.collection('clubs').get();
+      isSuperAdmin = snapshot.docs.some(clubDoc => {
+        const clubData = clubDoc.data() || {};
+        return (clubData.superAdminUIDs || []).some(matchesAdmin);
+      });
+    }
     return {
-      isAdmin:      adminUIDs.some(matchesAdmin) || superAdminUIDs.some(matchesAdmin),
-      isSuperAdmin: superAdminUIDs.some(matchesAdmin),
+      isAdmin:      adminUIDs.some(matchesAdmin) || superAdminUIDs.some(matchesAdmin) || isSuperAdmin,
+      isSuperAdmin,
       clubName:     data.name || '',
     };
   } catch (e) {
