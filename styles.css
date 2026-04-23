@@ -6260,6 +6260,23 @@ body.modal-open { overflow: hidden; }
   margin-bottom: 12px;
 }
 
+#view-possible .scores-slot-header,
+#view-possible .slot-header-in-card.scores-slot-header {
+  border-top-color: rgba(255,255,255,0.18);
+}
+
+#view-possible .scores-slot-header .scores-slot-label,
+#view-possible .scores-slot-header.slot-header-in-card .scores-slot-label,
+#view-possible .roster-view-card .scores-slot-label,
+#view-possible .mp-multi-card .scores-slot-label {
+  color: rgba(255,255,255,0.96) !important;
+}
+
+#view-possible .history-header-row,
+#view-possible .history-header-row * {
+  color: rgba(255,255,255,0.96);
+}
+
 /* Live score summary bar — shown below the game header when remote live */
 .live-score-bar {
   display: flex;
