@@ -13120,6 +13120,10 @@
 
       showStatus(adminT('publish_saving_kv'), 'info');
       try {
+        // Any real tournament deploy should clear placeholder/upcoming flags so
+        // headers and spectator views stop treating this age group as unloaded.
+        delete S.tournament.stayTuned;
+        delete S.tournament.upcomingMode;
         // Save current team's data
         const saveRes = await api('PUT', '/admin/data', {
           tournament: S.tournament,
