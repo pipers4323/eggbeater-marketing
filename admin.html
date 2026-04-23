@@ -254,25 +254,25 @@
       display: flex;
       align-items: center;
       padding-top: env(safe-area-inset-top, 0px);
-      padding-bottom: 7px;
+      padding-bottom: 4px;
       padding-left: env(safe-area-inset-left, 14px);
       padding-right: env(safe-area-inset-right, 14px);
       max-width: none;
       margin: 0;
       width: 100%;
-      min-height: 68px;
+      min-height: 58px;
       overflow: hidden;
     }
 
     .admin-logo-wrap.has-custom-logo {
-      min-height: 88px;
+      min-height: 72px;
       overflow: visible;
     }
 
     .admin-logo-img {
       width: auto;
       max-width: 100%;
-      max-height: 52px;
+      max-height: 42px;
       height: auto;
       display: block;
     }
@@ -283,18 +283,18 @@
       justify-content: flex-start;
       width: 100%;
       min-width: 0;
-      padding: 8px 18px 4px;
+      padding: 5px 18px 2px;
       padding-left: max(18px, env(safe-area-inset-left, 0px));
       padding-right: max(18px, env(safe-area-inset-right, 0px));
       background: transparent;
-      min-height: 84px;
+      min-height: 68px;
       overflow: visible;
     }
 
     .admin-custom-logo-img {
       width: auto;
       max-width: min(100%, 440px);
-      max-height: 84px;
+      max-height: 64px;
       height: auto;
       display: block;
       background: transparent;
@@ -332,7 +332,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 7px 14px 9px;
+      padding: 6px 14px 7px;
       padding-left: max(14px, env(safe-area-inset-left, 0px));
       padding-right: max(14px, env(safe-area-inset-right, 0px));
       background: rgba(0, 0, 0, .18);
@@ -436,7 +436,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 5px 12px 8px;
+      padding: 4px 12px 6px;
       padding-left: max(12px, env(safe-area-inset-left, 0px));
       padding-right: max(12px, env(safe-area-inset-right, 0px));
       background: rgba(0, 0, 0, .14);
@@ -501,7 +501,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      padding: 8px 14px;
+      padding: 6px 14px;
       padding-left: max(14px, env(safe-area-inset-left, 0px));
       padding-right: max(14px, env(safe-area-inset-right, 0px));
       background: rgba(0, 0, 0, .12);
@@ -1915,35 +1915,35 @@
       .admin-logo-wrap {
         display: flex;
         align-items: center;
-        padding: 8px 24px;
+        padding: 4px 20px;
+        min-height: 50px;
       }
 
       .admin-logo-wrap.has-custom-logo {
-        min-height: 100px;
-        padding-top: 10px;
-        padding-bottom: 6px;
+        min-height: 74px;
+        padding-top: 4px;
+        padding-bottom: 2px;
       }
 
       .admin-logo-img {
-        height: 64px;
+        height: 44px;
         width: auto;
       }
 
       .admin-custom-logo-wrap {
-        padding-left: 24px;
-        padding-right: 24px;
-        min-height: 96px;
+        padding-left: 20px;
+        padding-right: 20px;
+        min-height: 72px;
       }
 
       .admin-custom-logo-img {
         max-width: min(100%, 560px);
-        max-height: 96px;
+        max-height: 68px;
       }
 
       /* Admin info bar stretches full width */
       .admin-header-bar {
-        padding-left: 24px;
-        padding-right: 24px;
+        padding: 5px 20px 6px;
       }
 
       /* Tab bar → left sidebar */
@@ -2026,7 +2026,7 @@
       }
 
       .admin-global-bar {
-        padding: 6px 24px 9px;
+        padding: 4px 20px 6px;
         gap: 10px;
       }
 
@@ -9555,7 +9555,7 @@
       return `<details class="card collapsible-card" id="bs-futures-launcher"${active ? ' open' : ''}>
         <summary class="card-header collapsible-header">🧭 Futures Bracket Import Wizard <span class="collapse-icon">▾</span></summary>
         <div style="padding:10px 14px 14px">
-          <div class="info-hint" style="margin-bottom:10px">Use this when a Futures sheet shares one tab across 16u and 18u and the age groups are separated by legend colors instead of separate tabs.</div>
+          <div class="info-hint" style="margin-bottom:10px">Use this when a Futures sheet shares one tab across multiple age groups and the age groups are separated by legend colors instead of separate tabs.</div>
           <button class="save-btn" style="width:100%" onclick="bsLaunchFuturesWizard()">${active ? 'Continue Futures color-aware import' : 'Start Futures color-aware import'}</button>
         </div>
       </details>`;
@@ -9678,6 +9678,98 @@
       if (rangeOrNull) url += '&range=' + encodeURIComponent(rangeOrNull);
       return url;
     }
+
+    const BS_GOOGLE_CLIENT_ID = '511455199636-t7nimg31inbjp165p29tj0orm6v9oh8t.apps.googleusercontent.com';
+    const BS_GOOGLE_SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets.readonly';
+    let _bsGoogleSheetsToken = '';
+    let _bsGoogleSheetsTokenPromise = null;
+
+    function bsUseSheetsApi() {
+      return !!S.bsync?.colorCoded;
+    }
+
+    function bsEnsureSheetsApiReady() {
+      if (!window.AdminBracketImport?.bsFetchGoogleSheetGrid || !window.AdminBracketImport?.bsBuildColorCodedAgeGroups || !window.AdminBracketImport?.bsExtractGridRows) {
+        throw new Error('Futures importer helpers did not load. Refresh the page and try again.');
+      }
+      if (!window.google?.accounts?.oauth2) {
+        throw new Error('Google Sign-In did not load. Refresh the page and try again.');
+      }
+    }
+
+    function bsGetGoogleSheetsAccessToken(forcePrompt) {
+      bsEnsureSheetsApiReady();
+      if (_bsGoogleSheetsTokenPromise) return _bsGoogleSheetsTokenPromise;
+      _bsGoogleSheetsTokenPromise = new Promise((resolve, reject) => {
+        const tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: BS_GOOGLE_CLIENT_ID,
+          scope: BS_GOOGLE_SHEETS_SCOPE,
+          callback: (resp) => {
+            _bsGoogleSheetsTokenPromise = null;
+            if (resp?.error) {
+              reject(new Error(resp.error_description || resp.error || 'Google authorization failed'));
+              return;
+            }
+            if (!resp?.access_token) {
+              reject(new Error('Google did not return an access token'));
+              return;
+            }
+            _bsGoogleSheetsToken = resp.access_token;
+            resolve(resp.access_token);
+          },
+        });
+        try {
+          tokenClient.requestAccessToken({ prompt: _bsGoogleSheetsToken ? '' : (forcePrompt ? 'consent' : '') });
+        } catch (err) {
+          _bsGoogleSheetsTokenPromise = null;
+          reject(err);
+        }
+      });
+      return _bsGoogleSheetsTokenPromise;
+    }
+
+    async function bsLoadGoogleSheetGrid(forceRefresh) {
+      bsEnsureSheetsApiReady();
+      if (!S.bsync?.sheetId) throw new Error('Enter the sheet URL first');
+      const cacheKey = (S.bsync.sheetId || '') + ':' + (S.bsync.sheetGid || '');
+      if (!forceRefresh && S.bsync.gridData && S.bsync.gridDataKey === cacheKey) return S.bsync.gridData;
+      const accessToken = await bsGetGoogleSheetsAccessToken(!!forceRefresh);
+      const gridData = await window.AdminBracketImport.bsFetchGoogleSheetGrid({
+        sheetId: S.bsync.sheetId,
+        sheetGid: S.bsync.sheetGid,
+        accessToken,
+      });
+      S.bsync.sheetGid = gridData.sheetGid || S.bsync.sheetGid || '';
+      S.bsync.gridData = gridData;
+      S.bsync.gridDataKey = (S.bsync.sheetId || '') + ':' + (S.bsync.sheetGid || '');
+      localStorage.setItem('ebadmin-bsync-gid', S.bsync.sheetGid || '');
+      return gridData;
+    }
+
+    async function bsGetRowsForImport(range) {
+      if (!bsUseSheetsApi()) {
+        const csvUrl = bsCsvUrl(range || null);
+        const resp = await fetch(csvUrl, { cache: 'no-store' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — make sure the sheet is set to "Anyone with the link can view"');
+        const text = await resp.text();
+        const rows = parseCSV(text);
+        if (!rows.length) throw new Error('No data found in that range — check the cell range');
+        return rows;
+      }
+      if (!S.bsync?.myAgeGroup) throw new Error('Detect and select your age group first');
+      if (!Array.isArray(S.bsync.rowAgeGroups) || !S.bsync.rowAgeGroups.length) {
+        throw new Error('Run Detect first so the importer can map row colours to age groups');
+      }
+      const gridData = await bsLoadGoogleSheetGrid(false);
+      const rows = window.AdminBracketImport.bsExtractGridRows(
+        gridData,
+        range || null,
+        S.bsync.myAgeGroup,
+        S.bsync.rowAgeGroups
+      );
+      if (!rows.length) throw new Error('No rows found for the selected age group in that range');
+      return rows;
+    }
     // ─────────────────────────────────────────────────────────────────────────────
 
     function bsStep1Next() {
@@ -9708,7 +9800,13 @@
       S.bsync.colorCoded = !!val;
       const fields = document.getElementById('bs-cc-fields');
       if (fields) fields.style.display = val ? 'block' : 'none';
-      if (!val) { S.bsync.ageGroups = []; S.bsync.myAgeGroup = ''; S.bsync.myAgeGroupIdx = 0; }
+      if (!val) {
+        S.bsync.ageGroups = [];
+        S.bsync.myAgeGroup = '';
+        S.bsync.myAgeGroupIdx = 0;
+        S.bsync.rowAgeGroups = [];
+        S.bsync.legendColors = {};
+      }
     }
 
     async function bsDetectAgeGroups() {
@@ -9733,34 +9831,14 @@
       if (status) { status.style.color = 'var(--g400)'; status.textContent = '\u23f3 Reading legend cells\u2026'; }
       if (groups) groups.innerHTML = '';
       try {
-        // Parse refs like "A12, A18" → [{col:0,row:11},{col:0,row:17}]
-        const refs = cells.split(/[\s,]+/).map(r => r.trim().toUpperCase()).filter(Boolean);
-        const parsed = refs.map(ref => {
-          const m = ref.match(/^([A-Z]+)(\d+)$/);
-          if (!m) return null;
-          let col = 0; for (const ch of m[1]) col = col * 26 + (ch.charCodeAt(0) - 64); col--;
-          return { ref, col, row: parseInt(m[2]) - 1 };
-        }).filter(Boolean);
-        if (!parsed.length) throw new Error('Could not parse cell references — use format A12, A18');
-        // Fetch a range that spans ALL referenced rows (handles cells in different rows)
-        // gviz range is end-exclusive, so fetch maxRow+1 to ensure the last row is included
-        const minRow = Math.min(...parsed.map(p => p.row)) + 1; // 1-indexed
-        const maxRow = Math.max(...parsed.map(p => p.row)) + 1;
-        const csvUrl = bsCsvUrl(minRow + ':' + (maxRow + 1));
-        const resp = await fetch(csvUrl, { cache: 'no-store' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — check sheet is "Anyone with the link can view"');
-        const text = await resp.text();
-        const rows = parseCSV(text);
-        if (!rows.length) throw new Error('No data returned for that row range');
-        // Map each ref to the correct fetched row (offset from minRow)
-        const agLabels = parsed.map(p => {
-          const rowOffset = p.row - (minRow - 1); // 0-indexed into fetched rows
-          const row = rows[rowOffset] || [];
-          return (row[p.col] || '').trim();
-        }).filter(Boolean);
-        if (!agLabels.length) throw new Error('Cells appear empty — check the row number in your cell refs');
+        const gridData = await bsLoadGoogleSheetGrid(true);
+        const detected = window.AdminBracketImport.bsBuildColorCodedAgeGroups(gridData, cells);
+        const agLabels = detected.ageGroups || [];
+        if (!agLabels.length) throw new Error('Legend cells did not resolve to any age groups');
         S.bsync.ageGroups = agLabels;
-        S.bsync.legendParsed = parsed;
+        S.bsync.legendParsed = detected.legendParsed || [];
+        S.bsync.legendColors = detected.legendColors || {};
+        S.bsync.rowAgeGroups = detected.rowAgeGroups || [];
         S.bsync.myAgeGroupIdx = 0;
         S.bsync.myAgeGroup = agLabels[0];
         if (status) { status.style.color = '#059669'; status.textContent = '\u2705 Found: ' + agLabels.join(' \u00b7 ') + ' \u2014 tap yours below'; }
@@ -9796,12 +9874,7 @@
       if (status) { status.style.color = 'var(--g400)'; status.textContent = '⏳ Fetching pools…'; }
       if (preview) preview.innerHTML = '';
       try {
-        const csvUrl = bsCsvUrl(range);
-        const resp = await fetch(csvUrl, { cache: 'no-store' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — make sure the sheet is set to "Anyone with the link can view"');
-        const text = await resp.text();
-        const rows = parseCSV(text);
-        if (!rows.length) throw new Error('No data found in that range — check the cell range');
+        const rows = await bsGetRowsForImport(range);
 
         // First row: if all cells are non-numeric short text, treat as pool name headers
         const firstRow = rows[0];
@@ -10043,11 +10116,7 @@
       if (status4) { status4.style.color = 'var(--g400)'; status4.textContent = '⏳ Scanning schedule sheet for games…'; }
       if (preview) preview.innerHTML = '';
       try {
-        const csvUrl = bsCsvUrl(null);
-        const resp = await fetch(csvUrl, { cache: 'no-store' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const text = await resp.text();
-        const allRows = parseCSV(text);
+        const allRows = await bsGetRowsForImport(null);
         // Support multi-team (comma-separated): match games for any listed team
         const _teamNamesLower = (S.bsync.teamNames && S.bsync.teamNames.length ? S.bsync.teamNames : [S.bsync.teamName || '']).map(n => n.toLowerCase()).filter(Boolean);
         const teamNameLower = _teamNamesLower[0] || '';
@@ -10340,12 +10409,7 @@
       S.bsync.rebracketRange = range;
       if (status) { status.style.color = 'var(--g400)'; status.textContent = '⏳ Fetching re-bracket…'; }
       try {
-        const csvUrl = bsCsvUrl(range);
-        const resp = await fetch(csvUrl, { cache: 'no-store' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — make sure the sheet is publicly viewable');
-        const text = await resp.text();
-        const rows = parseCSV(text);
-        if (!rows.length) throw new Error('No data found in that range');
+        const rows = await bsGetRowsForImport(range);
         const pool = ((S.bsync.myPool || '').match(/^([A-Z])/i)?.[1] || '').toUpperCase();
         const seedingMap = bsParseRebracket(rows);
         const bracketPaths = (S.bsync.allRows?.length && pool)
@@ -16833,7 +16897,7 @@
     async function exportDirectorToSheets(btn) {
       if (!window.google?.accounts?.oauth2) { showStatus(adminT('director_google_not_loaded'), 'err'); return; }
       if (btn) { btn.disabled = true; btn.textContent = adminT('director_connecting_google'); }
-      const CLIENT_ID = '334438983134-th4thsf0upc8pabe245d2l41fon2oun9.apps.googleusercontent.com';
+      const CLIENT_ID = '511455199636-t7nimg31inbjp165p29tj0orm6v9oh8t.apps.googleusercontent.com';
       const tc = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: 'https://www.googleapis.com/auth/spreadsheets',
@@ -17597,6 +17661,7 @@
 
   <!-- Google Maps Places API for venue autocomplete -->
   <script src="admin-bracket-import.js?v=1"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>function onGoogleMapsLoad() { if (typeof initPlacesAutocomplete === 'function' && document.getElementById('info-venue-input')) initPlacesAutocomplete(); }</script>
   <script async defer
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyALS7O7coExR8-7VPDBMMA0Hp6dhoe-zQg&libraries=places&callback=onGoogleMapsLoad"></script>
