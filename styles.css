@@ -1134,7 +1134,7 @@ h2 {
 
 .possible-desc {
   font-size: 0.85rem;
-  color: var(--gray-600);
+  color: rgba(255,255,255,0.88);
   padding: 0 2px 8px;
 }
 
@@ -1146,7 +1146,7 @@ h2 {
   padding: 10px 12px 6px;
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--royal);
+  color: rgba(255,255,255,0.96);
   text-transform: uppercase;
   letter-spacing: 0.6px;
 }
@@ -1155,7 +1155,7 @@ h2 {
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--gray-200);
+  background: rgba(255,255,255,0.28);
 }
 
 
@@ -1395,23 +1395,11 @@ h2 {
 .scores-slot-label {
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--royal);
+  color: rgba(255,255,255,0.96);
   text-transform: uppercase;
   letter-spacing: 0.6px;
 }
-@media (max-width: 1022px) {
-  .scores-slot-label { color: white; }
-  .scores-slot-header { border-top-color: rgba(255,255,255,.15); }
-}
-/* Light mode: keep header labels readable (not white-on-white) */
-@media (max-width: 1022px) {
-  html[data-theme="light"] .scores-slot-label { color: var(--royal); }
-  html[data-theme="light"] .scores-slot-header { border-top-color: rgba(0,40,104,.15); }
-}
-@media (max-width: 1022px) and (prefers-color-scheme: light) {
-  html:not([data-theme="dark"]) .scores-slot-label { color: var(--royal); }
-  html:not([data-theme="dark"]) .scores-slot-header { border-top-color: rgba(0,40,104,.15); }
-}
+.scores-slot-header { border-top-color: rgba(255,255,255,.18); }
 
 .scores-slot-header.slot-header-in-card .scores-slot-label,
 [data-theme="dark"] .scores-slot-header.slot-header-in-card .scores-slot-label {
@@ -3843,22 +3831,23 @@ h2 {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: var(--gray-900);
-  background: #ffffff;
+  color: #ffffff;
+  background: linear-gradient(180deg, rgba(20, 64, 177, 0.98) 0%, rgba(18, 53, 156, 0.98) 100%);
   padding: 12px 14px;
   border-radius: 12px 12px 0 0;
-  border-bottom: 1px solid var(--gray-100);
+  border-bottom: 1px solid rgba(255,255,255,0.12);
 }
 .history-section-content {
-  background: var(--gray-50);
+  background: rgba(255,255,255,0.98);
   border-radius: 0 0 12px 12px;
   overflow: hidden;
 }
 .history-section-card {
   margin-bottom: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 12px 28px rgba(8, 27, 88, 0.16);
   border-radius: 12px;
   overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
 }
 
 .history-section-heading:first-child { margin-top: 4px; }
@@ -3876,7 +3865,8 @@ h2 {
 .hs-title  { flex: 1; }
 .hs-chevron {
   font-size: 0.7rem;
-  opacity: 0.8;
+  color: rgba(255,255,255,0.88);
+  opacity: 0.95;
   margin-left: 8px;
   flex-shrink: 0;
 }
@@ -6255,6 +6245,21 @@ body.modal-open { overflow: hidden; }
   font-weight: 700;
 }
 
+#view-possible .history-header-row h2,
+#view-possible .possible-desc,
+#view-possible .empty-msg,
+#view-possible .polished-empty-msg {
+  color: rgba(255,255,255,0.92);
+}
+
+#view-possible .history-header-row h2 {
+  margin: 0;
+}
+
+#view-possible .card.tab-card > .history-header-row {
+  margin-bottom: 12px;
+}
+
 /* Live score summary bar — shown below the game header when remote live */
 .live-score-bar {
   display: flex;
@@ -8395,8 +8400,8 @@ html.native-android[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-gr
 .theme-toggle-btn:active { transform: scale(0.9); }
 
 /* ── Date group header dark ────────────────────────────────────────────── */
-[data-theme="dark"] .date-group-header { color: #58a6ff; }
-[data-theme="dark"] .date-group-header::after { background: #30363d; }
+[data-theme="dark"] .date-group-header { color: rgba(255,255,255,0.96); }
+[data-theme="dark"] .date-group-header::after { background: rgba(255,255,255,0.28); }
 
 /* ── Multi-team section headers ────────────────────────────────────────── */
 [data-theme="dark"] .team-section-header {

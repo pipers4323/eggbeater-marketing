@@ -10498,9 +10498,9 @@ function renderPossibleTab() {
       if (_card) _card.insertBefore(_toggleEl, _card.firstChild);
     }
     const _isFull = state.bracketDrawView === 'full-draw';
-    _toggleEl.innerHTML = `<div style="display:flex;border-radius:8px;overflow:hidden;border:1.5px solid var(--g200,#e2e8f0);margin-bottom:14px">
-      <button onclick="setBracketDrawView('my-path')" style="flex:1;padding:7px 0;border:none;background:${!_isFull?'var(--royal,#1e3a8a)':'transparent'};color:${!_isFull?'#fff':'var(--gray-600,#6b7280)'};font-weight:600;font-size:0.85rem;cursor:pointer;transition:background .15s">My Path</button>
-      <button onclick="setBracketDrawView('full-draw')" style="flex:1;padding:7px 0;border:none;background:${_isFull?'var(--royal,#1e3a8a)':'transparent'};color:${_isFull?'#fff':'var(--gray-600,#6b7280)'};font-weight:600;font-size:0.85rem;cursor:pointer;transition:background .15s">Full Draw</button>
+    _toggleEl.innerHTML = `<div style="display:flex;border-radius:8px;overflow:hidden;border:1.5px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.08);margin-bottom:14px">
+      <button onclick="setBracketDrawView('my-path')" style="flex:1;padding:7px 0;border:none;background:${!_isFull?'var(--royal,#1e3a8a)':'transparent'};color:${!_isFull?'#fff':'rgba(255,255,255,0.82)'};font-weight:700;font-size:0.85rem;cursor:pointer;transition:background .15s">My Path</button>
+      <button onclick="setBracketDrawView('full-draw')" style="flex:1;padding:7px 0;border:none;background:${_isFull?'var(--royal,#1e3a8a)':'transparent'};color:${_isFull?'#fff':'rgba(255,255,255,0.82)'};font-weight:700;font-size:0.85rem;cursor:pointer;transition:background .15s">Full Draw</button>
     </div>`;
   } else {
     // Remove stale toggle bar if tournament no longer has pools/paths
@@ -10560,7 +10560,7 @@ function renderPossibleTab() {
       <div style="text-align:center;padding:20px 0">
         <div style="font-size:2rem;margin-bottom:10px">🏆</div>
         <div style="font-weight:700;font-size:1rem;margin-bottom:6px">${appT('possible_coming_soon_title')}</div>
-        <div style="color:var(--gray-600);font-size:0.88rem;line-height:1.55">
+        <div style="color:rgba(255,255,255,0.82);font-size:0.88rem;line-height:1.55">
           ${appT('possible_coming_soon_body')}
         </div>
       </div>`;
