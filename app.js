@@ -1507,6 +1507,10 @@ function getTournamentForGroup(groupKey) {
   if (!groupKey) return TOURNAMENT || null;
   return TEAM_CACHE[groupKey]?.tournament || ((_activeAgeGroup || getSelectedTeam()) === groupKey ? TOURNAMENT : null);
 }
+function getPrimarySelectedTournament() {
+  const primaryKey = getSelectedTeam() || getSelectedTeams()[0] || '';
+  return getTournamentForGroup(primaryKey) || TOURNAMENT || null;
+}
 function inferTeamLettersFromTournament(tournament) {
   if (!tournament) return [];
   const letters = new Set();
@@ -1611,13 +1615,14 @@ function getScopedRoster(gameOrRef = null, explicitGroupKey = '') {
 // Returns games for the currently selected team(s). When A+B both selected, returns union.
 // Games with no `team` field are treated as belonging to the FIRST team (A).
 function getTournamentGames() {
-  if (TOURNAMENT.upcomingMode) return [];
-  const games = TOURNAMENT.games || [];
+  const tournament = getTournamentForGroup(_activeAgeGroup || getSelectedTeam() || getSelectedTeams()[0] || '') || TOURNAMENT || {};
+  const games = tournament.games || [];
+  if (tournament.upcomingMode && !games.length) return [];
   const groupKey = _activeAgeGroup || getSelectedTeam() || getSelectedTeams()[0] || '';
   const letters = getActiveTeams();
   if (!letters) return games.map(g => ({ ...g, _groupKey: g._groupKey || groupKey }));                           // single-team — return all
-  const firstTeam = Array.isArray(TOURNAMENT.teams) && TOURNAMENT.teams.length
-    ? TOURNAMENT.teams[0] : 'A';
+  const firstTeam = Array.isArray(tournament.teams) && tournament.teams.length
+    ? tournament.teams[0] : 'A';
   return games.filter(g => {
     if (!g.team) return letters.includes(firstTeam);   // unassigned → first team only
     return letters.includes(g.team);
@@ -1628,7 +1633,7 @@ function getScopedTournamentGames(teamKey = '') {
   if (!teamKey) return getTournamentGames();
   const cache = TEAM_CACHE[teamKey];
   const tournament = cache?.tournament;
-  if (!tournament || tournament.upcomingMode) return [];
+  if (!tournament || (tournament.upcomingMode && !(tournament.games || []).length)) return [];
   const games = tournament.games || [];
   const letters = getTeamLettersForGroup(teamKey);
   if (!letters?.length) return games.map(g => ({ ...g, _groupKey: g._groupKey || teamKey }));
@@ -9353,12 +9358,13 @@ function restoreTournScoreSession() {
 // ─── RENDER: HEADER ───────────────────────────────────────────────────────────
 
 function renderHeader() {
-  const isUpcoming = !!(TOURNAMENT.upcomingMode);
+  const primaryTournament = getPrimarySelectedTournament() || {};
+  const isUpcoming = !!(primaryTournament.upcomingMode && !(primaryTournament.games || []).length);
   const isHS = localStorage.getItem('ebwp-club-type') === 'highschool';
   const clubId = getAppClubId();
 
-  let headerName = TOURNAMENT.name || 'Tournament';
-  let headerSub = [TOURNAMENT.dates, TOURNAMENT.location].filter(Boolean).join(' · ');
+  let headerName = primaryTournament.name || 'Tournament';
+  let headerSub = [primaryTournament.dates, primaryTournament.location].filter(Boolean).join(' · ');
 
   if (isHS) {
     const savedClubName = localStorage.getItem('ebwp-club-name');
@@ -9369,7 +9375,7 @@ function renderHeader() {
     const teamLabel = teamOpt ? teamOpt.label : (teamKey || '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     const seasonLabel = `Fall ${new Date().getFullYear()} Season`;
     headerSub = teamLabel ? teamLabel + ' · ' + seasonLabel : seasonLabel;
-  } else if (TOURNAMENT.stayTuned) {
+  } else if (primaryTournament.stayTuned) {
     const savedClubName = localStorage.getItem('ebwp-club-name');
     headerName = savedClubName
       || (clubId ? clubId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : headerName);
@@ -9588,6 +9594,7 @@ function initHeaderCompactionWatcher() {
 // ─── RENDER: SCHEDULE TAB ─────────────────────────────────────────────────────
 
 function renderScheduleTab() {
+  _restorePrimaryTournamentContext();
   _renderSuffix = '';
   const slots = getExpandedTeamSlots();
   if (slots.length === 0) {
@@ -12746,6 +12753,9 @@ async function loadTeamData(teamKey) {
       TEAM_CACHE[teamKey]  = { tournament: mergedTournament, history: history || [] };
       window.TOURNAMENT    = mergedTournament;
       window.HISTORY_SEED  = history || [];
+      if ((getSelectedTeam() || getSelectedTeams()[0] || '') === teamKey) {
+        _restorePrimaryTournamentContext();
+      }
       // Clear cached roster and history so fresh data from server is used.
       // Keep tournament history/results intact on refresh; only clear roster caches here.
       localStorage.removeItem(STORE.ROSTER);
@@ -15904,9 +15914,10 @@ function _startNextGameCountdown(targetDate) {
 // FEATURE 8: Empty state helper
 // ─────────────────────────────────────────────────────────────────────────────
 function _scheduleEmptyMessage() {
-  if (!window.TOURNAMENT) return 'No tournament loaded. Ask your club admin to set up the app.';
+  const tournament = getPrimarySelectedTournament() || window.TOURNAMENT;
+  if (!tournament) return 'No tournament loaded. Ask your club admin to set up the app.';
   const today = _localDateStr ? _localDateStr() : new Date().toISOString().split('T')[0];
-  const games = window.TOURNAMENT.games || [];
+  const games = tournament.games || [];
   const futureGames = games.filter(g => g.dateISO > today);
   const pastGames   = games.filter(g => g.dateISO < today);
   if (futureGames.length === 0 && pastGames.length > 0) return '✓ All games complete — great tournament!';
