@@ -2777,10 +2777,46 @@
           grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
           gap: 8px;
           padding: 0 12px 12px;
+          background: rgba(0, 0, 0, .12);
+          border-top: 1px solid rgba(255, 255, 255, .05);
         }
 
         .admin-team-manager.hidden {
           display: none;
+        }
+
+        .admin-pill-group {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+        }
+
+        .admin-pill-label {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .admin-team-target-toggle {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 20px;
+          height: 20px;
+          border-radius: 999px;
+          font-size: 0.72rem;
+          font-weight: 800;
+          border: none;
+          cursor: pointer;
+          background: rgba(37, 99, 235, .12);
+          color: var(--royal);
+          flex-shrink: 0;
+        }
+
+        .admin-team-target-toggle.active {
+          background: var(--royal);
+          color: white;
         }
 
         @media (min-width: 1024px) {
@@ -5804,13 +5840,13 @@
         return `<button class="admin-pill${t.key === S.team ? ' active' : ''}"
                          onclick="onAdminTeamChange('${t.key}')"
                          style="display:flex;align-items:center;justify-content:space-between;gap:8px;position:relative">
-                  <span style="display:inline-flex;align-items:center;gap:6px;min-width:0">
+                  <span class="admin-pill-group">
                     ${_statusDot(t.key)}
-                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.label)}</span>
+                    <span class="admin-pill-label">${esc(t.label)}</span>
                   </span>
                   <span onclick="event.stopPropagation();toggleTournamentShellTarget('${t.key}')"
                         title="${targetActive ? 'Included in shared tournament deploy' : 'Exclude from shared tournament deploy'}"
-                        style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;font-size:0.72rem;font-weight:800;background:${targetActive ? 'var(--royal)' : 'rgba(37,99,235,.12)'};color:${targetActive ? 'white' : 'var(--royal)'}">${targetActive ? '✓' : '+'}</span>
+                        class="admin-team-target-toggle${targetActive ? ' active' : ''}">${targetActive ? '✓' : '+'}</span>
                 </button>`;
       }).join('');
     }
