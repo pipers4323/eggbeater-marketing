@@ -148,6 +148,42 @@
     );
   }
 
+  function bsResolveLegendLabel(gridData, ref) {
+    const row = gridData?.rows?.[ref.row] || [];
+    const baseCell = row[ref.col] || null;
+    const baseLabel = bsCellValue(baseCell);
+    const baseColor = bsCellColor(baseCell);
+    if (baseLabel) return { label: baseLabel, color: baseColor };
+
+    // Real sheets sometimes put the age-group text next to the colored cell or
+    // in the top-left cell of a merged block while the clicked reference lands
+    // inside an empty sibling cell. Search nearby cells on the same row first.
+    for (let delta = 1; delta <= 3; delta++) {
+      for (const col of [ref.col + delta, ref.col - delta]) {
+        if (col < 0) continue;
+        const cell = row[col] || null;
+        const label = bsCellValue(cell);
+        if (!label) continue;
+        const color = bsCellColor(cell) || baseColor;
+        return { label, color };
+      }
+    }
+
+    // Fallback for vertically merged legends or stacked labels.
+    for (let delta = 1; delta <= 2; delta++) {
+      for (const rowIdx of [ref.row - delta, ref.row + delta]) {
+        if (rowIdx < 0) continue;
+        const cell = gridData?.rows?.[rowIdx]?.[ref.col] || null;
+        const label = bsCellValue(cell);
+        if (!label) continue;
+        const color = bsCellColor(cell) || baseColor;
+        return { label, color };
+      }
+    }
+
+    return { label: '', color: baseColor };
+  }
+
   async function bsFetchJson(url, accessToken, label) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
@@ -221,9 +257,7 @@
       .filter(Boolean);
     if (!parsedRefs.length) throw new Error('Could not parse legend cell refs');
     const entries = parsedRefs.map(ref => {
-      const cell = gridData?.rows?.[ref.row]?.[ref.col] || null;
-      const label = bsCellValue(cell);
-      const color = bsCellColor(cell);
+      const { label, color } = bsResolveLegendLabel(gridData, ref);
       return { ...ref, label, color };
     }).filter(entry => entry.label);
     if (!entries.length) throw new Error('Legend cells appear empty');
