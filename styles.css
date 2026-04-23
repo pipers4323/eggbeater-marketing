@@ -3183,7 +3183,7 @@ h2 {
   padding: 9px 0;
   border: none;
   background: transparent;
-  color: var(--gray-700);
+  color: rgba(255, 255, 255, 0.86);
   font-weight: 700;
   font-size: 0.9rem;
   cursor: pointer;
