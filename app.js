@@ -2592,6 +2592,24 @@ let _pendingTeamPickerLetters = {};
     return null;
   }
 
+  function _nativeSystemPluginName() {
+    const platform = window.Capacitor?.getPlatform?.();
+    if (platform === 'ios') return 'LiveActivity';
+    if (platform === 'android') return 'LiveUpdate';
+    return '';
+  }
+
+  async function _callNativeSystemMethod(method, options = {}) {
+    const plugin = getNativeSystemPlugin();
+    if (plugin && typeof plugin[method] === 'function') return plugin[method](options);
+    const pluginName = _nativeSystemPluginName();
+    const nativePromise = window.Capacitor?.nativePromise;
+    if (pluginName && typeof nativePromise === 'function') {
+      return nativePromise(pluginName, method, options || {});
+    }
+    throw new Error(`native_system_method_unavailable:${method}`);
+  }
+
   function _applyNativeSystemState(info = {}) {
     state.nativeSystemState = {
       platform: info.platform || window.Capacitor?.getPlatform?.() || '',
@@ -2602,10 +2620,8 @@ let _pendingTeamPickerLetters = {};
   }
 
   async function refreshNativeSystemState() {
-    const plugin = getNativeSystemPlugin();
-    if (!plugin?.getSystemState) return null;
     try {
-      const info = await plugin.getSystemState();
+      const info = await _callNativeSystemMethod('getSystemState');
       _applyNativeSystemState(info || {});
       return state.nativeSystemState;
     } catch (_) {
@@ -2614,26 +2630,24 @@ let _pendingTeamPickerLetters = {};
   }
 
   async function openNativeAppSettings() {
-    const plugin = getNativeSystemPlugin();
-    if (!plugin?.openAppSettings) {
+    if (!_isNativePlatform()) {
       showToast('Device settings are only available in the native app');
       return;
     }
     try {
-      await plugin.openAppSettings();
+      await _callNativeSystemMethod('openAppSettings');
     } catch (_) {
       showToast('Could not open app settings');
     }
   }
 
   async function openNativeNotificationSettings() {
-    const plugin = getNativeSystemPlugin();
-    if (!plugin?.openNotificationSettings) {
+    if (!_isNativePlatform()) {
       showToast('Notification settings are only available in the native app');
       return;
     }
     try {
-      await plugin.openNotificationSettings();
+      await _callNativeSystemMethod('openNotificationSettings');
     } catch (_) {
       showToast('Could not open notification settings');
     }
@@ -10575,9 +10589,9 @@ function renderPossibleTab() {
       if (_card) _card.insertBefore(_toggleEl, _card.firstChild);
     }
     const _isFull = state.bracketDrawView === 'full-draw';
-    _toggleEl.innerHTML = `<div style="display:flex;border-radius:8px;overflow:hidden;border:1.5px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.08);margin-bottom:14px">
-      <button onclick="setBracketDrawView('my-path')" style="flex:1;padding:7px 0;border:none;background:${!_isFull?'var(--royal,#1e3a8a)':'transparent'};color:${!_isFull?'#fff':'rgba(255,255,255,0.82)'};font-weight:700;font-size:0.85rem;cursor:pointer;transition:background .15s">My Path</button>
-      <button onclick="setBracketDrawView('full-draw')" style="flex:1;padding:7px 0;border:none;background:${_isFull?'var(--royal,#1e3a8a)':'transparent'};color:${_isFull?'#fff':'rgba(255,255,255,0.82)'};font-weight:700;font-size:0.85rem;cursor:pointer;transition:background .15s">Full Draw</button>
+    _toggleEl.innerHTML = `<div class="bracket-draw-toggle">
+      <button onclick="setBracketDrawView('my-path')" class="bracket-draw-toggle-btn${!_isFull ? ' is-active' : ''}">My Path</button>
+      <button onclick="setBracketDrawView('full-draw')" class="bracket-draw-toggle-btn${_isFull ? ' is-active' : ''}">Full Draw</button>
     </div>`;
   } else {
     // Remove stale toggle bar if tournament no longer has pools/paths
@@ -10683,7 +10697,7 @@ const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && get
     if (path.qualifier) {
       const qual = document.createElement('div');
       qual.className = 'bracket-qualifier';
-      qual.textContent = path.qualifier;
+      qual.textContent = normalizeDisplayText(path.qualifier);
       section.appendChild(qual);
     }
 

@@ -3169,6 +3169,51 @@ h2 {
   padding-top: 4px;
   padding-bottom: 4px;
 }
+.bracket-draw-toggle {
+  display: flex;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1.5px solid rgba(var(--royal-rgb), 0.18);
+  background: rgba(15, 23, 42, 0.04);
+  margin-bottom: 14px;
+}
+.bracket-draw-toggle-btn {
+  flex: 1;
+  padding: 9px 0;
+  border: none;
+  background: transparent;
+  color: var(--gray-700);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.bracket-draw-toggle-btn.is-active {
+  background: var(--royal);
+  color: #fff;
+}
+[data-theme="dark"] .bracket-draw-toggle {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+[data-theme="dark"] .bracket-draw-toggle-btn {
+  color: rgba(255, 255, 255, 0.88);
+}
+[data-theme="dark"] .bracket-draw-toggle-btn.is-active {
+  color: #fff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .bracket-draw-toggle {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+  :root:not([data-theme="light"]) .bracket-draw-toggle-btn {
+    color: rgba(255, 255, 255, 0.88);
+  }
+  :root:not([data-theme="light"]) .bracket-draw-toggle-btn.is-active {
+    color: #fff;
+  }
+}
 #view-possible .bracket-section {
   box-shadow: var(--shadow);
 }
