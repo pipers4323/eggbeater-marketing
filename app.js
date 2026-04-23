@@ -3213,7 +3213,13 @@ function archiveTournament(snapshot, results, bracketResults, liveScores, durabl
   }
   const record = `${wins}-${losses}`;
 
-  const bracketPaths = (snapshot.bracket?.paths || []).map(path => ({
+  const rawBracketPaths = snapshot?.bracket?.paths;
+  const normalizedBracketPaths = Array.isArray(rawBracketPaths)
+    ? rawBracketPaths
+    : (rawBracketPaths && typeof rawBracketPaths === 'object'
+        ? Object.values(rawBracketPaths).flatMap(paths => Array.isArray(paths) ? paths : [])
+        : []);
+  const bracketPaths = normalizedBracketPaths.map(path => ({
     ...path,
     steps: (path.steps || []).map(step => ({
       ...step,
