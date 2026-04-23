@@ -2914,11 +2914,16 @@ function _localDateStr(d = new Date()) {
 }
 
 function _getTournamentLastDateISO(tournament = TOURNAMENT) {
+  const bracketPaths = Array.isArray(tournament?.bracket?.paths)
+    ? tournament.bracket.paths
+    : (tournament?.bracket?.paths && typeof tournament.bracket.paths === 'object'
+      ? Object.values(tournament.bracket.paths).flatMap(value => Array.isArray(value) ? value : [])
+      : []);
   const dates = new Set();
   (tournament?.games || []).forEach(g => {
     if (g?.dateISO) dates.add(g.dateISO);
   });
-  (tournament?.bracket?.paths || []).forEach(path => {
+  bracketPaths.forEach(path => {
     (path?.steps || []).forEach(step => {
       if (step?.dateISO) dates.add(step.dateISO);
     });
