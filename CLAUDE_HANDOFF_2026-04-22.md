@@ -186,3 +186,146 @@ eggbeater-waterpolo:
 ### Next build source
 - Trigger native build from:
   - `C:\Users\sarah\Claude Code\eggbeater-waterpolo` at `2e1c082`
+
+---
+
+## 2026-04-22 Late Follow-up Update
+
+### Latest shipped heads
+```
+eggbeater-marketing:
+  f9bf952  Polish mobile draw and extract bracket import
+
+eggbeater-waterpolo:
+  8fee05d  Sync mobile draw and bracket import assets
+```
+
+### What changed in this batch
+- Full Draw redesign is now live in web and synced to native assets:
+  - pool cards grid
+  - clearer Red / Blue highlighting
+  - official vs projected path badges
+  - lane cards with better hierarchy
+  - mobile legend and tighter spacing
+- Spectator card rendering has more shared helpers:
+  - shared Follow Live button builder
+  - shared schedule/scores card meta builders
+- Admin recovery UI was cleaned up further:
+  - shared empty-state helper
+  - shared summary-pill helper
+  - conflicts-only filter / stale-session chip / stale sheet-sync note remain in place
+- Futures-specific bracket import logic has been extracted out of `admin.html` into:
+  - `C:\Users\sarah\Claude Code\eggbeater-marketing\admin-bracket-import.js`
+- Wrapper/native assets were synced and both Capacitor platforms were re-synced.
+
+### Current build source
+- Native build now being triggered from:
+  - `C:\Users\sarah\Claude Code\eggbeater-waterpolo` at `8fee05d`
+
+### Immediate follow-up after this build finishes
+- [ ] Verify Full Draw redesign on native phone sizes
+- [ ] Verify admin bracket wizard still computes Futures Blue path after extraction to `admin-bracket-import.js`
+- [ ] Verify `admin-bracket-import.js` is included and loaded in native admin surface
+- [ ] Verify Scores card height/spacing feels tighter on small phones
+- [ ] Verify no regression in Recovery actions (`Restore Draft`, `Clear`, `Force Close`)
+
+### Remaining polish / validation priorities
+1. Real tournament-day validation on Saturday:
+   - Blue/B-slot binding
+   - manual-vs-official collision
+   - scorer recovery / finalize ack
+   - Live Activity reliability
+2. If any admin wizard regression appears, inspect the new extraction boundary first:
+   - `admin-bracket-import.js`
+   - `bsComputeKap7FuturesSpecialPaths(...)` delegate in `admin.html`
+3. If spectator polish still feels off, next smallest deltas should be:
+   - further trim Full Draw mobile step density
+   - further reduce Scores card vertical whitespace
+   - remove any remaining inline styles from Admin Recovery cards
+
+---
+
+## 2026-04-22 Final UI Follow-up
+
+### Latest shipped heads
+```
+eggbeater-marketing:
+  ab9c87b  Fix bracket tab section visibility on web
+
+eggbeater-waterpolo:
+  d8d0d54  Sync bracket tab visibility fix into wrapper
+```
+
+### What was shipped after the earlier handoff
+- Spectator history/data repair
+  - Marin Earth Day history split and stale combined-entry pruning
+  - archive/history cleanup fixed for keyed `bracket.paths`
+  - live worker rebuild preserves 680 A / 680 B separation
+- Card system unification
+  - Schedule featured `next-game-card` now shares the same base shell as `game-card`
+  - modifiers retained for:
+    - featured
+    - projected
+    - dark caps
+    - white caps
+- Web/native branding alignment
+  - desktop web now uses the same royal-blue branded shell as native
+  - Schedule and Scores utility bars are readable on web
+  - `Login to Score`, `Refresh Scores`, `No active games`, and guide links were re-styled for visibility
+- History / Bracket / footer visibility fixes
+  - History accordion headers now use high-contrast branded headers
+  - Bracket tab copy, section labels, and toggle row are readable on the blue shell
+  - footer legal links have higher contrast
+- Wrapper sync
+  - latest shared `app.js`, `styles.css`, and `index.html` changes were synced into native assets
+  - both `npx cap sync ios` and `npx cap sync android` completed
+
+### Current build source
+- Trigger native build from:
+  - `C:\Users\sarah\Claude Code\eggbeater-waterpolo` at `d8d0d54`
+
+### Current assessment
+- All UI improvements shipped today are applied in the latest web build and synced into the latest native wrapper build source.
+- The earlier handoff sections above are stale with respect to the final shipped heads and should not be used as the build source reference.
+
+### Immediate post-build checks
+- [ ] Verify Bracket tab visibility on native matches web
+- [ ] Verify History headers and section labels are readable in both light and dark mode
+- [ ] Verify Schedule / Scores shared card shell looks consistent on native
+- [ ] Verify utility rows (`Refresh`, `Login to Score`, `Last updated`) are readable in both light and dark mode
+
+---
+
+## 2026-04-22 Final Build Source Update
+
+### Latest shipped heads
+```
+eggbeater-marketing:
+  1f3a319  Fix possible games heading visibility on bracket tab
+
+eggbeater-waterpolo:
+  671d652  Sync possible games heading fix into wrapper
+```
+
+### Current native build source
+- Trigger the current native build from:
+  - `C:\Users\sarah\Claude Code\eggbeater-waterpolo` at `671d652`
+
+### Confirmed included in this native build source
+- Pull-to-refresh on `Schedule` and `Scores`
+- Next-game sticky countdown card
+- `Scores` `Follow Live` placement aligned to top-right like `Schedule`
+- `Schedule` no longer shows misleading `No games today` below a featured next-game card
+- Native header compaction:
+  - smaller logo block
+  - tighter tournament strip
+  - smaller team picker chrome
+- Web/native branded blue spectator shell alignment
+- History visibility fixes
+- Bracket tab visibility fixes, including `Possible Games`
+
+### Immediate follow-up after build installs
+- [ ] Recheck Bracket tab visibility on native
+- [ ] Recheck `Possible Games` heading visibility on native
+- [ ] Recheck History readability in both light and dark mode
+- [ ] Recheck shared Schedule / Scores card treatment on native
