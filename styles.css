@@ -6246,7 +6246,9 @@ body.modal-open { overflow: hidden; }
 }
 
 #view-possible .history-header-row h2,
+#view-possible > .card.tab-card > h2,
 #view-possible .possible-desc,
+#view-possible > .card.tab-card > .step-desc,
 #view-possible .empty-msg,
 #view-possible .polished-empty-msg {
   color: rgba(255,255,255,0.92);
