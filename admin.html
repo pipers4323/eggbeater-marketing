@@ -9614,7 +9614,7 @@
             rebracket: false,
             rebracketRange: '',
             pollMins: parseInt(localStorage.getItem('ebadmin-bsync-mins') || '10', 10),
-            pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', wizardMode: 'standard'
+            pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', gameOverrides: null, wizardMode: 'standard'
           };
         }
       }
@@ -9731,6 +9731,11 @@
         + '<div id="bs-s4-override-list"></div>'
         + '</div>'
         + '</div>'
+        + '<div id="bs-s4-fixups" style="display:none;margin-top:10px;padding:8px;background:#fff7ed;border-radius:6px;border:1px solid #fdba74">'
+        + '<div style="font-size:.78rem;font-weight:700;color:#9a3412;margin-bottom:4px">Need to correct a broken row from the sheet?</div>'
+        + '<div style="font-size:.72rem;color:#9a3412;margin-bottom:8px">Fix the imported values here. These corrections are saved with this sync and re-applied on future sheet refreshes.</div>'
+        + '<div id="bs-s4-fixup-list"></div>'
+        + '</div>'
         + '<div style="display:flex;gap:8px;margin-top:10px">'
         + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g300)" onclick="bsStep(3)">&larr; Back</button>'
         + '<button class="save-btn" style="flex:2" id="bs-s4-next" onclick="bsStep4Continue()"' + s4dis + '>Continue &rarr;</button>'
@@ -9824,6 +9829,7 @@
           ageGroups: [],
           myAgeGroupIdx: 0,
           myAgeGroup: '',
+          gameOverrides: null,
           wizardMode: 'standard'
         };
       }
@@ -10299,8 +10305,46 @@
       });
     }
 
+    function bsApplyGameOverridesToGames(games) {
+      if (!Array.isArray(games) || !games.length) return games;
+      const overrides = S.bsync?.gameOverrides || {};
+      games.forEach(g => {
+        const ov = g.syncKey ? overrides[g.syncKey] : null;
+        if (!ov) return;
+        if (ov.gameNum) g.gameNum = ov.gameNum;
+        if (ov.opponent) g.opponent = ov.opponent;
+        if (ov.time) g.time = ov.time;
+        if (ov.location) g.location = ov.location;
+        if (ov.pool) g.pool = ov.pool;
+        if (ov.dateISO) {
+          g.dateISO = ov.dateISO;
+          g.date = isoToDate(ov.dateISO);
+        }
+        g.hasManualFix = true;
+      });
+      return games;
+    }
+
+    function bsApplyGameOverrides() {
+      if (!S.bsync) return;
+      const inputs = document.querySelectorAll('.bs-game-fix');
+      const overrides = {};
+      inputs.forEach(inp => {
+        const key = inp.dataset.key;
+        const field = inp.dataset.field;
+        const value = String(inp.value || '').trim();
+        const original = String(inp.dataset.original || '').trim();
+        if (!key || !field || !value || value === original) return;
+        if (!overrides[key]) overrides[key] = {};
+        overrides[key][field] = value;
+      });
+      S.bsync.gameOverrides = Object.keys(overrides).length ? overrides : null;
+      bsApplyGameOverridesToGames(S.bsync.games || []);
+    }
+
     function bsStep4Continue() {
       bsApplyDateOverrides();
+      bsApplyGameOverrides();
       bsStep(5);
     }
 
@@ -10586,6 +10630,8 @@
           // and no date context — detecting them as games produces phantom entries.
           const _rowTime = (row[timeCol] || '').trim();
           if (!_rowDate[ri] && !_rowLoc[ri] && !_rowTime) continue;
+          const _rawGameNumCheck = gameNumCol >= 0 ? String(row[gameNumCol] || '').trim() : '';
+          const _invalidGameNum = !!(_rawGameNumCheck && !/^\d+[A-Z]?$/.test(_rawGameNumCheck));
 
           // Only use dateCol cell if it actually parses as a valid date, so bare game
           // numbers in col 0 ("1","2","7") and other non-date values don't shadow the
@@ -10623,6 +10669,16 @@
           const _matchField = (isWhite ? white : dark).toLowerCase();
           const _matchedIdx = _teamNamesLower.length > 1 ? _teamNamesLower.findIndex(n => _matchField.includes(n)) : -1;
           const teamSlot = _matchedIdx >= 0 ? (_teamSlots[_matchedIdx] || 'A') : undefined;
+          const syncKey = [
+            S.bsync.sheetGid || '',
+            _rowDate[ri] || '',
+            _rowLoc[ri] || '',
+            _rowTime || '',
+            white || '',
+            dark || '',
+            _rowGroup || '',
+            _rawGameNumCheck || '',
+          ].join('|');
 
           games.push({
             id: 'g' + (Date.now() + games.length).toString(36),
@@ -10634,6 +10690,9 @@
             location: gameLocation,
             pool: gamePool,
             cap,
+            syncKey,
+            needsFix: _invalidGameNum,
+            rawGameNum: _rawGameNumCheck,
             ...(teamSlot ? { team: teamSlot } : {}),
           });
         }
@@ -10645,6 +10704,7 @@
           return;
         }
 
+        bsApplyGameOverridesToGames(games);
         S.bsync.games = games;
         const specialTeamPaths = bsComputeKap7FuturesSpecialPaths(allRows, S.bsync.cols, games);
         if (specialTeamPaths) {
@@ -10663,13 +10723,14 @@
           preview.innerHTML = '<div style="padding:6px 10px;background:var(--g50);border-radius:6px;font-size:.78rem;margin-bottom:8px;color:var(--g600)">' + _diffStr + '</div>'
           + games.map(g =>
             `<div style="padding:5px 0;border-bottom:1px solid var(--g100);display:flex;gap:8px;align-items:center">
-              <span style="font-size:.72rem;color:var(--g400);min-width:28px;font-weight:600">G${esc(g.gameNum)}</span>
+              <span style="font-size:.72rem;color:${g.needsFix && !g.hasManualFix ? '#c2410c' : 'var(--g400)'};min-width:28px;font-weight:600">G${esc(g.gameNum)}</span>
               <span style="flex:1;font-weight:600;font-size:.82rem">vs ${esc(g.opponent)}</span>
               <span style="font-size:.72rem;color:var(--g400)">${esc(g.date || g.dateISO || '')}${g.time ? ' · ' + esc(g.time) : ''}</span>
               <span style="font-size:.7rem;background:${g.cap === 'Dark' ? '#1f2937' : 'var(--g100)'};color:${g.cap === 'Dark' ? 'white' : 'var(--g600)'};padding:1px 5px;border-radius:3px;min-width:36px;text-align:center">${g.cap === 'Dark' ? '⚫ Dark' : '⚪ White'}</span>
             </div>`
 
-          ).join('') + `<div style="padding-top:6px;font-size:.75rem;color:var(--g400)">Cap colour = ${S.bsync.teamName}'s cap. Tap Continue to set re-bracket options.</div>`
+          ).join('') + `${games.some(g => g.needsFix && !g.hasManualFix) ? `<div style="padding-top:6px;font-size:.75rem;color:#c2410c;font-weight:700">One or more rows in the source sheet look malformed. Fix them below before you continue.</div>` : ''}`
+            + `<div style="padding-top:6px;font-size:.75rem;color:var(--g400)">Cap colour = ${S.bsync.teamName}'s cap. Tap Continue to set re-bracket options.</div>`
             + (specialTeamPaths && Object.values(specialTeamPaths).some(paths => (paths || []).length)
               ? `<div style="padding-top:6px;font-size:.75rem;color:var(--royal);font-weight:600">Detected Futures win/loss follow-on paths for the imported team(s). These possible games will be included in the bracket data on deploy.</div>`
               : '');
@@ -10686,6 +10747,27 @@
           }
           if (S.bsync.dateOverrides && Object.keys(S.bsync.dateOverrides).length) {
             bsToggleDateOverrides(true);
+          }
+          const fixList = document.getElementById('bs-s4-fixup-list');
+          const fixWrap = document.getElementById('bs-s4-fixups');
+          if (fixList && fixWrap) {
+            const needsFixRows = games.filter(g => g.needsFix || (S.bsync.gameOverrides && S.bsync.gameOverrides[g.syncKey]));
+            fixWrap.style.display = needsFixRows.length ? 'block' : 'none';
+            fixList.innerHTML = needsFixRows.map(g => {
+              const ov = (S.bsync.gameOverrides && S.bsync.gameOverrides[g.syncKey]) || {};
+              const gameNumValue = ov.gameNum || (/^\d+[A-Z]?$/i.test(String(g.gameNum || '').trim()) ? g.gameNum : '');
+              return `
+                <div style="border-top:1px dashed #fdba74;padding-top:8px;margin-top:8px">
+                  <div style="font-size:.74rem;font-weight:700;color:#7c2d12;margin-bottom:6px">${esc(g.opponent || 'TBD')} ${g.time ? '· ' + esc(g.time) : ''}</div>
+                  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px">
+                    <input class="info-input bs-game-fix" data-key="${esc(g.syncKey)}" data-field="gameNum" data-original="${esc(/^\d+[A-Z]?$/i.test(String(g.gameNum || '').trim()) ? g.gameNum : '')}" value="${esc(gameNumValue)}" placeholder="Correct game #">
+                    <input class="info-input bs-game-fix" data-key="${esc(g.syncKey)}" data-field="opponent" data-original="${esc(g.opponent || '')}" value="${esc(ov.opponent || g.opponent || '')}" placeholder="Opponent">
+                    <input class="info-input bs-game-fix" data-key="${esc(g.syncKey)}" data-field="time" data-original="${esc(g.time || '')}" value="${esc(ov.time || g.time || '')}" placeholder="Time">
+                    <input class="info-input bs-game-fix" data-key="${esc(g.syncKey)}" data-field="location" data-original="${esc(g.location || '')}" value="${esc(ov.location || g.location || '')}" placeholder="Location">
+                  </div>
+                </div>
+              `;
+            }).join('');
           }
         }
       } catch (e) {
@@ -11073,6 +11155,7 @@
           myAgeGroup: S.bsync.myAgeGroup || '',
           lastSync: new Date().toISOString(),
           ...(S.bsync.dateOverrides && Object.keys(S.bsync.dateOverrides).length ? { dateOverrides: S.bsync.dateOverrides } : {}),
+          ...(S.bsync.gameOverrides && Object.keys(S.bsync.gameOverrides).length ? { gameOverrides: S.bsync.gameOverrides } : {}),
         };
         localStorage.setItem('ebadmin-bsync-url', S.bsync.sheetUrl || '');
         localStorage.setItem('ebadmin-bsync-gid', S.bsync.sheetGid || '');
@@ -11298,7 +11381,7 @@
     async function bsReset() {
       // Clear all wizard state — both in-memory and on the server so a hard
       // refresh doesn't restore the old setup via _restoreBsyncFromTournament()
-      S.bsync = { step: 1, sheetUrl: '', sheetId: '', sheetGid: '', poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', wizardMode: 'standard' };
+      S.bsync = { step: 1, sheetUrl: '', sheetId: '', sheetGid: '', poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', gameOverrides: null, wizardMode: 'standard' };
       ['ebadmin-bsync-url', 'ebadmin-bsync-gid', 'ebadmin-bsync-team', 'ebadmin-bsync-range', 'ebadmin-bsync-mins'].forEach(k => localStorage.removeItem(k));
       if (S.tournament) delete S.tournament.sheetSync;
       bsStep(1);
@@ -11861,6 +11944,7 @@
         wizardMode: sync.colorCoded ? 'futures' : 'standard',
         lastSync: sync.lastSync || '',
         dateOverrides: sync.dateOverrides || null,
+        gameOverrides: sync.gameOverrides || null,
         games: Array.isArray(S.tournament?.games) ? [...S.tournament.games] : [],
         bracketPaths: Array.isArray(S.tournament?.bracket?.paths) ? [...S.tournament.bracket.paths] : null,
       };
@@ -12041,7 +12125,9 @@
           const _wantedGroup = ((S.bsync.myPool || '').match(/[A-Z]/i)?.[0] || '').toUpperCase();
           const _rowGroup = groupCol >= 0 ? ((row[groupCol] || '').trim().match(/[A-Z]/i)?.[0] || '').toUpperCase() : '';
           if (S.bsync.colorCoded && _wantedGroup && _rowGroup && _rowGroup !== _wantedGroup) continue;
-          const rawGnum = gameNumCol >= 0 ? (row[gameNumCol] || '').trim() : '';
+          const _rawGameNumCheck = gameNumCol >= 0 ? String(row[gameNumCol] || '').trim() : '';
+          const _invalidGameNum = !!(_rawGameNumCheck && !/^\d+[A-Z]?$/.test(_rawGameNumCheck));
+          const rawGnum = _rawGameNumCheck;
           const _apDateCell = (dateCol >= 0 ? (row[dateCol] || '').trim() : '');
           const dateRaw = (parseDateToISO(_apDateCell) ? _apDateCell : '') || _apRowDate[ri] || '';
           const dateISO = parseDateToISO(dateRaw);
@@ -12063,6 +12149,16 @@
           const _apMatchField = (isWhite ? white : blue).toLowerCase();
           const _apMatchedIdx = _apTeamNamesLower.length > 1 ? _apTeamNamesLower.findIndex(n => _apMatchField.includes(n)) : -1;
           const _apTeamSlot = _apMatchedIdx >= 0 ? (_apTeamSlots[_apMatchedIdx] || 'A') : undefined;
+          const _apSyncKey = [
+            S.bsync.sheetGid || '',
+            _apRowDate[ri] || '',
+            _apRowLoc[ri] || '',
+            (row[timeCol] || '').trim(),
+            white || '',
+            blue || '',
+            _rowGroup || '',
+            _rawGameNumCheck || '',
+          ].join('|');
 
           const game = {
             id: 'g' + (Date.now() + games.length).toString(36),
@@ -12074,6 +12170,9 @@
             location: _apGameLocation,
             pool: _apGamePool,
             cap: isBlue ? 'Dark' : 'White',
+            syncKey: _apSyncKey,
+            needsFix: _invalidGameNum,
+            rawGameNum: _rawGameNumCheck,
             ...(_apTeamSlot ? { team: _apTeamSlot } : {}),
           };
 
@@ -12124,6 +12223,7 @@
         }
 
         if (!games.length) return;
+        bsApplyGameOverridesToGames(games);
 
         const sig = g => [
           g.gameNum || '',
@@ -12189,6 +12289,8 @@
           legendCells: S.bsync.legendCells || '',
           myAgeGroup: S.bsync.myAgeGroup || '',
           lastSync: new Date().toISOString(),
+          ...(S.bsync.dateOverrides && Object.keys(S.bsync.dateOverrides).length ? { dateOverrides: S.bsync.dateOverrides } : {}),
+          ...(S.bsync.gameOverrides && Object.keys(S.bsync.gameOverrides).length ? { gameOverrides: S.bsync.gameOverrides } : {}),
         };
 
         const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
