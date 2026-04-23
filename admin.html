@@ -11957,11 +11957,13 @@
 
         const merged = directGames.map(g => {
           const letter = teamLetterMap[g.myTeam] || '';
-          return {
+          const prev = existingByNum[g.gameNum];
+          return bsPreserveManualLocation(prev, {
             ...g,
-            id: existingByNum[g.gameNum]?.id || g.id,
+            id: prev?.id || g.id,
+            sourceLocation: g.sourceLocation || g.location || '',
             ...(letter ? { team: letter } : {}),
-          };
+          });
         });
         merged.sort((a, b) => (a.dateISO||a.date||'').localeCompare(b.dateISO||b.date||'') || _dirParseTime(a.time) - _dirParseTime(b.time));
 
