@@ -251,6 +251,11 @@
       <li>A unique user ID (UID) issued by Firebase Authentication, used to associate your saved preferences with your account in Firestore.</li>
       <li>A Google OAuth access token granting access to Google Calendar — requested at sign-in time (alongside account authentication) so spectators only see one Google consent screen. This token is held in memory only and is never written to a server or database.</li>
     </ul>
+    <p><strong>Information from Google (if you use the BSSync schedule import feature — club admins only):</strong></p>
+    <ul>
+      <li>A Google OAuth access token granting read-only access to Google Sheets (<code>spreadsheets.readonly</code>) — requested only when a club admin explicitly opens the BSSync import wizard and chooses to import a schedule from Google Sheets. This token is used solely to read the specific sheet the admin selects, and is held in memory only during the import session. It is never written to a server, database, or persistent storage.</li>
+      <li>The schedule data (team names, game times, locations) contained in the sheet the admin selects. This data is imported into the tournament schedule and stored in Cloudflare KV under the club's data namespace. No other content from the sheet or from any other sheet in your Google account is accessed.</li>
+    </ul>
     <p><strong>Admin authentication (if you sign in via the admin panel):</strong></p>
     <ul>
       <li>Admins sign in with Google via Firebase Authentication. A Firebase ID token (JWT) is sent with each API request to the server for cryptographic verification.</li>
@@ -296,8 +301,9 @@
     <h2><span class="num">2</span> How We Use Information</h2>
     <ul>
       <li><strong>Google Calendar access</strong> is used solely to create, update, and delete game events in the calendar you select. We do not read your existing calendar events, contacts, or any other Google data.</li>
+      <li><strong>Google Sheets access</strong> is used solely to read schedule data (teams, times, locations) from the specific sheet a club admin selects during the BSSync import. We do not write to, modify, share, or delete any Google Sheets data. We do not access any sheets other than the one explicitly selected by the admin during the import session.</li>
       <li><strong>Push subscription endpoints</strong> are used only to send you schedule-update notifications via the Web Push protocol. We do not use them for marketing or tracking.</li>
-      <li><strong>Google Sign-In</strong> is used only to authenticate your identity and enable cross-device preference sync. We do not access your emails, contacts, Drive, or any other Google services beyond authentication and calendar.</li>
+      <li><strong>Google Sign-In</strong> is used only to authenticate your identity and enable cross-device preference sync. We do not access your emails, contacts, Drive, or any other Google services beyond authentication, calendar sync, and (for club admins using BSSync) read-only access to the specific Google Sheet selected for schedule import.</li>
       <li><strong>Firestore preferences</strong> (My Players and selected age groups) are stored in Google Firestore and are readable and writable only by your authenticated account. This data is used solely to restore your settings when you sign in on a new device.</li>
       <li><strong>On-device data</strong> (roster, scores, stats) stays on your device in your browser's localStorage and is never transmitted to our servers.</li>
       <li><strong>Live score data</strong> entered by a designated scorer is temporarily stored (up to 8 hours) in Cloudflare KV to relay updates to other team members' devices. This data contains only game scores and statistics — no personal identifiers.</li>
@@ -314,6 +320,11 @@
       <li><code>https://www.googleapis.com/auth/calendar</code> — Required to create and manage game events in Google Calendar. This scope is only exercised when you explicitly connect a calendar in the Schedule tab.</li>
     </ul>
     <p>On subsequent visits, if you have a calendar connected, the App silently refreshes the calendar access token in the background using Google Identity Services — no popup is shown.</p>
+    <p><strong>Google Sheets scope (BSSync schedule import — club admins only):</strong> When a club admin uses the BSSync import wizard to import a game schedule from a Google Sheet, the App requests the following scope via a separate Google sign-in prompt shown only to the admin at that moment:</p>
+    <ul>
+      <li><code>https://www.googleapis.com/auth/spreadsheets.readonly</code> — Required to read the schedule data from the specific Google Sheet the admin selects. This scope grants read-only access and is used solely to retrieve team names, game times, and locations for import into the tournament schedule. The App does not write to, modify, or share any sheet data, and does not access any sheets other than the one explicitly chosen by the admin.</li>
+    </ul>
+    <p>The Sheets access token is held in memory only during the import session and is never written to a server, database, or persistent storage. It is discarded after the import completes or the wizard is closed.</p>
     <p>The App's use of Google user data complies with the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
     <p><strong>Google Calendar access tokens are held in memory only</strong> and are never written to a server, database, or persistent storage. They are discarded when you close the browser tab. Firebase Authentication tokens are managed by the Firebase SDK and are stored in your browser's local storage per Firebase's standard behavior.</p>
     <p><strong>Admin panel JWT verification:</strong> When an admin makes API requests, the Firebase ID token is sent as a Bearer token in the Authorization header. The server verifies this token using Google's public JSON Web Key Set (JWKS) endpoint — the token signature is checked cryptographically and the token's issuer, audience, and expiration are validated. The server never stores these tokens; they are verified and discarded on each request.</p>
@@ -326,7 +337,7 @@
       <li><strong>Vercel</strong> — hosts the App's static files. Standard web access logs (IP address, browser type, pages visited) may be retained by Vercel per their own privacy policy.</li>
       <li><strong>Cloudflare Workers / KV</strong> — processes push notification delivery, temporarily relays live score data, and stores club-scoped tournament data (schedules, rosters, scores, bot credentials). Admin Firebase UIDs are stored in KV for authorization checks. All data is namespaced by club ID to ensure complete isolation between clubs.</li>
       <li><strong>Google Firebase (Firestore &amp; Authentication)</strong> — if you sign in, Firebase Authentication manages your identity session and Google Firestore stores your My Players and age group preferences. Data is stored in Google's us-central region. Firebase is governed by <a href="https://firebase.google.com/terms" target="_blank" rel="noopener">Google's Firebase Terms of Service</a> and <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a>.</li>
-      <li><strong>Google LLC</strong> — provides OAuth authentication and Calendar API services when you choose to enable calendar sync.</li>
+      <li><strong>Google LLC</strong> — provides OAuth authentication, Calendar API services when you choose to enable calendar sync, and Sheets API read-only access when a club admin uses the BSSync schedule import feature.</li>
       <li><strong>Apple Inc.</strong> — provides the Apple Push Notification service (APNs) for native iOS notifications and processes in-app purchases on iOS via the App Store.</li>
       <li><strong>Google LLC (Firebase Cloud Messaging)</strong> — provides push notification delivery for the native Android app and processes in-app purchases on Android via Google Play.</li>
       <li><strong>RevenueCat Inc.</strong> — manages in-app subscription entitlements and purchase events for native iOS and Android apps. RevenueCat receives anonymized purchase data and subscription status; it does not receive your payment card details. Governed by <a href="https://www.revenuecat.com/privacy" target="_blank" rel="noopener">RevenueCat's Privacy Policy</a>.</li>
