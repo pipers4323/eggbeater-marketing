@@ -438,9 +438,8 @@
     return paths;
   }
 
-  function bsIsKap7Futures14uSheet(state) {
-    if (state?.bsync?.sheetId !== '1n7y7fVM7RWku9yzqyx5sIxwdOTvDuXInV-Q0nLW9c7c') return false;
-    return /14u/i.test(String(state?.bsync?.myAgeGroup || ''));
+  function bsIsKap7FuturesSheet(state) {
+    return state?.bsync?.sheetId === '1n7y7fVM7RWku9yzqyx5sIxwdOTvDuXInV-Q0nLW9c7c';
   }
 
   function bsBuildKap7RowContext(allRows, helpers) {
@@ -492,11 +491,18 @@
         dateISO: rowContext.rowDate[ri] || '',
         date: rowContext.rowDate[ri] ? isoToDate(rowContext.rowDate[ri]) : '',
         location: rowContext.rowLoc[ri] || '',
+        pool: String(row[4] || '').trim(),
         group: String(row[6] || '').trim(),
-        note: String(row[7] || '').trim(),
+        format: String(row[7] || '').trim(),
+        note: String(row[8] || '').trim(),
       });
     }
     return sectionRows;
+  }
+
+  function bsIsKap7WinLossRow(row) {
+    const raw = String(row?.format || row?.note || '').trim().toLowerCase();
+    return raw === 'w/l' || raw === 'win/loss' || raw === 'win-loss';
   }
 
   function bsExpandKap7Ref(raw, helpers) {
@@ -509,11 +515,13 @@
     return normalizeOpponentName(text || 'TBD');
   }
 
-  function bsFindKap7LiveBracketGame(sectionRows, teamName, locationHint) {
+  function bsFindKap7LiveBracketGame(sectionRows, teamName, slotGames) {
+    const teamNeedle = String(teamName || '').trim().toLowerCase();
+    const slotLocations = new Set((slotGames || []).map(g => String(g.location || '').trim().toLowerCase()).filter(Boolean));
     return sectionRows.find(row => {
-      if (!/win\/loss/i.test(row.note || '')) return false;
-      if (locationHint && row.location !== locationHint) return false;
-      return row.white.toLowerCase().includes(teamName.toLowerCase()) || row.dark.toLowerCase().includes(teamName.toLowerCase());
+      if (!bsIsKap7WinLossRow(row)) return false;
+      if (slotLocations.size && !slotLocations.has(String(row.location || '').trim().toLowerCase())) return false;
+      return row.white.toLowerCase().includes(teamNeedle) || row.dark.toLowerCase().includes(teamNeedle);
     }) || null;
   }
 
@@ -521,7 +529,8 @@
     const sameBlockRows = sectionRows.filter(row =>
       row.dateISO === liveBracketGame.dateISO &&
       row.location === liveBracketGame.location &&
-      /win\/loss/i.test(row.note || '')
+      row.group === liveBracketGame.group &&
+      bsIsKap7WinLossRow(row)
     );
     return sameBlockRows.filter(row => new RegExp(`\\b${outcome}-?Game\\s*${liveBracketGame.gameNum}\\b`, 'i').test(`${row.white} ${row.dark}`));
   }
@@ -543,17 +552,18 @@
     });
   }
 
-  function bsBuildKap7TeamPaths(slot, teamName, locationHint, games, sectionRows, helpers) {
-    const slotGames = games.filter(g => (g.team || '') === slot);
+  function bsBuildKap7TeamPaths(slot, teamName, games, sectionRows, helpers) {
+    const slotGames = slot ? games.filter(g => (g.team || '') === slot) : [...games];
+    const slotKey = (slot || 'A').toLowerCase();
     if (!slotGames.length) return [];
-    const liveBracketGame = bsFindKap7LiveBracketGame(sectionRows, teamName, locationHint);
+    const liveBracketGame = bsFindKap7LiveBracketGame(sectionRows, teamName, slotGames);
     if (!liveBracketGame) return [];
     const winRows = bsBuildKap7OutcomeRows(sectionRows, liveBracketGame, 'W');
     const lossRows = bsBuildKap7OutcomeRows(sectionRows, liveBracketGame, 'L');
     const paths = [];
     if (winRows.length) {
       paths.push({
-        id: `kap7-futures-${slot.toLowerCase()}-win-${liveBracketGame.dateISO || 'day1'}`,
+        id: `kap7-futures-${slotKey}-win-${liveBracketGame.dateISO || 'day1'}`,
         label: `If ${teamName} wins Game ${liveBracketGame.gameNum}`,
         qualifier: `Official bracket path from the Futures sheet — ${liveBracketGame.location}.`,
         steps: bsBuildKap7PathSteps(winRows, 'W', liveBracketGame, teamName, helpers),
@@ -561,7 +571,7 @@
     }
     if (lossRows.length) {
       paths.push({
-        id: `kap7-futures-${slot.toLowerCase()}-loss-${liveBracketGame.dateISO || 'day1'}`,
+        id: `kap7-futures-${slotKey}-loss-${liveBracketGame.dateISO || 'day1'}`,
         label: `If ${teamName} loses Game ${liveBracketGame.gameNum}`,
         qualifier: `Official bracket path from the Futures sheet — ${liveBracketGame.location}.`,
         steps: bsBuildKap7PathSteps(lossRows, 'L', liveBracketGame, teamName, helpers),
@@ -570,16 +580,35 @@
     return paths;
   }
 
+  function bsResolveKap7SlotDescriptors(state, games) {
+    const explicitNames = String(state?.bsync?.teamName || '')
+      .split(',')
+      .map(name => name.trim())
+      .filter(Boolean);
+    const slotKeys = [...new Set((games || []).map(g => String(g.team || '').trim().toUpperCase()).filter(Boolean))];
+    if (slotKeys.length) {
+      return slotKeys.map((slot, idx) => ({
+        slot,
+        teamName: explicitNames[idx] || explicitNames[0] || '',
+      })).filter(item => item.teamName);
+    }
+    const singleName = explicitNames[0] || '';
+    return singleName ? [{ slot: '', teamName: singleName }] : [];
+  }
+
   function bsComputeKap7FuturesSpecialPaths({ allRows, games, state, helpers }) {
-    if (!bsIsKap7Futures14uSheet(state)) return null;
+    if (!bsIsKap7FuturesSheet(state)) return null;
     if (!Array.isArray(allRows) || !allRows.length || !Array.isArray(games) || !games.length) return null;
     const rowContext = bsBuildKap7RowContext(allRows, helpers);
     const sectionRows = bsCollectKap7SectionRows(allRows, rowContext, helpers);
-    const bySlot = {
-      A: bsBuildKap7TeamPaths('A', '680 A', 'Campo HS/SODA AC', games, sectionRows, helpers),
-      B: bsBuildKap7TeamPaths('B', '680 B', 'Independence HS', games, sectionRows, helpers),
-    };
-    return (bySlot.A.length || bySlot.B.length) ? bySlot : null;
+    const descriptors = bsResolveKap7SlotDescriptors(state, games);
+    if (!descriptors.length) return null;
+    const bySlot = {};
+    descriptors.forEach(({ slot, teamName }) => {
+      const key = slot || 'A';
+      bySlot[key] = bsBuildKap7TeamPaths(slot, teamName, games, sectionRows, helpers);
+    });
+    return Object.values(bySlot).some(paths => paths.length) ? bySlot : null;
   }
 
   window.AdminBracketImport = {

@@ -10535,8 +10535,8 @@
           const dateRaw = (parseDateToISO(_dateCellRaw) ? _dateCellRaw : '') || _rowDate[ri] || '';
           // Venue: always from the section-header pre-pass (never from the pool# column)
           const gameLocation = _rowLoc[ri] || '';
-          // Pool: col E often holds a bare court/pool number ("1", "2") — format as "Pool N"
-          const _poolRaw = groupCol >= 0 ? (row[groupCol] || '').trim() : (poolCol >= 0 ? (row[poolCol] || '').trim() : '');
+          // Pool display comes from the actual Pool column, not the age-group/group letter column.
+          const _poolRaw = poolCol >= 0 ? (row[poolCol] || '').trim() : '';
           const _locRaw  = locationCol >= 0 ? (row[locationCol] || '').trim() : '';
           let gamePool = '';
           if (_poolRaw) {
