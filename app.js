@@ -1722,6 +1722,26 @@ function _historyEntryTeamLetter(teamLabel) {
   return null; // unassigned
 }
 
+function _pruneLegacyCombinedHistoryEntries(history) {
+  const entries = Array.isArray(history) ? history : [];
+  if (!entries.length) return entries;
+  const splitTournamentIds = new Set();
+  entries.forEach(entry => {
+    const letter = _historyEntryTeamLetter(entry?.team);
+    if ((letter === 'A' || letter === 'B') && entry?.tournamentId) {
+      splitTournamentIds.add(String(entry.tournamentId));
+    }
+  });
+  if (!splitTournamentIds.size) return entries;
+  return entries.filter(entry => {
+    const letter = _historyEntryTeamLetter(entry?.team);
+    const tournamentId = String(entry?.tournamentId || '');
+    if (!tournamentId || !splitTournamentIds.has(tournamentId)) return true;
+    if (letter === 'A' || letter === 'B') return true;
+    return false;
+  });
+}
+
 function getHistoryForActiveTeam() {
   const history = getHistory();
   const groupKey = _activeAgeGroup || getSelectedTeam() || getSelectedTeams()[0] || '';
@@ -3123,14 +3143,14 @@ function getPoolRecord() {
 function getHistory() {
   if (_historyOverride !== null) {
     return Array.isArray(_historyOverride)
-      ? _historyOverride.filter(entry => !_isBogusHistoryEntry(entry))
+      ? _pruneLegacyCombinedHistoryEntries(_historyOverride.filter(entry => !_isBogusHistoryEntry(entry)))
       : [];
   }
   try {
     const parsed = JSON.parse(localStorage.getItem(STORE.HISTORY) || '[]');
     if (!Array.isArray(parsed)) return [];
-    const filtered = parsed.filter(entry => !_isBogusHistoryEntry(entry));
-    if (filtered.length !== parsed.length) {
+    const filtered = _pruneLegacyCombinedHistoryEntries(parsed.filter(entry => !_isBogusHistoryEntry(entry)));
+    if (filtered.length !== parsed.length || JSON.stringify(filtered) !== JSON.stringify(parsed)) {
       localStorage.setItem(STORE.HISTORY, JSON.stringify(filtered));
     }
     return filtered;
