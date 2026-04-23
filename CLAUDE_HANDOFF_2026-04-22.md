@@ -329,3 +329,48 @@ eggbeater-waterpolo:
 - [ ] Recheck `Possible Games` heading visibility on native
 - [ ] Recheck History readability in both light and dark mode
 - [ ] Recheck shared Schedule / Scores card treatment on native
+
+---
+
+## 2026-04-22 Late Native Fix Pass
+
+### Latest shipped heads
+```
+eggbeater-marketing:
+  363aca8  Fix native schedule and bracket readability
+
+eggbeater-waterpolo:
+  33fc3c4  Sync native schedule and bracket readability fixes
+```
+
+### Included in the current native build source
+- Schedule cleanup
+  - schedule utility rows no longer inject extra refresh buttons
+  - only the bottom Schedule refresh control should remain
+  - shared refresh path remains wired through pull-to-refresh and manual refresh
+- Native bracket readability
+  - white-card bracket sections forced readable in both light and dark mode
+  - `Official` badges, bracket headers, and path meta forced to dark text on light cards
+  - `Possible Games` headings and empty-state copy forced readable
+- Native Full Draw readability
+  - pool snapshot, legend, lane cards, and meta text forced readable on the white card shell
+- Native Scores detail tabs
+  - inactive `Play-by-Play` / `Summary` buttons forced to white text on dark buttons
+- Mojibake cleanup
+  - shared text normalization now fixes common `â€“` / `â€”` sequences in escaped strings
+  - header subtitle normalization now also runs before textContent assignment
+
+### Current native build source
+- Trigger the current native build from:
+  - `C:\Users\sarah\Claude Code\eggbeater-waterpolo` at `33fc3c4`
+
+### Tournament validation timing
+- Full tournament-day validation is scheduled to occur in 3 days.
+- Until then, only regression fixes and reliability hardening should be added; avoid broad feature changes.
+
+### Next validation checklist
+- [ ] Confirm Schedule shows only one `Force Refresh` button per tab state on native
+- [ ] Confirm pull-to-refresh visibly refreshes Schedule and Scores
+- [ ] Confirm Bracket `My Path` and `Full Draw` text are readable in both light and dark mode
+- [ ] Confirm `Play-by-Play` inactive button text is readable in native dark mode
+- [ ] Confirm header copy no longer shows `â€“` mojibake in native
