@@ -9803,6 +9803,7 @@
           myAgeGroup: ''
         };
       }
+      if (S.bsync?.sheetUrl) bsApplySheetUrl(S.bsync.sheetUrl);
       S.bsync.step = 1;
       S.bsync.colorCoded = true;
       S.bsync.legendCells = S.bsync.legendCells || '';
@@ -9990,19 +9991,40 @@
     }
     // ─────────────────────────────────────────────────────────────────────────────
 
+    function bsApplySheetUrl(url) {
+      const trimmed = String(url || '').trim();
+      const idMatch = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+      const gidMatch = trimmed.match(/[#?&]gid=(\d+)/);
+      const nextSheetId = idMatch ? idMatch[1] : '';
+      const nextSheetGid = gidMatch ? gidMatch[1] : '';
+      const changed = S.bsync?.sheetId !== nextSheetId || S.bsync?.sheetGid !== nextSheetGid;
+      if (!S.bsync) S.bsync = {};
+      S.bsync.sheetUrl = trimmed;
+      S.bsync.sheetId = nextSheetId;
+      S.bsync.sheetGid = nextSheetGid;
+      if (changed) {
+        delete S.bsync.gridData;
+        delete S.bsync.gridDataKey;
+        S.bsync.ageGroups = [];
+        S.bsync.rowAgeGroups = [];
+        S.bsync.legendParsed = [];
+        S.bsync.legendColors = {};
+        S.bsync.myAgeGroup = '';
+        S.bsync.myAgeGroupIdx = 0;
+      }
+      if (trimmed) localStorage.setItem('ebadmin-bsync-url', trimmed);
+      if (nextSheetGid) localStorage.setItem('ebadmin-bsync-gid', nextSheetGid);
+      else localStorage.removeItem('ebadmin-bsync-gid');
+      return { sheetId: nextSheetId, sheetGid: nextSheetGid };
+    }
+
     function bsStep1Next() {
       const url = (document.getElementById('bs-url')?.value || '').trim();
       const err = document.getElementById('bs-s1-err');
       if (!url) { if (err) err.textContent = '⚠️ Enter a Google Sheets URL first'; return; }
       const m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
       if (!m) { if (err) err.textContent = '❌ Could not find a sheet ID — paste the full Google Sheets URL'; return; }
-      const gidM = url.match(/[#?&]gid=(\d+)/);
-      if (!S.bsync) S.bsync = {};
-      S.bsync.sheetUrl = url;
-      S.bsync.sheetId = m[1];
-      S.bsync.sheetGid = gidM ? gidM[1] : '';
-      localStorage.setItem('ebadmin-bsync-url', url);
-      localStorage.setItem('ebadmin-bsync-gid', S.bsync.sheetGid);
+      bsApplySheetUrl(url);
       if (err) err.textContent = '';
       if (S.bsync.courseFormat) { bsStep(3); } else { bsStep(2); }
     }
@@ -10033,19 +10055,11 @@
       const groups = document.getElementById('bs-cc-groups');
       if (!cells) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter legend cells first (e.g. A18, B18)'; } return; }
       const _urlVal = (document.getElementById('bs-url')?.value || '').trim();
-      const sheetId = S.bsync?.sheetId || (() => {
-        const m = _urlVal.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-        return m ? m[1] : null;
-      })();
+      const applied = bsApplySheetUrl(_urlVal || S.bsync?.sheetUrl || '');
+      const sheetId = applied.sheetId || S.bsync?.sheetId || null;
       if (!sheetId) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter the sheet URL first'; } return; }
       S.bsync.legendCells = cells;
       if (S.bsync) S.bsync.sheetId = sheetId;
-      // Also extract sheetGid from the URL field if not already set — bsStep1Next()
-      // normally does this, but the user may click Detect before clicking Next.
-      if (S.bsync && !S.bsync.sheetGid) {
-        const _gidM = _urlVal.match(/[#?&]gid=(\d+)/);
-        if (_gidM) { S.bsync.sheetGid = _gidM[1]; localStorage.setItem('ebadmin-bsync-gid', _gidM[1]); }
-      }
       if (status) { status.style.color = 'var(--g400)'; status.textContent = '\u23f3 Reading legend cells\u2026'; }
       if (groups) groups.innerHTML = '';
       try {
