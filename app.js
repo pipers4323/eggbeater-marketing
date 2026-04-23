@@ -3452,12 +3452,36 @@ function _renderScorerSyncStatusBadge(gameOrRef, explicitGroupKey = '') {
   return `<div id="${elementId}" class="scorer-sync-status scorer-sync-status-${statusMeta.tone}">${escHtml(statusMeta.text)}</div>`;
 }
 
+function _scorerDataAuthorityLabel(statusObj) {
+  const status = statusObj?.status || 'idle';
+  if (status === 'acked' || status === 'final-acked') return { tone: 'ok', text: 'Server-synced' };
+  if (status === 'sending') return { tone: 'info', text: 'Syncing to server' };
+  if (status === 'retrying') return { tone: 'warn', text: 'Retrying server sync' };
+  if (status === 'pending') return { tone: 'warn', text: 'Waiting for server finalize ack' };
+  if (status === 'queued' || status === 'local-final') return { tone: 'warn', text: 'Local-only until connection returns' };
+  if (status === 'rejected' || status === 'failed') return { tone: 'err', text: 'Server sync failed' };
+  return { tone: 'muted', text: 'Awaiting first server sync' };
+}
+
+function _renderScorerDataAuthority(gameOrRef, explicitGroupKey = '') {
+  const authorityMeta = _scorerDataAuthorityLabel(_getScorerSyncStatus(gameOrRef, explicitGroupKey));
+  const elementId = `scorer-sync-authority-${_gameIdOnly(gameOrRef)}`;
+  return `<div id="${elementId}" class="scorer-data-authority scorer-data-authority-${authorityMeta.tone}">${escHtml(authorityMeta.text)}</div>`;
+}
+
 function _refreshScorerSyncStatusUI(gameOrRef, explicitGroupKey = '') {
   const el = document.getElementById(`scorer-sync-status-${_gameIdOnly(gameOrRef)}`);
-  if (!el) return;
   const statusMeta = _scorerSyncStatusLabel(_getScorerSyncStatus(gameOrRef, explicitGroupKey));
-  el.className = `scorer-sync-status scorer-sync-status-${statusMeta.tone}`;
-  el.textContent = statusMeta.text;
+  if (el) {
+    el.className = `scorer-sync-status scorer-sync-status-${statusMeta.tone}`;
+    el.textContent = statusMeta.text;
+  }
+  const authorityEl = document.getElementById(`scorer-sync-authority-${_gameIdOnly(gameOrRef)}`);
+  if (authorityEl) {
+    const authorityMeta = _scorerDataAuthorityLabel(_getScorerSyncStatus(gameOrRef, explicitGroupKey));
+    authorityEl.className = `scorer-data-authority scorer-data-authority-${authorityMeta.tone}`;
+    authorityEl.textContent = authorityMeta.text;
+  }
 }
 
 function _renderFinalizeStatus(gameOrRef, explicitGroupKey = '') {
@@ -4634,6 +4658,7 @@ function _buildScoreDetailScorerPanel(game, s) {
         <div class="score-detail-scorer-utility">
           <div class="score-detail-scorer-meta">
             ${_renderScorerSyncStatusBadge(game, groupKey)}
+            ${_renderScorerDataAuthority(game, groupKey)}
           </div>
           <div class="score-finalize-compact-wrap">${finalizeCompactBtn}</div>
         </div>
@@ -8212,7 +8237,7 @@ function buildScoresListCard(g, viewerOnly = false, ageGroupLabel = '') {
   const isViewerAction = viewerOnly || !canScore;
   const actionBtn = (!viewerOnly && canScore)
     ? `<button class="scores-open-scorer-btn" data-game-id="${escHtml(gid)}" data-group-key="${escHtml(g._groupKey || '')}" data-age-group-label="${escHtml(ageGroupLabel || '')}" onclick="return handleOpenScorerButtonClick(event, this)" title="${escHtml(appT('scorer_open'))}">✏️ ${escHtml(appT('scorer_open'))}</button>`
-    : `<button class="follow-live-btn-sm" data-game-id="${escHtml(gid)}" onclick="return handleToggleLiveButtonClick(event, this)" title="${escHtml(appT('common_follow_live'))}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
+    : _buildSpectatorFollowLiveButton(gid, { compact: true });
   const topActionBtn = isViewerAction ? actionBtn : '';
   const bottomActionBtn = isViewerAction ? '' : actionBtn;
 
@@ -9830,7 +9855,7 @@ function renderNextGameCard() {
           <div class="next-game-card-top">
             ${g.gameNum ? `<div class="next-game-num">${escHtml(g.gameNum)}</div>` : ''}
             ${nextLive ? `<span class="live-badge-next">🔴 LIVE</span>` : ''}
-            <button class="follow-live-btn" onclick="event.stopPropagation();toggleLiveActivity('${_gameRef(g)}')">📡 ${appT('common_follow_live')}</button>
+            ${_buildSpectatorFollowLiveButton(_gameRef(g))}
           </div>
           <div class="next-label">${nextLive ? appT('next_in_progress') : appT('next_next_game')}</div>
           <div class="next-vs">vs ${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}</div>
@@ -10109,25 +10134,57 @@ function renderGamesList() {
 
 // Clean schedule card — shows game info only, no scoring controls.
 // Completed games (with a result) are filtered out upstream and shown in History.
+function _buildSpectatorClubVsLabel(g) {
+  return `${TOURNAMENT.clubName ? escHtml(TOURNAMENT.clubName) + ' vs ' : 'vs '}${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}`;
+}
+
+function _buildSpectatorFollowLiveButton(gameRef, opts = {}) {
+  const {
+    compact = false,
+    extraClass = '',
+    title = appT('common_follow_live'),
+  } = opts || {};
+  const cls = compact ? 'follow-live-btn-sm' : 'follow-live-btn';
+  const className = [cls, extraClass].filter(Boolean).join(' ');
+  return `<button class="${className}" data-game-id="${escHtml(gameRef || '')}" onclick="return handleToggleLiveButtonClick(event, this)" title="${escHtml(title)}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
+}
+
+function _buildSpectatorPrimaryMeta(g, opts = {}) {
+  const {
+    compactCaps = false,
+    useDateISO = false,
+    includeCapBadge = false,
+  } = opts || {};
+  const capIcon = g.cap === 'Dark' ? '🔵' : '⚪';
+  const capMeta = g.cap
+    ? (includeCapBadge
+      ? `<span class="game-cap-pill ${g.cap === 'Dark' ? 'game-cap-pill-dark' : 'game-cap-pill-white'}">${capIcon} ${escHtml(g.cap)} Caps</span>`
+      : `<span>${capIcon} ${escHtml(g.cap)} Caps</span>`)
+    : '';
+  return [
+    `<span class="icon-label">🕐 ${escHtml(g.time || 'TBD')}${(g.date || g.dateISO) ? ' · ' + escHtml(g.date || (useDateISO ? g.dateISO : formatDateGroupLabel(g.dateISO))) : ''}</span>`,
+    g.pool ? `<span class="icon-label">${swimmerEmoji()} ${escHtml(g.pool)}${compactCaps && g.cap ? ` &nbsp;·&nbsp; ${capMeta}` : ''}</span>` : '',
+    !compactCaps ? capMeta : '',
+  ].filter(Boolean).join('');
+}
+
 function buildScheduleCard(g) {
   const capBgClass = g.cap === 'Dark' ? 'cap-dark-bg' : g.cap === 'White' ? 'cap-white-bg' : '';
-  const capIcon = g.cap === 'Dark' ? '🔵' : '⚪';
   // LIVE badge is handled by the Next Game blue card; plain schedule cards don't show it
   const isLive = isGameLive(_gameRef(g));
   const liveBadge = isLive ? ' <span class="live-badge">🔴 LIVE</span>' : '';
-  const followBtn = `<button class="follow-live-btn-sm" onclick="event.stopPropagation();toggleLiveActivity('${_gameRef(g)}')" title="${escHtml(appT('common_follow_live'))}">📡 ${escHtml(appT('common_follow_live'))}</button>`;
+  const followBtn = _buildSpectatorFollowLiveButton(_gameRef(g), { compact: true });
 
   const noteHtml = g.note ? `<div class="game-note">📌 ${escHtml(g.note)}</div>` : '';
   const hapticAttr = isLive ? '' : ` ontouchstart="_haptic('light')"`;
   return `
     <div class="sched-card ${capBgClass}${isLive ? ' sched-card-clickable' : ''}"${isLive ? ` onclick="_haptic('light');openLiveGameFromSchedule('${escHtml(_gameRef(g))}')"` : ''}${hapticAttr}>
       <div class="sched-card-top">
-        <div class="sched-vs">${TOURNAMENT.clubName ? escHtml(TOURNAMENT.clubName) + ' vs ' : 'vs '}${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}${liveBadge} ${followBtn}</div>
+        <div class="sched-vs">${_buildSpectatorClubVsLabel(g)}${liveBadge} ${followBtn}</div>
         ${g.gameNum ? `<div class="sched-game-num">${escHtml(g.gameNum)}</div>` : ''}
       </div>
       <div class="sched-meta">
-        <span>🕐 ${escHtml(g.time || 'TBD')}${(g.date || g.dateISO) ? ' · ' + escHtml(g.date || formatDateGroupLabel(g.dateISO)) : ''}</span>
-        ${g.pool ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap || '')} Caps</span>` : '')}
+        ${_buildSpectatorPrimaryMeta(g, { compactCaps: true })}
         ${(g.location || TOURNAMENT.location) ? buildLocationLink(g.location || TOURNAMENT.location) : ''}
       </div>
       ${noteHtml}
@@ -10161,17 +10218,9 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
   const loss      = isLoss(result);
   const cardClass = win ? 'result-win' : loss ? 'result-loss' : '';
   const capBgClass = g.cap === 'Dark' ? 'cap-dark-bg' : g.cap === 'White' ? 'cap-white-bg' : '';
-  const capIcon   = g.cap === 'Dark' ? '🔵' : '⚪';
   const pillHtml  = result
     ? `<span class="result-pill ${win ? 'win' : 'loss'}">${resultLabel(result)}</span>` : '';
-  const capBadge = g.cap
-    ? `<span class="game-cap-pill ${g.cap === 'Dark' ? 'game-cap-pill-dark' : 'game-cap-pill-white'}">${capIcon} ${escHtml(g.cap)} Caps</span>`
-    : '';
-  const primaryMeta = [
-    `<span class="icon-label">🕐 ${escHtml(g.time || 'TBD')}${(g.date || g.dateISO) ? ' · ' + escHtml(g.date || g.dateISO) : ''}</span>`,
-    g.pool ? `<span class="icon-label">${swimmerEmoji()} ${escHtml(g.pool)}</span>` : '',
-    capBadge
-  ].filter(Boolean).join('');
+  const primaryMeta = _buildSpectatorPrimaryMeta(g, { includeCapBadge: true, useDateISO: true });
   const gameLocation = g.location || TOURNAMENT.location;
   const locationRow = showLocation && gameLocation
     ? `<div class="game-location-row">${buildLocationVenueOnly(gameLocation)}</div>`
@@ -10323,7 +10372,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
     <div class="game-card ${cardClass} ${capBgClass}"${hapticTap}>
       ${ageGroupLabel ? `<div class="game-card-age-label">${escHtml(ageGroupLabel)}</div>` : ''}
       <div class="game-card-top">
-        <div class="game-vs">${TOURNAMENT.clubName ? escHtml(TOURNAMENT.clubName) + ' vs ' : 'vs '}${escHtml(normalizeOpponentName(g.opponent || 'TBD'))}${pillHtml}${liveBadgeHtml}</div>
+        <div class="game-vs">${_buildSpectatorClubVsLabel(g)}${pillHtml}${liveBadgeHtml}</div>
         <div style="display:flex;align-items:center;gap:6px">
           ${g.gameNum ? `<div class="game-num-tag">${escHtml(g.gameNum)}</div>` : ''}
           ${shareBtnHtml}
@@ -10508,7 +10557,9 @@ const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && get
     header.className = 'bracket-header';
     header.innerHTML = `
       <span class="bracket-title">${escHtml(path.label)}</span>
-      ${isProjected ? `<span class="bracket-projected-badge">${appT('possible_projected_badge')}</span>` : ''}`;
+      ${isProjected
+        ? `<span class="bracket-projected-badge">${appT('possible_projected_badge')}</span>`
+        : `<span class="bracket-official-badge">Official</span>`}`;
     section.appendChild(header);
 
     if (path.qualifier) {
@@ -10626,6 +10677,183 @@ function _computeFullDrawStandings(pools, scoreSource) {
   return result;
 }
 
+function _normalizeBracketEntityName(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function _selectedBracketTeamDescriptors() {
+  const descriptors = [];
+  const selected = getSelectedTeams();
+  for (const groupKey of selected) {
+    const tournament = getTournamentForGroup(groupKey) || {};
+    const clubName = String(tournament.clubName || TOURNAMENT.clubName || '').trim();
+    const validTeams = getValidTeamLettersForGroup(groupKey);
+    if (validTeams.length > 1) {
+      validTeams.forEach(letter => {
+        const rawLabel = String(tournament.teamLabels?.[letter] || '').trim();
+        const aliases = [
+          rawLabel,
+          rawLabel ? `${clubName} ${rawLabel}` : '',
+          `${clubName} ${letter}`.trim(),
+          `${clubName} Team ${letter}`.trim(),
+        ].filter(Boolean);
+        descriptors.push({
+          letter,
+          display: rawLabel || `${clubName} ${letter}`.trim(),
+          aliases: aliases.map(_normalizeBracketEntityName),
+        });
+      });
+    } else if (clubName) {
+      descriptors.push({
+        letter: '',
+        display: clubName,
+        aliases: [_normalizeBracketEntityName(clubName)],
+      });
+    }
+  }
+  return descriptors;
+}
+
+function _findBracketTeamDescriptor(name, descriptors = _selectedBracketTeamDescriptors()) {
+  const normalized = _normalizeBracketEntityName(name);
+  if (!normalized) return null;
+  return descriptors.find(desc => desc.aliases.includes(normalized)) || null;
+}
+
+function _fullDrawTeamClass(name, descriptors = _selectedBracketTeamDescriptors()) {
+  const match = _findBracketTeamDescriptor(name, descriptors);
+  if (!match) return '';
+  if (match.letter === 'A') return ' team-red';
+  if (match.letter === 'B') return ' team-blue';
+  return ' team-club';
+}
+
+function _pathTeamClass(path, descriptors = _selectedBracketTeamDescriptors()) {
+  const label = String(path?.label || '');
+  const qualifier = String(path?.qualifier || '');
+  for (const desc of descriptors) {
+    const alias = desc.aliases.find(a => label.toLowerCase().includes(a) || qualifier.toLowerCase().includes(a));
+    if (!alias) continue;
+    if (desc.letter === 'A') return ' team-red';
+    if (desc.letter === 'B') return ' team-blue';
+    return ' team-club';
+  }
+  return '';
+}
+
+function _fullDrawClubPillLabel() {
+  const raw = String(TOURNAMENT.clubName || '').trim();
+  if (!raw) return 'Club';
+  const compact = raw.split(/\s+/)[0] || raw;
+  return compact.slice(0, 10);
+}
+
+function _renderFullDrawPoolsGrid(standings, scoreSource) {
+  const descriptors = _selectedBracketTeamDescriptors();
+  const clubPill = escHtml(_fullDrawClubPillLabel());
+  const hasAnyScores = Object.values(standings).some(arr => arr.some(t => t.gp > 0));
+  const cards = Object.entries(standings).map(([poolName, arr]) => {
+    const highlighted = arr.some(team => _findBracketTeamDescriptor(team.name, descriptors));
+    return `<article class="full-draw-pool-card${highlighted ? ' is-relevant' : ''}">
+      <div class="full-draw-pool-card-head">
+        <span class="full-draw-pool-chip">${escHtml(poolName)}</span>
+        ${highlighted ? '<span class="full-draw-focus-pill">Your Pool</span>' : ''}
+      </div>
+      <div class="full-draw-pool-list">
+        ${arr.map((team, idx) => {
+          const teamClass = _fullDrawTeamClass(team.name, descriptors);
+          return `<div class="full-draw-pool-row${teamClass}">
+            <span class="full-draw-seed">${idx + 1}</span>
+            <div class="full-draw-pool-team">
+              <span class="full-draw-pool-name">${escHtml(team.name)}</span>
+              ${teamClass ? `<span class="full-draw-team-pill">${clubPill}</span>` : ''}
+            </div>
+            ${hasAnyScores ? `<div class="full-draw-pool-metrics">
+              <span>${team.gp ? team.w : '—'}W</span>
+              <span>${team.gp ? team.l : '—'}L</span>
+              <span>${team.gp ? ((team.gd > 0 ? '+' : '') + team.gd) : '—'} GD</span>
+            </div>` : '<div class="full-draw-pool-metrics full-draw-pool-metrics-placeholder">Seed order</div>'}
+          </div>`;
+        }).join('')}
+      </div>
+    </article>`;
+  }).join('');
+
+  const note = !scoreSource
+    ? '<div class="full-draw-note">Standings are seeded from the published pool draw until live or director scores are available.</div>'
+    : '';
+  const legend = `<div class="full-draw-legend">
+    <span class="full-draw-legend-item"><span class="full-draw-legend-swatch team-red"></span> Red / A side</span>
+    <span class="full-draw-legend-item"><span class="full-draw-legend-swatch team-blue"></span> Blue / B side</span>
+    <span class="full-draw-legend-item"><span class="full-draw-legend-swatch neutral"></span> Other teams</span>
+  </div>`;
+
+  return `<section class="full-draw-section">
+    <div class="full-draw-section-head">
+      <div>
+        <div class="full-draw-kicker">Pool Snapshot</div>
+        <h3 class="full-draw-title">Pool standings and venue grouping</h3>
+      </div>
+    </div>
+    ${legend}
+    <div class="full-draw-pools-grid">${cards}</div>
+    ${note}
+  </section>`;
+}
+
+function _renderFullDrawPathLanes(paths, projected, standings) {
+  const descriptors = _selectedBracketTeamDescriptors();
+  const cards = paths.map(path => {
+    const pathClass = _pathTeamClass(path, descriptors);
+    const badge = projected && path.id === projected.id
+      ? '<span class="full-draw-badge projected">Projected</span>'
+      : '<span class="full-draw-badge official">Official path</span>';
+    const qualifier = path.qualifier ? `<div class="full-draw-path-qualifier">${escHtml(path.qualifier)}</div>` : '';
+    const steps = (path.steps || []).map((step, idx) => {
+      const stepDesc = escHtml(_resolvePoolSeedRef(step.desc || '', standings));
+      const stepLoc = bracketLocationDisplay(step.location);
+      return `<div class="full-draw-step-card">
+        <div class="full-draw-step-connector">${idx < (path.steps || []).length - 1 ? '<span></span>' : ''}</div>
+        <div class="full-draw-step-shell">
+          <div class="full-draw-step-top">
+            <span class="full-draw-game-chip">Game ${escHtml(step.gameNum || 'TBD')}</span>
+            ${idx === 0 ? '<span class="full-draw-step-state">Next possible</span>' : '<span class="full-draw-step-state">Then</span>'}
+          </div>
+          <div class="full-draw-step-desc">${stepDesc}</div>
+          <div class="full-draw-step-meta">
+            ${step.time ? `<span>${escHtml(step.time)}</span>` : '<span>Time TBD</span>'}
+            ${step.date ? `<span>${escHtml(step.date)}</span>` : ''}
+            ${stepLoc ? `<span>${escHtml(stepLoc)}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    return `<article class="full-draw-path-card${pathClass}">
+      <div class="full-draw-path-head">
+        <div>
+          <div class="full-draw-kicker">Path Lane</div>
+          <h3 class="full-draw-path-title">${escHtml(path.label)}</h3>
+        </div>
+        ${badge}
+      </div>
+      ${qualifier}
+      <div class="full-draw-steps">${steps || '<div class="full-draw-note">No bracket steps published yet.</div>'}</div>
+    </article>`;
+  }).join('');
+
+  const laneNote = `<div class="full-draw-note">Official paths come from the tournament bracket import. Projected paths reflect the currently inferred outcome for your team.</div>`;
+  return `<section class="full-draw-section">
+    <div class="full-draw-section-head">
+      <div>
+        <div class="full-draw-kicker">Bracket Paths</div>
+        <h3 class="full-draw-title">Win and loss lanes by venue</h3>
+      </div>
+    </div>
+    ${laneNote}
+    <div class="full-draw-path-grid">${cards}</div>
+  </section>`;
+}
+
 function renderFullDraw() {
   const listEl  = $('possible-list');
   const emptyEl = $('possible-empty');
@@ -10663,7 +10891,7 @@ function renderFullDraw() {
     ? { games: dGames, scores: state.dirScores }
     : null;
 
-  let html = '';
+  let html = '<div class="full-draw-shell">';
 
   // Compute standings once — used for both the table and bracket seed resolution
   const standings = hasPools ? _computeFullDrawStandings(pools, scoreSource) : {};
@@ -10672,88 +10900,33 @@ function renderFullDraw() {
   if (scoreSource) {
     const now = new Date();
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    html += `<div style="display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--gray-400,#9ca3af);margin-bottom:10px">
-      <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite"></span>
+    html += `<div class="full-draw-live-indicator">
+      <span class="full-draw-live-dot"></span>
       Live · refreshes every 6s · last updated ${timeStr}
     </div>`;
   }
 
   // ── 1. Pool standings ──────────────────────────────────────────────────────
   if (hasPools) {
-    const hasAnyScores = Object.values(standings).some(arr => arr.some(t => t.gp > 0));
-
-    html += `<div style="margin-bottom:18px">
-      <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-500,#9ca3af);margin-bottom:10px">Pool Standings</div>`;
-
-    for (const [poolName, arr] of Object.entries(standings)) {
-      html += `<div style="margin-bottom:14px">
-        <div style="font-size:0.8rem;font-weight:700;color:var(--royal,#1e3a8a);margin-bottom:4px">${escHtml(poolName)}</div>
-        <table style="width:100%;font-size:0.82rem;border-collapse:collapse">
-          <tr style="color:var(--gray-400,#9ca3af);font-size:0.7rem">
-            <th style="text-align:left;padding:2px 4px;font-weight:600">Team</th>
-            ${hasAnyScores ? `<th style="padding:2px 6px;text-align:center">W</th><th style="padding:2px 6px;text-align:center">L</th><th style="padding:2px 6px;text-align:center">T</th><th style="padding:2px 6px;text-align:center">GD</th>` : ''}
-          </tr>
-          ${arr.map((t, i) => `
-            <tr style="border-top:1px solid var(--gray-100,#f3f4f6)">
-              <td style="padding:5px 4px;font-weight:400">${i + 1}. ${escHtml(t.name)}</td>
-              ${hasAnyScores ? `
-              <td style="text-align:center;padding:5px 6px;font-weight:${t.gp?'600':'400'}">${t.gp ? t.w : '—'}</td>
-              <td style="text-align:center;padding:5px 6px;font-weight:${t.gp?'600':'400'}">${t.gp ? t.l : '—'}</td>
-              <td style="text-align:center;padding:5px 6px">${t.gp && t.t ? t.t : (t.gp ? '0' : '—')}</td>
-              <td style="text-align:center;padding:5px 6px;color:${t.gd>0?'var(--green,#16a34a)':t.gd<0?'var(--red,#dc2626)':'inherit'}">${t.gp ? (t.gd > 0 ? '+' : '') + t.gd : '—'}</td>` : ''}
-            </tr>`).join('')}
-        </table>
-      </div>`;
-    }
-
-    if (!scoreSource) {
-      html += `<div style="font-size:0.78rem;color:var(--gray-400,#9ca3af);font-style:italic;margin-top:-4px;margin-bottom:4px">
-        Live standings appear when director scores are available.
-      </div>`;
-    } else if (!hasAnyScores) {
-      html += `<div style="font-size:0.78rem;color:var(--gray-400,#9ca3af);font-style:italic;margin-top:-4px;margin-bottom:4px">
-        Standings will update as games are scored.
-      </div>`;
-    }
-    html += `</div>`;
+    html += _renderFullDrawPoolsGrid(standings, scoreSource);
   }
 
   // ── 2. All bracket paths ───────────────────────────────────────────────────
   if (paths.length) {
     const projected = inferProjectedPath();
-    html += `<div>
-      <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-500,#9ca3af);margin-bottom:10px">All Bracket Paths</div>`;
-
-    for (const path of paths) {
-      const isProj = projected && path.id === projected.id;
-      html += `<div style="margin-bottom:10px;padding:10px 12px;border-radius:10px;border:1.5px solid ${isProj ? 'var(--royal-light,#bfdbfe)' : 'var(--gray-100,#f3f4f6)'};background:${isProj ? 'rgba(59,130,246,0.04)' : '#fff'}">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:${(path.steps || []).length ? '6' : '0'}px">
-          <span style="font-weight:700;font-size:0.9rem">${escHtml(path.label)}</span>
-          ${isProj ? `<span style="font-size:0.7rem;background:var(--royal,#1e3a8a);color:#fff;padding:2px 8px;border-radius:20px">Projected</span>` : ''}
-          ${path.qualifier ? `<span style="font-size:0.75rem;color:var(--gray-400,#9ca3af);margin-left:auto">${escHtml(path.qualifier)}</span>` : ''}
-        </div>
-        ${(path.steps || []).map(s => {
-          const timeStr = (s.time && s.time !== 'TBD') ? escHtml(s.time) : (s.date ? escHtml(s.date) : 'TBD');
-          // Phase D: resolve "1st Pool A" → actual team name when standings are locked
-          const descResolved = escHtml(_resolvePoolSeedRef(s.desc || '', standings));
-          return `<div style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--gray-700,#374151);padding:4px 0;border-top:1px solid var(--gray-100,#f3f4f6)">
-            ${s.gameNum ? `<span style="color:var(--gray-400,#9ca3af);font-size:0.72rem;min-width:32px">${escHtml(s.gameNum)}</span>` : ''}
-            <span style="flex:1">${descResolved}</span>
-            <span style="color:var(--gray-400,#9ca3af);font-size:0.75rem;white-space:nowrap">${timeStr}</span>
-          </div>`;
-        }).join('')}
-      </div>`;
-    }
-    html += `</div>`;
+    html += _renderFullDrawPathLanes(paths, projected, standings);
   }
 
   if (!hasPools && !paths.length) {
-    html = `<div style="text-align:center;padding:32px 0;color:var(--gray-400,#9ca3af)">
-      <div style="font-size:2rem;margin-bottom:10px">📋</div>
-      <div style="font-size:0.9rem;line-height:1.6">Full tournament draw will be<br>available once the schedule is posted.</div>
+    html = `<div class="full-draw-shell">
+      <div class="full-draw-empty">
+        <div class="full-draw-empty-icon">📋</div>
+        <div class="full-draw-empty-copy">Full tournament draw will be<br>available once the schedule is posted.</div>
+      </div>
     </div>`;
   }
 
+  if (html && !html.endsWith('</div>')) html += '</div>';
   listEl.innerHTML = html;
 }
 
@@ -13336,237 +13509,248 @@ async function broadcastLiveScore(gameId) {
 
 // ── Offline Score Queue (IndexedDB) ──────────────────────────────────────────
 
-function _openScoreDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open('ebwp-offline', 2);
-    req.onupgradeneeded = e => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('pending-scores'))
-        db.createObjectStore('pending-scores', { keyPath: 'id', autoIncrement: true });
-      if (!db.objectStoreNames.contains('tournament-cache'))
-        db.createObjectStore('tournament-cache', { keyPath: 'key' });
-      if (!db.objectStoreNames.contains('scorer-sessions'))
-        db.createObjectStore('scorer-sessions', { keyPath: 'sessionKey' });
-      if (!db.objectStoreNames.contains('scorer-drafts'))
-        db.createObjectStore('scorer-drafts', { keyPath: 'sessionKey' });
-      if (!db.objectStoreNames.contains('scorer-outbox'))
-        db.createObjectStore('scorer-outbox', { keyPath: 'key' });
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-function _dbStoreGetAll(db, storeName) {
-  return new Promise((resolve, reject) => {
-    const req = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-function _dbStorePut(db, storeName, value) {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readwrite');
-    tx.objectStore(storeName).put(value);
-    tx.oncomplete = () => resolve(value);
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-function _dbStoreDelete(db, storeName, key) {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readwrite');
-    tx.objectStore(storeName).delete(key);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-async function _persistScorerSessionToDB(gameOrRef, explicitGroupKey = '', extra = {}) {
-  try {
-    const session = _getScorerSession(gameOrRef, explicitGroupKey);
-    if (!session) return;
-    const db = await _openScoreDB();
-    await _dbStorePut(db, 'scorer-sessions', {
-      ...session,
-      sessionKey: _getScorerSessionKey(gameOrRef, explicitGroupKey),
-      savedAt: Date.now(),
-      ...extra,
+const ScorerDB = {
+  open() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('ebwp-offline', 2);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('pending-scores'))
+          db.createObjectStore('pending-scores', { keyPath: 'id', autoIncrement: true });
+        if (!db.objectStoreNames.contains('tournament-cache'))
+          db.createObjectStore('tournament-cache', { keyPath: 'key' });
+        if (!db.objectStoreNames.contains('scorer-sessions'))
+          db.createObjectStore('scorer-sessions', { keyPath: 'sessionKey' });
+        if (!db.objectStoreNames.contains('scorer-drafts'))
+          db.createObjectStore('scorer-drafts', { keyPath: 'sessionKey' });
+        if (!db.objectStoreNames.contains('scorer-outbox'))
+          db.createObjectStore('scorer-outbox', { keyPath: 'key' });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
     });
-  } catch (e) {
-    console.warn('[scorer-db] persist session failed:', e.message);
-  }
-}
-
-async function _persistScorerDraftToDB(gameOrRef, explicitGroupKey = '', extra = {}) {
-  try {
-    const score = getLiveScore(gameOrRef);
-    if (!score) return;
-    const session = _getScorerSession(gameOrRef, explicitGroupKey) || _upsertScorerSession(gameOrRef, explicitGroupKey, { status: 'open' });
-    const db = await _openScoreDB();
-    await _dbStorePut(db, 'scorer-drafts', {
-      sessionKey: _getScorerSessionKey(gameOrRef, explicitGroupKey),
-      tournamentId: _getTournamentIdForGame(gameOrRef, explicitGroupKey),
-      groupKey: _contextGroupKey(gameOrRef, explicitGroupKey),
-      gameId: _gameIdOnly(gameOrRef),
-      scopedKey: _scopedGameKey(gameOrRef, explicitGroupKey),
-      score: _meaningfulScoreSnapshot(score),
-      session,
-      savedAt: Date.now(),
-      ...extra,
+  },
+  getAll(db, storeName) {
+    return new Promise((resolve, reject) => {
+      const req = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
     });
-    _mirrorScorerDraftToServer(gameOrRef, explicitGroupKey, { score, session, reason: extra.reason || 'draft' });
-  } catch (e) {
-    console.warn('[scorer-db] persist draft failed:', e.message);
-  }
-}
-
-async function _setScorerOutboxStatus(gameOrRef, explicitGroupKey = '', kind = 'live-score', status = 'queued', extra = {}) {
-  try {
-    const sessionKey = _getScorerSessionKey(gameOrRef, explicitGroupKey);
-    const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
-    const currentSync = _getScorerSyncStatus(gameOrRef, explicitGroupKey);
-    const gameState = getLiveScore(gameOrRef)?.gameState || '';
-    const protectFinalizeStatus = kind === 'live-score'
-      && ['final', 'so_w', 'so_l', 'ff'].includes(gameState)
-      && currentSync?.kind === 'finalize'
-      && ['pending', 'sending', 'queued', 'retrying', 'failed', 'rejected', 'local-final', 'final-acked'].includes(currentSync?.status || '');
-    if (!protectFinalizeStatus) _setScorerSyncStatus(gameOrRef, explicitGroupKey, status, { kind, ...extra });
-    const db = await _openScoreDB();
-    await _dbStorePut(db, 'scorer-outbox', {
-      key: `${sessionKey}::${kind}`,
-      sessionKey,
-      scopedKey,
-      groupKey: _contextGroupKey(gameOrRef, explicitGroupKey),
-      kind,
-      status,
-      updatedAt: Date.now(),
-      ...extra,
+  },
+  put(db, storeName, value) {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, 'readwrite');
+      tx.objectStore(storeName).put(value);
+      tx.oncomplete = () => resolve(value);
+      tx.onerror = () => reject(tx.error);
     });
-  } catch (e) {
-    console.warn('[scorer-db] outbox update failed:', e.message);
-  }
-}
-
-async function _ackFinalizeSync(gameOrRef, explicitGroupKey = '', extra = {}) {
-  const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
-  const sessionKey = _getScorerSessionKey(gameOrRef, groupKey);
-  _setScorerSyncStatus(gameOrRef, groupKey, 'final-acked', extra);
-  _closeScorerSession(gameOrRef, groupKey, 'final-acked');
-  _mirrorScorerDraftToServer(gameOrRef, groupKey, {
-    score: getLiveScore(gameOrRef),
-    session: _getScorerSession(gameOrRef, groupKey),
-    status: 'final-acked',
-    reason: 'finalize-acked',
-  });
-  try {
-    const db = await _openScoreDB();
-    await _dbStorePut(db, 'scorer-outbox', {
-      key: `${sessionKey}::finalize`,
-      sessionKey,
-      scopedKey: _scopedGameKey(gameOrRef, groupKey),
-      groupKey,
-      kind: 'finalize',
-      status: 'final-acked',
-      updatedAt: Date.now(),
-      ...extra,
+  },
+  delete(db, storeName, key) {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, 'readwrite');
+      tx.objectStore(storeName).delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
     });
-  } catch (e) {
-    console.warn('[scorer-db] finalize ack failed:', e.message);
-  }
-}
+  },
+};
 
-async function _clearRecoveredDraftForGame(gameOrRef, explicitGroupKey = '') {
-  try {
+function _openScoreDB() { return ScorerDB.open(); }
+function _dbStoreGetAll(db, storeName) { return ScorerDB.getAll(db, storeName); }
+function _dbStorePut(db, storeName, value) { return ScorerDB.put(db, storeName, value); }
+function _dbStoreDelete(db, storeName, key) { return ScorerDB.delete(db, storeName, key); }
+
+const ScorerPersistence = {
+  async persistSession(gameOrRef, explicitGroupKey = '', extra = {}) {
+    try {
+      const session = _getScorerSession(gameOrRef, explicitGroupKey);
+      if (!session) return;
+      const db = await ScorerDB.open();
+      await ScorerDB.put(db, 'scorer-sessions', {
+        ...session,
+        sessionKey: _getScorerSessionKey(gameOrRef, explicitGroupKey),
+        savedAt: Date.now(),
+        ...extra,
+      });
+    } catch (e) {
+      console.warn('[scorer-db] persist session failed:', e.message);
+    }
+  },
+  async persistDraft(gameOrRef, explicitGroupKey = '', extra = {}) {
+    try {
+      const score = getLiveScore(gameOrRef);
+      if (!score) return;
+      const session = _getScorerSession(gameOrRef, explicitGroupKey) || _upsertScorerSession(gameOrRef, explicitGroupKey, { status: 'open' });
+      const db = await ScorerDB.open();
+      await ScorerDB.put(db, 'scorer-drafts', {
+        sessionKey: _getScorerSessionKey(gameOrRef, explicitGroupKey),
+        tournamentId: _getTournamentIdForGame(gameOrRef, explicitGroupKey),
+        groupKey: _contextGroupKey(gameOrRef, explicitGroupKey),
+        gameId: _gameIdOnly(gameOrRef),
+        scopedKey: _scopedGameKey(gameOrRef, explicitGroupKey),
+        score: _meaningfulScoreSnapshot(score),
+        session,
+        savedAt: Date.now(),
+        ...extra,
+      });
+      _mirrorScorerDraftToServer(gameOrRef, explicitGroupKey, { score, session, reason: extra.reason || 'draft' });
+    } catch (e) {
+      console.warn('[scorer-db] persist draft failed:', e.message);
+    }
+  },
+  async setOutboxStatus(gameOrRef, explicitGroupKey = '', kind = 'live-score', status = 'queued', extra = {}) {
+    try {
+      const sessionKey = _getScorerSessionKey(gameOrRef, explicitGroupKey);
+      const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
+      const currentSync = _getScorerSyncStatus(gameOrRef, explicitGroupKey);
+      const gameState = getLiveScore(gameOrRef)?.gameState || '';
+      const protectFinalizeStatus = kind === 'live-score'
+        && ['final', 'so_w', 'so_l', 'ff'].includes(gameState)
+        && currentSync?.kind === 'finalize'
+        && ['pending', 'sending', 'queued', 'retrying', 'failed', 'rejected', 'local-final', 'final-acked'].includes(currentSync?.status || '');
+      if (!protectFinalizeStatus) _setScorerSyncStatus(gameOrRef, explicitGroupKey, status, { kind, ...extra });
+      const db = await ScorerDB.open();
+      await ScorerDB.put(db, 'scorer-outbox', {
+        key: `${sessionKey}::${kind}`,
+        sessionKey,
+        scopedKey,
+        groupKey: _contextGroupKey(gameOrRef, explicitGroupKey),
+        kind,
+        status,
+        updatedAt: Date.now(),
+        ...extra,
+      });
+    } catch (e) {
+      console.warn('[scorer-db] outbox update failed:', e.message);
+    }
+  },
+  async ackFinalize(gameOrRef, explicitGroupKey = '', extra = {}) {
     const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
     const sessionKey = _getScorerSessionKey(gameOrRef, groupKey);
-    const db = await _openScoreDB();
-    await _dbStoreDelete(db, 'scorer-drafts', sessionKey);
-    state.recoveredScorerSessions = (state.recoveredScorerSessions || []).filter(item => item.sessionKey !== sessionKey);
-  } catch (e) {
-    console.warn('[scorer-db] clear draft failed:', e.message);
-  }
-}
-
-async function _mirrorScorerDraftToServer(gameOrRef, explicitGroupKey = '', extra = {}) {
-  try {
-    const score = extra.score || getLiveScore(gameOrRef);
-    if (!score || !_hasMeaningfulLiveScoreData(score)) return;
-    const clubId = getAppClubId() || '';
-    const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
-    const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
-    const tournamentId = tournament.id || score.tournamentId || '_';
-    if (!clubId || !groupKey) return;
-    const session = extra.session || _getScorerSession(gameOrRef, groupKey);
-    const payload = {
-      clubId,
-      ageGroup: groupKey,
-      tournamentId,
-      gameId: _gameIdOnly(gameOrRef),
-      score: _meaningfulScoreSnapshot(score),
-      session,
-      deviceId: getDeviceId(),
-      reason: extra.reason || 'draft',
-      status: extra.status || session?.status || 'open',
-      updatedAt: Date.parse(session?.lastTouchedAt || '') || Date.now(),
-    };
-    const headers = { 'Content-Type': 'application/json' };
-    const scorePw = (tournament.scoringPassword || '').trim();
-    if (scorePw) headers['X-Score-Password'] = scorePw;
-    await fetch(`${PUSH_SERVER_URL}/scorer-draft`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
+    _setScorerSyncStatus(gameOrRef, groupKey, 'final-acked', extra);
+    _closeScorerSession(gameOrRef, groupKey, 'final-acked');
+    _mirrorScorerDraftToServer(gameOrRef, groupKey, {
+      score: getLiveScore(gameOrRef),
+      session: _getScorerSession(gameOrRef, groupKey),
+      status: 'final-acked',
+      reason: 'finalize-acked',
     });
-  } catch (e) {
-    console.warn('[scorer-db] mirror draft failed:', e.message);
-  }
-}
+    try {
+      const db = await ScorerDB.open();
+      await ScorerDB.put(db, 'scorer-outbox', {
+        key: `${sessionKey}::finalize`,
+        sessionKey,
+        scopedKey: _scopedGameKey(gameOrRef, groupKey),
+        groupKey,
+        kind: 'finalize',
+        status: 'final-acked',
+        updatedAt: Date.now(),
+        ...extra,
+      });
+    } catch (e) {
+      console.warn('[scorer-db] finalize ack failed:', e.message);
+    }
+  },
+  async clearRecoveredDraft(gameOrRef, explicitGroupKey = '') {
+    try {
+      const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
+      const sessionKey = _getScorerSessionKey(gameOrRef, groupKey);
+      const db = await ScorerDB.open();
+      await ScorerDB.delete(db, 'scorer-drafts', sessionKey);
+      state.recoveredScorerSessions = (state.recoveredScorerSessions || []).filter(item => item.sessionKey !== sessionKey);
+    } catch (e) {
+      console.warn('[scorer-db] clear draft failed:', e.message);
+    }
+  },
+};
 
-async function _mirrorScorerSessionToServer(gameOrRef, explicitGroupKey = '', extra = {}) {
-  try {
-    const clubId = getAppClubId() || '';
-    const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
-    const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
-    const session = extra.session || _getScorerSession(gameOrRef, groupKey);
-    const tournamentId = tournament.id || _getTournamentIdForGame(gameOrRef, explicitGroupKey)
-      || session?.tournamentId || getLiveScore(gameOrRef)?.tournamentId || '_';
-    if (!clubId || !groupKey || !session?.gameId) return;
-    const headers = { 'Content-Type': 'application/json' };
-    const scorePw = (tournament.scoringPassword || '').trim();
-    if (scorePw) headers['X-Score-Password'] = scorePw;
-    const res = await fetch(`${PUSH_SERVER_URL}/scorer-session`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
+async function _persistScorerSessionToDB(gameOrRef, explicitGroupKey = '', extra = {}) { return ScorerPersistence.persistSession(gameOrRef, explicitGroupKey, extra); }
+async function _persistScorerDraftToDB(gameOrRef, explicitGroupKey = '', extra = {}) { return ScorerPersistence.persistDraft(gameOrRef, explicitGroupKey, extra); }
+async function _setScorerOutboxStatus(gameOrRef, explicitGroupKey = '', kind = 'live-score', status = 'queued', extra = {}) { return ScorerPersistence.setOutboxStatus(gameOrRef, explicitGroupKey, kind, status, extra); }
+async function _ackFinalizeSync(gameOrRef, explicitGroupKey = '', extra = {}) { return ScorerPersistence.ackFinalize(gameOrRef, explicitGroupKey, extra); }
+async function _clearRecoveredDraftForGame(gameOrRef, explicitGroupKey = '') { return ScorerPersistence.clearRecoveredDraft(gameOrRef, explicitGroupKey); }
+
+const ScorerMirror = {
+  async draft(gameOrRef, explicitGroupKey = '', extra = {}) {
+    try {
+      const score = extra.score || getLiveScore(gameOrRef);
+      if (!score || !_hasMeaningfulLiveScoreData(score)) return;
+      const clubId = getAppClubId() || '';
+      const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
+      const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
+      const tournamentId = tournament.id || score.tournamentId || '_';
+      if (!clubId || !groupKey) return;
+      const session = extra.session || _getScorerSession(gameOrRef, groupKey);
+      const payload = {
         clubId,
         ageGroup: groupKey,
         tournamentId,
-        gameId: session.gameId || _gameIdOnly(gameOrRef),
-        session: {
-          ...session,
-          sessionKey: session.sessionKey || _getScorerSessionKey(gameOrRef, groupKey),
-          scopedKey: session.scopedKey || _scopedGameKey(gameOrRef, groupKey),
-        },
+        gameId: _gameIdOnly(gameOrRef),
+        score: _meaningfulScoreSnapshot(score),
+        session,
         deviceId: getDeviceId(),
-        status: extra.status || session.status || 'open',
-        reason: extra.reason || 'session',
-        force: extra.force || false,
-        updatedAt: Date.parse(extra.session?.lastTouchedAt || session.lastTouchedAt || '') || Date.now(),
-      }),
-    });
-    // 409 = another device actively owns this session
-    if (res.status === 409) {
-      const conflictData = await res.json().catch(() => ({}));
-      if (conflictData.blocked) {
-        _handleScorerDeviceConflict(conflictData, session.gameId || _gameIdOnly(gameOrRef), groupKey);
-      }
+        reason: extra.reason || 'draft',
+        status: extra.status || session?.status || 'open',
+        updatedAt: Date.parse(session?.lastTouchedAt || '') || Date.now(),
+      };
+      const headers = { 'Content-Type': 'application/json' };
+      const scorePw = (tournament.scoringPassword || '').trim();
+      if (scorePw) headers['X-Score-Password'] = scorePw;
+      await fetch(`${PUSH_SERVER_URL}/scorer-draft`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+    } catch (e) {
+      console.warn('[scorer-db] mirror draft failed:', e.message);
     }
-  } catch (e) {
-    console.warn('[scorer-db] mirror session failed:', e.message);
-  }
-}
+  },
+  async session(gameOrRef, explicitGroupKey = '', extra = {}) {
+    try {
+      const clubId = getAppClubId() || '';
+      const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
+      const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
+      const session = extra.session || _getScorerSession(gameOrRef, groupKey);
+      const tournamentId = tournament.id || _getTournamentIdForGame(gameOrRef, explicitGroupKey)
+        || session?.tournamentId || getLiveScore(gameOrRef)?.tournamentId || '_';
+      if (!clubId || !groupKey || !session?.gameId) return;
+      const headers = { 'Content-Type': 'application/json' };
+      const scorePw = (tournament.scoringPassword || '').trim();
+      if (scorePw) headers['X-Score-Password'] = scorePw;
+      const res = await fetch(`${PUSH_SERVER_URL}/scorer-session`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          clubId,
+          ageGroup: groupKey,
+          tournamentId,
+          gameId: session.gameId || _gameIdOnly(gameOrRef),
+          session: {
+            ...session,
+            sessionKey: session.sessionKey || _getScorerSessionKey(gameOrRef, groupKey),
+            scopedKey: session.scopedKey || _scopedGameKey(gameOrRef, groupKey),
+          },
+          deviceId: getDeviceId(),
+          status: extra.status || session.status || 'open',
+          reason: extra.reason || 'session',
+          force: extra.force || false,
+          updatedAt: Date.parse(extra.session?.lastTouchedAt || session.lastTouchedAt || '') || Date.now(),
+        }),
+      });
+      if (res.status === 409) {
+        const conflictData = await res.json().catch(() => ({}));
+        if (conflictData.blocked) {
+          _handleScorerDeviceConflict(conflictData, session.gameId || _gameIdOnly(gameOrRef), groupKey);
+        }
+      }
+    } catch (e) {
+      console.warn('[scorer-db] mirror session failed:', e.message);
+    }
+  },
+};
+
+async function _mirrorScorerDraftToServer(gameOrRef, explicitGroupKey = '', extra = {}) { return ScorerMirror.draft(gameOrRef, explicitGroupKey, extra); }
+async function _mirrorScorerSessionToServer(gameOrRef, explicitGroupKey = '', extra = {}) { return ScorerMirror.session(gameOrRef, explicitGroupKey, extra); }
 
 // ─── SCORER HEARTBEAT ──────────────────────────────────────────────────────────
 
@@ -13768,182 +13952,188 @@ async function _restoreScorerOutboxFromDB() {
   }
 }
 
-async function _restoreScorerSessionsFromDB() {
-  try {
-    const db = await _openScoreDB();
-    const items = await _dbStoreGetAll(db, 'scorer-sessions');
-    if (!items.length) return;
-    const current = _getScorerSessions();
-    const next = { ...current };
-    let changed = false;
-    for (const item of items) {
-      if (!item?.sessionKey) continue;
-      const existing = next[item.sessionKey];
-      const existingTs = existing?.lastTouchedAt ? Date.parse(existing.lastTouchedAt) || 0 : 0;
-      const itemTs = item?.lastTouchedAt ? Date.parse(item.lastTouchedAt) || 0 : 0;
-      if (existing && existingTs >= itemTs) continue;
-      next[item.sessionKey] = {
-        ...(existing || {}),
-        ...item,
-      };
-      changed = true;
-    }
-    if (changed) _saveScorerSessions(next);
-  } catch (e) {
-    console.warn('[scorer-db] restore sessions failed:', e.message);
-  }
-}
-
-async function _restoreScorerDraftsFromDB() {
-  try {
-    const db = await _openScoreDB();
-    const drafts = await _dbStoreGetAll(db, 'scorer-drafts');
-    if (!drafts.length) return;
-    const restored = [];
-    for (const draft of drafts) {
-      const session = draft.session || {};
-      if ((session.status || 'open') !== 'open') continue;
-      const score = draft.score;
-      if (!_hasMeaningfulLiveScoreData(score)) continue;
-      // Orphan guard: if the game no longer exists in any loaded tournament,
-      // silently skip (and delete) the stale draft so it never shows in Recovery.
-      if (draft.gameId) {
-        const draftGroupKey = draft.groupKey || '';
-        const knownGames = (draftGroupKey && TEAM_CACHE[draftGroupKey])
-          ? (TEAM_CACHE[draftGroupKey].tournament?.games || [])
-          : (TOURNAMENT?.games || []);
-        if (knownGames.length > 0 && !knownGames.some(g => String(g.id) === String(draft.gameId))) {
-          // Game gone — delete the orphan draft from IndexedDB and skip
-          try { const _db = await _openScoreDB(); await _dbStoreDelete(_db, 'scorer-drafts', draft.sessionKey); } catch (_) {}
-          continue;
-        }
+const ScorerRecovery = {
+  async restoreSessionsFromDB() {
+    try {
+      const db = await _openScoreDB();
+      const items = await _dbStoreGetAll(db, 'scorer-sessions');
+      if (!items.length) return;
+      const current = _getScorerSessions();
+      const next = { ...current };
+      let changed = false;
+      for (const item of items) {
+        if (!item?.sessionKey) continue;
+        const existing = next[item.sessionKey];
+        const existingTs = existing?.lastTouchedAt ? Date.parse(existing.lastTouchedAt) || 0 : 0;
+        const itemTs = item?.lastTouchedAt ? Date.parse(item.lastTouchedAt) || 0 : 0;
+        if (existing && existingTs >= itemTs) continue;
+        next[item.sessionKey] = {
+          ...(existing || {}),
+          ...item,
+        };
+        changed = true;
       }
-      const scopedKey = draft.scopedKey || _scopedGameKey(draft.gameId, draft.groupKey || '');
-      const current = state.liveScores[scopedKey];
-      if (_shouldPreserveLocalLiveScore(current, score, scopedKey, draft.groupKey || '')) continue;
-      if (current && _meaningfulEventCount(current) >= _meaningfulEventCount(score) && _hasMeaningfulLiveScoreData(current)) continue;
-      const nextScore = {
-        ...score,
-        ageGroup: draft.groupKey || score.ageGroup || '',
-      };
-      _attachScoreContext(nextScore, scopedKey, draft.groupKey || '');
-      state.liveScores[scopedKey] = nextScore;
-      restored.push({
-        sessionKey: draft.sessionKey,
-        scopedKey,
-        opponent: session.opponent || nextScore.opponent || '',
-        time: session.time || nextScore.time || '',
-      });
+      if (changed) _saveScorerSessions(next);
+    } catch (e) {
+      console.warn('[scorer-db] restore sessions failed:', e.message);
     }
-    if (restored.length) {
-      state.recoveredScorerSessions = restored;
-      saveLiveScores();
-      showToast(`Recovered ${restored.length} unfinished scorer draft${restored.length > 1 ? 's' : ''}`, 'warn');
-    }
-  } catch (e) {
-    console.warn('[scorer-db] restore drafts failed:', e.message);
-  }
-}
-
-async function _queuePendingScore(payload) {
-  try {
-    const db = await _openScoreDB();
-    const tx = db.transaction('pending-scores', 'readwrite');
-    tx.objectStore('pending-scores').add({
-      payload,
-      timestamp: Date.now(),
-      retryCount: 0,
-    });
-    _setScorerOutboxStatus(payload.gameId, payload.ageGroup || '', 'live-score', 'queued', {
-      tournamentId: payload.tournamentId || '',
-    });
-    // Show offline banner
-    _showOfflineBanner(true);
-    // Register background sync if available
-    if ('serviceWorker' in navigator && 'SyncManager' in window) {
-      const reg = await navigator.serviceWorker.ready;
-      await reg.sync.register('score-sync').catch(() => {});
-    }
-  } catch (e) { console.warn('[offline] queue failed:', e.message); }
-}
-
-async function _syncPendingScores() {
-  try {
-    const db = await _openScoreDB();
-    const tx = db.transaction('pending-scores', 'readonly');
-    const store = tx.objectStore('pending-scores');
-    const all = await new Promise((res, rej) => {
-      const req = store.getAll();
-      req.onsuccess = () => res(req.result);
-      req.onerror = () => rej(req.error);
-    });
-    if (!all.length) return;
-
-    let synced = 0;
-    for (const entry of all) {
-      if (entry.retryCount >= 10) {
-        // Give up — delete and notify
-        const dtx = db.transaction('pending-scores', 'readwrite');
-        dtx.objectStore('pending-scores').delete(entry.id);
-        showToast('❌ Failed to sync a score after 10 retries', 'err');
-        continue;
-      }
-      try {
-        const replayHeaders = { 'Content-Type': 'application/json' };
-        if (entry.payload._scorePw) replayHeaders['X-Score-Password'] = entry.payload._scorePw;
-        const res = await fetch(`${PUSH_SERVER_URL}/live-score`, {
-          method:  'POST',
-          headers: replayHeaders,
-          body:    JSON.stringify(entry.payload),
-        });
-        if (!res.ok) {
-          if (res.status === 400 || res.status === 401) {
-            const dtx = db.transaction('pending-scores', 'readwrite');
-            dtx.objectStore('pending-scores').delete(entry.id);
-            _setScorerOutboxStatus(entry.payload.gameId, entry.payload.ageGroup || '', 'live-score', 'rejected', {
-              httpStatus: res.status,
-            });
+  },
+  async restoreDraftsFromDB() {
+    try {
+      const db = await _openScoreDB();
+      const drafts = await _dbStoreGetAll(db, 'scorer-drafts');
+      if (!drafts.length) return;
+      const restored = [];
+      for (const draft of drafts) {
+        const session = draft.session || {};
+        if ((session.status || 'open') !== 'open') continue;
+        const score = draft.score;
+        if (!_hasMeaningfulLiveScoreData(score)) continue;
+        if (draft.gameId) {
+          const draftGroupKey = draft.groupKey || '';
+          const knownGames = (draftGroupKey && TEAM_CACHE[draftGroupKey])
+            ? (TEAM_CACHE[draftGroupKey].tournament?.games || [])
+            : (TOURNAMENT?.games || []);
+          if (knownGames.length > 0 && !knownGames.some(g => String(g.id) === String(draft.gameId))) {
+            try { const _db = await _openScoreDB(); await _dbStoreDelete(_db, 'scorer-drafts', draft.sessionKey); } catch (_) {}
             continue;
           }
-          throw new Error('HTTP ' + res.status);
         }
-        // Success — remove from queue
-        const dtx = db.transaction('pending-scores', 'readwrite');
-        dtx.objectStore('pending-scores').delete(entry.id);
-        _setScorerOutboxStatus(entry.payload.gameId, entry.payload.ageGroup || '', 'live-score', 'acked', {
-          tournamentId: entry.payload.tournamentId || '',
+        const scopedKey = draft.scopedKey || _scopedGameKey(draft.gameId, draft.groupKey || '');
+        const current = state.liveScores[scopedKey];
+        if (_shouldPreserveLocalLiveScore(current, score, scopedKey, draft.groupKey || '')) continue;
+        if (current && _meaningfulEventCount(current) >= _meaningfulEventCount(score) && _hasMeaningfulLiveScoreData(current)) continue;
+        const nextScore = {
+          ...score,
+          ageGroup: draft.groupKey || score.ageGroup || '',
+        };
+        _attachScoreContext(nextScore, scopedKey, draft.groupKey || '');
+        state.liveScores[scopedKey] = nextScore;
+        restored.push({
+          sessionKey: draft.sessionKey,
+          scopedKey,
+          opponent: session.opponent || nextScore.opponent || '',
+          time: session.time || nextScore.time || '',
         });
-        if (entry.payload?.score?.gameState === 'final') {
-          _ackFinalizeSync(entry.payload.gameId, entry.payload.ageGroup || '', {
-            team: entry.payload?.score?.team ?? 0,
-            opp: entry.payload?.score?.opp ?? 0,
-          });
-          _clearRecoveredDraftForGame(entry.payload.gameId, entry.payload.ageGroup || '');
-        }
-        synced++;
-      } catch {
-        // Increment retry count
-        const utx = db.transaction('pending-scores', 'readwrite');
-        utx.objectStore('pending-scores').put({ ...entry, retryCount: entry.retryCount + 1 });
-        _setScorerOutboxStatus(entry.payload.gameId, entry.payload.ageGroup || '', 'live-score', 'retrying', {
-          retryCount: entry.retryCount + 1,
-        });
-        break; // stop trying if still offline
       }
+      if (restored.length) {
+        state.recoveredScorerSessions = restored;
+        saveLiveScores();
+        const first = restored[0];
+        showToast(`Recovered ${restored.length} unfinished scorer draft${restored.length > 1 ? 's' : ''}`, 'warn', {
+          actionLabel: 'Resume now',
+          onAction: () => {
+            const groupKey = _contextGroupKey(first.scopedKey);
+            const ageLabel = TEAM_OPTIONS.find(t => t.key === groupKey)?.label || groupKey || 'Team';
+            openScorerDetail(first.scopedKey, groupKey, ageLabel);
+          },
+        });
+      }
+    } catch (e) {
+      console.warn('[scorer-db] restore drafts failed:', e.message);
     }
-    if (synced > 0) {
-      showToast(`✅ ${synced} score${synced > 1 ? 's' : ''} synced`, 'ok');
-    }
-    // Check if queue is empty now
-    const checkTx = db.transaction('pending-scores', 'readonly');
-    const remaining = await new Promise((res) => {
-      const req = checkTx.objectStore('pending-scores').count();
-      req.onsuccess = () => res(req.result);
-      req.onerror = () => res(0);
-    });
-    if (remaining === 0) _showOfflineBanner(false);
-  } catch (e) { console.warn('[offline] sync failed:', e.message); }
-}
+  },
+};
+
+const ScorerQueue = {
+  async queuePendingScore(payload) {
+    try {
+      const db = await _openScoreDB();
+      const tx = db.transaction('pending-scores', 'readwrite');
+      tx.objectStore('pending-scores').add({
+        payload,
+        timestamp: Date.now(),
+        retryCount: 0,
+      });
+      _setScorerOutboxStatus(payload.gameId, payload.ageGroup || '', 'live-score', 'queued', {
+        tournamentId: payload.tournamentId || '',
+      });
+      _showOfflineBanner(true);
+      if ('serviceWorker' in navigator && 'SyncManager' in window) {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.sync.register('score-sync').catch(() => {});
+      }
+    } catch (e) { console.warn('[offline] queue failed:', e.message); }
+  },
+  async syncPendingScores() {
+    try {
+      const db = await _openScoreDB();
+      const tx = db.transaction('pending-scores', 'readonly');
+      const store = tx.objectStore('pending-scores');
+      const all = await new Promise((res, rej) => {
+        const req = store.getAll();
+        req.onsuccess = () => res(req.result);
+        req.onerror = () => rej(req.error);
+      });
+      if (!all.length) return;
+
+      let synced = 0;
+      for (const entry of all) {
+        if (entry.retryCount >= 10) {
+          const dtx = db.transaction('pending-scores', 'readwrite');
+          dtx.objectStore('pending-scores').delete(entry.id);
+          showToast('❌ Failed to sync a score after 10 retries', 'err');
+          continue;
+        }
+        try {
+          const replayHeaders = { 'Content-Type': 'application/json' };
+          if (entry.payload._scorePw) replayHeaders['X-Score-Password'] = entry.payload._scorePw;
+          const res = await fetch(`${PUSH_SERVER_URL}/live-score`, {
+            method:  'POST',
+            headers: replayHeaders,
+            body:    JSON.stringify(entry.payload),
+          });
+          if (!res.ok) {
+            if (res.status === 400 || res.status === 401) {
+              const dtx = db.transaction('pending-scores', 'readwrite');
+              dtx.objectStore('pending-scores').delete(entry.id);
+              _setScorerOutboxStatus(entry.payload.gameId, entry.payload.ageGroup || '', 'live-score', 'rejected', {
+                httpStatus: res.status,
+              });
+              continue;
+            }
+            throw new Error('HTTP ' + res.status);
+          }
+          const dtx = db.transaction('pending-scores', 'readwrite');
+          dtx.objectStore('pending-scores').delete(entry.id);
+          _setScorerOutboxStatus(entry.payload.gameId, entry.payload.ageGroup || '', 'live-score', 'acked', {
+            tournamentId: entry.payload.tournamentId || '',
+          });
+          if (entry.payload?.score?.gameState === 'final') {
+            _ackFinalizeSync(entry.payload.gameId, entry.payload.ageGroup || '', {
+              team: entry.payload?.score?.team ?? 0,
+              opp: entry.payload?.score?.opp ?? 0,
+            });
+            _clearRecoveredDraftForGame(entry.payload.gameId, entry.payload.ageGroup || '');
+          }
+          synced++;
+        } catch {
+          const utx = db.transaction('pending-scores', 'readwrite');
+          utx.objectStore('pending-scores').put({ ...entry, retryCount: entry.retryCount + 1 });
+          _setScorerOutboxStatus(entry.payload.gameId, entry.payload.ageGroup || '', 'live-score', 'retrying', {
+            retryCount: entry.retryCount + 1,
+          });
+          break;
+        }
+      }
+      if (synced > 0) {
+        showToast(`✅ ${synced} score${synced > 1 ? 's' : ''} synced`, 'ok');
+      }
+      const checkTx = db.transaction('pending-scores', 'readonly');
+      const remaining = await new Promise((res) => {
+        const req = checkTx.objectStore('pending-scores').count();
+        req.onsuccess = () => res(req.result);
+        req.onerror = () => res(0);
+      });
+      if (remaining === 0) _showOfflineBanner(false);
+    } catch (e) { console.warn('[offline] sync failed:', e.message); }
+  },
+};
+
+async function _restoreScorerSessionsFromDB() { return ScorerRecovery.restoreSessionsFromDB(); }
+async function _restoreScorerDraftsFromDB() { return ScorerRecovery.restoreDraftsFromDB(); }
+async function _queuePendingScore(payload) { return ScorerQueue.queuePendingScore(payload); }
+async function _syncPendingScores() { return ScorerQueue.syncPendingScores(); }
 
 function _showOfflineBanner(show) {
   let banner = document.getElementById('offline-score-banner');

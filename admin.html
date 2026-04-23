@@ -984,6 +984,47 @@
       color: var(--g700);
     }
 
+    .recovery-health-note {
+      margin: -4px 14px 14px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #fdba74;
+      background: #fff7ed;
+      color: #9a3412;
+      font-size: 0.78rem;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .recovery-empty-state {
+      padding: 16px 14px;
+      color: var(--g400);
+    }
+
+    .recovery-summary-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 9px;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .recovery-summary-pill-err {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .recovery-summary-pill-ok {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .recovery-summary-pill-warn {
+      background: #fef3c7;
+      color: #78350f;
+    }
+
     .recovery-status-chip {
       display: inline-flex;
       align-items: center;
@@ -2117,6 +2158,12 @@
       .recovery-health-strip {
         grid-template-columns: 1fr 1fr;
         gap: 6px;
+      }
+
+      .recovery-health-note {
+        margin-left: 14px;
+        margin-right: 14px;
+        font-size: 0.74rem;
       }
 
       .recovery-filter-btn {
@@ -10415,12 +10462,12 @@
       return paths;
     }
 
-    function bsComputeKap7FuturesSpecialPaths(allRows, cols, games) {
-      if (S.bsync?.sheetId !== '1n7y7fVM7RWku9yzqyx5sIxwdOTvDuXInV-Q0nLW9c7c') return null;
-      const ageGroupLabel = String(S.bsync?.myAgeGroup || '');
-      if (!/14u/i.test(ageGroupLabel)) return null;
-      if (!Array.isArray(allRows) || !allRows.length || !Array.isArray(games) || !games.length) return null;
+    function bsIsKap7Futures14uSheet() {
+      if (S.bsync?.sheetId !== '1n7y7fVM7RWku9yzqyx5sIxwdOTvDuXInV-Q0nLW9c7c') return false;
+      return /14u/i.test(String(S.bsync?.myAgeGroup || ''));
+    }
 
+    function bsBuildKap7RowContext(allRows) {
       const rowDate = new Array(allRows.length).fill('');
       const rowLoc = new Array(allRows.length).fill('');
       let currentDate = '', currentLoc = '';
@@ -10440,7 +10487,10 @@
         rowDate[ri] = currentDate;
         rowLoc[ri] = currentLoc;
       }
+      return { rowDate, rowLoc };
+    }
 
+    function bsCollectKap7SectionRows(allRows, rowContext) {
       const sectionRows = [];
       for (let ri = 0; ri < allRows.length; ri++) {
         const row = allRows[ri] || [];
@@ -10454,81 +10504,95 @@
           white,
           dark,
           time: String(row[1] || '').trim(),
-          dateISO: rowDate[ri] || '',
-          date: rowDate[ri] ? isoToDate(rowDate[ri]) : '',
-          location: rowLoc[ri] || '',
+          dateISO: rowContext.rowDate[ri] || '',
+          date: rowContext.rowDate[ri] ? isoToDate(rowContext.rowDate[ri]) : '',
+          location: rowContext.rowLoc[ri] || '',
           group: String(row[6] || '').trim(),
           note: String(row[7] || '').trim(),
         });
       }
+      return sectionRows;
+    }
 
-      const expandRef = raw => {
-        const text = String(raw || '').trim();
-        const win = text.match(/^W-?Game\s*(\d+)$/i);
-        if (win) return `Winner of Game ${win[1]}`;
-        const loss = text.match(/^L-?Game\s*(\d+)$/i);
-        if (loss) return `Loser of Game ${loss[1]}`;
-        return normalizeOpponentName(text || 'TBD');
-      };
+    function bsExpandKap7Ref(raw) {
+      const text = String(raw || '').trim();
+      const win = text.match(/^W-?Game\s*(\d+)$/i);
+      if (win) return `Winner of Game ${win[1]}`;
+      const loss = text.match(/^L-?Game\s*(\d+)$/i);
+      if (loss) return `Loser of Game ${loss[1]}`;
+      return normalizeOpponentName(text || 'TBD');
+    }
 
-      const buildTeamPaths = (slot, teamName, locationHint) => {
-        const slotGames = games.filter(g => (g.team || '') === slot);
-        if (!slotGames.length) return [];
-        const liveBracketGame = sectionRows.find(row => {
-          if (!/win\/loss/i.test(row.note || '')) return false;
-          if (locationHint && row.location !== locationHint) return false;
-          return row.white.toLowerCase().includes(teamName.toLowerCase()) || row.dark.toLowerCase().includes(teamName.toLowerCase());
+    function bsFindKap7LiveBracketGame(sectionRows, teamName, locationHint) {
+      return sectionRows.find(row => {
+        if (!/win\/loss/i.test(row.note || '')) return false;
+        if (locationHint && row.location !== locationHint) return false;
+        return row.white.toLowerCase().includes(teamName.toLowerCase()) || row.dark.toLowerCase().includes(teamName.toLowerCase());
+      }) || null;
+    }
+
+    function bsBuildKap7OutcomeRows(sectionRows, liveBracketGame, outcome) {
+      const sameBlockRows = sectionRows.filter(row =>
+        row.dateISO === liveBracketGame.dateISO
+        && row.location === liveBracketGame.location
+        && /win\/loss/i.test(row.note || '')
+      );
+      return sameBlockRows.filter(row => new RegExp(`\\b${outcome}-?Game\\s*${liveBracketGame.gameNum}\\b`, 'i').test(`${row.white} ${row.dark}`));
+    }
+
+    function bsBuildKap7PathSteps(rows, outcome, liveBracketGame, teamName) {
+      const escapedTeamName = teamName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return rows.map(row => {
+        const teamOnWhite = new RegExp(`\\b${escapedTeamName}\\b`, 'i').test(row.white)
+          || new RegExp(`^${outcome}-?Game\\s*${liveBracketGame.gameNum}$`, 'i').test(row.white);
+        const otherSide = teamOnWhite ? row.dark : row.white;
+        return {
+          gameNum: row.gameNum,
+          desc: `vs ${bsExpandKap7Ref(otherSide)}`,
+          time: row.time || 'TBD',
+          date: row.date || (row.dateISO ? isoToDate(row.dateISO) : ''),
+          dateISO: row.dateISO || '',
+          location: row.location || '',
+        };
+      });
+    }
+
+    function bsBuildKap7TeamPaths(slot, teamName, locationHint, games, sectionRows) {
+      const slotGames = games.filter(g => (g.team || '') === slot);
+      if (!slotGames.length) return [];
+      const liveBracketGame = bsFindKap7LiveBracketGame(sectionRows, teamName, locationHint);
+      if (!liveBracketGame) return [];
+      const winRows = bsBuildKap7OutcomeRows(sectionRows, liveBracketGame, 'W');
+      const lossRows = bsBuildKap7OutcomeRows(sectionRows, liveBracketGame, 'L');
+      const paths = [];
+      if (winRows.length) {
+        paths.push({
+          id: `kap7-futures-${slot.toLowerCase()}-win-${liveBracketGame.dateISO || 'day1'}`,
+          label: `If ${teamName} wins Game ${liveBracketGame.gameNum}`,
+          qualifier: `Official bracket path from the Futures sheet � ${liveBracketGame.location}.`,
+          steps: bsBuildKap7PathSteps(winRows, 'W', liveBracketGame, teamName),
         });
-        if (!liveBracketGame) return [];
-
-        const sameBlockRows = sectionRows.filter(row =>
-          row.dateISO === liveBracketGame.dateISO
-          && row.location === liveBracketGame.location
-          && /win\/loss/i.test(row.note || '')
-        );
-        const winRows = sameBlockRows.filter(row => new RegExp(`\\bW-?Game\\s*${liveBracketGame.gameNum}\\b`, 'i').test(`${row.white} ${row.dark}`));
-        const lossRows = sameBlockRows.filter(row => new RegExp(`\\bL-?Game\\s*${liveBracketGame.gameNum}\\b`, 'i').test(`${row.white} ${row.dark}`));
-        const buildPath = (rows, outcome) => rows.map(row => {
-          const teamOnWhite = new RegExp(`\\b${teamName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(row.white)
-            || new RegExp(`^${outcome}-?Game\\s*${liveBracketGame.gameNum}$`, 'i').test(row.white);
-          const otherSide = teamOnWhite ? row.dark : row.white;
-          return {
-            gameNum: row.gameNum,
-            desc: `vs ${expandRef(otherSide)}`,
-            time: row.time || 'TBD',
-            date: row.date || (row.dateISO ? isoToDate(row.dateISO) : ''),
-            dateISO: row.dateISO || '',
-            location: row.location || '',
-          };
+      }
+      if (lossRows.length) {
+        paths.push({
+          id: `kap7-futures-${slot.toLowerCase()}-loss-${liveBracketGame.dateISO || 'day1'}`,
+          label: `If ${teamName} loses Game ${liveBracketGame.gameNum}`,
+          qualifier: `Official bracket path from the Futures sheet � ${liveBracketGame.location}.`,
+          steps: bsBuildKap7PathSteps(lossRows, 'L', liveBracketGame, teamName),
         });
+      }
+      return paths;
+    }
 
-        const paths = [];
-        if (winRows.length) {
-          paths.push({
-            id: `kap7-futures-${slot.toLowerCase()}-win-${liveBracketGame.dateISO || 'day1'}`,
-            label: `If ${teamName} wins Game ${liveBracketGame.gameNum}`,
-            qualifier: `Official bracket path from the Futures sheet — ${liveBracketGame.location}.`,
-            steps: buildPath(winRows, 'W'),
-          });
-        }
-        if (lossRows.length) {
-          paths.push({
-            id: `kap7-futures-${slot.toLowerCase()}-loss-${liveBracketGame.dateISO || 'day1'}`,
-            label: `If ${teamName} loses Game ${liveBracketGame.gameNum}`,
-            qualifier: `Official bracket path from the Futures sheet — ${liveBracketGame.location}.`,
-            steps: buildPath(lossRows, 'L'),
-          });
-        }
-        return paths;
-      };
-
+    function bsComputeKap7FuturesSpecialPaths(allRows, cols, games) {
+      if (!bsIsKap7Futures14uSheet()) return null;
+      if (!Array.isArray(allRows) || !allRows.length || !Array.isArray(games) || !games.length) return null;
+      const rowContext = bsBuildKap7RowContext(allRows);
+      const sectionRows = bsCollectKap7SectionRows(allRows, rowContext);
       const bySlot = {
-        A: [],
-        B: [],
+        A: bsBuildKap7TeamPaths('A', '680 A', 'Campo HS/SODA AC', games, sectionRows),
+        B: bsBuildKap7TeamPaths('B', '680 B', 'Independence HS', games, sectionRows),
       };
-      bySlot.A = buildTeamPaths('A', '680 A', 'Campo HS/SODA AC');
-      bySlot.B = buildTeamPaths('B', '680 B', 'Independence HS');
-
       return (bySlot.A.length || bySlot.B.length) ? bySlot : null;
     }
 
@@ -14372,100 +14436,67 @@
       return html;
     }
 
+    function recoveryDraftNeedsAction(entry) {
+      const status = String(entry?.status || entry?.session?.status || 'open').trim() || 'open';
+      return status !== 'final-acked' || !!entry?.conflict;
+    }
+
+    function recoverySessionNeedsAction(entry) {
+      const status = String(entry?.computedStatus || entry?.status || entry?.session?.status || 'open').trim() || 'open';
+      return ['open', 'stale', 'finalizing', 'conflict'].includes(status);
+    }
+
+    function recoveryFilterMatches(mode, type, entry) {
+      if (mode === 'all') return true;
+      if (mode === 'conflicts') {
+        if (type === 'conflict') return true;
+        return !!entry?.conflict || String(entry?.computedStatus || entry?.status || '').trim() === 'conflict';
+      }
+      if (type === 'conflict') return true;
+      if (type === 'scored') return !!entry?.needsFinalization || String(entry?.score?.gameState || '').trim() !== 'final';
+      if (type === 'session') return recoverySessionNeedsAction(entry);
+      if (type === 'draft') return recoveryDraftNeedsAction(entry);
+      return true;
+    }
+
+    function recoverySheetSyncMeta(lastSyncRaw) {
+      const lastSync = Number(new Date(lastSyncRaw || 0));
+      if (!lastSync) return { label: '--', stale: true, note: 'No sheet sync recorded yet for this tournament.' };
+      const ageMs = Date.now() - lastSync;
+      const stale = ageMs > (45 * 60 * 1000);
+      return {
+        label: new Date(lastSync).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+        stale,
+        note: stale ? 'Sheet sync looks stale. Refresh the sheet sync before trusting spectator bracket or schedule state.' : '',
+      };
+    }
+
+    function renderRecoveryEmptyState(message) {
+      return `<div class="recovery-empty-state">${esc(message)}</div>`;
+    }
+
+    function renderRecoverySummaryPill(label, tone = 'muted') {
+      return `<span class="recovery-summary-pill recovery-summary-pill-${tone}">${esc(label)}</span>`;
+    }
+
     // ── renderRecoveryAdminTab — live scoring operations, sessions, drafts, conflicts ──
-    function renderRecoveryAdminTab() {
-      const teamObj = getAdminTeams().find(t => t.key === S.team);
-      const teamLabel = teamObj ? teamObj.label : S.team;
-      const scoredEntries = Object.values(S.scoredGames || {}).sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
-      const scorerDraftEntries = (S.scorerDrafts || []).slice().sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
-      const scorerSessionEntries = (S.scorerSessions || []).slice().sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
-      const needsFinalizeEntries = scoredEntries.filter(entry => !!entry.needsFinalization);
-      const unresolvedConflicts = (S.conflicts || []).filter(c => !c.resolved);
-      const activeSessionCount = scorerSessionEntries.filter(e => ['open', 'finalizing'].includes(e.computedStatus || e.status || 'open')).length;
-      const draftActionCount = scorerDraftEntries.filter(entry => {
-        const status = String(entry.status || entry.session?.status || 'open').trim() || 'open';
-        return status !== 'final-acked' || entry.conflict;
-      }).length;
-      const needsActionCount = unresolvedConflicts.length + activeSessionCount + needsFinalizeEntries.length + draftActionCount;
-      const recoveryFilter = S.recoveryFilter || 'needs-action';
-      const lastRefreshLabel = S.recoveryLastRefreshAt ? new Date(S.recoveryLastRefreshAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '--';
-      const lastSheetSyncLabel = S.tournament?.sheetSync?.lastSync
-        ? new Date(S.tournament.sheetSync.lastSync).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-        : '--';
-      const scorerUpdateAt = Math.max(
-        ...scorerDraftEntries.map(entry => Number(entry.updatedAt || 0)),
-        ...scorerSessionEntries.map(entry => Number(entry.updatedAt || 0)),
-        0
-      );
-      const lastScorerUpdateLabel = scorerUpdateAt
-        ? new Date(scorerUpdateAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-        : '--';
-      const recoveryChip = (label, tone = 'muted') => `<span class="recovery-status-chip recovery-status-chip-${tone}">${esc(label)}</span>`;
-
-      // ── Status summary pills ────────────────────────────────────────────
-      const pills = [
-        unresolvedConflicts.length ? `<span style="padding:2px 9px;border-radius:99px;background:#fee2e2;color:#dc2626;font-size:0.75rem;font-weight:700">⚠ ${unresolvedConflicts.length} conflict${unresolvedConflicts.length > 1 ? 's' : ''}</span>` : '',
-        activeSessionCount ? `<span style="padding:2px 9px;border-radius:99px;background:#dcfce7;color:#15803d;font-size:0.75rem;font-weight:700">● ${activeSessionCount} active</span>` : '',
-        needsFinalizeEntries.length ? `<span style="padding:2px 9px;border-radius:99px;background:#fef3c7;color:#78350f;font-size:0.75rem;font-weight:700">⏳ ${needsFinalizeEntries.length} need${needsFinalizeEntries.length > 1 ? '' : 's'} finalization</span>` : '',
-      ].filter(Boolean).join('');
-
-      let html = `<div class="card" style="margin-bottom:10px">
-      <div style="padding:12px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span style="font-weight:800;font-size:0.9rem;color:var(--g700)">Scoring Recovery - ${esc(teamLabel)}</span>
-        ${pills}
-        <div style="flex:1"></div>
-        <span style="font-size:0.7rem;color:var(--g300);white-space:nowrap">last refresh ${esc(lastRefreshLabel)} | auto-refresh 30s</span>
-        <button class="save-btn" onclick="refreshScoredGamesAdmin()" style="background:var(--g100);color:var(--g700)">Refresh All</button>
-        <span id="scored-games-status" style="font-size:0.82rem"></span>
-      </div>
-      <div class="recovery-summary-strip">
-        <div class="recovery-summary-card recovery-summary-card-alert">
-          <span class="recovery-summary-label">Needs Action</span>
-          <span class="recovery-summary-value">${needsActionCount}</span>
-        </div>
-        <div class="recovery-summary-card">
-          <span class="recovery-summary-label">Conflicts</span>
-          <span class="recovery-summary-value">${unresolvedConflicts.length}</span>
-        </div>
-        <div class="recovery-summary-card">
-          <span class="recovery-summary-label">Active Sessions</span>
-          <span class="recovery-summary-value">${activeSessionCount}</span>
-        </div>
-        <div class="recovery-summary-card">
-          <span class="recovery-summary-label">Mirrored Drafts</span>
-          <span class="recovery-summary-value">${scorerDraftEntries.length}</span>
-        </div>
-      </div>
-      <div class="recovery-filter-row">
-        <button class="recovery-filter-btn ${recoveryFilter === 'needs-action' ? 'active' : ''}" onclick="setRecoveryFilter('needs-action')">Needs Action</button>
-        <button class="recovery-filter-btn ${recoveryFilter === 'all' ? 'active' : ''}" onclick="setRecoveryFilter('all')">Show All</button>
-      </div>
-      <div class="recovery-health-strip">
-        <div class="recovery-health-item"><span class="recovery-health-label">Active Sessions</span><span class="recovery-health-value">${activeSessionCount}</span></div>
-        <div class="recovery-health-item"><span class="recovery-health-label">Drafts Needing Action</span><span class="recovery-health-value">${draftActionCount}</span></div>
-        <div class="recovery-health-item"><span class="recovery-health-label">Conflicts</span><span class="recovery-health-value">${unresolvedConflicts.length}</span></div>
-        <div class="recovery-health-item"><span class="recovery-health-label">Last Sheet Sync</span><span class="recovery-health-value">${esc(lastSheetSyncLabel)}</span></div>
-        <div class="recovery-health-item"><span class="recovery-health-label">Last Scorer Update</span><span class="recovery-health-value">${esc(lastScorerUpdateLabel)}</span></div>
-      </div>
-    </div>`;
-
-      // ── Conflicts (red card, only shown when > 0) ─────────────────────
-      if (unresolvedConflicts.length) {
-        html += `<div class="card" style="margin-bottom:10px;border-color:#fca5a5;background:#fff1f2">
-      <div class="card-header" style="color:#dc2626">⚠️ Scorer Conflicts — ${esc(teamLabel)}</div>
+        function renderRecoveryConflictCard(conflicts, teamLabel, recoveryChip) {
+      if (!conflicts.length) return '';
+      return `<div class="card" style="margin-bottom:10px;border-color:#fca5a5;background:#fff1f2">
+      <div class="card-header" style="color:#dc2626">Conflicts - ${esc(teamLabel)}</div>
       <div style="padding:10px 14px;font-size:0.82rem;color:#7f1d1d;line-height:1.5">
         Two devices tried to own the same scorer session. Force-close the losing session in Active Sessions below, then dismiss here.
       </div>
       <div style="display:flex;flex-direction:column">
-        ${unresolvedConflicts.map(conflict => {
+        ${conflicts.map(conflict => {
           const stamp = conflict.updatedAt ? new Date(conflict.updatedAt).toLocaleString() : '';
           const typeLabel = { 'multi-device': 'Multi-device conflict' }[conflict.type] || conflict.type;
           const auditBits = [
             conflict.existingDeviceId ? 'Owner: ' + conflict.existingDeviceId.slice(0, 8) : '',
             conflict.incomingDeviceId ? 'Challenger: ' + conflict.incomingDeviceId.slice(0, 8) : '',
             stamp,
-            conflict.occurrences > 1 ? `${conflict.occurrences}× occurred` : '',
-          ].filter(Boolean).join(' · ');
+            conflict.occurrences > 1 ? `${conflict.occurrences}x occurred` : '',
+          ].filter(Boolean).join(' � ');
           return `<div class="game-row"><div class="game-summary" style="cursor:default">
             <div class="game-info">
               <div class="game-opp" style="color:#dc2626">${esc(typeLabel)}: ${esc(conflict.gameId || 'unknown game')}</div>
@@ -14480,175 +14511,171 @@
         }).join('')}
       </div>
     </div>`;
-      }
+    }
 
-      // ── Scored Games ─────────────────────────────────────────────────────
+    function renderRecoveryScoredRows(entries, recoveryChip) {
+      if (!entries.length) return `${renderRecoveryEmptyState("No durable scored games for this age group yet.")}`;
+      return entries.map(entry => {
+        const score = entry.score || {};
+        const scoreLabel = (typeof score.team === 'number' && typeof score.opp === 'number') ? `${score.team}-${score.opp}` : '-';
+        const stateLabel = String(score.gameState || '').trim() || 'pre';
+        const stamp = entry.updatedAt ? new Date(entry.updatedAt).toLocaleString() : '';
+        const needsFinal = !!entry.needsFinalization;
+        const confirmedStamp = entry.finalizationConfirmedAt ? new Date(entry.finalizationConfirmedAt).toLocaleString() : '';
+        const auditBits = [
+          stamp ? 'Updated ' + stamp : '',
+          needsFinal && entry.needsFinalizationAt ? 'Pending since ' + new Date(entry.needsFinalizationAt).toLocaleString() : '',
+          !needsFinal && confirmedStamp ? 'Finalized ' + confirmedStamp : '',
+          entry.finalizedBy ? 'by ' + entry.finalizedBy : '',
+          entry.finalizedSource ? 'via ' + entry.finalizedSource : '',
+        ].filter(Boolean).join(' � ');
+        const promoteLabel = stateLabel === 'final' ? 'Reopen' : 'Promote Final';
+        const promoteAction = stateLabel === 'final' ? 'reopen' : 'promote';
+        const stateChip = needsFinal ? recoveryChip('Needs Final', 'warn') : recoveryChip(stateLabel === 'final' ? 'Final Saved' : stateLabel, stateLabel === 'final' ? 'ok' : 'info');
+        return `<div class="game-row"><div class="game-summary" style="cursor:default"><div class="game-info"><div class="game-opp">${esc(entry.opponent || entry.gameId || 'Scored game')}</div><div class="recovery-inline-chips">${stateChip}</div><div class="game-meta">${esc(scoreLabel)}${auditBits ? ' � ' + esc(auditBits) : ''}</div></div><div class="recovery-row-actions"><button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','${promoteAction}')">${promoteLabel}</button><button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','reset')">Reset</button></div></div></div>`;
+      }).join('');
+    }
+
+    function renderRecoverySessionRows(entries, recoveryChip) {
+      if (!entries.length) return `${renderRecoveryEmptyState("No active scorer sessions for this age group.")}`;
+      return entries.map(entry => {
+        const session = entry.session || {};
+        const scoreLabel = (typeof session.team === 'number' && typeof session.opp === 'number') ? `${session.team}-${session.opp}` : '-';
+        const effectiveStatus = entry.computedStatus || entry.status || session.status || 'open';
+        const statusLabel = { 'open': 'Active', 'finalizing': 'Finalizing', 'final-acked': 'Final', 'stale': 'Stale', 'conflict': 'Conflict', 'abandoned': 'Abandoned' }[effectiveStatus] || effectiveStatus;
+        const hbMs = entry.heartbeatAt ? Date.now() - Number(entry.heartbeatAt) : null;
+        const hbLabel = hbMs !== null ? (hbMs < 90000 ? 'just now' : hbMs < 3600000 ? `${Math.round(hbMs / 60000)}m ago` : '>1h ago') : (entry.updatedAt ? new Date(entry.updatedAt).toLocaleTimeString() : '-');
+        const ageGroupLabel = esc(entry.ageGroup || session.groupKey || '');
+        const teamSlot = esc(session.teamSlot || '');
+        const gameIdShort = esc((entry.gameId || '').slice(-10));
+        const identityChips = [ageGroupLabel ? recoveryChip(ageGroupLabel, 'muted') : '', teamSlot ? recoveryChip(`Team ${teamSlot}`, 'info') : '', effectiveStatus === 'stale' ? recoveryChip('Stale session', 'warn') : '', gameIdShort ? `<span class="recovery-status-chip recovery-status-chip-muted" style="font-family:monospace" title="${esc(entry.gameId || '')}">...${gameIdShort}</span>` : ''].filter(Boolean).join('');
+        const canAct = ['open', 'stale', 'finalizing', 'conflict'].includes(effectiveStatus);
+        const sessionTid = esc(entry.tournamentId || '_');
+        const sessionGid = esc(entry.gameId);
+        const statusTone = effectiveStatus === 'open' ? 'ok' : effectiveStatus === 'finalizing' || effectiveStatus === 'final-acked' ? 'info' : effectiveStatus === 'stale' ? 'warn' : effectiveStatus === 'conflict' ? 'err' : 'muted';
+        return `<div class="game-row"><div class="game-summary" style="cursor:default"><div class="game-info" style="gap:4px"><div class="game-opp">${esc(session.opponent || entry.gameId || 'Active scorer session')}</div><div class="recovery-inline-chips">${recoveryChip(statusLabel, statusTone)}${identityChips}</div><div class="game-meta">${esc(scoreLabel)} � hb ${esc(hbLabel)}${entry.deviceId ? ' � ' + esc(entry.deviceId.slice(0, 8)) : ''}</div></div>${canAct ? `<div class="recovery-row-actions"><button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700);white-space:nowrap" onclick="updateScorerSessionAdmin('${sessionGid}','${sessionTid}','force-close')">Force Close</button></div>` : ''}</div></div>`;
+      }).join('');
+    }
+
+    function renderRecoveryDraftRows(entries, recoveryChip) {
+      if (!entries.length) return `${renderRecoveryEmptyState("No mirrored scorer drafts for this age group.")}`;
+      return entries.map(entry => {
+        const score = entry.score || {};
+        const scoreLabel = (typeof score.team === 'number' && typeof score.opp === 'number') ? `${score.team}-${score.opp}` : '-';
+        const stamp = entry.updatedAt ? new Date(entry.updatedAt).toLocaleString() : '';
+        const eventCount = Array.isArray(score.events) ? score.events.filter(ev => ev && ev.type !== 'game_state').length : 0;
+        const sessionState = String(entry.status || entry.session?.status || 'open').trim() || 'open';
+        const auditBits = [stamp ? 'Updated ' + stamp : '', entry.deviceId ? 'Device ' + entry.deviceId.slice(0, 8) : '', eventCount ? `${eventCount} event${eventCount !== 1 ? 's' : ''}` : '', entry.conflict ? 'Conflict detected' : ''].filter(Boolean).join(' � ');
+        const tone = entry.conflict ? 'err' : sessionState === 'final-acked' ? 'ok' : sessionState === 'queued' || sessionState === 'retrying' ? 'warn' : 'info';
+        return `<div class="game-row"><div class="game-summary" style="cursor:default"><div class="game-info"><div class="game-opp">${esc(entry.session?.opponent || score.opponent || entry.gameId || 'Recovered draft')}</div><div class="recovery-inline-chips">${recoveryChip(entry.conflict ? 'Conflict' : sessionState, tone)}</div><div class="game-meta">${esc(scoreLabel)}${auditBits ? ' � ' + esc(auditBits) : ''}</div></div><div class="recovery-row-actions"><button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','restore')">Restore Draft</button><button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','clear')">Clear</button></div></div></div>`;
+      }).join('');
+    }
+
+    function renderRecoveryAdminTab() {
+      const teamObj = getAdminTeams().find(t => t.key === S.team);
+      const teamLabel = teamObj ? teamObj.label : S.team;
+      const scoredEntries = Object.values(S.scoredGames || {}).sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+      const scorerDraftEntries = (S.scorerDrafts || []).slice().sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+      const scorerSessionEntries = (S.scorerSessions || []).slice().sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+      const needsFinalizeEntries = scoredEntries.filter(entry => !!entry.needsFinalization);
+      const unresolvedConflicts = (S.conflicts || []).filter(c => !c.resolved);
+      const activeSessionCount = scorerSessionEntries.filter(e => ['open', 'finalizing'].includes(e.computedStatus || e.status || 'open')).length;
+      const draftActionCount = scorerDraftEntries.filter(entry => recoveryDraftNeedsAction(entry)).length;
+      const needsActionCount = unresolvedConflicts.length + activeSessionCount + needsFinalizeEntries.length + draftActionCount;
+      const recoveryFilter = S.recoveryFilter || 'needs-action';
+      const lastRefreshLabel = S.recoveryLastRefreshAt ? new Date(S.recoveryLastRefreshAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '--';
+      const lastSheetSyncMeta = recoverySheetSyncMeta(S.tournament?.sheetSync?.lastSync);
+      const scorerUpdateAt = Math.max(
+        ...scorerDraftEntries.map(entry => Number(entry.updatedAt || 0)),
+        ...scorerSessionEntries.map(entry => Number(entry.updatedAt || 0)),
+        0
+      );
+      const lastScorerUpdateLabel = scorerUpdateAt
+        ? new Date(scorerUpdateAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+        : '--';
+      const recoveryChip = (label, tone = 'muted') => `<span class="recovery-status-chip recovery-status-chip-${tone}">${esc(label)}</span>`;
+
+      const pills = [
+        unresolvedConflicts.length ? renderRecoverySummaryPill(`${unresolvedConflicts.length} conflict${unresolvedConflicts.length > 1 ? 's' : ''}`, 'err') : '',
+        activeSessionCount ? renderRecoverySummaryPill(`${activeSessionCount} active`, 'ok') : '',
+        needsFinalizeEntries.length ? renderRecoverySummaryPill(`${needsFinalizeEntries.length} need${needsFinalizeEntries.length > 1 ? '' : 's'} finalization`, 'warn') : '',
+      ].filter(Boolean).join('');
+
+      const filteredScoredEntries = scoredEntries.filter(entry => recoveryFilterMatches(recoveryFilter, 'scored', entry));
+      const filteredScorerSessionEntries = scorerSessionEntries.filter(entry => recoveryFilterMatches(recoveryFilter, 'session', entry));
+      const filteredScorerDraftEntries = scorerDraftEntries.filter(entry => recoveryFilterMatches(recoveryFilter, 'draft', entry));
       const needsFinalizeSummary = needsFinalizeEntries.length
-        ? `<div style="padding:10px 12px;border:1px solid #facc15;border-radius:10px;background:#fffbeb;color:#78350f;font-size:0.82rem;font-weight:700">⚠️ ${needsFinalizeEntries.length} game(s) need finalization — close them out before the next round.</div>`
+        ? `<div style="padding:10px 12px;border:1px solid #facc15;border-radius:10px;background:#fffbeb;color:#78350f;font-size:0.82rem;font-weight:700">${needsFinalizeEntries.length} game(s) need finalization - close them out before the next round.</div>`
         : '';
-      const filteredScoredEntries = recoveryFilter === 'needs-action'
-        ? scoredEntries.filter(entry => !!entry.needsFinalization || String(entry.score?.gameState || '').trim() !== 'final')
-        : scoredEntries;
-      const scoredRows = filteredScoredEntries.length
-        ? filteredScoredEntries.map(entry => {
-            const score = entry.score || {};
-            const scoreLabel = (typeof score.team === 'number' && typeof score.opp === 'number') ? `${score.team}–${score.opp}` : '—';
-            const stateLabel = String(score.gameState || '').trim() || 'pre';
-            const stamp = entry.updatedAt ? new Date(entry.updatedAt).toLocaleString() : '';
-            const needsFinal = !!entry.needsFinalization;
-            const confirmedStamp = entry.finalizationConfirmedAt ? new Date(entry.finalizationConfirmedAt).toLocaleString() : '';
-            const auditBits = [
-              stamp ? 'Updated ' + stamp : '',
-              needsFinal && entry.needsFinalizationAt ? 'Pending since ' + new Date(entry.needsFinalizationAt).toLocaleString() : '',
-              !needsFinal && confirmedStamp ? 'Finalized ' + confirmedStamp : '',
-              entry.finalizedBy ? 'by ' + entry.finalizedBy : '',
-              entry.finalizedSource ? 'via ' + entry.finalizedSource : '',
-            ].filter(Boolean).join(' · ');
-            const promoteLabel = stateLabel === 'final' ? 'Reopen' : 'Promote Final';
-            const promoteAction = stateLabel === 'final' ? 'reopen' : 'promote';
-            const stateChip = needsFinal
-              ? recoveryChip('Needs Final', 'warn')
-              : recoveryChip(stateLabel === 'final' ? 'Final Saved' : stateLabel, stateLabel === 'final' ? 'ok' : 'info');
-            return `<div class="game-row">
-            <div class="game-summary" style="cursor:default">
-              <div class="game-info">
-                <div class="game-opp">${esc(entry.opponent || entry.gameId || 'Scored game')}</div>
-                <div class="recovery-inline-chips">${stateChip}</div>
-                <div class="game-meta">${esc(scoreLabel)}${auditBits ? ' · ' + esc(auditBits) : ''}</div>
-              </div>
-              <div class="recovery-row-actions">
-                <button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','${promoteAction}')">${promoteLabel}</button>
-                <button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScoredGameAdmin('${esc(entry.gameId)}','reset')">Reset</button>
-              </div>
-            </div>
-          </div>`;
-          }).join('')
-        : `<div style="padding:16px 14px;color:var(--g400)">No durable scored games for this age group yet.</div>`;
+
+      let html = `<div class="card" style="margin-bottom:10px">
+      <div style="padding:12px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-weight:800;font-size:0.9rem;color:var(--g700)">Scoring Recovery - ${esc(teamLabel)}</span>
+        ${pills}
+        <div style="flex:1"></div>
+        <span style="font-size:0.7rem;color:var(--g300);white-space:nowrap">last refresh ${esc(lastRefreshLabel)} | auto-refresh 30s</span>
+        <button class="save-btn" onclick="refreshScoredGamesAdmin()" style="background:var(--g100);color:var(--g700)">Refresh All</button>
+        <span id="scored-games-status" style="font-size:0.82rem"></span>
+      </div>
+      <div class="recovery-summary-strip">
+        <div class="recovery-summary-card recovery-summary-card-alert"><span class="recovery-summary-label">Needs Action</span><span class="recovery-summary-value">${needsActionCount}</span></div>
+        <div class="recovery-summary-card"><span class="recovery-summary-label">Conflicts</span><span class="recovery-summary-value">${unresolvedConflicts.length}</span></div>
+        <div class="recovery-summary-card"><span class="recovery-summary-label">Active Sessions</span><span class="recovery-summary-value">${activeSessionCount}</span></div>
+        <div class="recovery-summary-card"><span class="recovery-summary-label">Mirrored Drafts</span><span class="recovery-summary-value">${scorerDraftEntries.length}</span></div>
+      </div>
+      <div class="recovery-filter-row">
+        <button class="recovery-filter-btn ${recoveryFilter === 'needs-action' ? 'active' : ''}" onclick="setRecoveryFilter('needs-action')">Needs Action</button>
+        <button class="recovery-filter-btn ${recoveryFilter === 'conflicts' ? 'active' : ''}" onclick="setRecoveryFilter('conflicts')">Conflicts Only</button>
+        <button class="recovery-filter-btn ${recoveryFilter === 'all' ? 'active' : ''}" onclick="setRecoveryFilter('all')">Show All</button>
+      </div>
+      <div class="recovery-health-strip">
+        <div class="recovery-health-item"><span class="recovery-health-label">Active Sessions</span><span class="recovery-health-value">${activeSessionCount}</span></div>
+        <div class="recovery-health-item"><span class="recovery-health-label">Drafts Needing Action</span><span class="recovery-health-value">${draftActionCount}</span></div>
+        <div class="recovery-health-item"><span class="recovery-health-label">Conflicts</span><span class="recovery-health-value">${unresolvedConflicts.length}</span></div>
+        <div class="recovery-health-item"><span class="recovery-health-label">Last Sheet Sync</span><span class="recovery-health-value">${esc(lastSheetSyncMeta.label)}</span></div>
+        <div class="recovery-health-item"><span class="recovery-health-label">Last Scorer Update</span><span class="recovery-health-value">${esc(lastScorerUpdateLabel)}</span></div>
+      </div>
+      ${lastSheetSyncMeta.note ? `<div class="recovery-health-note">${esc(lastSheetSyncMeta.note)}</div>` : ''}
+    </div>`;
+
+      html += renderRecoveryConflictCard(unresolvedConflicts, teamLabel, recoveryChip);
 
       html += `<div class="card" style="margin-bottom:10px">
-      <div class="card-header" style="color:var(--royal)">🎯 Scored Games — ${esc(teamLabel)}</div>
+      <div class="card-header" style="color:var(--royal)">Scored Games - ${esc(teamLabel)}</div>
       <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
         <div class="recovery-row-actions" style="justify-content:flex-start">
-          <button class="save-btn" onclick="syncOfficialSheetResultsAdmin()" style="background:var(--royal)">📥 Sync Official Sheet</button>
-          <button class="save-btn" onclick="rebuildHistoryFromScoredGamesAdmin()" style="background:#2e7d32">🧱 Rebuild History</button>
+          <button class="save-btn" onclick="syncOfficialSheetResultsAdmin()" style="background:var(--royal)">Sync Official Sheet</button>
+          <button class="save-btn" onclick="rebuildHistoryFromScoredGamesAdmin()" style="background:#2e7d32">Rebuild History</button>
         </div>
         ${needsFinalizeSummary}
-        <div class="recovery-copy">
-          Sync writes final scores into durable records. Rebuild History pushes finalized games to the spectator history view.
-        </div>
-        ${scoredRows}
+        <div class="recovery-copy">Sync writes final scores into durable records. Rebuild History pushes finalized games to the spectator history view.</div>
+        ${renderRecoveryScoredRows(filteredScoredEntries, recoveryChip)}
       </div>
     </div>`;
-
-      // ── Active Scorer Sessions ───────────────────────────────────────────
-      const filteredScorerSessionEntries = recoveryFilter === 'needs-action'
-        ? scorerSessionEntries.filter(entry => ['open', 'stale', 'finalizing', 'conflict'].includes(entry.computedStatus || entry.status || 'open'))
-        : scorerSessionEntries;
-      const scorerSessionRows = filteredScorerSessionEntries.length
-        ? filteredScorerSessionEntries.map(entry => {
-            const session = entry.session || {};
-            const scoreLabel = (typeof session.team === 'number' && typeof session.opp === 'number') ? `${session.team}–${session.opp}` : '—';
-            const effectiveStatus = entry.computedStatus || entry.status || session.status || 'open';
-            const statusColor = { 'open': '#15803d', 'finalizing': '#1d4ed8', 'final-acked': '#1d4ed8', 'stale': '#d97706', 'conflict': '#dc2626', 'abandoned': '#6b7280' }[effectiveStatus] || '#6b7280';
-            const statusLabel = { 'open': 'Active ●', 'finalizing': 'Finalizing…', 'final-acked': 'Final ✓', 'stale': 'Stale ⚠', 'conflict': 'Conflict!', 'abandoned': 'Abandoned' }[effectiveStatus] || effectiveStatus;
-            const hbMs = entry.heartbeatAt ? Date.now() - Number(entry.heartbeatAt) : null;
-            const hbLabel = hbMs !== null ? (hbMs < 90000 ? 'just now' : hbMs < 3600000 ? `${Math.round(hbMs / 60000)}m ago` : '>1h ago') : (entry.updatedAt ? new Date(entry.updatedAt).toLocaleTimeString() : '—');
-            // Identity chips — show ageGroup, team slot, and gameId for debugging
-            const ageGroupLabel = esc(entry.ageGroup || session.groupKey || '');
-            const teamSlot = esc(session.teamSlot || '');
-            const gameIdShort = esc((entry.gameId || '').slice(-10));
-            const identityChips = [
-              ageGroupLabel ? recoveryChip(ageGroupLabel, 'muted') : '',
-              teamSlot ? recoveryChip(`Team ${teamSlot}`, 'info') : '',
-              gameIdShort ? `<span class="recovery-status-chip recovery-status-chip-muted" style="font-family:monospace" title="${esc(entry.gameId || '')}">…${gameIdShort}</span>` : '',
-            ].filter(Boolean).join('');
-            const canAct = ['open', 'stale', 'finalizing', 'conflict'].includes(effectiveStatus);
-            const sessionTid = esc(entry.tournamentId || '_');
-            const sessionGid = esc(entry.gameId);
-            const statusTone = effectiveStatus === 'open' ? 'ok'
-              : effectiveStatus === 'finalizing' || effectiveStatus === 'final-acked' ? 'info'
-              : effectiveStatus === 'stale' ? 'warn'
-              : effectiveStatus === 'conflict' ? 'err'
-              : 'muted';
-            return `<div class="game-row">
-            <div class="game-summary" style="cursor:default">
-              <div class="game-info" style="gap:4px">
-                <div class="game-opp">${esc(session.opponent || entry.gameId || 'Active scorer session')}</div>
-                <div class="recovery-inline-chips">${recoveryChip(statusLabel, statusTone)}${identityChips}</div>
-                <div class="game-meta">${esc(scoreLabel)} · hb ${esc(hbLabel)}${entry.deviceId ? ' · ' + esc(entry.deviceId.slice(0, 8)) : ''}</div>
-              </div>
-              ${canAct ? `<div class="recovery-row-actions"><button class="btn-save" style="padding:6px 10px;font-size:.76rem;background:var(--g100);color:var(--g700);white-space:nowrap" onclick="updateScorerSessionAdmin('${sessionGid}','${sessionTid}','force-close')">Force Close</button></div>` : ''}
-            </div>
-          </div>`;
-          }).join('')
-        : `<div style="padding:16px 14px;color:var(--g400)">No active scorer sessions for this age group.</div>`;
 
       html += `<div class="card" style="margin-bottom:10px">
-      <div class="card-header" style="color:var(--royal)">📡 Active Scorer Sessions — ${esc(teamLabel)}</div>
-      <div class="recovery-copy" style="padding:10px 14px">
-        Server-owned heartbeats. Force-close a stale session before a new device starts scoring the same game.
-      </div>
-      ${scorerSessionRows}
+      <div class="card-header" style="color:var(--royal)">Active Scorer Sessions - ${esc(teamLabel)}</div>
+      <div class="recovery-copy" style="padding:10px 14px">Server-owned heartbeats. Force-close a stale session before a new device starts scoring the same game.</div>
+      ${renderRecoverySessionRows(filteredScorerSessionEntries, recoveryChip)}
     </div>`;
-
-      // ── Mirrored Scorer Drafts ───────────────────────────────────────────
-      const filteredScorerDraftEntries = recoveryFilter === 'needs-action'
-        ? scorerDraftEntries.filter(entry => {
-            const status = String(entry.status || entry.session?.status || 'open').trim() || 'open';
-            return status !== 'final-acked' || entry.conflict;
-          })
-        : scorerDraftEntries;
-      const scorerDraftRows = filteredScorerDraftEntries.length
-        ? filteredScorerDraftEntries.map(entry => {
-            const score = entry.score || {};
-            const scoreLabel = (typeof score.team === 'number' && typeof score.opp === 'number') ? `${score.team}–${score.opp}` : '—';
-            const stamp = entry.updatedAt ? new Date(entry.updatedAt).toLocaleString() : '';
-            const eventCount = Array.isArray(score.events) ? score.events.filter(ev => ev && ev.type !== 'game_state').length : 0;
-            const sessionState = String(entry.status || entry.session?.status || 'open').trim() || 'open';
-            const auditBits = [
-              stamp ? 'Updated ' + stamp : '',
-              entry.deviceId ? 'Device ' + entry.deviceId.slice(0, 8) : '',
-              eventCount ? `${eventCount} event${eventCount !== 1 ? 's' : ''}` : '',
-              entry.conflict ? '⚠ Conflict detected' : '',
-            ].filter(Boolean).join(' · ');
-            const tone = entry.conflict ? 'err' : sessionState === 'final-acked' ? 'ok' : sessionState === 'queued' || sessionState === 'retrying' ? 'warn' : 'info';
-            return `<div class="game-row">
-            <div class="game-summary" style="cursor:default">
-              <div class="game-info">
-                <div class="game-opp">${esc(entry.session?.opponent || score.opponent || entry.gameId || 'Recovered draft')}</div>
-                <div class="recovery-inline-chips">${recoveryChip(entry.conflict ? 'Conflict' : sessionState, tone)}</div>
-                <div class="game-meta">${esc(scoreLabel)}${auditBits ? ' · ' + esc(auditBits) : ''}</div>
-              </div>
-              <div class="recovery-row-actions">
-                <button class="btn-save" style="padding:8px 10px;font-size:.76rem" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','restore')">Restore Draft</button>
-                <button class="btn-save" style="padding:8px 10px;font-size:.76rem;background:var(--red)" onclick="updateScorerDraftAdmin('${esc(entry.gameId)}','clear')">Clear</button>
-              </div>
-            </div>
-          </div>`;
-          }).join('')
-        : `<div style="padding:16px 14px;color:var(--g400)">No mirrored scorer drafts for this age group.</div>`;
 
       html += `<div class="card" style="margin-bottom:10px">
-      <div class="card-header" style="color:var(--royal)">🧾 Mirrored Scorer Drafts — ${esc(teamLabel)}</div>
-      <div class="recovery-copy" style="padding:10px 14px">
-        Server-backed drafts. Use Restore Draft to rebuild a scored-game record from a mirrored draft if the original device was lost.
-      </div>
-      ${scorerDraftRows}
+      <div class="card-header" style="color:var(--royal)">Mirrored Scorer Drafts - ${esc(teamLabel)}</div>
+      <div class="recovery-copy" style="padding:10px 14px">Server-backed drafts. Use Restore Draft to rebuild a scored-game record from a mirrored draft if the original device was lost.</div>
+      ${renderRecoveryDraftRows(filteredScorerDraftEntries, recoveryChip)}
     </div>`;
 
-      // ── All-clear empty state ──────────────────────────────────────────────
       const allEmpty = !unresolvedConflicts.length && !scoredEntries.length && !scorerSessionEntries.length && !scorerDraftEntries.length;
       if (allEmpty) {
         html += `<div class="card" style="margin-bottom:10px;text-align:center;padding:28px 20px">
-        <div style="font-size:2rem;margin-bottom:8px">✅</div>
+        <div style="font-size:2rem;margin-bottom:8px">OK</div>
         <div style="font-weight:700;color:var(--g700);margin-bottom:4px">All clear</div>
-        <div style="font-size:0.82rem;color:var(--g400)">No active scorer sessions, pending drafts, or conflicts.<br>Hit <strong>↻ Refresh All</strong> if you're expecting live data.</div>
+        <div style="font-size:0.82rem;color:var(--g400)">No active scorer sessions, pending drafts, or conflicts.<br>Hit <strong>Refresh All</strong> if you're expecting live data.</div>
       </div>`;
       }
 
       return html;
     }
-
 
     function buildSeasonOptions() {
       const now = new Date();
@@ -14678,7 +14705,7 @@
     }
 
     function setRecoveryFilter(mode = 'needs-action') {
-      S.recoveryFilter = mode === 'all' ? 'all' : 'needs-action';
+      S.recoveryFilter = ['all', 'conflicts', 'needs-action'].includes(mode) ? mode : 'needs-action';
       renderTab();
     }
 
@@ -14797,6 +14824,7 @@
         ? 'Clear this mirrored scorer draft and its server session?\n\nThis is destructive and cannot be undone.'
         : 'Restore this mirrored scorer draft into the durable scored-game store?';
       if (!confirm(prompt)) return;
+      if (action === 'clear' && !confirm('Confirm clear. This permanently removes the mirrored draft and closes the server session.')) return;
       try {
         setScoredGamesStatus(`${action} scorer draft…`, 'info');
         const res = await api('POST', '/admin/scorer-drafts/action', { gameId, action });
@@ -17669,6 +17697,17 @@
 </body>
 
 </html>
+
+
+
+
+
+
+
+
+
+
+
 
 
 
