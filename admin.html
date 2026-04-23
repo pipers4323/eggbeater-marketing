@@ -9776,7 +9776,10 @@
       renderTab();
       requestAnimationFrame(() => {
         const card = document.getElementById('bs-card');
-        if (card) card.open = true;
+        if (card) {
+          card.open = true;
+          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       });
     }
 
