@@ -7013,6 +7013,7 @@
     function saveGame(id) {
       const g = S.tournament.games.find(x => x.id === id);
       if (!g) return;
+      const prevLocation = g.location || '';
       const dateISO = document.getElementById('ge-date').value.trim();
       g.gameNum = document.getElementById('ge-num').value.trim();
       g.opponent = document.getElementById('ge-opp').value.trim();
@@ -7020,6 +7021,15 @@
       g.dateISO = dateISO;
       g.date = isoToDate(dateISO);
       g.location = document.getElementById('ge-loc').value.trim();
+      const geLocInput = document.getElementById('ge-loc');
+      const placeAddress = geLocInput?.dataset?.placeAddress?.trim();
+      if (placeAddress) {
+        g.locationAddress = placeAddress;
+        g.locationQuery = placeAddress;
+      } else if ((g.location || '') !== prevLocation) {
+        delete g.locationAddress;
+        delete g.locationQuery;
+      }
       g.pool = document.getElementById('ge-pool').value.trim();
       const noteVal = (document.getElementById('ge-note')?.value || '').trim();
       if (noteVal) g.note = noteVal; else delete g.note;
@@ -9614,7 +9624,7 @@
             rebracket: false,
             rebracketRange: '',
             pollMins: parseInt(localStorage.getItem('ebadmin-bsync-mins') || '10', 10),
-            pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', gameOverrides: null, wizardMode: 'standard'
+            pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', gameOverrides: null, venueOverrides: null, wizardMode: 'standard'
           };
         }
       }
@@ -9736,6 +9746,11 @@
         + '<div style="font-size:.72rem;color:#9a3412;margin-bottom:8px">Fix the imported values here. These corrections are saved with this sync and re-applied on future sheet refreshes.</div>'
         + '<div id="bs-s4-fixup-list"></div>'
         + '</div>'
+        + '<div id="bs-s4-venues" style="display:none;margin-top:10px;padding:8px;background:#eff6ff;border-radius:6px;border:1px solid #93c5fd">'
+        + '<div style="font-size:.78rem;font-weight:700;color:#1d4ed8;margin-bottom:4px">Confirm venue directions target</div>'
+        + '<div style="font-size:.72rem;color:#1d4ed8;margin-bottom:8px">We keep the short venue name on the game card, but directions will use the confirmed Google location or full address you enter here.</div>'
+        + '<div id="bs-s4-venue-list"></div>'
+        + '</div>'
         + '<div style="display:flex;gap:8px;margin-top:10px">'
         + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g300)" onclick="bsStep(3)">&larr; Back</button>'
         + '<button class="save-btn" style="flex:2" id="bs-s4-next" onclick="bsStep4Continue()"' + s4dis + '>Continue &rarr;</button>'
@@ -9830,6 +9845,7 @@
           myAgeGroupIdx: 0,
           myAgeGroup: '',
           gameOverrides: null,
+          venueOverrides: null,
           wizardMode: 'standard'
         };
       }
@@ -10342,9 +10358,69 @@
       bsApplyGameOverridesToGames(S.bsync.games || []);
     }
 
+    function bsApplyVenueOverridesToGames(games) {
+      if (!Array.isArray(games) || !games.length) return games;
+      const overrides = S.bsync?.venueOverrides || {};
+      games.forEach(g => {
+        const key = _normalizeVenueLookupKey(g.location);
+        const target = key ? String(overrides[key] || '').trim() : '';
+        if (!target) return;
+        g.locationAddress = target;
+        g.locationQuery = target;
+      });
+      return games;
+    }
+
+    function bsApplyVenueOverrides() {
+      if (!S.bsync) return;
+      const inputs = document.querySelectorAll('.bs-venue-fix');
+      const overrides = {};
+      inputs.forEach(inp => {
+        const key = inp.dataset.key;
+        const value = String(inp.value || '').trim();
+        if (!key || !value) return;
+        overrides[key] = value;
+      });
+      S.bsync.venueOverrides = Object.keys(overrides).length ? overrides : null;
+      bsApplyVenueOverridesToGames(S.bsync.games || []);
+    }
+
+    function bsPreserveManualLocation(prev, game) {
+      if (!prev || !game) return game;
+      const prevSource = _normalizeVenueLookupKey(prev.sourceLocation || prev.location || '');
+      const nextSource = _normalizeVenueLookupKey(game.sourceLocation || game.location || '');
+      if (prevSource && nextSource && prevSource === nextSource) {
+        if (prev.location) game.location = prev.location;
+        if (!game.locationAddress && prev.locationAddress) game.locationAddress = prev.locationAddress;
+        if (!game.locationQuery && prev.locationQuery) game.locationQuery = prev.locationQuery;
+      }
+      game.sourceLocation = game.sourceLocation || prev.sourceLocation || game.location || '';
+      return game;
+    }
+
+    function bsInitVenueOverrideInputs() {
+      if (!window.google?.maps?.places) return;
+      document.querySelectorAll('.bs-venue-fix').forEach(inp => {
+        if (inp._placesInit) return;
+        inp._placesInit = true;
+        try {
+          const ac = new google.maps.places.Autocomplete(inp, {
+            types: ['establishment'],
+            fields: ['place_id', 'name', 'formatted_address'],
+          });
+          ac.addListener('place_changed', () => {
+            const place = ac.getPlace();
+            if (!place?.name) return;
+            inp.value = place.formatted_address || place.name;
+          });
+        } catch (_) { }
+      });
+    }
+
     function bsStep4Continue() {
       bsApplyDateOverrides();
       bsApplyGameOverrides();
+      bsApplyVenueOverrides();
       bsStep(5);
     }
 
@@ -10688,6 +10764,7 @@
             dateISO,
             date: dateISO ? isoToDate(dateISO) : dateRaw,
             location: gameLocation,
+            sourceLocation: gameLocation,
             pool: gamePool,
             cap,
             syncKey,
@@ -10704,6 +10781,8 @@
           return;
         }
 
+        await enrichImportedGameLocations(games);
+        bsApplyVenueOverridesToGames(games);
         bsApplyGameOverridesToGames(games);
         S.bsync.games = games;
         const specialTeamPaths = bsComputeKap7FuturesSpecialPaths(allRows, S.bsync.cols, games);
@@ -10768,6 +10847,25 @@
                 </div>
               `;
             }).join('');
+          }
+          const venueList = document.getElementById('bs-s4-venue-list');
+          const venueWrap = document.getElementById('bs-s4-venues');
+          if (venueList && venueWrap) {
+            const venueRows = [...new Map(games
+              .filter(g => g.location)
+              .map(g => {
+                const key = _normalizeVenueLookupKey(g.location);
+                const current = (S.bsync.venueOverrides && S.bsync.venueOverrides[key]) || g.locationAddress || g.locationQuery || _matchKnownVenueAddress(g.location) || '';
+                return [key, { label: g.location, key, current }];
+              })).values()].filter(v => v.key);
+            venueWrap.style.display = venueRows.length ? 'block' : 'none';
+            venueList.innerHTML = venueRows.map(v => `
+              <div style="border-top:1px dashed #93c5fd;padding-top:8px;margin-top:8px">
+                <div style="font-size:.74rem;font-weight:700;color:#1e3a8a;margin-bottom:4px">${esc(v.label)}</div>
+                <input class="info-input bs-venue-fix" data-key="${esc(v.key)}" value="${esc(v.current)}" placeholder="Search Google venue or paste full address">
+              </div>
+            `).join('');
+            bsInitVenueOverrideInputs();
           }
         }
       } catch (e) {
@@ -11106,10 +11204,13 @@
         // Preserve any existing game IDs matched by game number
         const existingByNum = {};
         for (const g of (S.tournament.games || [])) existingByNum[g.gameNum] = g;
-        const games = S.bsync.games.map(g => ({
-          ...g,
-          id: existingByNum[g.gameNum]?.id || g.id,
-        }));
+        const games = S.bsync.games.map(g => {
+          const prev = existingByNum[g.gameNum];
+          return bsPreserveManualLocation(prev, {
+            ...g,
+            id: prev?.id || g.id,
+          });
+        });
         games.sort((a, b) => gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum));
         S.tournament.games = games;
         bsApplyInferredTournamentInfo(S.bsync.allRows || [], games);
@@ -11156,6 +11257,7 @@
           lastSync: new Date().toISOString(),
           ...(S.bsync.dateOverrides && Object.keys(S.bsync.dateOverrides).length ? { dateOverrides: S.bsync.dateOverrides } : {}),
           ...(S.bsync.gameOverrides && Object.keys(S.bsync.gameOverrides).length ? { gameOverrides: S.bsync.gameOverrides } : {}),
+          ...(S.bsync.venueOverrides && Object.keys(S.bsync.venueOverrides).length ? { venueOverrides: S.bsync.venueOverrides } : {}),
         };
         localStorage.setItem('ebadmin-bsync-url', S.bsync.sheetUrl || '');
         localStorage.setItem('ebadmin-bsync-gid', S.bsync.sheetGid || '');
@@ -11381,7 +11483,7 @@
     async function bsReset() {
       // Clear all wizard state — both in-memory and on the server so a hard
       // refresh doesn't restore the old setup via _restoreBsyncFromTournament()
-      S.bsync = { step: 1, sheetUrl: '', sheetId: '', sheetGid: '', poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', gameOverrides: null, wizardMode: 'standard' };
+      S.bsync = { step: 1, sheetUrl: '', sheetId: '', sheetGid: '', poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', gameOverrides: null, venueOverrides: null, wizardMode: 'standard' };
       ['ebadmin-bsync-url', 'ebadmin-bsync-gid', 'ebadmin-bsync-team', 'ebadmin-bsync-range', 'ebadmin-bsync-mins'].forEach(k => localStorage.removeItem(k));
       if (S.tournament) delete S.tournament.sheetSync;
       bsStep(1);
@@ -11945,6 +12047,7 @@
         lastSync: sync.lastSync || '',
         dateOverrides: sync.dateOverrides || null,
         gameOverrides: sync.gameOverrides || null,
+        venueOverrides: sync.venueOverrides || null,
         games: Array.isArray(S.tournament?.games) ? [...S.tournament.games] : [],
         bracketPaths: Array.isArray(S.tournament?.bracket?.paths) ? [...S.tournament.bracket.paths] : null,
       };
@@ -12168,6 +12271,7 @@
             dateISO,
             date: dateISO ? isoToDate(dateISO) : dateRaw,
             location: _apGameLocation,
+            sourceLocation: _apGameLocation,
             pool: _apGamePool,
             cap: isBlue ? 'Dark' : 'White',
             syncKey: _apSyncKey,
@@ -12223,6 +12327,8 @@
         }
 
         if (!games.length) return;
+        await enrichImportedGameLocations(games);
+        bsApplyVenueOverridesToGames(games);
         bsApplyGameOverridesToGames(games);
 
         const sig = g => [
@@ -12257,7 +12363,7 @@
           const prev = existingByNum[g.gameNum];
           // Preserve manually-added fields that the sheet doesn't supply
           const hasSheetScore = g.result != null || g.teamScore != null || g.oppScore != null;
-          return {
+          return bsPreserveManualLocation(prev, {
             ...g,
             id: prev?.id || g.id,
             note: g.note || prev?.note,          // keep admin notes (sheet never has these)
@@ -12269,7 +12375,7 @@
               teamScore: prev?.teamScore,
               oppScore: prev?.oppScore,
             }),
-          };
+          });
         });
         S.bsync.games = S.tournament.games;
         delete S.tournament.upcomingMode;
@@ -12291,6 +12397,7 @@
           lastSync: new Date().toISOString(),
           ...(S.bsync.dateOverrides && Object.keys(S.bsync.dateOverrides).length ? { dateOverrides: S.bsync.dateOverrides } : {}),
           ...(S.bsync.gameOverrides && Object.keys(S.bsync.gameOverrides).length ? { gameOverrides: S.bsync.gameOverrides } : {}),
+          ...(S.bsync.venueOverrides && Object.keys(S.bsync.venueOverrides).length ? { venueOverrides: S.bsync.venueOverrides } : {}),
         };
 
         const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
@@ -16812,6 +16919,116 @@
       if (el.disabled) { el.disabled = false; el.placeholder = fallbackPlaceholder; }
     }
 
+    function _normalizeVenueLookupKey(value) {
+      return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    }
+
+    function _loadVenueLookupCache() {
+      try { return JSON.parse(localStorage.getItem('ebadmin-venue-lookup-cache') || '{}') || {}; }
+      catch { return {}; }
+    }
+
+    function _saveVenueLookupCache(cache) {
+      try { localStorage.setItem('ebadmin-venue-lookup-cache', JSON.stringify(cache || {})); } catch (_) { }
+    }
+
+    function _collectKnownVenueAddresses() {
+      const rows = [];
+      if (S.tournament?.location && S.tournament?.address) {
+        rows.push({ name: S.tournament.location, address: S.tournament.address });
+      }
+      for (const ag of (S.director?.ageGroups || [])) {
+        if (ag?.venueName && (ag?.venueAddress || ag?.poolAddress)) {
+          rows.push({ name: ag.venueName, address: ag.venueAddress || ag.poolAddress });
+        }
+      }
+      return rows;
+    }
+
+    function _matchKnownVenueAddress(name) {
+      const key = _normalizeVenueLookupKey(name);
+      if (!key) return '';
+      for (const row of _collectKnownVenueAddresses()) {
+        const rowKey = _normalizeVenueLookupKey(row.name);
+        if (rowKey && rowKey === key && row.address) return row.address;
+      }
+      return '';
+    }
+
+    function _placesFindFormattedAddress(query) {
+      return new Promise(resolve => {
+        if (!query || !window.google?.maps?.places?.PlacesService) { resolve(''); return; }
+        try {
+          const svc = new google.maps.places.PlacesService(document.createElement('div'));
+          svc.findPlaceFromQuery(
+            { query, fields: ['name', 'formatted_address'] },
+            (results, status) => {
+              const top = Array.isArray(results) ? results[0] : null;
+              if (status === google.maps.places.PlacesServiceStatus.OK && top?.formatted_address) {
+                resolve(top.formatted_address);
+                return;
+              }
+              try {
+                svc.textSearch({ query }, (textResults, textStatus) => {
+                  const first = Array.isArray(textResults) ? textResults[0] : null;
+                  if (textStatus === google.maps.places.PlacesServiceStatus.OK && first?.formatted_address) {
+                    resolve(first.formatted_address);
+                  } else {
+                    resolve('');
+                  }
+                });
+              } catch (_) {
+                resolve('');
+              }
+            }
+          );
+        } catch (_) {
+          resolve('');
+        }
+      });
+    }
+
+    async function enrichImportedGameLocations(games) {
+      if (!Array.isArray(games) || !games.length) return games;
+      const cache = _loadVenueLookupCache();
+      const pending = new Map();
+      for (const g of games) {
+        const display = String(g.location || '').trim();
+        if (!display) continue;
+        const key = _normalizeVenueLookupKey(display);
+        if (!key) continue;
+        if (g.locationAddress || g.locationQuery) continue;
+        const known = _matchKnownVenueAddress(display);
+        if (known) {
+          g.locationAddress = known;
+          g.locationQuery = known;
+          cache[key] = known;
+          continue;
+        }
+        if (cache[key]) {
+          g.locationAddress = cache[key];
+          g.locationQuery = cache[key];
+          continue;
+        }
+        if (!pending.has(key)) pending.set(key, display);
+      }
+      if (pending.size && window.google?.maps?.places?.PlacesService) {
+        for (const [key, display] of pending.entries()) {
+          const resolved = await _placesFindFormattedAddress(display);
+          if (!resolved) continue;
+          cache[key] = resolved;
+          games.forEach(g => {
+            if (_normalizeVenueLookupKey(g.location) === key) {
+              g.locationAddress = resolved;
+              g.locationQuery = resolved;
+            }
+          });
+        }
+      }
+      _saveVenueLookupCache(cache);
+      return games;
+    }
+
     function initPlacesAutocomplete() {
       const venueInput = document.getElementById('info-venue-input');
       if (!venueInput || !window.google?.maps?.places) return;
@@ -16853,11 +17070,21 @@
       inp._placesInit = true;
       _guardPlacesInput(inp, 'Start typing a venue…');
       try {
-        const ac = new google.maps.places.Autocomplete(inp, { types: ['establishment'], fields: ['name'] });
+        const ac = new google.maps.places.Autocomplete(inp, { types: ['establishment'], fields: ['place_id', 'name', 'formatted_address'] });
         ac.addListener('place_changed', () => {
           const place = ac.getPlace();
           if (!place?.place_id || !place?.name) return;
           inp.value = place.name;
+          if (place.formatted_address) {
+            inp.dataset.placeAddress = place.formatted_address;
+          } else if (window.google?.maps?.places?.PlacesService) {
+            const svc = new google.maps.places.PlacesService(document.createElement('div'));
+            svc.getDetails({ placeId: place.place_id, fields: ['formatted_address'] }, (details, status) => {
+              if (status === google.maps.places.PlacesServiceStatus.OK && details?.formatted_address) {
+                inp.dataset.placeAddress = details.formatted_address;
+              }
+            });
+          }
         });
       } catch (e) { /* Places API unavailable — input works as plain text */ }
     }

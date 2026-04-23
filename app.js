@@ -2692,10 +2692,11 @@ function normalizeOpponentName(name) {
  * Otherwise URL-encode as a place name search.
  * Light/dark styling handled via CSS classes (.directions-btn, .location-venue).
  */
-function buildLocationLink(location) {
+function buildLocationLink(location, destinationOverride = '') {
   if (!location) return '';
-  const isCoords = /^-?\d+\.\d+\s*,\s*-?\d+\.\d+$/.test(location.trim());
-  const dest = isCoords ? location.trim() : encodeURIComponent(location);
+  const destination = String(destinationOverride || location || '').trim();
+  const isCoords = /^-?\d+\.\d+\s*,\s*-?\d+\.\d+$/.test(destination);
+  const dest = isCoords ? destination : encodeURIComponent(destination);
   const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
   const appleUrl  = `https://maps.apple.com/?daddr=${dest}`;
   const wazeUrl   = `https://waze.com/ul?q=${dest}`;
@@ -2710,6 +2711,25 @@ function buildLocationLink(location) {
       <a href="${wazeUrl}"   target="_blank" rel="noopener" class="directions-btn" onclick="event.stopPropagation()"><img src="https://www.google.com/s2/favicons?sz=16&domain=waze.com" width="13" height="13" style="border-radius:3px;vertical-align:middle" alt="">Waze</a>
     </span>
   </span>`;
+}
+
+function gameLocationTarget(game, fallbackTournament = null) {
+  if (!game && !fallbackTournament) return '';
+  return (
+    game?.locationAddress ||
+    game?.locationQuery ||
+    (game?.location && fallbackTournament?.location && _normalizeVenueLookupKeyForApp(game.location) === _normalizeVenueLookupKeyForApp(fallbackTournament.location)
+      ? (fallbackTournament.address || '')
+      : '') ||
+    (!game?.location ? (fallbackTournament?.address || fallbackTournament?.location || '') : '') ||
+    game?.location ||
+    fallbackTournament?.location ||
+    ''
+  );
+}
+
+function _normalizeVenueLookupKeyForApp(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
 function buildLocationVenueOnly(location) {
@@ -10005,7 +10025,7 @@ function renderNextGameCard() {
           <div class="next-meta">
             <span>🕐 ${escHtml(g.time)} &nbsp;·&nbsp; ${escHtml(g.date || g.dateISO)}</span>
             ${g.pool ? `<span>${swimmerEmoji()} ${escHtml(g.pool)}${g.cap ? ` &nbsp;·&nbsp; ${capIcon} ${escHtml(g.cap)} Caps` : ''}</span>` : (g.cap ? `<span>${capIcon} ${escHtml(g.cap)} Caps</span>` : '')}
-            ${(g.location || TOURNAMENT.location) ? buildLocationLink(g.location || TOURNAMENT.location) : ''}
+            ${(g.location || TOURNAMENT.location) ? buildLocationLink(g.location || TOURNAMENT.location, gameLocationTarget(g, TOURNAMENT)) : ''}
           </div>
         </div>
       </div>`;
@@ -10022,7 +10042,7 @@ function renderNextGameCard() {
           <div class="next-vs">${escHtml(normalizeOpponentName(g.desc || 'Bracket Game'))}</div>
           <div class="next-meta">
             <span>${timeStr}</span>
-            ${bracketLocationDisplay(g.location) ? buildLocationLink(bracketLocationDisplay(g.location)) : ''}
+            ${bracketLocationDisplay(g.location) ? buildLocationLink(bracketLocationDisplay(g.location), g.locationAddress || g.locationQuery || bracketLocationDisplay(g.location)) : ''}
           </div>
           <div class="next-cap-badge projected-note">${escHtml(appFormat('next_based_on_record', { record: getPoolRecord() }))}</div>
         </div>
@@ -10327,7 +10347,7 @@ function buildScheduleCard(g) {
       </div>
       <div class="sched-meta">
         ${_buildSpectatorPrimaryMeta(g, { compactCaps: true })}
-        ${(g.location || TOURNAMENT.location) ? buildLocationLink(g.location || TOURNAMENT.location) : ''}
+        ${(g.location || TOURNAMENT.location) ? buildLocationLink(g.location || TOURNAMENT.location, gameLocationTarget(g, TOURNAMENT)) : ''}
       </div>
       ${noteHtml}
     </div>`;
