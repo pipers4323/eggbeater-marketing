@@ -11441,12 +11441,12 @@
           // pre-pass section-header date.  Works for any date format parseDateToISO handles.
           const _dateCellRaw = (dateCol >= 0 ? (row[dateCol] || '').trim() : '');
           const dateRaw = (parseDateToISO(_dateCellRaw) ? _dateCellRaw : '') || _rowDate[ri] || '';
-          // Prefer explicit location headers, but for sheets like Hydres the Pool
-          // column is the actual court/location signal (South/North).
-          const gameLocation = _rowLoc[ri] || _poolRaw || _locRaw || '';
           // Pool display comes from the actual Pool column, not the age-group/group letter column.
           const _poolRaw = poolCol >= 0 ? (row[poolCol] || '').trim() : '';
           const _locRaw  = locationCol >= 0 ? (row[locationCol] || '').trim() : '';
+          // Prefer explicit location headers, but for sheets like Hydres the Pool
+          // column is the actual court/location signal (South/North).
+          const gameLocation = _rowLoc[ri] || _poolRaw || _locRaw || '';
           let gamePool = '';
           if (_poolRaw) {
             if (/^\d+$/.test(_poolRaw)) { gamePool = 'Pool ' + _poolRaw; }
