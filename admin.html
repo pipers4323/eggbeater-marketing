@@ -2279,32 +2279,36 @@
     @media (max-width: 760px) {
       /* ── Compact logo row ── */
       .admin-logo-wrap {
-        min-height: 40px;
-        padding-bottom: 3px;
+        min-height: 28px;
+        padding-bottom: 1px;
       }
 
       .admin-logo-wrap.has-custom-logo {
-        min-height: 50px;
+        min-height: 36px;
       }
 
       .admin-logo-img {
-        max-height: 26px;
+        max-height: 20px;
       }
 
       .admin-custom-logo-wrap {
-        min-height: 46px;
-        padding-top: 4px;
-        padding-bottom: 2px;
+        min-height: 34px;
+        padding-top: 2px;
+        padding-bottom: 1px;
       }
 
       .admin-custom-logo-img {
-        max-height: 38px;
+        max-height: 28px;
+      }
+
+      .eggbeater-poweredby-bar {
+        display: none;
       }
 
       /* ── Compact header bar ── */
       .admin-header-bar {
-        padding: 3px 10px 4px;
-        gap: 6px;
+        padding: 4px 10px 5px;
+        gap: 8px;
       }
 
       .admin-header-copy {
@@ -2320,7 +2324,7 @@
       }
 
       .admin-header-title {
-        font-size: 0.78rem;
+        font-size: 0.74rem;
         white-space: nowrap;
         flex-shrink: 0;
       }
@@ -2329,7 +2333,8 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        font-size: 0.7rem;
+        font-size: 0.66rem;
+        opacity: 0.68;
       }
 
       /* Hide tools strip (lang + switch club) — they're in the drawer */
@@ -2350,65 +2355,115 @@
       /* Hamburger: show */
       .admin-mobile-overflow {
         display: inline-flex;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
       }
 
       /* ── Compact tournament strip — keep single row ── */
       .admin-tourn-strip {
-        padding: 5px 10px;
+        padding: 4px 10px;
         gap: 6px;
         flex-wrap: nowrap;
       }
 
       .tourn-select {
         flex: 1 1 auto;
-        font-size: 0.72rem;
+        font-size: 0.7rem;
+        padding: 3px 8px;
+        min-height: 32px;
+      }
+
+      .tourn-status-badge {
+        font-size: 0.56rem;
+        padding: 2px 6px;
+      }
+
+      .tourn-strip-btn {
+        font-size: 0.66rem;
         padding: 4px 8px;
       }
 
       .admin-team-pills {
         flex-direction: column;
         align-items: stretch;
-        gap: 10px;
-        padding: 8px 10px 6px;
+        gap: 6px;
+        padding: 7px 10px 6px;
       }
 
       .admin-team-summary {
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 4px 8px;
+        align-items: center;
       }
 
       .admin-team-current {
         width: 100%;
+        padding: 6px 10px;
+        border-radius: 16px;
+        font-size: 0.78rem;
       }
 
       .admin-team-count {
         width: 100%;
+        grid-column: 1 / -1;
         padding-left: 2px;
+        font-size: 0.66rem;
       }
 
       .admin-team-manage-btn {
-        width: 100%;
+        width: auto;
+        min-width: 0;
+        padding: 6px 10px;
+        font-size: 0.72rem;
       }
 
       .admin-team-manager {
         grid-template-columns: 1fr;
-        padding: 0 12px 12px;
+        padding: 0 10px 8px;
       }
 
       .admin-global-bar {
         flex-wrap: wrap;
-        gap: 10px;
-        padding: 10px 12px 12px;
+        gap: 6px;
+        padding: 5px 10px 7px;
+      }
+
+      .admin-global-label {
+        display: none;
       }
 
       .admin-global-actions {
         width: 100%;
-        justify-content: stretch;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
       }
 
       .global-btn {
-        flex: 1 1 calc(50% - 4px);
+        flex: 1 1 auto;
         min-width: 0;
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 10px;
+        font-size: 0.72rem;
+        text-align: center;
+      }
+
+      .tab-btn {
+        padding: 11px 4px 9px;
+      }
+
+      .tab-btn span {
+        font-size: 0.74rem;
+      }
+
+      .card-header {
+        padding: 10px 12px;
+        font-size: 0.74rem;
       }
 
       .recovery-summary-strip {
