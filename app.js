@@ -8827,6 +8827,13 @@ function _scheduleDayEmptyMessage(activeDayLabel = '', hasFeaturedGame = false) 
   return _scheduleEmptyMessage();
 }
 
+function _buildPolishedEmptyStateHtml(title, body = '', extraClass = '') {
+  return `<div class="empty-msg polished-empty-msg${extraClass ? ` ${extraClass}` : ''}">
+    <div class="polished-empty-title">${escHtml(title || 'Nothing here yet')}</div>
+    ${body ? `<div class="polished-empty-body">${escHtml(body)}</div>` : ''}
+  </div>`;
+}
+
 function _buildScoresTopUtilityHtml({ showLogin = false, scorerUnlocked = false, anyLive = false } = {}) {
   const rightHtml = scorerUnlocked
     ? `<div class="scores-top-status">🔓 Scorer Mode Active</div>`
@@ -8976,7 +8983,11 @@ const active = _dedupeScheduledGames(
       html += `<div class="scores-slot-header"><span class="scores-slot-label">${escHtml(slotLabel)}</span></div>`;
 
       if (!active.length) {
-        html += `<p class="empty-msg scores-empty-msg" style="padding:8px 12px 16px">No active games.</p>`;
+        html += _buildPolishedEmptyStateHtml(
+          'No active games',
+          'This group does not have any upcoming or live games right now.',
+          'scores-empty-msg'
+        );
         continue;
       }
 
@@ -9041,11 +9052,11 @@ const active = _dedupeScheduledGames(
     if (!activeGames.length) {
       cardsHtml = nextProjected?.type === 'bracket'
         ? `<div class="games-section">${buildProjectedScoreCard(nextProjected)}</div>`
-        : `<div class="card tab-card" style="text-align:center;padding:24px 16px">
-          <div style="font-size:2rem;margin-bottom:8px">${swimmerEmoji(teamKey)}</div>
-          <div style="font-weight:700;margin-bottom:4px">No games scheduled yet</div>
-          <div style="color:var(--gray-600);font-size:0.88rem">Check back on tournament day.</div>
-        </div>`;
+        : _buildPolishedEmptyStateHtml(
+          'No games scheduled yet',
+          'Check back on tournament day for live scores and results.',
+          'scores-empty-msg'
+        );
     } else {
       const byDate = {};
       const dateOrder = [];
@@ -9098,7 +9109,10 @@ const active = _dedupeScheduledGames(
       : '';
     el.innerHTML = dirHtml + recoveryCard + `<div class="card tab-card">
       <div class="history-header-row"><h2>Box Scores</h2></div>
-      <p class="empty-msg" style="padding:16px 0">All games complete — check the History tab for results.</p>
+      ${_buildPolishedEmptyStateHtml(
+        'All games complete',
+        'Check the History tab for final results and archived box scores.'
+      )}
     </div>${projectedHtml}<div class="scores-toolbar-wrap">${buildTabRefreshButtonHtml('scores')}</div>`;
     return;
   }
@@ -10230,9 +10244,11 @@ function renderNextGameCard() {
     const GS_DISPLAY = { start:'Starting', q1:'Q1', q2:'Q2', half:'Half Time', q3:'Q3', q4:'Q4', shootout:'Shootout', final:'Final' };
     const gsLabel    = (liveS && GS_DISPLAY[liveS.gameState]) || '';
     const clockStr   = liveS ? getCurrentClockStr(g.id) : '';
+    const isTieGame = !!(liveS && Number(liveS.team) === Number(liveS.opp));
     const liveSummary = (liveS && liveS.gameState && liveS.gameState !== 'pre')
-      ? `<div class="next-live-score">
+      ? `<div class="next-live-score${isTieGame ? ' next-live-score-tied' : ''}">
            <span class="next-live-score-nums">${liveS.team} &ndash; ${liveS.opp}</span>
+           ${isTieGame ? `<span class="next-live-tie">TIE GAME</span>` : ''}
            ${gsLabel ? `<span class="next-live-period">${gsLabel}</span>` : ''}
            ${clockStr ? `<span class="next-live-clock" id="next-game-clock-${_gameRef(g)}">${clockStr}</span>` : ''}
          </div>`
@@ -10668,7 +10684,7 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
     const tieBadge = Number(s.team) === Number(s.opp)
       ? `<span class="lsb-tie">TIE</span>`
       : '';
-    return `<div class="live-score-bar">
+    return `<div class="live-score-bar${tieBadge ? ' live-score-bar-tied' : ''}">
       <span class="lsb-scores">${escHtml(teamDisplayName)}&nbsp;<strong>${Number.isInteger(s.team) ? s.team : s.team.toFixed(1)}</strong>&nbsp;—&nbsp;<strong>${Number.isInteger(s.opp) ? s.opp : s.opp.toFixed(1)}</strong>&nbsp;${escHtml(g.opponent||'Opp')}</span>
       ${tieBadge}
       ${periodStr ? `<span class="lsb-period">${periodStr}</span>` : ''}
