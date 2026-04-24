@@ -1722,6 +1722,55 @@ function _historyEntryTeamLetter(teamLabel) {
   return null; // unassigned
 }
 
+function _historySignatureForEntry(entry) {
+  const norm = (value) => String(value || '').trim().toLowerCase();
+  return [
+    norm(entry?.name),
+    norm(entry?.dates),
+    norm(entry?.location),
+    norm(entry?.team),
+    norm(entry?.subtitle),
+  ].join('::');
+}
+
+function _historyEntriesConflict(a, b) {
+  if (!a || !b) return false;
+  const sigA = _historySignatureForEntry(a);
+  const sigB = _historySignatureForEntry(b);
+  return !!sigA && !!sigB && sigA !== sigB;
+}
+
+function _nextHistoryEntryId(baseId, history) {
+  const seed = String(baseId || 'archived-tournament').trim() || 'archived-tournament';
+  const used = new Set((Array.isArray(history) ? history : []).map(entry => String(entry?.id || '')));
+  if (!used.has(seed)) return seed;
+  let idx = 2;
+  while (used.has(`${seed}__${idx}`)) idx++;
+  return `${seed}__${idx}`;
+}
+
+function _historyGroupMatchBlob(entry) {
+  const primary = [
+    entry?.name,
+    entry?.subtitle,
+    entry?.season,
+    entry?.notes,
+  ].filter(Boolean).join(' ');
+  return String(primary || entry?.id || '').toLowerCase();
+}
+
+function _bucketHistoryEntries(entries, groups) {
+  const buckets = Array.isArray(groups) ? groups.map(() => []) : [];
+  const ungrouped = [];
+  (Array.isArray(entries) ? entries : []).forEach(entry => {
+    const blob = _historyGroupMatchBlob(entry);
+    const idx = groups.findIndex(group => group.filter(blob, entry));
+    if (idx >= 0) buckets[idx].push(entry);
+    else ungrouped.push(entry);
+  });
+  return { buckets, ungrouped };
+}
+
 function _pruneLegacyCombinedHistoryEntries(history) {
   const entries = Array.isArray(history) ? history : [];
   if (!entries.length) return entries;
@@ -3327,8 +3376,17 @@ function archiveTournament(snapshot, results, bracketResults, liveScores, durabl
   };
 
   const idx = history.findIndex(h => h.id === archived.id);
-  if (idx >= 0) history[idx] = archived;
-  else history.unshift(archived);
+  if (idx >= 0) {
+    const existing = history[idx];
+    if (_historyEntriesConflict(existing, archived) && _historyEntryHasRealResults(existing)) {
+      archived.id = _nextHistoryEntryId(archived.id, history);
+      history.unshift(archived);
+    } else {
+      history[idx] = archived;
+    }
+  } else {
+    history.unshift(archived);
+  }
 
   _syncWidgetsAll();
 
@@ -11363,8 +11421,8 @@ function renderHistoryTab() {
 
     // ── League summary cards (Futures + BAWL) ──────────────────────────────
     const _leagueDefs = [
-      { key: 'futures', label: 'Kap 7 Futures League', filter: e => /futures|kap.?7/i.test((e.name || '') + (e.id || '')) },
-      { key: 'bawl',    label: 'Bay Area WP League',   filter: e => /bay area|bawl/i.test((e.name || '') + (e.id || '')) },
+      { key: 'futures', label: 'Kap 7 Futures League', filter: entry => /futures|kap.?7/i.test(_historyGroupMatchBlob(entry)) },
+      { key: 'bawl',    label: 'Bay Area WP League',   filter: entry => /bay area|bawl/i.test(_historyGroupMatchBlob(entry)) },
     ];
     // Group history entries by sub-team label (same logic as TOURNEY_GROUPS detail sections)
     const _leagueTeamKey = e => e.team || e.subtitle || '';
@@ -11522,54 +11580,56 @@ function renderHistoryTab() {
     {
       heading:   'Kap 7 Futures League · 2026',
       shortName: 'Kap 7 Futures League',
-      filter:    e => /futures|kap.?7/i.test((e.name || '') + (e.id || '')),
+      filter:    blob => /futures|kap.?7/i.test(blob),
     },
     {
       heading:     '14U SoCal International Tournament · 2026',
       shortName:   'SoCal International 2026',
       noStandings: true,
-      filter:      e => /socal.?intl|socal.?international/i.test((e.name || '') + (e.id || '')),
+      filter:      blob => /socal.?intl|socal.?international/i.test(blob),
     },
     {
       heading:     'Marin Earth Day Cup · 2026',
       shortName:   'Marin Earth Day Cup 2026',
       noStandings: true,
-      filter:      e => /marin|earth.?day/i.test((e.name || '') + (e.id || '')),
+      filter:      blob => /marin|earth.?day/i.test(blob),
     },
     {
       heading:     'Cal Cup Finals · 2026',
       shortName:   'Cal Cup Finals 2026',
       noStandings: true,
-      filter:      e => /cal.?cup/i.test((e.name || '') + (e.id || '')),
+      filter:      blob => /cal.?cup/i.test(blob),
     },
     {
       heading:   'Bay Area Water Polo League · Winter 2025–2026',
       shortName: 'BAWL Winter 2025–2026',
-      filter:    e => /bay area|bawl/i.test((e.name || '') + (e.id || ''))
-                   && /winter/i.test((e.name || '') + (e.id || '')),
+      filter:    blob => /bay area|bawl/i.test(blob)
+                   && /winter/i.test(blob),
     },
     {
       heading:   'Bay Area Water Polo League · Fall 2025–2026',
       shortName: 'BAWL Fall 2025–2026',
-      filter:    e => /bay area|bawl/i.test((e.name || '') + (e.id || ''))
-                   && /fall/i.test((e.name || '') + (e.id || '')),
+      filter:    blob => /bay area|bawl/i.test(blob)
+                   && /fall/i.test(blob),
     },
     {
       heading:     'Evan Cousineau Memorial Cup · 2025',
       shortName:   'EC Cup 2025',
       noStandings: true,
-      filter:      e => /evan.?cousineau|ec.?cup/i.test((e.name || '') + (e.id || '')),
+      filter:      blob => /evan.?cousineau|ec.?cup/i.test(blob),
     },
     {
       heading:    'Pacific Zone Champions Cup Qualification · 2025',
       shortName:  'Pacific Zone Qual 2025',
       noStandings: true,
-      filter:     e => /pac.?zone|champions.?cup/i.test((e.name || '') + (e.id || '')),
+      filter:     blob => /pac.?zone|champions.?cup/i.test(blob),
     },
   ];
 
+  const { buckets: groupedBuckets, ungrouped: historyUngrouped } = _bucketHistoryEntries(history, TOURNEY_GROUPS);
+
   TOURNEY_GROUPS.forEach((group, gi) => {
-    const entries = history.filter(group.filter);
+    const entries = groupedBuckets[gi] || [];
     if (!entries.length) return;
 
     const sectionId = `hs-content-${gi}`;
@@ -11629,9 +11689,7 @@ function renderHistoryTab() {
   });
 
   // ── Ungrouped entries (manually added via admin) — group by season ─────────
-  const grouped = new Set();
-  TOURNEY_GROUPS.forEach(g => history.filter(g.filter).forEach(e => grouped.add(e.id)));
-  const ungrouped = history.filter(e => !grouped.has(e.id));
+  const ungrouped = historyUngrouped;
 
   if (ungrouped.length) {
     // Group by season, or "Other Tournaments" if no season set
@@ -11713,8 +11771,15 @@ function seedHistory() {
     }
     const idx = history.findIndex(h => h.id === entry.id);
     if (idx >= 0) {
-      // Always overwrite seed entries so updates (like added points) propagate
-      if (JSON.stringify(history[idx]) !== JSON.stringify(entry)) {
+      const existing = history[idx];
+      if (_historyEntriesConflict(existing, entry) && _historyEntryHasRealResults(existing)) {
+        const sig = _historySignatureForEntry(entry);
+        const hasEquivalent = history.some(h => _historySignatureForEntry(h) === sig);
+        if (!hasEquivalent) {
+          history.push({ ...entry, id: _nextHistoryEntryId(entry.id, history) });
+          changed = true;
+        }
+      } else if (JSON.stringify(existing) !== JSON.stringify(entry)) {
         history[idx] = entry;
         changed = true;
       }
@@ -11824,7 +11889,7 @@ function renderHistoryStandings(targetId = 'history-standings', historyData = nu
   if (!el) return;
   const data = historyData !== null ? historyData : getHistory();
   const futuresEntries = data.filter(
-    e => /futures|kap.?7/i.test((e.name || '') + (e.id || ''))
+    e => /futures|kap.?7/i.test(_historyGroupMatchBlob(e))
   );
   el.innerHTML = buildStandingsHtml(futuresEntries, 'Kap 7 Futures League');
 }
