@@ -13147,6 +13147,9 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
         S.tournament.dirImportName = pkg?.tournamentName || '';
         if (!S.tournament.bracket) S.tournament.bracket = {};
         if (Object.keys(hostedImportedPathMap).length) {
+          // Hosted-tournament imports should prefer the published director rebracket
+          // over any stale local generic bracket paths from older imports/deploys.
+          delete S.tournament.bracket.paths;
           S.tournament.bracket.importedPaths = hostedImportedPathMap;
         } else {
           delete S.tournament.bracket.importedPaths;

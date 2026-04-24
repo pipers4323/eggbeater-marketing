@@ -1660,14 +1660,17 @@ function getTournamentBracketPaths() {
     const keyedImported = normalizePathMap(ip);
     return keyedImported.length ? keyedImported : null;
   };
+  const preferredImported = importedFallback();
+  const isHostedTournamentImport = !!(tournament?.dirImportCode || tournament?.directorCode);
 
-  if (!bp) return importedFallback();
+  if (isHostedTournamentImport && preferredImported?.length) return preferredImported;
+  if (!bp) return preferredImported;
 
   const letters = getActiveTeams();
   if (!letters) {
     if (Array.isArray(bp)) return bp;
     const mergedPaths = normalizePathMap(bp);
-    return mergedPaths.length ? mergedPaths : importedFallback();
+    return mergedPaths.length ? mergedPaths : preferredImported;
   }
 
   const firstTeam = Array.isArray(tournament.teams) && tournament.teams.length
@@ -1675,11 +1678,11 @@ function getTournamentBracketPaths() {
     : 'A';
 
   if (Array.isArray(bp)) {
-    return letters.includes(firstTeam) ? bp : importedFallback();
+    return letters.includes(firstTeam) ? bp : preferredImported;
   }
 
   const paths = letters.flatMap(l => bp[l] || []);
-  return paths.length ? paths : importedFallback();
+  return paths.length ? paths : preferredImported;
 }
 
 function switchTeam(letter, groupKey) {
