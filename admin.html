@@ -8740,7 +8740,7 @@
       if (!S.bsync) {
         const _lsUrl = localStorage.getItem('ebadmin-bsync-url') || '';
         const _lsGidM = _lsUrl.match(/[#?&]gid=(\d+)/);
-        S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] || '', sheetGid: localStorage.getItem('ebadmin-bsync-gid') || (_lsGidM ? _lsGidM[1] : ''), poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', wizardMode: 'standard' };
+S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] || '', sheetGid: localStorage.getItem('ebadmin-bsync-gid') || (_lsGidM ? _lsGidM[1] : ''), poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', wizardMode: 'standard', hostMode: '' };
       }
       const bs = S.bsync;
       // Advanced Import parent accordion: auto-open if any wizard is active
@@ -10518,6 +10518,25 @@
       if (lbl) lbl.textContent = bsStepLabel(n);
     }
 
+    function bsRefreshWizardCard() {
+      if (!S.bsync) return;
+      const mode = S.bsync.wizardMode === 'futures' ? 'futures' : 'standard';
+      const hostMode = S.bsync.hostMode || '';
+      const cardId = mode === 'futures' ? 'bs-futures-card' : 'bs-card';
+      const card = document.getElementById(cardId);
+      if (!card) return;
+      card.outerHTML = bsWizardHtml(mode, hostMode);
+      const nextCard = document.getElementById(cardId);
+      if (nextCard) nextCard.open = true;
+    }
+
+    function bsShowPoolReviewStep() {
+      if (!S.bsync) return;
+      S.bsync.step = 3;
+      _bsSaveWizard();
+      bsRefreshWizardCard();
+    }
+
     // ── BSSync gviz URL helper — always includes gid when available ───────────────
     function bsCsvUrl(rangeOrNull) {
       let url = 'https://docs.google.com/spreadsheets/d/' + S.bsync.sheetId + '/gviz/tq?tqx=out:csv';
@@ -10884,7 +10903,7 @@
 
         if (status) { status.style.color = '#059669'; status.textContent = `✅ Found ${Object.keys(pools).length} pool(s) in ${poolBlocks.length} block(s) — review below`; }
         if (preview) preview.innerHTML = bsRenderActivePoolPreview(S.bsync, '') +
-          `<button class="save-btn" style="width:100%;margin-top:10px" onclick="bsStep(3);document.getElementById('bs-s3-pools').innerHTML=bsRenderActivePoolPreview(S.bsync,S.bsync.teamName)">Looks Good →</button>`;
+          `<button class="save-btn" style="width:100%;margin-top:10px" onclick="bsShowPoolReviewStep()">Looks Good →</button>`;
       } catch (e) {
         if (status) { status.style.color = '#dc2626'; status.textContent = '❌ ' + e.message; }
       }
@@ -12358,7 +12377,8 @@
     async function bsReset() {
       // Clear all wizard state — both in-memory and on the server so a hard
       // refresh doesn't restore the old setup via _restoreBsyncFromTournament()
-      S.bsync = { step: 1, sheetUrl: '', sheetId: '', sheetGid: '', poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', gameOverrides: null, venueOverrides: null, wizardMode: 'standard' };
+      const hostMode = S.bsync?.hostMode || '';
+      S.bsync = { step: 1, sheetUrl: '', sheetId: '', sheetGid: '', poolRange: '', teamName: '', rebracket: false, rebracketRange: '', pollMins: 10, pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', gameOverrides: null, venueOverrides: null, wizardMode: 'standard', hostMode };
       ['ebadmin-bsync-url', 'ebadmin-bsync-gid', 'ebadmin-bsync-team', 'ebadmin-bsync-range', 'ebadmin-bsync-mins'].forEach(k => localStorage.removeItem(k));
       if (S.tournament) delete S.tournament.sheetSync;
       bsStep(1);
