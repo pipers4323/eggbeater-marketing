@@ -3775,13 +3775,14 @@
 
     function _renderClubDashboardCards(clubs = [], adminCounts = {}) {
       return clubs.map(club => {
+        const clubType = club.clubType || club.type || 'club';
         const adminCount = Object.prototype.hasOwnProperty.call(adminCounts, club.id)
           ? adminCounts[club.id]
           : null;
         const adminLabel = adminCount == null
           ? 'Loading admins…'
           : `${adminCount} admin${adminCount !== 1 ? 's' : ''}`;
-        const typeLabel = club.clubType === 'highschool' ? '🎓 HS' : '🤽‍♀️ Club';
+        const typeLabel = clubType === 'highschool' ? '🎓 HS' : '🤽‍♀️ Club';
         const trayStyle = club.logoTrayStyle || 'light';
         const trayBg = trayStyle === 'dark'
           ? 'linear-gradient(180deg,#0b0f14 0%,#111827 100%)'
@@ -3797,10 +3798,10 @@
             : '1px solid var(--g200)';
         const logoHtml = club.logo
           ? `<div style="width:56px;height:44px;background:${trayBg};border-radius:10px;border:${trayBorder};display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;padding:4px 6px">`
-          + `<img src="${club.logo}" style="width:100%;height:100%;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display=''">`
-          + `<div style="font-size:1.4rem;display:none">${club.clubType === 'highschool' ? '🎓' : '🤽‍♀️'}</div>`
-          + `</div>`
-          : `<div style="width:44px;height:44px;background:var(--g100);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.4rem">${club.clubType === 'highschool' ? '🎓' : '🤽‍♀️'}</div>`;
+            + `<img src="${club.logo}" style="width:100%;height:100%;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display=''">`
+            + `<div style="font-size:1.4rem;display:none">${clubType === 'highschool' ? '🎓' : '🤽‍♀️'}</div>`
+            + `</div>`
+          : `<div style="width:44px;height:44px;background:var(--g100);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.4rem">${clubType === 'highschool' ? '🎓' : '🤽‍♀️'}</div>`;
 
         return `
       <div style="background:white;border:1px solid var(--g200);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:box-shadow .15s"
@@ -3824,12 +3825,12 @@
       }).join('');
     }
 
-    function _renderClubDashboardStats(clubCount = 0, totalAdmins = null) {
+    function _renderClubDashboardStats(clubCount = 0, totalAdmins = null, ageGroupCount = null) {
       return `
       <div style="display:flex;gap:20px;margin-top:4px">
         <div><span style="font-size:1.4rem;font-weight:700;color:var(--royal)">${clubCount}</span><br>Clubs</div>
         <div><span style="font-size:1.4rem;font-weight:700;color:var(--royal)">${totalAdmins == null ? '…' : totalAdmins}</span><br>Total Admins</div>
-        <div><span style="font-size:1.4rem;font-weight:700;color:var(--royal)">9</span><br>Age Groups</div>
+        <div><span style="font-size:1.4rem;font-weight:700;color:var(--royal)">${ageGroupCount == null ? '…' : ageGroupCount}</span><br>Age Groups</div>
       </div>`;
     }
 
@@ -3849,6 +3850,22 @@
       return Object.fromEntries(entries);
     }
 
+    async function _loadSuperAdminDashboardSummary() {
+      const res = await fetch(WORKER + '/admin/clubs-summary', {
+        headers: _superAdminAuthHeaders()
+      });
+      if (!res.ok) throw new Error('Failed to fetch clubs summary');
+      const data = await res.json();
+      const clubs = Array.isArray(data.clubs) ? data.clubs : [];
+      const adminCounts = Object.fromEntries(clubs.map(club => [club.id, Number(club.adminCount) || 0]));
+      return {
+        clubs,
+        adminCounts,
+        totalAdmins: Number(data.totalAdmins) || 0,
+        ageGroupCount: Number(data.ageGroupCount) || 0,
+      };
+    }
+
     async function showClubDashboard() {
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('admin-app').setAttribute('hidden', '');
@@ -3860,30 +3877,50 @@
       listEl.innerHTML = `<div style="text-align:center;color:var(--g400);padding:20px">${t('Loading clubs…')}</div>`;
 
       try {
-        const res = await fetch(WORKER + '/clubs');
-        if (!res.ok) throw new Error('Failed to fetch clubs');
-        const data = await res.json();
-        const clubs = data.clubs || [];
+        let clubs = [];
+        let adminCounts = {};
+        let totalAdmins = null;
+        let ageGroupCount = null;
+
+        try {
+          const summary = await _loadSuperAdminDashboardSummary();
+          clubs = summary.clubs;
+          adminCounts = summary.adminCounts;
+          totalAdmins = summary.totalAdmins;
+          ageGroupCount = summary.ageGroupCount;
+        } catch (_) {
+          const res = await fetch(WORKER + '/clubs');
+          if (!res.ok) throw new Error('Failed to fetch clubs');
+          const data = await res.json();
+          clubs = data.clubs || [];
+        }
 
         if (!clubs.length) {
           listEl.innerHTML = `<div style="text-align:center;color:var(--g400);padding:20px">${t('No clubs found.')}</div>`;
           return;
         }
 
-        listEl.innerHTML = _renderClubDashboardCards(clubs);
+        const haveSummary = Object.keys(adminCounts).length > 0;
+        listEl.innerHTML = _renderClubDashboardCards(clubs, haveSummary ? adminCounts : {});
 
         // Update platform stats
         const statsEl = document.getElementById('platform-stats-body');
         if (statsEl) {
-          statsEl.innerHTML = _renderClubDashboardStats(clubs.length, null);
+          statsEl.innerHTML = _renderClubDashboardStats(
+            clubs.length,
+            haveSummary ? totalAdmins : null,
+            ageGroupCount
+          );
         }
 
-        const adminCounts = await _loadClubAdminCounts(clubs);
-        listEl.innerHTML = _renderClubDashboardCards(clubs, adminCounts);
+        if (!haveSummary) {
+          adminCounts = await _loadClubAdminCounts(clubs);
+          listEl.innerHTML = _renderClubDashboardCards(clubs, adminCounts);
 
-        if (statsEl) {
-          const totalAdmins = Object.values(adminCounts).reduce((sum, count) => sum + (Number(count) || 0), 0);
-          statsEl.innerHTML = _renderClubDashboardStats(clubs.length, totalAdmins);
+          if (statsEl) {
+            totalAdmins = Object.values(adminCounts).reduce((sum, count) => sum + (Number(count) || 0), 0);
+            statsEl.innerHTML = _renderClubDashboardStats(clubs.length, totalAdmins, ageGroupCount);
+          }
         }
       } catch (e) {
         listEl.innerHTML = `<div style="text-align:center;color:var(--red);padding:20px">${t('Error loading clubs')}: ${esc(e.message)}</div>`;
