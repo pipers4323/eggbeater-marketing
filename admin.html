@@ -16826,6 +16826,8 @@
     function applyAdminBranding(primaryColor, secondaryColor, clubLogo) {
       if (!primaryColor) return;
       const root = document.documentElement;
+      const headerStyle = S._branding?.headerStyle || 'default';
+      const trayStyle = S._branding?.logoTrayStyle || 'light';
 
       // Parse hex → {r, g, b}
       function hexToRgb(hex) {
@@ -16865,11 +16867,17 @@
         root.style.setProperty('--teal-light', rgbToHex(tl.r, tl.g, tl.b));
       }
 
-      // Update admin header gradient using computed dark shade
+      // Update admin header using the saved header style
       const darkHex = rgbToHex(dark.r, dark.g, dark.b);
       const header = document.querySelector('.admin-header');
       if (header) {
-        header.style.background = `linear-gradient(135deg, ${primaryColor} 0%, ${darkHex} 100%)`;
+        if (headerStyle === 'solid') {
+          header.style.background = primaryColor;
+        } else if (headerStyle === 'gradient') {
+          header.style.background = `linear-gradient(135deg, ${primaryColor} 0%, ${rgbToHex(darken(pc, 0.4).r, darken(pc, 0.4).g, darken(pc, 0.4).b)} 100%)`;
+        } else {
+          header.style.background = `linear-gradient(135deg, ${primaryColor} 0%, ${darkHex} 100%)`;
+        }
       }
       // Let the header-bar keep its CSS dark overlay (rgba(0,0,0,.18))
       const bar = document.querySelector('.admin-header-bar');
@@ -16903,9 +16911,32 @@
       const poweredByBar = adminApp ? adminApp.querySelector('.admin-poweredby-bar') : null;
       const inlineLogo = poweredByBar ? poweredByBar.querySelector('.eggbeater-inline-logo') : null;
 
+      const applyTrayStyles = () => {
+        if (!customWrap) return;
+        const trayBackground = trayStyle === 'dark'
+          ? 'linear-gradient(180deg,#0b0f14 0%,#111827 100%)'
+          : trayStyle === 'brand'
+            ? primaryColor
+            : trayStyle === 'transparent'
+              ? 'transparent'
+              : 'linear-gradient(180deg,#ffffff 0%,#f8fafc 100%)';
+        const trayBorder = trayStyle === 'transparent'
+          ? '1px dashed rgba(255,255,255,0.24)'
+          : trayStyle === 'dark' || trayStyle === 'brand'
+            ? '1px solid rgba(15,23,42,.16)'
+            : '1px solid rgba(255,255,255,0.72)';
+        customWrap.style.background = trayBackground;
+        customWrap.style.border = trayBorder;
+        customWrap.style.borderRadius = '16px';
+        customWrap.style.boxShadow = trayStyle === 'transparent'
+          ? 'none'
+          : '0 12px 28px rgba(15,23,42,0.18)';
+      };
+
       if (clubLogo) {
         if (logoWrap) logoWrap.classList.add('has-custom-logo');
         if (customWrap) customWrap.classList.remove('hidden');
+        applyTrayStyles();
         if (poweredByBar) poweredByBar.classList.remove('hidden');
         if (defaultLogoImg) {
           defaultLogoImg.classList.add('hidden');
@@ -16919,6 +16950,12 @@
       } else {
         if (logoWrap) logoWrap.classList.remove('has-custom-logo');
         if (customWrap) customWrap.classList.add('hidden');
+        if (customWrap) {
+          customWrap.style.background = '';
+          customWrap.style.border = '';
+          customWrap.style.borderRadius = '';
+          customWrap.style.boxShadow = '';
+        }
         if (poweredByBar) poweredByBar.classList.add('hidden');
         if (defaultLogoImg) {
           defaultLogoImg.classList.remove('hidden');
