@@ -360,12 +360,7 @@ async function fbCheckAdminAccess(clubId) {
     };
     const doc = await _fbDb.collection('clubs').doc(clubId).get();
     if (!doc.exists) {
-      const snapshot = await _fbDb.collection('clubs').get();
-      const anySuperAdmin = snapshot.docs.some(clubDoc => {
-        const data = clubDoc.data() || {};
-        return (data.superAdminUIDs || []).some(matchesAdmin);
-      });
-      return { isAdmin: anySuperAdmin, isSuperAdmin: anySuperAdmin, clubName: '' };
+      return { isAdmin: false, isSuperAdmin: false, clubName: '' };
     }
     const data = doc.data();
     const adminUIDs = data.adminUIDs || [];
@@ -1032,7 +1027,7 @@ async function fbEnsureClub(clubName, adminUid) {
       await ref.set({
         name: clubName || 'My Club',
         adminUIDs: adminUid ? [adminUid] : [],
-        superAdminUIDs: adminUid ? [adminUid] : [],
+        superAdminUIDs: [],
         createdAt: new Date().toISOString(),
       });
     }

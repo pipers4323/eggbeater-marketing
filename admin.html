@@ -3508,7 +3508,9 @@
         }
       }
 
-      S.isSuperAdmin = !!access.isSuperAdmin || mode === 'password';
+      // Firebase club admins should land in their club admin panel, not the global dashboard.
+      // Keep the all-clubs super-admin dashboard restricted to explicit password auth for now.
+      S.isSuperAdmin = mode === 'password';
       if (S.isSuperAdmin && !inviteClubId) {
         showStatus('', 'info');
         await showClubDashboard();
