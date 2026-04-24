@@ -1447,18 +1447,13 @@ h2 {
   color: var(--royal);
 }
 
-.mp-multi-card .scores-slot-label {
-  color: var(--royal);
-}
-
 .slot-header-in-card.scores-slot-header {
   border-top-color: var(--gray-200);
 }
 
 @media (max-width: 1022px) {
   .scores-slot-header.slot-header-in-card .scores-slot-label,
-  [data-theme="dark"] .scores-slot-header.slot-header-in-card .scores-slot-label,
-  .mp-multi-card .scores-slot-label {
+  [data-theme="dark"] .scores-slot-header.slot-header-in-card .scores-slot-label {
     color: var(--royal);
   }
 }
@@ -10358,8 +10353,6 @@ html.native-ios[data-theme="light"] .scores-slot-header.slot-header-in-card .sco
 html.native-android[data-theme="light"] .scores-slot-header.slot-header-in-card .scores-slot-label,
 html.native-ios[data-theme="light"] #view-history .card.tab-card .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
 html.native-android[data-theme="light"] #view-history .card.tab-card .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
-html.native-ios[data-theme="light"] .card.tab-card.mp-multi-card > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
-html.native-android[data-theme="light"] .card.tab-card.mp-multi-card > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
 html.native-ios[data-theme="light"] .roster-view-card .scores-slot-label,
 html.native-android[data-theme="light"] .roster-view-card .scores-slot-label {
   color: #002868 !important;
