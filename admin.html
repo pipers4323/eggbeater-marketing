@@ -9946,6 +9946,10 @@
       return ['', 'Sheet URL', 'Pool Setup', 'Find My Team', 'Games Preview', 'Re-bracket', 'Poll Interval', 'Deploy'][n] || '';
     }
 
+    function bsIsDirectorHost(bs) {
+      return !!(bs && bs.hostMode === 'director');
+    }
+
     function bsRenderPoolPreview(pools, highlightTeam) {
       if (!pools || !Object.keys(pools).length) return '';
       var poolNames = Object.keys(pools);
@@ -9985,6 +9989,14 @@
 
     function bsRenderDeploySummary(bs) {
       if (!bs) return '';
+      if (bsIsDirectorHost(bs)) {
+        var dirUrlShort = (bs.sheetUrl || '').replace(/.*\/spreadsheets\/d\//, '').substring(0, 24) + '\u2026';
+        var dirSyncStr = _fmtLastSync(bs.lastSync);
+        return '<div>\ud83d\udcca <strong>Sheet:</strong> ' + esc(dirUrlShort) + '</div>'
+          + '<div>\ud83c\udfdf️ <strong>Import mode:</strong> Director host tournament setup</div>'
+          + '<div>\ud83d\udcc5 <strong>Games found:</strong> ' + ((bs.games || []).length) + '</div>'
+          + '<div id="bs-last-sync-row">\ud83d\udd52 <strong>Last scanned:</strong> ' + esc(dirSyncStr) + '</div>';
+      }
       var urlShort = (bs.sheetUrl || '').replace(/.*\/spreadsheets\/d\//, '').substring(0, 24) + '\u2026';
       var poolStr = bs.myPool ? ' \u00b7 ' + esc(bs.myPool) + ', Seed ' + bs.mySeed : '';
       var rbTeam = bs.bracketPathTeam && bs.bracketPathTeam !== 'All' ? ', Team ' + bs.bracketPathTeam : '';
@@ -10000,7 +10012,7 @@
     }
 
     // bsWizardHtml: renders either the standard CSV wizard or the Futures color-aware wizard.
-    function bsWizardHtml(mode) {
+    function bsWizardHtml(mode, hostMode) {
       const wizardMode = mode === 'futures' ? 'futures' : 'standard';
       if (!S.bsync) {
         _restoreBsyncFromTournament();
@@ -10019,26 +10031,34 @@
             rebracket: false,
             rebracketRange: '',
             pollMins: parseInt(localStorage.getItem('ebadmin-bsync-mins') || '10', 10),
-            pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', gameOverrides: null, venueOverrides: null, wizardMode: 'standard'
+            pools: null, myPool: '', mySeed: 0, games: [], bracketPaths: null, colorCoded: false, legendCells: '', ageGroups: [], myAgeGroupIdx: 0, myAgeGroup: '', gameOverrides: null, venueOverrides: null, wizardMode: 'standard', hostMode: hostMode || ''
           };
         }
       }
       var bs = S.bsync;
+      if (hostMode) bs.hostMode = hostMode;
       if (!bs.wizardMode) bs.wizardMode = bs.colorCoded ? 'futures' : 'standard';
       var isFutures = wizardMode === 'futures';
+      var isDirectorHost = bsIsDirectorHost(bs);
       var isActive = (bs.wizardMode || 'standard') === wizardMode;
       var cardId = isFutures ? 'bs-futures-card' : 'bs-card';
       var title = isFutures ? '🧭 Futures Bracket Import Wizard' : '&#x1f4ca; Bracket Sheet Sync';
-      var introHint = isFutures
+      var introHint = isDirectorHost
+        ? (isFutures
+          ? 'Use this to import a full Futures host sheet into the Director package. This flow imports pools and the full schedule for the tournament setup.'
+          : 'Use this to import a full host bracket sheet into the Director package. This flow imports pools and the full schedule for the tournament setup.')
+        : (isFutures
         ? 'Use this when a Futures sheet shares one tab across multiple age groups and the age groups are separated by legend colors instead of separate tabs.'
-        : 'Use this for the standard public Google Sheets / CSV-style bracket import flow.';
-      var launchLabel = isFutures ? 'Open Futures color-aware import' : 'Open standard CSV import';
+        : 'Use this for the standard public Google Sheets / CSV-style bracket import flow.');
+      var launchLabel = isDirectorHost
+        ? (isFutures ? 'Open Futures host import' : 'Open host tournament import')
+        : (isFutures ? 'Open Futures color-aware import' : 'Open standard CSV import');
       if (!isActive) {
         return '<details class="card collapsible-card" id="' + cardId + '">'
           + '<summary class="card-header collapsible-header">' + title + ' <span class="collapse-icon">&#9662;</span></summary>'
           + '<div style="padding:10px 14px 14px">'
           + '<div class="info-hint" style="margin-bottom:10px">' + introHint + '</div>'
-          + '<button class="save-btn" style="width:100%" onclick="bsOpenWizardMode(\'' + wizardMode + '\')">' + launchLabel + '</button>'
+          + '<button class="save-btn" style="width:100%" onclick="bsOpenWizardMode(\'' + wizardMode + '\', \'' + escAttr(hostMode || '') + '\')">' + launchLabel + '</button>'
           + '</div>'
           + '</details>';
       }
@@ -10062,7 +10082,7 @@
         + '<div style="padding:10px 14px">'
         + '<div id="bs-draft-banner" style="display:' + (hasDraft && step >= 2 ? 'block' : 'none') + ';background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:8px 12px;font-size:0.8rem;color:#92400e;margin-bottom:10px">⚡ Draft restored from your last session. <a href="#" onclick="event.preventDefault();_bsClearWizardDraft()" style="color:#92400e;font-weight:700">Start fresh</a></div>'
         + '<div style="display:flex;gap:3px;margin-bottom:10px" id="bs-stepbar">' + dots + '</div>'
-        + '<div id="bs-step-label" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--g400);margin-bottom:10px">' + bsStepLabel(step) + '</div>'
+        + '<div id="bs-step-label" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--g400);margin-bottom:10px">' + (isDirectorHost && step === 3 ? 'Review Pools' : bsStepLabel(step)) + '</div>'
         // Step 1
         + '<div id="bs-s1" style="display:' + (step === 1 ? 'block' : 'none') + '">'
         + '<div class="info-label" style="margin-bottom:4px">Paste your Google Sheets URL</div>'
@@ -10112,10 +10132,14 @@
         // Step 3
         + '<div id="bs-s3" style="display:' + (step === 3 ? 'block' : 'none') + '">'
         + '<div id="bs-s3-pools" style="margin-bottom:10px">' + poolsHtml + '</div>'
-        + '<div class="info-label" style="margin-bottom:4px">How is your team listed on this sheet?</div>'
-        + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">Exact name as it appears. For multiple teams (A &amp; B squad same sheet) separate with a comma — e.g. <em>680 A, 680 B</em></div>'
-        + '<input class="info-input" id="bs-teamname" value="' + esc(bs.teamName || '') + '" placeholder="e.g. 680 A, 680 B" autocomplete="off" style="margin-bottom:8px" onkeydown="if(event.key===\'Enter\')bsFindTeam()">'
-        + '<button class="save-btn" style="width:100%" onclick="bsFindTeam()">Find My Team &rarr;</button>'
+        + (isDirectorHost
+          ? '<div class="info-label" style="margin-bottom:4px">Import the full tournament schedule</div>'
+          + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:8px">Director host mode imports the full schedule and pool structure. Teams will choose their own squad later when they enter the director code.</div>'
+          + '<button class="save-btn" style="width:100%" onclick="bsFindTeam()">Import Full Schedule &rarr;</button>'
+          : '<div class="info-label" style="margin-bottom:4px">How is your team listed on this sheet?</div>'
+          + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">Exact name as it appears. For multiple teams (A &amp; B squad same sheet) separate with a comma — e.g. <em>680 A, 680 B</em></div>'
+          + '<input class="info-input" id="bs-teamname" value="' + esc(bs.teamName || '') + '" placeholder="e.g. 680 A, 680 B" autocomplete="off" style="margin-bottom:8px" onkeydown="if(event.key===\'Enter\')bsFindTeam()">'
+          + '<button class="save-btn" style="width:100%" onclick="bsFindTeam()">Find My Team &rarr;</button>')
         + '<div id="bs-s3-status" style="font-size:.8rem;margin-top:6px;min-height:1em"></div>'
         + '</div>'
         // Step 4
@@ -10172,7 +10196,7 @@
         + '</div>'
         + '<div style="display:flex;gap:8px;margin-top:10px">'
         + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g300)" onclick="bsStep(4)">&larr; Back</button>'
-        + '<button class="save-btn" style="flex:2" onclick="bsStep5Next()">Continue &rarr;</button>'
+        + '<button class="save-btn" style="flex:2" onclick="' + (isDirectorHost ? 'bsStep(7)' : 'bsStep5Next()') + '">Continue &rarr;</button>'
         + '</div></div>'
         // Step 6
         + '<div id="bs-s6" style="display:' + (step === 6 ? 'block' : 'none') + '">'
@@ -10187,12 +10211,14 @@
         + '<div id="bs-s7" style="display:' + (step === 7 ? 'block' : 'none') + '">'
         + '<div id="bs-deploy-summary" style="background:var(--g50);border:1px solid var(--g200);border-radius:8px;padding:10px 12px;font-size:.82rem;line-height:1.9;margin-bottom:12px">' + summaryHtml + '</div>'
         + '<div style="display:flex;gap:8px;margin-bottom:8px">'
-        + '<button class="save-btn" style="flex:3;background:var(--royal);color:white;font-size:.95rem;padding:12px;border-radius:8px" onclick="bsDeploy()">&#x1f680; Deploy to App</button>'
-        + '<button id="bs-sync-now-btn" class="add-btn" style="flex:1;background:var(--g100);color:var(--g700);border:1px solid var(--g300);border-radius:8px;padding:12px;font-size:.82rem;font-weight:700;white-space:nowrap" onclick="bsSyncNow()">&#x1f504; Sync Now</button>'
+        + '<button class="save-btn" style="flex:3;background:var(--royal);color:white;font-size:.95rem;padding:12px;border-radius:8px" onclick="bsDeploy()">' + (isDirectorHost ? '&#x1f4e4; Publish to Director Package' : '&#x1f680; Deploy to App') + '</button>'
+        + (isDirectorHost
+          ? ''
+          : '<button id="bs-sync-now-btn" class="add-btn" style="flex:1;background:var(--g100);color:var(--g700);border:1px solid var(--g300);border-radius:8px;padding:12px;font-size:.82rem;font-weight:700;white-space:nowrap" onclick="bsSyncNow()">&#x1f504; Sync Now</button>')
         + '</div>'
         + '<div id="bs-deploy-status" style="font-size:.85rem;text-align:center;margin-bottom:8px;min-height:1em;color:var(--g500)"></div>'
         + '<div style="display:flex;gap:8px">'
-        + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g300)" onclick="bsStep(6)">&larr; Back</button>'
+        + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g300)" onclick="bsStep(' + (isDirectorHost ? '5' : '6') + ')">&larr; Back</button>'
         + '<button class="add-btn" style="flex:1;background:#fef3c7;color:#92400e;border:1px solid #fcd34d" onclick="bsReset()">&#8617; Start Over</button>'
         + '</div></div>'
         + '</div>'
@@ -10202,19 +10228,19 @@
     // Wizard is now rendered inline via ${bsWizardHtml()} in renderAddGamesTab(). No-op kept for compatibility.
     function renderBsWizard() { }
 
-    function bsFuturesWizardLauncherHtml() {
-      return bsWizardHtml('futures');
+    function bsFuturesWizardLauncherHtml(hostMode) {
+      return bsWizardHtml('futures', hostMode);
     }
 
-    function bsLaunchFuturesWizard() {
-      bsOpenWizardMode('futures');
+    function bsLaunchFuturesWizard(hostMode) {
+      bsOpenWizardMode('futures', hostMode);
     }
 
-    function bsLaunchStandardWizard() {
-      bsOpenWizardMode('standard');
+    function bsLaunchStandardWizard(hostMode) {
+      bsOpenWizardMode('standard', hostMode);
     }
 
-    function bsOpenWizardMode(mode) {
+    function bsOpenWizardMode(mode, hostMode) {
       if (!S.bsync) {
         const url = localStorage.getItem('ebadmin-bsync-url') || '';
         const sheetId = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] || '';
@@ -10241,9 +10267,11 @@
           myAgeGroup: '',
           gameOverrides: null,
           venueOverrides: null,
-          wizardMode: 'standard'
+          wizardMode: 'standard',
+          hostMode: hostMode || ''
         };
       }
+      if (hostMode) S.bsync.hostMode = hostMode;
       if (S.bsync?.sheetUrl) bsApplySheetUrl(S.bsync.sheetUrl);
       S.bsync.step = 1;
       S.bsync.wizardMode = mode === 'futures' ? 'futures' : 'standard';
@@ -10284,6 +10312,7 @@
           pollMins: S.bsync.pollMins,
           myPool: S.bsync.myPool,
           mySeed: S.bsync.mySeed,
+          hostMode: S.bsync.hostMode || '',
           colorCoded: S.bsync.colorCoded,
           legendCells: S.bsync.legendCells,
           myAgeGroup: S.bsync.myAgeGroup,
@@ -10704,10 +10733,15 @@
     }
 
     function bsFindTeam() {
-      const name = (document.getElementById('bs-teamname')?.value || '').trim();
       const status = document.getElementById('bs-s3-status');
-      if (!name) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter your team name'; } return; }
       if (!S.bsync?.pools) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Go back and fetch pools first'; } return; }
+      if (bsIsDirectorHost(S.bsync)) {
+        if (status) { status.style.color = '#059669'; status.textContent = '✅ Pool setup looks good — scanning full tournament schedule…'; }
+        setTimeout(bsScanGames, 250);
+        return;
+      }
+      const name = (document.getElementById('bs-teamname')?.value || '').trim();
+      if (!name) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter your team name'; } return; }
       S.bsync.teamName = name;
       // Support comma-separated multi-team (e.g. "680 A, 680 B")
       const teamNames = name.split(/[,;]+/).map(n => n.trim()).filter(Boolean);
@@ -10881,6 +10915,7 @@
     }
 
     function bsParseCourseSched(allRows, teamNameLower) {
+      const importAllTeams = !teamNameLower;
       // Find the header row: has "Time" in col 0 AND multiple "White Team" or "White" entries
       let headerRow = -1;
       for (let ri = 0; ri < Math.min(allRows.length, 35); ri++) {
@@ -10979,9 +11014,9 @@
           var dark = (row[crs.darkCol] || '').trim();
           var div = (row[crs.divCol] || '').trim();
           if (!white && !dark) continue;
-          var isWhite = white.toLowerCase().includes(teamNameLower);
-          var isDark = dark.toLowerCase().includes(teamNameLower);
-          if (!isWhite && !isDark) continue;
+          var isWhite = !importAllTeams && white.toLowerCase().includes(teamNameLower);
+          var isDark = !importAllTeams && dark.toLowerCase().includes(teamNameLower);
+          if (!importAllTeams && !isWhite && !isDark) continue;
           var gameId = 'G' + crs.num + slotNum;
           var opponentRaw = isWhite ? dark : white;
           var opponent = opponentRaw
@@ -10991,13 +11026,15 @@
           games.push({
             id: 'g' + (Date.now() + games.length).toString(36),
             gameNum: gameId,
-            opponent: opponent,
+            opponent: importAllTeams ? ((white || 'TBD') + ' vs ' + (dark || 'TBD')) : opponent,
+            homeTeam: white || 'TBD',
+            awayTeam: dark || 'TBD',
             time: timeFormatted,
             dateISO: dateISO,
             date: dateDisplay,
             location: locationStr || ('Course ' + crs.num),
             pool: 'Course ' + crs.num,
-            cap: isDark ? 'Dark' : 'White',
+            cap: importAllTeams ? '' : (isDark ? 'Dark' : 'White'),
             division: div,
           });
         }
@@ -11018,12 +11055,13 @@
         // Support multi-team (comma-separated): match games for any listed team
         const _teamNamesLower = (S.bsync.teamNames && S.bsync.teamNames.length ? S.bsync.teamNames : [S.bsync.teamName || '']).map(n => n.toLowerCase()).filter(Boolean);
         const teamNameLower = _teamNamesLower[0] || '';
+        const importAllTeams = bsIsDirectorHost(S.bsync);
 
         // ── Course/court schedule format — bypass standard column detection ──
         if (S.bsync.courseFormat) {
-          const games = bsParseCourseSched(allRows, teamNameLower);
+          const games = bsParseCourseSched(allRows, importAllTeams ? '' : teamNameLower);
           if (!games.length) {
-            if (status4) { status4.style.color = '#dc2626'; status4.textContent = `⚠️ No games found for "${S.bsync.teamName}" — check the team name matches the sheet exactly`; }
+            if (status4) { status4.style.color = '#dc2626'; status4.textContent = importAllTeams ? '⚠️ No games found in the sheet — check the schedule grid and sheet URL' : `⚠️ No games found for "${S.bsync.teamName}" — check the team name matches the sheet exactly`; }
             const nextBtn = document.getElementById('bs-s4-next');
             if (nextBtn) nextBtn.disabled = true;
             return;
@@ -11038,12 +11076,12 @@
               + games.map(function (g) {
               return '<div style="padding:5px 0;border-bottom:1px solid var(--g100);display:flex;gap:8px;align-items:center">'
                 + '<span style="font-size:.72rem;color:var(--g400);min-width:40px;font-weight:600">' + esc(g.gameNum) + '</span>'
-                + '<span style="flex:1;font-weight:600;font-size:.82rem">vs ' + esc(g.opponent) + '</span>'
+                + '<span style="flex:1;font-weight:600;font-size:.82rem">' + (importAllTeams ? esc((g.homeTeam || 'TBD') + ' vs ' + (g.awayTeam || 'TBD')) : ('vs ' + esc(g.opponent))) + '</span>'
                 + (g.division ? '<span style="font-size:.7rem;color:var(--g400);padding:1px 5px;background:var(--g100);border-radius:3px">' + esc(g.division) + '</span>' : '')
                 + '<span style="font-size:.72rem;color:var(--g400)">' + (g.time ? esc(g.time) : '') + '</span>'
-                + '<span style="font-size:.7rem;background:' + (g.cap === 'Dark' ? '#1f2937' : 'var(--g100)') + ';color:' + (g.cap === 'Dark' ? 'white' : 'var(--g600)') + ';padding:1px 5px;border-radius:3px;min-width:36px;text-align:center">' + (g.cap === 'Dark' ? '⚫ Dark' : '⚪ White') + '</span>'
+                + (importAllTeams ? '' : ('<span style="font-size:.7rem;background:' + (g.cap === 'Dark' ? '#1f2937' : 'var(--g100)') + ';color:' + (g.cap === 'Dark' ? 'white' : 'var(--g600)') + ';padding:1px 5px;border-radius:3px;min-width:36px;text-align:center">' + (g.cap === 'Dark' ? '⚫ Dark' : '⚪ White') + '</span>'))
                 + '</div>';
-            }).join('') + '<div style="padding-top:6px;font-size:.75rem;color:var(--g400)">' + games.length + ' game(s) found. Continue to set bracket options.</div>';
+            }).join('') + '<div style="padding-top:6px;font-size:.75rem;color:var(--g400)">' + games.length + ' game(s) found.' + (importAllTeams ? ' Continue to publish the director package.' : ' Continue to set bracket options.') + '</div>';
           }
           return; // Skip rest of bsScanGames
         }
@@ -11150,9 +11188,9 @@
           const white = (row[whiteCol] || '').trim();
           const dark = (row[darkCol] || '').trim();
           if (!white && !dark) continue;
-          const isWhite = _teamNamesLower.some(n => white.toLowerCase().includes(n));
-          const isBlue = _teamNamesLower.some(n => dark.toLowerCase().includes(n));
-          if (!isWhite && !isBlue) continue;
+          const isWhite = !importAllTeams && _teamNamesLower.some(n => white.toLowerCase().includes(n));
+          const isBlue = !importAllTeams && _teamNamesLower.some(n => dark.toLowerCase().includes(n));
+          if (!importAllTeams && !isWhite && !isBlue) continue;
           const _wantedGroup = ((S.bsync.myPool || '').match(/[A-Z]/i)?.[0] || '').toUpperCase();
           const _rowGroup = groupCol >= 0 ? ((row[groupCol] || '').trim().match(/[A-Z]/i)?.[0] || '').toUpperCase() : '';
           if (S.bsync.colorCoded && _wantedGroup && _rowGroup && _rowGroup !== _wantedGroup) continue;
@@ -11182,13 +11220,13 @@
           } else if (_locRaw) {
             const lp = bsParseLocation(_locRaw); gamePool = lp.poolNum ? 'Pool ' + lp.poolNum : (lp.venue || '');
           }
-          if (!gamePool) gamePool = S.bsync.myPool || '';
+          if (!gamePool) gamePool = importAllTeams ? (_rowGroup ? ('Pool ' + _rowGroup) : '') : (S.bsync.myPool || '');
           const time = (row[timeCol] || '').trim();
           const rawGnum = gameNumCol >= 0 ? (row[gameNumCol] || '').trim() : '';
           const opponentRaw = isWhite ? dark : white;
           // Strip pool-position prefix e.g. "B3 - SBWPC B" → "SBWPC B"
           const opponent = opponentRaw.replace(/^[A-Z]\d+\s*[-–]\s*/i, '').trim();
-          const cap = isBlue ? 'Dark' : 'White';
+          const cap = importAllTeams ? '' : (isBlue ? 'Dark' : 'White');
           const dateISO = parseDateToISO(dateRaw);
           // Add AM/PM if missing: hours 7–11 = AM, everything else (1–6, 12) = PM
           let timeFormatted = time;
@@ -11215,7 +11253,9 @@
           games.push({
             id: 'g' + (Date.now() + games.length).toString(36),
             gameNum: rawGnum || String(games.length + 1),
-            opponent: opponent || 'TBD',
+            opponent: importAllTeams ? ((white || 'TBD') + ' vs ' + (dark || 'TBD')) : (opponent || 'TBD'),
+            homeTeam: white || 'TBD',
+            awayTeam: dark || 'TBD',
             time: timeFormatted,
             dateISO,
             date: dateISO ? isoToDate(dateISO) : dateRaw,
@@ -11231,7 +11271,7 @@
         }
 
         if (!games.length) {
-          if (status4) { status4.style.color = '#dc2626'; status4.textContent = `⚠️ No games found for "${S.bsync.teamName}" — check the team name matches the sheet exactly`; }
+          if (status4) { status4.style.color = '#dc2626'; status4.textContent = importAllTeams ? '⚠️ No games found in the sheet — check the sheet URL and schedule columns' : `⚠️ No games found for "${S.bsync.teamName}" — check the team name matches the sheet exactly`; }
           const nextBtn = document.getElementById('bs-s4-next');
           if (nextBtn) nextBtn.disabled = true;
           return;
@@ -11259,13 +11299,13 @@
           + games.map(g =>
             `<div style="padding:5px 0;border-bottom:1px solid var(--g100);display:flex;gap:8px;align-items:center">
               <span style="font-size:.72rem;color:${g.needsFix && !g.hasManualFix ? '#c2410c' : 'var(--g400)'};min-width:28px;font-weight:600">G${esc(g.gameNum)}</span>
-              <span style="flex:1;font-weight:600;font-size:.82rem">vs ${esc(g.opponent)}</span>
+              <span style="flex:1;font-weight:600;font-size:.82rem">${importAllTeams ? esc((g.homeTeam || 'TBD') + ' vs ' + (g.awayTeam || 'TBD')) : ('vs ' + esc(g.opponent))}</span>
               <span style="font-size:.72rem;color:var(--g400)">${esc(g.date || g.dateISO || '')}${g.time ? ' · ' + esc(g.time) : ''}</span>
-              <span style="font-size:.7rem;background:${g.cap === 'Dark' ? '#1f2937' : 'var(--g100)'};color:${g.cap === 'Dark' ? 'white' : 'var(--g600)'};padding:1px 5px;border-radius:3px;min-width:36px;text-align:center">${g.cap === 'Dark' ? '⚫ Dark' : '⚪ White'}</span>
+              ${importAllTeams ? '' : `<span style="font-size:.7rem;background:${g.cap === 'Dark' ? '#1f2937' : 'var(--g100)'};color:${g.cap === 'Dark' ? 'white' : 'var(--g600)'};padding:1px 5px;border-radius:3px;min-width:36px;text-align:center">${g.cap === 'Dark' ? '⚫ Dark' : '⚪ White'}</span>`}
             </div>`
 
           ).join('') + `${games.some(g => g.needsFix && !g.hasManualFix) ? `<div style="padding-top:6px;font-size:.75rem;color:#c2410c;font-weight:700">One or more rows in the source sheet look malformed. Fix them below before you continue.</div>` : ''}`
-            + `<div style="padding-top:6px;font-size:.75rem;color:var(--g400)">Cap colour = ${S.bsync.teamName}'s cap. Tap Continue to set re-bracket options.</div>`
+            + `<div style="padding-top:6px;font-size:.75rem;color:var(--g400)">${importAllTeams ? 'Full tournament schedule detected. Tap Continue to publish this director package.' : `Cap colour = ${S.bsync.teamName}'s cap. Tap Continue to set re-bracket options.`}</div>`
             + (specialTeamPaths && Object.values(specialTeamPaths).some(paths => (paths || []).length)
               ? `<div style="padding-top:6px;font-size:.75rem;color:var(--royal);font-weight:600">Detected Futures win/loss follow-on paths for the imported team(s). These possible games will be included in the bracket data on deploy.</div>`
               : '');
@@ -11649,6 +11689,24 @@
       if (!S.bsync?.games?.length) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ No games to deploy — go back and scan a sheet first'; } return; }
       if (status) { status.style.color = 'var(--g400)'; status.textContent = '⏳ Deploying games…'; }
       try {
+        if (bsIsDirectorHost(S.bsync)) {
+          S._dirBsGames = (S.bsync.games || []).map(g => ({
+            id: g.id,
+            gameNum: g.gameNum,
+            homeTeam: g.homeTeam || '',
+            awayTeam: g.awayTeam || '',
+            time: g.time || '',
+            date: g.date || '',
+            dateISO: g.dateISO || '',
+            location: g.location || '',
+            division: g.division || '',
+            pool: g.pool || '',
+          }));
+          S._dirBsSheetUrl = S.bsync.sheetUrl || '';
+          await dirBsDeploy(null);
+          if (status) { status.style.color = '#059669'; status.textContent = `✅ ${S._dirBsGames.length} game(s) published to the director package`; }
+          return;
+        }
         // Check for pool conflicts before deploying
         const _conflicts = _detectGameConflicts(S.bsync.games);
         if (_conflicts.length > 0) {
@@ -18661,8 +18719,8 @@
       <summary class="card-header collapsible-header">🔧 ${esc(adminT('director_import_wizards_title'))} <span class="collapse-icon">▾</span></summary>
       <div style="display:flex;flex-direction:column;gap:8px;padding:10px 14px 14px">
         <div class="info-hint" style="margin-bottom:2px">${esc(adminT('director_import_wizards_hint'))}</div>
-        ${bsWizardHtml('standard')}
-        ${bsFuturesWizardLauncherHtml()}
+        ${bsWizardHtml('standard', 'director')}
+        ${bsFuturesWizardLauncherHtml('director')}
         ${njoWizardHtml()}
       </div>
     </details>`;
