@@ -11080,6 +11080,24 @@
       bsStep(5);
     }
 
+    function bsInferTimeColumnFromRows(allRows, dataStartRow, fallbackCol, blockedCols) {
+      const blocked = new Set((blockedCols || []).filter(v => Number.isInteger(v) && v >= 0));
+      const limit = Math.min(allRows.length, dataStartRow + 20);
+      const scores = [];
+      for (let ci = 0; ci < Math.min((allRows[dataStartRow] || []).length || 0, 8); ci++) {
+        if (blocked.has(ci)) continue;
+        let hits = 0;
+        for (let ri = dataStartRow; ri < limit; ri++) {
+          const cell = String((allRows[ri] && allRows[ri][ci]) || '').trim();
+          if (!cell) continue;
+          if (/^\d{1,2}:\d{2}(\s?[AP]M)?$/i.test(cell)) hits++;
+        }
+        if (hits) scores.push({ ci, hits });
+      }
+      scores.sort((a, b) => b.hits - a.hits || a.ci - b.ci);
+      return scores.length ? scores[0].ci : fallbackCol;
+    }
+
     function bsParseCourseSched(allRows, teamNameLower) {
       const importAllTeams = !teamNameLower;
       const sheetId = S.bsync?.sheetId || '';
@@ -11309,6 +11327,9 @@
         if (gameNumCol === -1 && whiteCol >= 2) gameNumCol = whiteCol - 2; // game# is 2 cols before white
         if (whiteScoreCol < 0 && darkCol - whiteCol > 1) whiteScoreCol = whiteCol + 1;
         if (darkScoreCol < 0 && darkCol + 1 < allRows[dataStartRow - 1]?.length) darkScoreCol = darkCol + 1;
+        if (timeCol === gameNumCol || timeCol === whiteCol || timeCol === darkCol) {
+          timeCol = bsInferTimeColumnFromRows(allRows, dataStartRow, timeCol, [gameNumCol, whiteCol, darkCol, whiteScoreCol, darkScoreCol]);
+        }
         // ── Auto-correct year typos in date column ──────────────────────────────
         // e.g. sheet has 4/12/2025 when all others are 4/11/2026 → fix to dominant year
         const _yearCount = {};
@@ -12925,7 +12946,7 @@
         const teamNameLower = _apTeamNamesLower[0] || '';
 
         // Auto-detect column structure
-        let dateCol = 0, locationCol = 1, timeCol = 2, whiteCol = 3, darkCol = 5, gameNumCol = -1, poolCol = -1, groupCol = -1, scoreCol = -1, resCol = -1;
+      let dateCol = 0, locationCol = 1, timeCol = 2, whiteCol = 3, darkCol = 5, gameNumCol = -1, poolCol = -1, groupCol = -1, scoreCol = -1, resCol = -1;
         let whiteScoreCol = -1, darkScoreCol = -1;
         let dataStartRow = 0;
         for (let ri = 0; ri < Math.min(allRows.length, 40); ri++) {
@@ -12956,11 +12977,14 @@
           }
         }
         // Infer unlabeled columns from white/dark position (merged-cell header fix)
-        if (timeCol === whiteCol) timeCol = whiteCol > 0 ? whiteCol - 1 : 0;
-        if (poolCol === -1) poolCol = darkCol + 1;
-        if (gameNumCol === -1 && whiteCol >= 2) gameNumCol = whiteCol - 2;
+      if (timeCol === whiteCol) timeCol = whiteCol > 0 ? whiteCol - 1 : 0;
+      if (poolCol === -1) poolCol = darkCol + 1;
+      if (gameNumCol === -1 && whiteCol >= 2) gameNumCol = whiteCol - 2;
+      if (timeCol === gameNumCol || timeCol === whiteCol || timeCol === darkCol) {
+        timeCol = bsInferTimeColumnFromRows(allRows, dataStartRow, timeCol, [gameNumCol, whiteCol, darkCol, scoreCol]);
+      }
 
-        // Pre-pass: track last-seen date/location from section headers
+      // Pre-pass: track last-seen date/location from section headers
         const _apRowDate = new Array(allRows.length).fill('');
         const _apRowLoc  = new Array(allRows.length).fill('');
         let _apPreDate = '', _apPreLoc = '';
