@@ -281,7 +281,9 @@
       display: flex;
       align-items: center;
       justify-content: flex-start;
-      width: 100%;
+      width: fit-content;
+      max-width: min(100%, 560px);
+      flex: 0 1 auto;
       min-width: 0;
       padding: 5px 18px 2px;
       padding-left: max(18px, env(safe-area-inset-left, 0px));
@@ -14416,6 +14418,9 @@
 
     function esc(str) {
       return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function escAttr(str) {
+      return esc(str).replace(/'/g, '&#39;');
     }
     const _esc = esc; // alias used by renderAdminSettingsTab
 
