@@ -3769,6 +3769,86 @@
 
     // ─── SUPER ADMIN CLUB DASHBOARD ─────────────────────────────────────────────
 
+    function _superAdminAuthHeaders() {
+      return S.pw ? { 'X-Admin-Password': S.pw } : { 'Authorization': 'Bearer ' + S.idToken };
+    }
+
+    function _renderClubDashboardCards(clubs = [], adminCounts = {}) {
+      return clubs.map(club => {
+        const adminCount = Object.prototype.hasOwnProperty.call(adminCounts, club.id)
+          ? adminCounts[club.id]
+          : null;
+        const adminLabel = adminCount == null
+          ? 'Loading admins…'
+          : `${adminCount} admin${adminCount !== 1 ? 's' : ''}`;
+        const typeLabel = club.clubType === 'highschool' ? '🎓 HS' : '🤽‍♀️ Club';
+        const trayStyle = club.logoTrayStyle || 'light';
+        const trayBg = trayStyle === 'dark'
+          ? 'linear-gradient(180deg,#0b0f14 0%,#111827 100%)'
+          : trayStyle === 'brand'
+            ? (club.primaryColor || '#0b0f14')
+            : trayStyle === 'transparent'
+              ? 'transparent'
+              : 'linear-gradient(180deg,#ffffff 0%,#f8fafc 100%)';
+        const trayBorder = trayStyle === 'transparent'
+          ? '1px dashed var(--g200)'
+          : trayStyle === 'dark' || trayStyle === 'brand'
+            ? '1px solid rgba(15,23,42,.16)'
+            : '1px solid var(--g200)';
+        const logoHtml = club.logo
+          ? `<div style="width:56px;height:44px;background:${trayBg};border-radius:10px;border:${trayBorder};display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;padding:4px 6px">`
+          + `<img src="${club.logo}" style="width:100%;height:100%;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display=''">`
+          + `<div style="font-size:1.4rem;display:none">${club.clubType === 'highschool' ? '🎓' : '🤽‍♀️'}</div>`
+          + `</div>`
+          : `<div style="width:44px;height:44px;background:var(--g100);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.4rem">${club.clubType === 'highschool' ? '🎓' : '🤽‍♀️'}</div>`;
+
+        return `
+      <div style="background:white;border:1px solid var(--g200);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:box-shadow .15s"
+           onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,40,104,.15)'"
+           onmouseleave="this.style.boxShadow='none'"
+           onclick="selectDashboardClub('${esc(club.id)}')">
+        <div style="display:flex;align-items:center;gap:12px">
+          ${logoHtml}
+          <div style="flex:1;min-width:0">
+            <div style="font-size:1rem;font-weight:700;color:var(--royal)">${esc(club.name)}</div>
+            <div style="font-size:0.78rem;color:var(--g400)">${typeLabel} · ID: ${esc(club.id)} · ${adminLabel}</div>
+          </div>
+          <button onclick="event.stopPropagation();deleteClub('${esc(club.id)}','${esc(club.name)}')"
+                  title="Delete club"
+                  style="background:none;border:none;color:var(--g300);font-size:1.1rem;cursor:pointer;padding:4px 6px;border-radius:6px;transition:color .15s,background .15s"
+                  onmouseenter="this.style.color='#d32f2f';this.style.background='#fdecea'"
+                  onmouseleave="this.style.color='var(--g300)';this.style.background='none'">🗑️</button>
+          <div style="color:var(--g400);font-size:1.2rem">›</div>
+        </div>
+      </div>`;
+      }).join('');
+    }
+
+    function _renderClubDashboardStats(clubCount = 0, totalAdmins = null) {
+      return `
+      <div style="display:flex;gap:20px;margin-top:4px">
+        <div><span style="font-size:1.4rem;font-weight:700;color:var(--royal)">${clubCount}</span><br>Clubs</div>
+        <div><span style="font-size:1.4rem;font-weight:700;color:var(--royal)">${totalAdmins == null ? '…' : totalAdmins}</span><br>Total Admins</div>
+        <div><span style="font-size:1.4rem;font-weight:700;color:var(--royal)">9</span><br>Age Groups</div>
+      </div>`;
+    }
+
+    async function _loadClubAdminCounts(clubs = []) {
+      const entries = await Promise.all(clubs.map(async (club) => {
+        try {
+          const aRes = await fetch(WORKER + '/admin/club-admins?club=' + encodeURIComponent(club.id), {
+            headers: _superAdminAuthHeaders()
+          });
+          if (!aRes.ok) return [club.id, 0];
+          const aData = await aRes.json();
+          return [club.id, (aData.admins || aData.adminUIDs || []).length];
+        } catch (e) {
+          return [club.id, 0];
+        }
+      }));
+      return Object.fromEntries(entries);
+    }
+
     async function showClubDashboard() {
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('admin-app').setAttribute('hidden', '');
@@ -3790,84 +3870,20 @@
           return;
         }
 
-        // For each club, fetch admin count
-        let html = '';
-        for (const club of clubs) {
-          let adminCount = '?';
-          try {
-            const aRes = await fetch(WORKER + '/admin/club-admins?club=' + encodeURIComponent(club.id), {
-              headers: S.pw ? { 'X-Admin-Password': S.pw } : { 'Authorization': 'Bearer ' + S.idToken }
-            });
-            if (aRes.ok) {
-              const aData = await aRes.json();
-              adminCount = (aData.admins || aData.adminUIDs || []).length;
-            }
-          } catch (e) { }
-
-          const typeLabel = club.clubType === 'highschool' ? '🎓 HS' : '🤽‍♀️ Club';
-          const trayStyle = club.logoTrayStyle || 'light';
-          const trayBg = trayStyle === 'dark'
-            ? 'linear-gradient(180deg,#0b0f14 0%,#111827 100%)'
-            : trayStyle === 'brand'
-              ? (club.primaryColor || '#0b0f14')
-              : trayStyle === 'transparent'
-                ? 'transparent'
-                : 'linear-gradient(180deg,#ffffff 0%,#f8fafc 100%)';
-          const trayBorder = trayStyle === 'transparent'
-            ? '1px dashed var(--g200)'
-            : trayStyle === 'dark' || trayStyle === 'brand'
-              ? '1px solid rgba(15,23,42,.16)'
-              : '1px solid var(--g200)';
-          const logoHtml = club.logo
-            ? `<div style="width:56px;height:44px;background:${trayBg};border-radius:10px;border:${trayBorder};display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;padding:4px 6px">`
-            + `<img src="${club.logo}" style="width:100%;height:100%;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display=''">`
-            + `<div style="font-size:1.4rem;display:none">${club.clubType === 'highschool' ? '🎓' : '🤽‍♀️'}</div>`
-            + `</div>`
-            : `<div style="width:44px;height:44px;background:var(--g100);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.4rem">${club.clubType === 'highschool' ? '🎓' : '🤽‍♀️'}</div>`;
-
-          html += `
-        <div style="background:white;border:1px solid var(--g200);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:box-shadow .15s"
-             onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,40,104,.15)'"
-             onmouseleave="this.style.boxShadow='none'"
-             onclick="selectDashboardClub('${esc(club.id)}')">
-          <div style="display:flex;align-items:center;gap:12px">
-            ${logoHtml}
-            <div style="flex:1;min-width:0">
-              <div style="font-size:1rem;font-weight:700;color:var(--royal)">${esc(club.name)}</div>
-              <div style="font-size:0.78rem;color:var(--g400)">${typeLabel} · ID: ${esc(club.id)} · ${adminCount} admin${adminCount !== 1 ? 's' : ''}</div>
-            </div>
-            <button onclick="event.stopPropagation();deleteClub('${esc(club.id)}','${esc(club.name)}')"
-                    title="Delete club"
-                    style="background:none;border:none;color:var(--g300);font-size:1.1rem;cursor:pointer;padding:4px 6px;border-radius:6px;transition:color .15s,background .15s"
-                    onmouseenter="this.style.color='#d32f2f';this.style.background='#fdecea'"
-                    onmouseleave="this.style.color='var(--g300)';this.style.background='none'">🗑️</button>
-            <div style="color:var(--g400);font-size:1.2rem">›</div>
-          </div>
-        </div>`;
-        }
-        listEl.innerHTML = html;
+        listEl.innerHTML = _renderClubDashboardCards(clubs);
 
         // Update platform stats
         const statsEl = document.getElementById('platform-stats-body');
         if (statsEl) {
-          let totalAdmins = 0;
-          for (const club of clubs) {
-            try {
-              const aRes = await fetch(WORKER + '/admin/club-admins?club=' + encodeURIComponent(club.id), {
-                headers: S.pw ? { 'X-Admin-Password': S.pw } : { 'Authorization': 'Bearer ' + S.idToken }
-              });
-              if (aRes.ok) {
-                const aData = await aRes.json();
-                totalAdmins += (aData.admins || aData.adminUIDs || []).length;
-              }
-            } catch (e) { }
-          }
-          statsEl.innerHTML = `
-        <div style="display:flex;gap:20px;margin-top:4px">
-          <div><span style="font-size:1.4rem;font-weight:700;color:var(--royal)">${clubs.length}</span><br>Clubs</div>
-          <div><span style="font-size:1.4rem;font-weight:700;color:var(--royal)">${totalAdmins}</span><br>Total Admins</div>
-          <div><span style="font-size:1.4rem;font-weight:700;color:var(--royal)">9</span><br>Age Groups</div>
-        </div>`;
+          statsEl.innerHTML = _renderClubDashboardStats(clubs.length, null);
+        }
+
+        const adminCounts = await _loadClubAdminCounts(clubs);
+        listEl.innerHTML = _renderClubDashboardCards(clubs, adminCounts);
+
+        if (statsEl) {
+          const totalAdmins = Object.values(adminCounts).reduce((sum, count) => sum + (Number(count) || 0), 0);
+          statsEl.innerHTML = _renderClubDashboardStats(clubs.length, totalAdmins);
         }
       } catch (e) {
         listEl.innerHTML = `<div style="text-align:center;color:var(--red);padding:20px">${t('Error loading clubs')}: ${esc(e.message)}</div>`;
