@@ -5693,7 +5693,7 @@ function _renderRosterMulti(el, slots) {
         <span class="roster-view-name">${escHtml([p.first, p.last].filter(Boolean).join(' ') || '—')}</span>
       </div>`).join('');
     html += `<div class="card tab-card roster-view-card">
-      <div class="scores-slot-header slot-header-in-card"><span class="scores-slot-label">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>
+      <div class="scores-slot-header"><span class="scores-slot-label">${escHtml(_groupSectionLabelFor(groupKey, letter))}</span></div>
       <div class="history-header-row">
         <h2>Roster</h2>
       </div>
@@ -8806,6 +8806,15 @@ function _buildScheduleControlsHtml(dayPickerHtml = '', target = 'schedule', act
   </div>${dayBanner}`;
 }
 
+function _scheduleControlsHtmlForCurrentRender(dayPickerHtml = '', activeDayLabel = '') {
+  if (_renderSuffix) {
+    return activeDayLabel
+      ? `<div class="day-filter-banner">Showing <strong>${escHtml(activeDayLabel)}</strong> only — tap <strong>All</strong> to see full schedule</div>`
+      : '';
+  }
+  return _buildScheduleControlsHtml(dayPickerHtml, 'schedule', activeDayLabel);
+}
+
 function _buildTabLoadingSkeleton(target = 'schedule') {
   const cardCount = target === 'scores' ? 2 : 3;
   const controls = target === 'schedule'
@@ -10471,14 +10480,14 @@ function renderGamesList() {
     const allDone = games.length > 0 && games.every(g => _getResultForGame(g));
     const projected = findProjectedNextOnly();
     if (projected?.type === 'bracket') {
-      listEl.innerHTML = _buildScheduleControlsHtml('', 'schedule') + `<div class="games-section">${buildProjectedScoreCard(projected)}</div>`;
+      listEl.innerHTML = _scheduleControlsHtmlForCurrentRender('', '') + `<div class="games-section">${buildProjectedScoreCard(projected)}</div>`;
       return;
     }
     // The schedule header already renders the completion state in the blue Next Game slot.
     // Keep the list body empty here so we do not show a second duplicate completion card.
     listEl.innerHTML = (tournamentPast || allDone)
       ? ''
-      : _buildScheduleControlsHtml('', 'schedule') + `<p class="empty-msg polished-empty-msg" style="padding:24px 18px;">${escHtml(_scheduleEmptyMessage())}</p>`;
+      : _scheduleControlsHtmlForCurrentRender('', '') + `<p class="empty-msg polished-empty-msg" style="padding:24px 18px;">${escHtml(_scheduleEmptyMessage())}</p>`;
     return;
   }
 
@@ -10532,15 +10541,15 @@ function renderGamesList() {
     const nextAlreadyFeatured = nextObj?.type === 'pool'
       && (!window._scheduleDay || nextObj?.game?.dateISO === window._scheduleDay);
     if (projected?.type === 'bracket' && projectedMatchesDay) {
-      listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule', _activeDayLabel) + `<div class="games-section">${buildProjectedScoreCard(projected)}</div>`;
+      listEl.innerHTML = _scheduleControlsHtmlForCurrentRender(dayPickerHtml, _activeDayLabel) + `<div class="games-section">${buildProjectedScoreCard(projected)}</div>`;
       return;
     }
     if (nextAlreadyFeatured) {
-      listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule', _activeDayLabel)
+      listEl.innerHTML = _scheduleControlsHtmlForCurrentRender(dayPickerHtml, _activeDayLabel)
         + `<p class="empty-msg polished-empty-msg" style="padding:24px 18px;">${escHtml(_scheduleDayEmptyMessage(_activeDayLabel, true))}</p>`;
       return;
     }
-    listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule', _activeDayLabel) + `<p class="empty-msg polished-empty-msg" style="padding:24px 18px;">${escHtml(_scheduleDayEmptyMessage(_activeDayLabel, false))}</p>`;
+    listEl.innerHTML = _scheduleControlsHtmlForCurrentRender(dayPickerHtml, _activeDayLabel) + `<p class="empty-msg polished-empty-msg" style="padding:24px 18px;">${escHtml(_scheduleDayEmptyMessage(_activeDayLabel, false))}</p>`;
     return;
   }
 
@@ -10552,7 +10561,7 @@ function renderGamesList() {
     groups[key].push(g);
   }
 
-  let html = _buildScheduleControlsHtml(dayPickerHtml, 'schedule', _activeDayLabel);
+  let html = _scheduleControlsHtmlForCurrentRender(dayPickerHtml, _activeDayLabel);
   for (const dateLabel of groupOrder) {
     // Skip the date header if it matches the next game's date — already shown above that card
     if (dateLabel !== nextDateKey) {
