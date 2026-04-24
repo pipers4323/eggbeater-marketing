@@ -1685,6 +1685,34 @@ function getTournamentBracketPaths() {
   return paths.length ? paths : preferredImported;
 }
 
+function getAllTournamentBracketPaths() {
+  const groupKey = _activeAgeGroup || getSelectedTeam() || getSelectedTeams()[0] || '';
+  const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
+  const normalizePathMap = map =>
+    map && !Array.isArray(map) && typeof map === 'object'
+      ? Object.values(map).flatMap(v => Array.isArray(v) ? v : [])
+      : [];
+  const dedupePaths = paths => {
+    const seen = new Set();
+    return (paths || []).filter(path => {
+      const key = path?.id || `${path?.label || ''}|${(path?.steps || []).map(step => step?.gameNum || '').join(',')}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
+  const bp = tournament.bracket?.paths;
+  const ip = tournament.bracket?.importedPaths;
+  const allPublished = Array.isArray(bp) ? bp : normalizePathMap(bp);
+  const allImported = Array.isArray(ip) ? ip : normalizePathMap(ip);
+  const isHostedTournamentImport = !!(tournament?.dirImportCode || tournament?.directorCode);
+
+  if (isHostedTournamentImport && allImported.length) return dedupePaths(allImported);
+  if (allPublished.length) return dedupePaths(allPublished);
+  return dedupePaths(allImported);
+}
+
 function switchTeam(letter, groupKey) {
   if (!groupKey) groupKey = _activeAgeGroup || getSelectedTeam();
   const validTeams = getValidTeamLettersForGroup(groupKey);
@@ -11316,7 +11344,7 @@ function renderFullDraw() {
   }
 
   const pools = TOURNAMENT.bracket?.pools || {};
-  const paths = getTournamentBracketPaths() || [];
+  const paths = getAllTournamentBracketPaths() || [];
   const hasPools = Object.keys(pools).length > 0;
 
   // Best available score source: T-Score > director scores

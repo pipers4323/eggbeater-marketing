@@ -10661,16 +10661,23 @@ html.native-ios #view-possible > .card.tab-card p,
 html.native-ios #view-possible > .card.tab-card .step-desc,
 html.native-ios #view-possible > .card.tab-card .possible-desc,
 html.native-ios #view-possible > .card.tab-card .history-subtitle,
-html.native-ios #view-possible > .card.tab-card .scores-slot-label,
 html.native-ios #view-possible > .card.tab-card .empty-msg,
 html.native-android #view-possible > .card.tab-card h2,
 html.native-android #view-possible > .card.tab-card p,
 html.native-android #view-possible > .card.tab-card .step-desc,
 html.native-android #view-possible > .card.tab-card .possible-desc,
 html.native-android #view-possible > .card.tab-card .history-subtitle,
-html.native-android #view-possible > .card.tab-card .scores-slot-label,
 html.native-android #view-possible > .card.tab-card .empty-msg {
   color: #1f2937 !important;
+  opacity: 1 !important;
+}
+
+html.native-ios #view-possible .team-section > .scores-slot-header .scores-slot-label,
+html.native-android #view-possible .team-section > .scores-slot-header .scores-slot-label,
+html.native-ios[data-theme="dark"] #view-possible .team-section > .scores-slot-header .scores-slot-label,
+html.native-android[data-theme="dark"] #view-possible .team-section > .scores-slot-header .scores-slot-label {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
   opacity: 1 !important;
 }
 

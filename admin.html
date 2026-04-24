@@ -12953,6 +12953,16 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
       return [];
     }
 
+    function _dirImportGetHostedBracketMap(pkg, ageGroupName) {
+      const block = _dirImportFindHostedBracketBlock(pkg, ageGroupName);
+      const teamPaths = block?.teamPaths || {};
+      const out = {};
+      for (const [teamName, paths] of Object.entries(teamPaths)) {
+        if (Array.isArray(paths) && paths.length) out[teamName] = bsCloneBracketPaths(paths);
+      }
+      return out;
+    }
+
     function dirImportPickTeam(btnEl) {
       if (!S.dirImport?.pkg) return;
       const teamName = btnEl?.dataset?.team || btnEl;
@@ -13114,15 +13124,18 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
         }
         const importedPaths = Object.values(pathMap)
           .sort((a, b) => a.id.localeCompare(b.id));
-        const hostedImportedPathMap = {};
         const selectedAgeGroup = S.dirImport.selectedAgeGroup || '';
-        for (const teamName of selTeams) {
-          const letter = teamLetterMap[teamName];
-          if (!letter) continue;
-          const hostedPaths = _dirImportGetHostedTeamPaths(pkg, selectedAgeGroup, teamName);
-          if (hostedPaths.length) hostedImportedPathMap[letter] = hostedPaths;
+        let hostedImportedPathMap = _dirImportGetHostedBracketMap(pkg, selectedAgeGroup);
+        if (!Object.keys(hostedImportedPathMap).length) {
+          hostedImportedPathMap = {};
+          for (const teamName of selTeams) {
+            const letter = teamLetterMap[teamName];
+            if (!letter) continue;
+            const hostedPaths = _dirImportGetHostedTeamPaths(pkg, selectedAgeGroup, teamName);
+            if (hostedPaths.length) hostedImportedPathMap[letter] = hostedPaths;
+          }
         }
-        if (importedPaths.length) {
+        if (importedPaths.length && !Object.keys(hostedImportedPathMap).length) {
           if (selTeams.length <= 1) {
             const firstLetter = teamLetterMap[selTeams[0] || ''] || 'A';
             hostedImportedPathMap[firstLetter] = (hostedImportedPathMap[firstLetter] || []).concat(importedPaths);
