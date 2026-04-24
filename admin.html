@@ -11444,6 +11444,7 @@
         S.tournament.games = games;
         bsApplyInferredTournamentInfo(S.bsync.allRows || [], games);
         const autoTournamentMeta = bsEnsureWizardTournamentId(games);
+        ensureTournamentIdForTeam(S.team);
         {
           const _bUpdate = {};
           const _existingPaths = S.tournament.bracket?.paths;
@@ -13583,6 +13584,7 @@
         // headers and spectator views stop treating this age group as unloaded.
         delete S.tournament.stayTuned;
         delete S.tournament.upcomingMode;
+        ensureTournamentIdForTeam(S.team);
         // Save current team's data
         const saveRes = await api('PUT', '/admin/data', {
           tournament: S.tournament,
@@ -13810,12 +13812,37 @@
       return getAdminTeams().map(t => t.key);
     }
 
-    function buildTournamentShellPayload(sourceTournament, targetTournament) {
+    function normalizeTournamentIdForTeam(baseId, teamKey) {
+      const desiredKey = String(teamKey || '').trim();
+      const existingId = String(baseId || '').trim();
+      if (!desiredKey) return existingId;
+      const knownKeys = getAdminTeams()
+        .map(t => String(t?.key || '').trim())
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length);
+      let rootId = existingId || ('t' + Date.now().toString(36));
+      for (const key of knownKeys) {
+        const suffix = '-' + key;
+        if (rootId.toLowerCase().endsWith(suffix.toLowerCase())) {
+          rootId = rootId.slice(0, -suffix.length);
+          break;
+        }
+      }
+      return `${rootId}-${desiredKey}`;
+    }
+
+    function ensureTournamentIdForTeam(teamKey, tournament = S.tournament) {
+      if (!tournament || tournament.stayTuned) return tournament?.id || '';
+      const nextId = normalizeTournamentIdForTeam(tournament.id, teamKey);
+      tournament.id = nextId;
+      return nextId;
+    }
+
+    function buildTournamentShellPayload(sourceTournament, targetTournament, targetTeamKey) {
       const source = sourceTournament || {};
       const existing = targetTournament || {};
       const next = { ...existing };
       [
-        'id',
         'name',
         'subtitle',
         'dates',
@@ -13834,6 +13861,7 @@
       ].forEach(key => {
         if (source[key] !== undefined) next[key] = source[key];
       });
+      next.id = normalizeTournamentIdForTeam(source.id || existing.id, targetTeamKey);
       if (source.teamLabels) next.teamLabels = JSON.parse(JSON.stringify(source.teamLabels));
       return next;
     }
@@ -13862,7 +13890,7 @@
             const res = await api('GET', `/admin/data?team=${encodeURIComponent(key)}`);
             if (!res.ok) throw new Error('fetch failed ' + res.status);
             const data = await res.json();
-            const nextTournament = buildTournamentShellPayload(S.tournament, data.tournament);
+            const nextTournament = buildTournamentShellPayload(S.tournament, data.tournament, key);
             const saveRes = await api('PUT', `/admin/data?team=${encodeURIComponent(key)}`, {
               tournament: nextTournament,
               history: data.history || [],
@@ -13956,8 +13984,14 @@
           if (hasData) {
             // Real data — save as-is and deploy
             showStatus(adminFormat('deploy_all_deploying', { key }), 'info');
+            const normalizedTournament = { ...tournament, id: normalizeTournamentIdForTeam(tournament?.id, key) };
             S.team = key;
-            try { await _pushToFirebaseMirror(key, tournament, history); } catch (e) { }
+            const saveRes = await api('PUT', '/admin/data', {
+              tournament: normalizedTournament,
+              history,
+            });
+            if (!saveRes.ok) { S.team = origTeam; failed.push(key); continue; }
+            try { await _pushToFirebaseMirror(key, normalizedTournament, history); } catch (e) { }
             const depRes = await api('POST', '/admin/deploy');
             S.team = origTeam;
             if (!depRes.ok) { failed.push(key); continue; }
