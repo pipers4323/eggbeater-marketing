@@ -18972,7 +18972,7 @@
         <div class="info-hint" style="margin-bottom:2px">${esc(adminT('director_import_wizards_hint'))}</div>
         <div style="padding:10px 12px;background:var(--g50);border:1px solid var(--g200);border-radius:8px">
           <div class="info-label" style="margin-bottom:4px">Apps Script score write-back webhook <span style="font-weight:400;color:var(--g400)">(optional)</span></div>
-          <div class="info-hint" style="margin-bottom:8px">If set, imported games keep their source sheet row and Eggbeater will POST score updates back to your Apps Script webhook as scores are recorded.</div>
+          <div class="info-hint" style="margin-bottom:8px">If set, imported games keep their source sheet row and Eggbeater will POST score updates back to your Apps Script webhook as scores are recorded. Fastest weekend setup: deploy the provided Apps Script as a web app, paste the URL here, and leave the secret blank.</div>
           <input class="info-input" type="url" placeholder="https://script.google.com/macros/s/…/exec"
                  value="${esc(S.director?.sheetWriteback?.webhookUrl || '')}"
                  oninput="dirUpdateSheetWriteback('webhookUrl', this.value)" style="margin-bottom:8px">

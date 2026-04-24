@@ -14,7 +14,7 @@ Use [DIRECTOR_SHEET_WRITEBACK_APPS_SCRIPT.gs](C:/Users/sarah/Claude%20Code/eggbe
 1. Open the Google Sheet you want Eggbeater to update.
 2. Click `Extensions -> Apps Script`.
 3. Replace the default script with the contents of [DIRECTOR_SHEET_WRITEBACK_APPS_SCRIPT.gs](C:/Users/sarah/Claude%20Code/eggbeater-marketing/DIRECTOR_SHEET_WRITEBACK_APPS_SCRIPT.gs).
-4. Change `SCRIPT_SECRET` at the top of the file to a strong shared secret.
+4. For the fastest weekend setup, leave `SCRIPT_SECRET` blank exactly as provided.
 5. Save the script.
 6. Click `Deploy -> New deployment`.
 7. Choose `Web app`.
@@ -23,8 +23,17 @@ Use [DIRECTOR_SHEET_WRITEBACK_APPS_SCRIPT.gs](C:/Users/sarah/Claude%20Code/eggbe
    `Who has access`: `Anyone`
 9. Deploy and copy the web app URL.
 10. In Eggbeater Director, paste that URL into `Apps Script score write-back webhook`.
-11. Paste the same secret into the optional secret field in Director.
+11. Leave the optional secret field in Director blank for the weekend setup.
 12. Publish the Director package again so the server stores the write-back config for that share code.
+
+**Fastest Weekend Path**
+1. Paste the script.
+2. Do not edit the secret.
+3. Deploy as a web app.
+4. Paste the web app URL into Director.
+5. Publish the Director package again.
+
+That is the minimum setup.
 
 **Expected Payload**
 Eggbeater sends JSON shaped like:
@@ -82,6 +91,7 @@ Eggbeater sends JSON shaped like:
   - white score
   - dark score
   - status
+- Leaving the secret blank is less secure, but it is the fastest operational path for this weekend.
 - If your sheet uses different columns or multiple tabs, you can adapt `resolveSheet_()` and `normalizeStatus_()`.
 - The script prefers the imported tab `gid`. If that is unavailable, it falls back to matching sheet names, then the first tab.
 

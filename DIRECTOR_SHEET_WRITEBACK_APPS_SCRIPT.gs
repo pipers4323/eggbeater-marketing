@@ -1,4 +1,6 @@
-const SCRIPT_SECRET = 'replace-me-with-the-same-secret-you-enter-in-eggbeater';
+// Fastest weekend setup: leave this blank and also leave the Eggbeater secret field blank.
+// If you want a shared secret, put the same value here and in Director.
+const SCRIPT_SECRET = '';
 
 function doPost(e) {
   try {
