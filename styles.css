@@ -4204,9 +4204,9 @@ h2 {
 }
 
 .coming-soon-card {
-  background: linear-gradient(135deg, #143fb0 0%, #112b73 100%);
+  background: linear-gradient(135deg, var(--royal) 0%, var(--royal-dark) 100%);
   border-radius: var(--radius);
-  border: 1.5px solid rgba(239, 68, 68, 0.82);
+  border: 1.5px solid var(--teal, var(--royal-light));
   padding: 18px 18px 16px;
   color: white;
   box-shadow: 0 12px 28px rgba(15,23,42,.24);
