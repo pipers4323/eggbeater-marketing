@@ -17338,7 +17338,7 @@
         recolorEggbeaterSvg(inlineLogo);
         if (customImg) {
           customImg.alt = `${S.clubName || S.tournament?.clubName || 'Club'} logo`;
-          removeLogoBackground(clubLogo).then(processed => { customImg.src = processed; });
+          customImg.src = clubLogo;
         }
       } else {
         if (logoWrap) logoWrap.classList.remove('has-custom-logo');
