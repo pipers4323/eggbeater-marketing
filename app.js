@@ -12371,6 +12371,11 @@ function init() {
   const _lastClubId = sessionStorage.getItem('ebwp-last-club-id');
   const _isClubChange = _lastClubId && _lastClubId !== _appClubId;
   if (_appClubId) sessionStorage.setItem('ebwp-last-club-id', _appClubId);
+  if (_isClubChange) {
+    Object.keys(TEAM_CACHE).forEach(key => delete TEAM_CACHE[key]);
+    _activeAgeGroup = null;
+    _activeTeamLetters = null;
+  }
 
   const _doTeamLoad = async () => {
     state.teamDataLoading = true;
@@ -12419,7 +12424,7 @@ function init() {
             if (hasInvalid || _isClubChange || (favTeam && isDefault && favTeam !== current[0])) {
               if (favTeam) {
                 setSelectedTeams([favTeam]);
-              } else if (hasInvalid) {
+              } else if (hasInvalid || _isClubChange) {
                 setSelectedTeams([validKeys[0]]);
               }
             }
