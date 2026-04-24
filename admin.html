@@ -11787,7 +11787,7 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
 
     // Extract bracket code prefix: "F1 - 1st B" → "F1", "G1(1stA) - " -> "G1",  "LOSER #1" → null
     function bsExtractBracketCode(raw) {
-      const m = (raw || '').match(/^([A-Z]\d+)[-–( ]/i);
+      const m = (raw || '').trim().match(/^([A-Z]\d+)(?:$|[-–( ])/i);
       return m ? m[1].toUpperCase() : null;
     }
 
@@ -11795,6 +11795,8 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
     function bsBracketGameDesc(raw) {
       const m = (raw || '').trim().match(/^([A-Z]\d+)[-–( ]*(\d+(?:st|nd|rd|th))\s*([A-Z])\)?[-– ]*$/i);
       if (m) return `${m[2]} ${m[3]}`; // normalize to "1st A"
+      const plain = (raw || '').trim().match(/^([A-Z]\d+)$/i);
+      if (plain) return plain[1].toUpperCase();
       const fb = (raw || '').trim().match(/^[A-Z]\d+[-–( ]+(.+)$/i);
       return fb ? fb[1].replace(/[-–) ]+$/, '').trim() : (raw || 'TBD');
     }
