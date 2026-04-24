@@ -708,6 +708,43 @@
       font-size: 0.65rem;
     }
 
+    .admin-tourn-empty-copy {
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, .68);
+      white-space: nowrap;
+    }
+
+    .first-run-card {
+      position: relative;
+      border: 1.5px solid #3b82f6;
+      background: #eff6ff;
+      margin-bottom: 10px;
+    }
+
+    .first-run-card-body {
+      padding: 28px 20px;
+      text-align: center;
+    }
+
+    .first-run-dismiss {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(37, 99, 235, .16);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .88);
+      color: #1d4ed8;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .first-run-dismiss:hover {
+      background: white;
+    }
+
     /* ── Tabs ──────────────────────────────────────────────────── */
     .admin-tabs {
       display: flex;
@@ -1554,6 +1591,17 @@
       color: white;
     }
 
+    @media (max-width: 760px) {
+      #status-bar {
+        left: 12px;
+        right: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom, 0));
+        max-width: none;
+        border-radius: 14px;
+        box-shadow: 0 10px 26px rgba(15, 23, 42, .24);
+      }
+    }
+
     /* ── Spinner ────────────────────────────────────────────────── */
     .spin {
       display: inline-block;
@@ -2279,26 +2327,27 @@
     @media (max-width: 760px) {
       /* ── Compact logo row ── */
       .admin-logo-wrap {
-        min-height: 28px;
-        padding-bottom: 1px;
+        min-height: 18px;
+        padding-top: 2px;
+        padding-bottom: 0;
       }
 
       .admin-logo-wrap.has-custom-logo {
-        min-height: 36px;
+        min-height: 24px;
       }
 
       .admin-logo-img {
-        max-height: 20px;
+        max-height: 15px;
       }
 
       .admin-custom-logo-wrap {
-        min-height: 34px;
-        padding-top: 2px;
-        padding-bottom: 1px;
+        min-height: 22px;
+        padding-top: 0;
+        padding-bottom: 0;
       }
 
       .admin-custom-logo-img {
-        max-height: 28px;
+        max-height: 18px;
       }
 
       .eggbeater-poweredby-bar {
@@ -2307,8 +2356,8 @@
 
       /* ── Compact header bar ── */
       .admin-header-bar {
-        padding: 4px 10px 5px;
-        gap: 8px;
+        padding: 4px 8px 5px;
+        gap: 6px;
       }
 
       .admin-header-copy {
@@ -2319,12 +2368,12 @@
       .admin-header-copy-main {
         flex-direction: row;
         align-items: center;
-        gap: 6px;
+        gap: 4px;
         min-width: 0;
       }
 
       .admin-header-title {
-        font-size: 0.74rem;
+        font-size: 0.7rem;
         white-space: nowrap;
         flex-shrink: 0;
       }
@@ -2335,6 +2384,12 @@
         text-overflow: ellipsis;
         font-size: 0.66rem;
         opacity: 0.68;
+      }
+
+      .tier-badge-item {
+        font-size: 0.5rem !important;
+        padding: 2px 5px !important;
+        margin-left: 4px !important;
       }
 
       /* Hide tools strip (lang + switch club) — they're in the drawer */
@@ -2355,79 +2410,91 @@
       /* Hamburger: show */
       .admin-mobile-overflow {
         display: inline-flex;
-        width: 34px;
-        height: 34px;
-        border-radius: 10px;
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
       }
 
-      /* ── Compact tournament strip — keep single row ── */
+      /* ── Compact tournament strip ── */
       .admin-tourn-strip {
-        padding: 4px 10px;
-        gap: 6px;
-        flex-wrap: nowrap;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        align-items: center;
+        padding: 4px 8px;
+        gap: 5px;
+        overflow: visible;
       }
 
       .tourn-select {
-        flex: 1 1 auto;
-        font-size: 0.7rem;
-        padding: 3px 8px;
+        grid-column: 1 / -1;
+        font-size: 0.67rem;
+        padding: 2px 8px;
         min-height: 32px;
       }
 
       .tourn-status-badge {
-        font-size: 0.56rem;
-        padding: 2px 6px;
+        font-size: 0.52rem;
+        padding: 2px 5px;
       }
 
       .tourn-strip-btn {
-        font-size: 0.66rem;
-        padding: 4px 8px;
+        font-size: 0.62rem;
+        padding: 4px 7px;
+      }
+
+      .admin-tourn-empty-copy {
+        font-size: 0.62rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .admin-team-pills {
-        flex-direction: column;
-        align-items: stretch;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
         gap: 6px;
-        padding: 7px 10px 6px;
+        padding: 6px 8px 5px;
       }
 
       .admin-team-summary {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 4px 8px;
+        display: flex;
+        gap: 8px;
         align-items: center;
+        min-width: 0;
       }
 
       .admin-team-current {
-        width: 100%;
+        flex: 0 1 auto;
+        min-width: 0;
+        width: auto;
         padding: 6px 10px;
         border-radius: 16px;
-        font-size: 0.78rem;
+        font-size: 0.74rem;
       }
 
       .admin-team-count {
-        width: 100%;
-        grid-column: 1 / -1;
-        padding-left: 2px;
-        font-size: 0.66rem;
+        width: auto;
+        flex: 0 0 auto;
+        padding-left: 0;
+        font-size: 0.62rem;
+        opacity: 0.9;
       }
 
       .admin-team-manage-btn {
         width: auto;
         min-width: 0;
-        padding: 6px 10px;
-        font-size: 0.72rem;
+        padding: 6px 9px;
+        font-size: 0.68rem;
       }
 
       .admin-team-manager {
         grid-template-columns: 1fr;
-        padding: 0 10px 8px;
+        padding: 0 8px 7px;
       }
 
       .admin-global-bar {
-        flex-wrap: wrap;
         gap: 6px;
-        padding: 5px 10px 7px;
+        padding: 4px 8px 6px;
       }
 
       .admin-global-label {
@@ -2444,12 +2511,12 @@
       .global-btn {
         flex: 1 1 auto;
         min-width: 0;
-        min-height: 38px;
+        min-height: 34px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 6px 10px;
-        font-size: 0.72rem;
+        padding: 5px 8px;
+        font-size: 0.66rem;
         text-align: center;
       }
 
@@ -2464,6 +2531,17 @@
       .card-header {
         padding: 10px 12px;
         font-size: 0.74rem;
+      }
+
+      .first-run-card-body {
+        padding: 24px 16px 18px;
+      }
+
+      .first-run-dismiss {
+        top: 10px;
+        right: 10px;
+        width: 32px;
+        height: 32px;
       }
 
       .recovery-summary-strip {
@@ -3626,7 +3704,6 @@
       S.pw = pw;
       S.authMode = 'password';
       S.isSuperAdmin = true;
-      showStatus('Signing in…', 'info');
       try {
         const res = await api('GET', '/admin/data');
         if (res.status === 401) {
@@ -3799,7 +3876,6 @@
       // Reset branding state so the new club's branding loads fresh
       S._branding = null;
       document.getElementById('club-dashboard').style.display = 'none';
-      showStatus(t('Loading…') + ' ' + clubId, 'info');
       try {
         const res = await api('GET', '/admin/data');
         if (!res.ok) throw new Error('Worker returned ' + res.status);
@@ -4060,11 +4136,12 @@
       // Remove any existing badges so we can re-render cleanly
       document.querySelectorAll('#admin-app .tier-badge-item').forEach(el => el.remove());
       const tier = S.clubTier || 'free';
+      const compact = _adminMobileCompact();
       const badgeStyle = 'font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:20px;color:white;margin-left:6px;vertical-align:middle;letter-spacing:0.03em;cursor:default';
       // tournament_host shows two badges: Club (blue) + Tournament Host (purple)
       const badges = tier === 'tournament_host'
-        ? [{ label: 'Club', color: TIER_COLORS['club'] }, { label: 'Tournament Host', color: TIER_COLORS['tournament_host'] }]
-        : [{ label: TIER_LABELS[tier] || tier, color: TIER_COLORS[tier] || '#6b7280' }];
+        ? [{ label: compact ? 'Club' : 'Club', color: TIER_COLORS['club'] }, { label: compact ? 'Host' : 'Tournament Host', color: TIER_COLORS['tournament_host'] }]
+        : [{ label: compact ? ((TIER_LABELS[tier] || tier).replace('Tournament Host', 'Host').replace('Spectator', 'Viewer')) : (TIER_LABELS[tier] || tier), color: TIER_COLORS[tier] || '#6b7280' }];
       badges.forEach(b => {
         const el = document.createElement('span');
         el.className = 'tier-badge-item';
@@ -5972,6 +6049,28 @@
       return `ebadmin-deploy-targets-${S._clubId || 'default'}-${S.clubType || 'club'}`;
     }
 
+    function _adminMobileCompact() {
+      return !!window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
+    }
+
+    function _welcomeCardDismissKey() {
+      const clubId = (typeof fbGetClubId === 'function' ? fbGetClubId() : '') || localStorage.getItem('ebadmin-clubId') || 'default';
+      return `ebadmin-welcome-dismissed-${clubId}-${S.team || 'default'}`;
+    }
+
+    function isWelcomeCardDismissed() {
+      try { return localStorage.getItem(_welcomeCardDismissKey()) === '1'; } catch { return false; }
+    }
+
+    function dismissWelcomeCard() {
+      try { localStorage.setItem(_welcomeCardDismissKey(), '1'); } catch { }
+      renderTab();
+    }
+
+    function resetWelcomeCardDismissed() {
+      try { localStorage.removeItem(_welcomeCardDismissKey()); } catch { }
+    }
+
     function getTournamentShellTargetKeys() {
       const validKeys = new Set(getAdminTeams().map(t => t.key));
       try {
@@ -6015,6 +6114,10 @@
 
       const activeTeam = teams.find(t => t.key === S.team) || teams[0];
       const selectedTargets = getTournamentShellTargetKeys();
+      const compact = _adminMobileCompact();
+      const manageLabel = S.adminTeamManagerOpen
+        ? (compact ? 'Close' : adminT('team_close_groups'))
+        : (compact ? 'Groups' : adminT('team_manage_groups'));
       container.innerHTML = `
       <div class="admin-team-summary">
         <div class="admin-team-current">
@@ -6023,7 +6126,7 @@
         </div>
         <span class="admin-team-count">${adminFormat('team_groups_available', { count: String(teams.length) })}</span>
       </div>
-      <button class="admin-team-manage-btn" onclick="toggleAdminTeamManager()">${S.adminTeamManagerOpen ? adminT('team_close_groups') : adminT('team_manage_groups')}</button>`;
+      <button class="admin-team-manage-btn" onclick="toggleAdminTeamManager()">${manageLabel}</button>`;
 
       manager.className = S.adminTeamManagerOpen ? 'admin-team-manager' : 'admin-team-manager hidden';
       manager.innerHTML = teams.map(t => {
@@ -6097,10 +6200,11 @@
     function renderTournamentSelector() {
       const strip = document.getElementById('admin-tourn-strip');
       if (!strip) return;
+      const compact = _adminMobileCompact();
       // If Firebase not ready or no tournaments loaded, hide strip
       if (!S.tournamentList.length) {
-        strip.innerHTML = `<span style="font-size:0.72rem;opacity:0.6">${adminT('tournament_none')}</span>
-      <button class="tourn-strip-btn tourn-strip-btn-new" onclick="createNewTournament()">${adminT('tournament_new')}</button>`;
+        strip.innerHTML = `<span class="admin-tourn-empty-copy">${adminT('tournament_none')}</span>
+      <button class="tourn-strip-btn tourn-strip-btn-new" onclick="resetWelcomeCardDismissed();createNewTournament()">${compact ? 'New' : adminT('tournament_new')}</button>`;
         return;
       }
 
@@ -6148,10 +6252,10 @@
       strip.innerHTML = `
     <select class="tourn-select" onchange="onTournamentChange(this.value)">${options}</select>
     <span class="tourn-status-badge ${statusCls}">${esc(statusLabel)}</span>
-    <button class="tourn-strip-btn" onclick="toggleTournamentStatus()" title="Toggle active/archived">${current?.status === 'active' ? '📦 Archive' : '🟢 Activate'
+    <button class="tourn-strip-btn" onclick="toggleTournamentStatus()" title="Toggle active/archived">${current?.status === 'active' ? (compact ? 'Archive' : '📦 Archive') : (compact ? 'Activate' : '🟢 Activate')
         }</button>
-    <button class="tourn-strip-btn" onclick="_copyTournamentAsTemplate('${esc(S.tournamentId || '')}')" title="Copy as template" style="background:#f0f9ff;color:#0c4a6e;border:1px solid #7dd3fc">📋 Copy</button>
-    <button class="tourn-strip-btn tourn-strip-btn-new" onclick="createNewTournament()">${adminT('tournament_new')}</button>
+    <button class="tourn-strip-btn" onclick="_copyTournamentAsTemplate('${esc(S.tournamentId || '')}')" title="Copy as template" style="background:#f0f9ff;color:#0c4a6e;border:1px solid #7dd3fc">${compact ? 'Copy' : '📋 Copy'}</button>
+    <button class="tourn-strip-btn tourn-strip-btn-new" onclick="resetWelcomeCardDismissed();createNewTournament()">${compact ? 'New' : adminT('tournament_new')}</button>
     ${current?.status === 'archived' ? `<button class="tourn-strip-btn tourn-strip-btn-danger" onclick="deleteTournament()">✕</button>` : ''}
   `;
     }
@@ -6338,14 +6442,17 @@
           <div><strong>${_anyMissingDate ? 'Some games are missing dates' : 'All game dates are in the past'}</strong> — spectators will see <em>"All games complete"</em> instead of the schedule. Tap <strong>Edit</strong> on each game and set the correct upcoming date.</div>
         </div>` : '';
 
-      // First-run welcome card — shown when no tournaments exist at all
-      const firstRunCard = !S.tournamentList.length ? `
-    <div class="card" style="border:1.5px solid #3b82f6;background:#eff6ff;margin-bottom:10px">
-      <div style="padding:28px 20px;text-align:center">
+      // First-run welcome card — only when there is no cloud tournament, no live schedule,
+      // and the admin has not dismissed it for this club/team yet.
+      const shouldShowFirstRunCard = !S.tournamentList.length && !liveGames.length && !isWelcomeCardDismissed();
+      const firstRunCard = shouldShowFirstRunCard ? `
+    <div class="card first-run-card">
+      <button class="first-run-dismiss" type="button" aria-label="Dismiss welcome card" onclick="dismissWelcomeCard()">✕</button>
+      <div class="first-run-card-body">
         <div style="font-size:2.5rem;margin-bottom:10px">👋</div>
         <div style="font-weight:800;color:var(--royal);font-size:1.05rem;margin-bottom:6px">Welcome! Let's set up your first tournament.</div>
         <div style="font-size:0.85rem;color:var(--g500);margin-bottom:18px;line-height:1.5">Create a tournament, add your games, then deploy so parents can see the schedule in the app.</div>
-        <button class="save-btn" style="background:var(--royal);color:white;border-color:var(--royal);padding:11px 28px;font-size:0.95rem;font-weight:800" onclick="switchTab('addgames');setTimeout(createNewTournament,120)">➕ Create first tournament</button>
+        <button class="save-btn" style="background:var(--royal);color:white;border-color:var(--royal);padding:11px 28px;font-size:0.95rem;font-weight:800" onclick="resetWelcomeCardDismissed();switchTab('addgames');setTimeout(createNewTournament,120)">➕ Create first tournament</button>
       </div>
     </div>` : '';
 
