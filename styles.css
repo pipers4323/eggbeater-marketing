@@ -694,6 +694,16 @@ html.native-android .app-header.compact-scrolled .header-team-chip {
   color: var(--gray-400);
   padding-inline: 2px;
 }
+.header-team-more-hint {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--royal);
+  opacity: 0.55;
+  text-align: center;
+  margin-top: 1px;
+  letter-spacing: 0.01em;
+}
 .team-picker-modal-body {
   flex: 1;
   min-height: 0;
@@ -1216,6 +1226,11 @@ h2 {
 .next-game-card-clickable,
 .sched-card-clickable {
   cursor: pointer;
+}
+
+.sched-card-live {
+  border-left: 3px solid #dc2626 !important;
+  background: #fff8f8;
 }
 
 .next-game-card::before {
@@ -3076,6 +3091,7 @@ h2 {
 
 .result-btn {
   flex: 1;
+  min-height: 44px;
   padding: 8px 0 6px;
   border-radius: 8px;
   border: 1.5px solid transparent;
@@ -6166,13 +6182,13 @@ body.modal-open { overflow: hidden; }
   align-items: center;
   gap: 3px;
   margin-left: 7px;
-  padding: 2px 7px;
+  padding: 3px 8px;
   border-radius: 20px;
-  background: #fff0f0;
-  border: 1.5px solid #e53935;
-  color: #e53935;
-  font-size: 0.7rem;
-  font-weight: 800;
+  background: #fee2e2;
+  border: 2px solid #dc2626;
+  color: #dc2626;
+  font-size: 0.75rem;
+  font-weight: 900;
   letter-spacing: 0.04em;
   vertical-align: middle;
   animation: live-pulse 1.8s ease-in-out infinite;
@@ -6342,6 +6358,16 @@ body.modal-open { overflow: hidden; }
   border-color: #fff;
   box-shadow: 0 8px 20px rgba(15,23,42,0.12);
 }
+
+.day-filter-banner {
+  margin: 4px 0 0;
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.82);
+  text-align: center;
+}
+.day-filter-banner strong { color: #fff; }
+
 .polished-empty-msg {
   border: 1px solid rgba(255,255,255,0.18);
   border-radius: 16px;

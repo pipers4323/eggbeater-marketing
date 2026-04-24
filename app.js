@@ -8784,11 +8784,14 @@ function buildProjectedScoreCard(next) {
   </div>`;
 }
 
-function _buildScheduleControlsHtml(dayPickerHtml = '', target = 'schedule') {
+function _buildScheduleControlsHtml(dayPickerHtml = '', target = 'schedule', activeDayLabel = '') {
+  const dayBanner = activeDayLabel
+    ? `<div class="day-filter-banner">Showing <strong>${escHtml(activeDayLabel)}</strong> only — tap <strong>All</strong> to see full schedule</div>`
+    : '';
   return `<div class="tab-utility-row ${target}-utility-row">
     <div class="tab-utility-main">${dayPickerHtml || '<div class="tab-utility-spacer"></div>'}</div>
-    ${target === 'scores' ? buildTabRefreshButtonHtml(target) : ''}
-  </div>`;
+    ${buildTabRefreshButtonHtml(target)}
+  </div>${dayBanner}`;
 }
 
 function _buildScoresTopUtilityHtml({ showLogin = false, scorerUnlocked = false, anyLive = false } = {}) {
@@ -9907,12 +9910,16 @@ function renderTeamPicker() {
   const labels = _teamPickerDisplayLabels(selectedTeams);
   const visible = labels.slice(0, 2).map(label => `<span class="header-team-chip">${escHtml(label)}</span>`).join('');
   const more = labels.length > 2 ? `<span class="header-team-chip header-team-chip-more">+${labels.length - 2}</span>` : '';
+  const unselectedCount = TEAM_OPTIONS.length - selectedTeams.length;
+  const moreHint = (TEAM_OPTIONS.length > 1 && unselectedCount > 0 && selectedTeams.length > 0)
+    ? `<span class="header-team-more-hint">+${unselectedCount} more</span>`
+    : '';
 
   el.innerHTML = `
     <button class="header-team-badge" onclick="openTeamPickerModal()" title="${escHtml(appT('team_picker_change'))}">
       <span class="header-team-badge-chips">${visible || `<span class="header-team-chip">${escHtml(appT('team_picker_empty_chip'))}</span>`}${more}</span>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-    </button>
+    </button>${moreHint}
   `;
 }
 
@@ -10358,6 +10365,7 @@ function renderGamesList() {
     // Clear day picker when no games
     window._scheduleDay = null;
     if (TOURNAMENT.stayTuned) {
+      const _stayCheckedLabel = _formatLastRefreshLabel();
       listEl.innerHTML = `
         <div class="coming-soon-wrap">
           <div class="coming-soon-card">
@@ -10365,7 +10373,9 @@ function renderGamesList() {
             <div class="coming-soon-text">
               <div class="coming-soon-label">Stay Tuned!</div>
               <div class="coming-soon-sub">${localStorage.getItem('ebwp-club-type') === 'highschool' ? 'Future season information will appear here.' : 'Future tournament information will appear here.'}</div>
-              <div class="coming-soon-sub" style="margin-top:8px;font-size:.82rem;opacity:.8">Enable notifications to be updated when ${localStorage.getItem('ebwp-club-type') === 'highschool' ? 'season info is' : 'tournaments are'} added.</div>
+              <div class="coming-soon-sub" style="margin-top:8px;font-size:.82rem;opacity:.8">Enable notifications to be alerted when ${localStorage.getItem('ebwp-club-type') === 'highschool' ? 'season info is' : 'a tournament is'} added.</div>
+              ${_stayCheckedLabel ? `<div style="margin-top:12px;font-size:0.78rem;opacity:0.65">${escHtml(_stayCheckedLabel)}</div>` : ''}
+              <button onclick="forceAppRefresh(this)" style="margin-top:12px;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.35);border-radius:20px;color:white;font-size:0.8rem;font-weight:700;padding:6px 16px;cursor:pointer">↺ Check now</button>
             </div>
           </div>
         </div>`;
@@ -10428,6 +10438,7 @@ function renderGamesList() {
   } else {
     window._scheduleDay = null; // reset if only one day
   }
+  const _activeDayLabel = window._scheduleDay ? formatDateGroupLabel(window._scheduleDay) : '';
 
   // Sort by date then by game number numerically (G1 < G4 < G10 < G13)
   const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
@@ -10459,14 +10470,14 @@ function renderGamesList() {
     const nextAlreadyFeatured = nextObj?.type === 'pool'
       && (!window._scheduleDay || nextObj?.game?.dateISO === window._scheduleDay);
     if (projected?.type === 'bracket' && projectedMatchesDay) {
-      listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule') + `<div class="games-section">${buildProjectedScoreCard(projected)}</div>`;
+      listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule', _activeDayLabel) + `<div class="games-section">${buildProjectedScoreCard(projected)}</div>`;
       return;
     }
     if (nextAlreadyFeatured) {
-      listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule');
+      listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule', _activeDayLabel);
       return;
     }
-    listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule') + `<p class="empty-msg polished-empty-msg" style="padding:24px 18px;">${escHtml(_scheduleEmptyMessage())}</p>`;
+    listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule', _activeDayLabel) + `<p class="empty-msg polished-empty-msg" style="padding:24px 18px;">${escHtml(_scheduleEmptyMessage())}</p>`;
     return;
   }
 
@@ -10478,7 +10489,7 @@ function renderGamesList() {
     groups[key].push(g);
   }
 
-  let html = _buildScheduleControlsHtml(dayPickerHtml, 'schedule');
+  let html = _buildScheduleControlsHtml(dayPickerHtml, 'schedule', _activeDayLabel);
   for (const dateLabel of groupOrder) {
     // Skip the date header if it matches the next game's date — already shown above that card
     if (dateLabel !== nextDateKey) {
@@ -10537,7 +10548,7 @@ function buildScheduleCard(g) {
   const noteHtml = g.note ? `<div class="game-note">📌 ${escHtml(g.note)}</div>` : '';
   const hapticAttr = isLive ? '' : ` ontouchstart="_haptic('light')"`;
   return `
-    <div class="sched-card ${capBgClass}${isLive ? ' sched-card-clickable' : ''}"${isLive ? ` onclick="_haptic('light');openLiveGameFromSchedule('${escHtml(_gameRef(g))}')"` : ''}${hapticAttr}>
+    <div class="sched-card ${capBgClass}${isLive ? ' sched-card-clickable sched-card-live' : ''}"${isLive ? ` onclick="_haptic('light');openLiveGameFromSchedule('${escHtml(_gameRef(g))}')"` : ''}${hapticAttr}>
       <div class="sched-card-top">
         <div class="sched-vs">${_buildSpectatorClubVsLabel(g)}${liveBadge} ${followBtn}</div>
         ${g.gameNum ? `<div class="sched-game-num">${escHtml(g.gameNum)}</div>` : ''}
@@ -12054,6 +12065,11 @@ async function reloadTournamentJs() {
     new Function(code)();
   } catch (err) {
     console.warn('reloadTournamentJs fetch failed:', err.message);
+    // Surface the offline banner when network is unavailable — don't wait for the browser's offline event
+    if (!navigator.onLine) {
+      const b = document.getElementById('offline-banner');
+      if (b) b.classList.remove('hidden');
+    }
   }
   // Also reload from worker for all selected teams
   await loadAllSelectedTeams();
@@ -12746,14 +12762,18 @@ async function _loadClubPickerList(switchMode) {
 
   const joined = getJoinedClubs();
   let allClubs = [];
+  let fetchFailed = false;
   try {
     const res = await fetch(WORKER + '/clubs');
     if (res.ok) {
       const data = await res.json();
       allClubs = data.clubs || [];
+    } else {
+      fetchFailed = true;
     }
   } catch (e) {
     console.warn('[club-picker] fetch /clubs error:', e.message);
+    fetchFailed = true;
   }
 
   // Filter to only show joined clubs
@@ -12761,22 +12781,42 @@ async function _loadClubPickerList(switchMode) {
 
   listEl.innerHTML = '';
 
+  if (fetchFailed && !clubs.length) {
+    // Network error — can't reach server
+    listEl.innerHTML = `
+      <div style="text-align:center;padding:24px 16px">
+        <div style="font-size:2.2rem;margin-bottom:10px">📶</div>
+        <div style="font-size:1.05rem;font-weight:700;color:white;margin-bottom:8px">Can't reach the server</div>
+        <div style="font-size:0.88rem;color:rgba(255,255,255,0.75);line-height:1.6;margin-bottom:18px">
+          Check your internet connection, then try again.<br>
+          If you're at the pool, switching from WiFi to cellular often helps.
+        </div>
+        <button onclick="_loadClubPickerList()" style="padding:10px 24px;background:white;color:#002868;border:none;border-radius:8px;font-size:0.9rem;font-weight:700;cursor:pointer">↺ Retry</button>
+      </div>
+    `;
+    return;
+  }
+
   if (!clubs.length) {
     // No joined clubs — show join prompt
     listEl.innerHTML = `
       <div style="text-align:center;padding:24px 16px">
         <div style="font-size:2.2rem;margin-bottom:10px">🤽‍♀️</div>
         <div style="font-size:1.1rem;font-weight:700;color:white;margin-bottom:8px">Join Your Club</div>
-        <div style="font-size:0.88rem;color:rgba(255,255,255,0.7);line-height:1.5;margin-bottom:16px">
+        <div style="font-size:0.88rem;color:rgba(255,255,255,0.7);line-height:1.5;margin-bottom:6px">
           Ask your club admin for the spectator join link.<br>
           It looks like: <em style="color:#fbbf24">eggbeater.app?join=your-club</em>
         </div>
+        <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:16px">Or enter a club code below if you have one.</div>
         <div style="display:flex;gap:8px;max-width:320px;margin:0 auto">
           <input id="join-code-input" type="text" placeholder="Enter club code"
                  style="flex:1;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:0.9rem;font-family:inherit">
           <button onclick="_manualJoinClub()" style="padding:10px 16px;background:#002868;color:white;border:none;border-radius:8px;font-size:0.88rem;font-weight:700;cursor:pointer">Join</button>
         </div>
         <div id="join-error" style="font-size:0.82rem;color:#dc2626;margin-top:8px;min-height:18px"></div>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.15)">
+          <a href="/spectator-guide.html" target="_blank" style="font-size:0.85rem;color:rgba(255,255,255,0.85);font-weight:600;text-decoration:underline">📖 New to Eggbeater? Read the spectator guide →</a>
+        </div>
       </div>
     `;
     return;
@@ -13499,6 +13539,27 @@ function renderPushButton() {
   if (!native && !webSupported) { el.innerHTML = ''; return; }
 
   const subscribed = isPushSubscribed();
+
+  // ── Permission denied: show recovery instructions ──────────────────────
+  const webDenied = !native && 'Notification' in window && Notification.permission === 'denied';
+  if (webDenied && !subscribed) {
+    const isIOS  = /iP(hone|ad|od)/.test(navigator.userAgent);
+    const isMac  = /Macintosh/.test(navigator.userAgent);
+    const steps  = isIOS  ? 'Settings → [Your Browser] → Notifications → Allow'
+                 : isMac  ? 'Safari/Chrome menu → Preferences → Websites → Notifications'
+                 :           'Click the 🔒 icon in your browser address bar → Notifications → Allow';
+    el.innerHTML = `
+      <div class="push-card" style="border-color:#f59e0b;background:#fffbeb">
+        <div class="push-header">
+          <span class="push-icon">🔕</span>
+          <span class="push-title" style="color:#92400e">Notifications Blocked</span>
+        </div>
+        <p class="push-desc" style="color:#78350f;margin-bottom:8px">You previously blocked notifications. To re-enable:</p>
+        <p class="push-desc" style="font-size:0.8rem;background:rgba(0,0,0,0.06);padding:8px 10px;border-radius:6px;color:#78350f;margin-bottom:10px;line-height:1.5">${steps}</p>
+        <button class="push-btn" style="background:#92400e;color:white;border-color:#92400e;width:100%" onclick="subscribeToPush()">Try again after enabling</button>
+      </div>`;
+    return;
+  }
 
   if (subscribed) {
     // ── Subscribed: show preferences + unsubscribe ───────────────────────
