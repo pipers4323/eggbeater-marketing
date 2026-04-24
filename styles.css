@@ -80,7 +80,7 @@ body {
   min-height: 0; /* Required for flex children to shrink correctly */
   margin: 0 auto;
   padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 16px);
-  background: linear-gradient(180deg, rgba(28, 69, 178, 0.98) 0%, rgba(19, 52, 145, 0.98) 100%);
+  background: linear-gradient(180deg, rgba(var(--royal-rgb), 0.98) 0%, rgba(var(--royal-rgb), 0.82) 100%);
   overflow-y: auto; /* Enable scrolling on the app container itself */
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -3989,7 +3989,7 @@ h2 {
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: #ffffff;
-  background: linear-gradient(180deg, rgba(20, 64, 177, 0.98) 0%, rgba(18, 53, 156, 0.98) 100%);
+  background: linear-gradient(180deg, rgba(var(--royal-rgb), 0.96) 0%, rgba(var(--royal-rgb), 0.78) 100%);
   padding: 12px 14px;
   border-radius: 12px 12px 0 0;
   border-bottom: 1px solid rgba(255,255,255,0.12);
@@ -6252,9 +6252,9 @@ body.modal-open { overflow: hidden; }
   justify-content: space-between;
   gap: 10px;
   padding: 10px 12px 6px;
-  background: linear-gradient(180deg, rgba(18, 53, 156, 0.96) 0%, rgba(23, 63, 170, 0.92) 100%);
+  background: linear-gradient(180deg, rgba(var(--royal-rgb), 0.96) 0%, rgba(var(--royal-rgb), 0.82) 100%);
   border-bottom: 1px solid rgba(255,255,255,0.12);
-  box-shadow: 0 10px 24px rgba(8, 27, 88, 0.18);
+  box-shadow: 0 10px 24px rgba(var(--royal-rgb), 0.18);
 }
 .scores-top-utility-main {
   flex: 1;
@@ -6306,10 +6306,10 @@ body.modal-open { overflow: hidden; }
   position: sticky;
   top: 0;
   z-index: 3;
-  background: linear-gradient(180deg, rgba(18, 53, 156, 0.96) 0%, rgba(23, 63, 170, 0.92) 100%);
+  background: linear-gradient(180deg, rgba(var(--royal-rgb), 0.96) 0%, rgba(var(--royal-rgb), 0.82) 100%);
   backdrop-filter: blur(6px);
   border-bottom: 1px solid rgba(255,255,255,0.12);
-  box-shadow: 0 10px 24px rgba(8, 27, 88, 0.18);
+  box-shadow: 0 10px 24px rgba(var(--royal-rgb), 0.18);
 }
 .tab-utility-row .schedule-refresh-wrap,
 .scores-toolbar-wrap .scores-refresh-wrap {
