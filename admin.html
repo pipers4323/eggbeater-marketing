@@ -10983,7 +10983,7 @@
       games.forEach(g => {
         const ov = g.syncKey ? overrides[g.syncKey] : null;
         if (!ov) return;
-        if (ov.gameNum) g.gameNum = ov.gameNum;
+        if (ov.gameNum && bsLooksLikeGameIdValue(ov.gameNum) && !bsLooksLikeTimeValue(ov.gameNum)) g.gameNum = ov.gameNum;
         if (ov.opponent) g.opponent = ov.opponent;
         if (ov.time) g.time = ov.time;
         if (ov.location) g.location = ov.location;
@@ -11007,6 +11007,7 @@
         const value = String(inp.value || '').trim();
         const original = String(inp.dataset.original || '').trim();
         if (!key || !field || !value || value === original) return;
+        if (field === 'gameNum' && (!bsLooksLikeGameIdValue(value) || bsLooksLikeTimeValue(value))) return;
         if (!overrides[key]) overrides[key] = {};
         overrides[key][field] = value;
       });
@@ -11078,6 +11079,14 @@
       bsApplyGameOverrides();
       bsApplyVenueOverrides();
       bsStep(5);
+    }
+
+    function bsLooksLikeTimeValue(value) {
+      return /^\d{1,2}:\d{2}(\s?[AP]M)?$/i.test(String(value || '').trim());
+    }
+
+    function bsLooksLikeGameIdValue(value) {
+      return /^[A-Z]?\d+[A-Z]?$/i.test(String(value || '').trim());
     }
 
     function bsInferTimeColumnFromRows(allRows, dataStartRow, fallbackCol, blockedCols) {
@@ -11186,8 +11195,18 @@
           }
         }
       }
-      var dateISO = parseDateToISO(dateStr) || '';
-      var dateDisplay = dateISO ? isoToDate(dateISO) : dateStr;
+      var initialDateISO = parseDateToISO(dateStr) || '';
+      var rowDates = new Array(allRows.length).fill(initialDateISO);
+      var currentDateISO = initialDateISO;
+      for (var riDate = 0; riDate < allRows.length; riDate++) {
+        var rowDateIso = '';
+        for (var ciDate = 0; ciDate < Math.min((allRows[riDate] || []).length, 4); ciDate++) {
+          rowDateIso = parseDateToISO((allRows[riDate][ciDate] || '').trim());
+          if (rowDateIso) break;
+        }
+        if (rowDateIso) currentDateISO = rowDateIso;
+        rowDates[riDate] = currentDateISO;
+      }
 
       var games = [];
       for (var ri3 = headerRow + 1; ri3 < allRows.length; ri3++) {
@@ -11224,8 +11243,8 @@
             homeTeam: white || 'TBD',
             awayTeam: dark || 'TBD',
             time: timeFormatted,
-            dateISO: dateISO,
-            date: dateDisplay,
+            dateISO: rowDates[ri3] || '',
+            date: rowDates[ri3] ? isoToDate(rowDates[ri3]) : (dateStr || ''),
             location: locationStr || ('Course ' + crs.num),
             pool: 'Course ' + crs.num,
             cap: importAllTeams ? '' : (isDark ? 'Dark' : 'White'),
@@ -11559,12 +11578,14 @@
             fixWrap.style.display = needsFixRows.length ? 'block' : 'none';
             fixList.innerHTML = needsFixRows.map(g => {
               const ov = (S.bsync.gameOverrides && S.bsync.gameOverrides[g.syncKey]) || {};
-              const gameNumValue = ov.gameNum || (/^\d+[A-Z]?$/i.test(String(g.gameNum || '').trim()) ? g.gameNum : '');
+              const gameNumValue = (ov.gameNum && bsLooksLikeGameIdValue(ov.gameNum) && !bsLooksLikeTimeValue(ov.gameNum))
+                ? ov.gameNum
+                : (bsLooksLikeGameIdValue(g.gameNum) && !bsLooksLikeTimeValue(g.gameNum) ? g.gameNum : '');
               return `
                 <div style="border-top:1px dashed #fdba74;padding-top:8px;margin-top:8px">
                   <div style="font-size:.74rem;font-weight:700;color:#7c2d12;margin-bottom:6px">${esc(g.opponent || 'TBD')} ${g.time ? '· ' + esc(g.time) : ''}</div>
                   <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px">
-                    <input class="info-input bs-game-fix" data-key="${esc(g.syncKey)}" data-field="gameNum" data-original="${esc(/^\d+[A-Z]?$/i.test(String(g.gameNum || '').trim()) ? g.gameNum : '')}" value="${esc(gameNumValue)}" placeholder="Correct game #">
+                    <input class="info-input bs-game-fix" data-key="${esc(g.syncKey)}" data-field="gameNum" data-original="${esc(bsLooksLikeGameIdValue(g.gameNum) && !bsLooksLikeTimeValue(g.gameNum) ? g.gameNum : '')}" value="${esc(gameNumValue)}" placeholder="Correct game #">
                     <input class="info-input bs-game-fix" data-key="${esc(g.syncKey)}" data-field="opponent" data-original="${esc(g.opponent || '')}" value="${esc(ov.opponent || g.opponent || '')}" placeholder="Opponent">
                     <input class="info-input bs-game-fix" data-key="${esc(g.syncKey)}" data-field="time" data-original="${esc(g.time || '')}" value="${esc(ov.time || g.time || '')}" placeholder="Time">
                     <input class="info-input bs-game-fix" data-key="${esc(g.syncKey)}" data-field="location" data-original="${esc(g.location || '')}" value="${esc(ov.location || g.location || '')}" placeholder="Location">
@@ -12342,8 +12363,18 @@
           }
         }
       }
-      const dateISO = parseDateToISO(dateStr) || '';
-      const dateDisplay = dateISO ? isoToDate(dateISO) : dateStr;
+      const initialDateISO = parseDateToISO(dateStr) || '';
+      const rowDates = new Array(allRows.length).fill(initialDateISO);
+      let currentDateISO = initialDateISO;
+      for (let ri = 0; ri < allRows.length; ri++) {
+        let rowDateIso = '';
+        for (let ci = 0; ci < Math.min((allRows[ri] || []).length, 4); ci++) {
+          rowDateIso = parseDateToISO((allRows[ri][ci] || '').trim());
+          if (rowDateIso) break;
+        }
+        if (rowDateIso) currentDateISO = rowDateIso;
+        rowDates[ri] = currentDateISO;
+      }
       // Pre-validate courses: only keep courses with ≥2 non-empty game rows
       const courseGameCount = {};
       for (let ri = headerRow + 1; ri < allRows.length; ri++) {
@@ -12380,8 +12411,8 @@
             homeTeam: white || 'TBD',
             awayTeam: dark || 'TBD',
             time: timeFormatted,
-            dateISO,
-            date: dateDisplay,
+            dateISO: rowDates[ri] || '',
+            date: rowDates[ri] ? isoToDate(rowDates[ri]) : (dateStr || ''),
             location: 'Course ' + crs.num,
             pool: 'Course ' + crs.num,
             division: div,
