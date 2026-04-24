@@ -2707,6 +2707,10 @@ const state = {
   parentTier:       null,       // legacy mirror kept for compatibility during migration
   undoToast:        null,
   integrityWarnings: [],
+  teamDataLoading:   true,
+  livePollLastSuccess: 0,
+  livePollLastError:   0,
+  _lastForegroundRefreshAt: 0,
 
   // Calendar sync
   accessToken:      null,
@@ -4231,7 +4235,15 @@ const PERIOD_LABELS    = { 0: 'Pre-Game', 1: 'Q1', 2: 'Q2', 3: 'Q3', 4: 'Q4', 5:
 const HALF_PERIOD_LABELS = { 0: 'Pre-Game', 1: 'H1', 2: 'Half', 3: 'H2', 5: 'OT', 6: 'Shootout' };
 function _getPeriodLabel(period, gameOrRef) {
   const cs = getClockSettings(gameOrRef);
-  return ((cs.periodMode === 'halves' ? HALF_PERIOD_LABELS : PERIOD_LABELS)[period]) || `P${period}`;
+  const numericPeriod = Number(period || 0);
+  if (!Number.isFinite(numericPeriod) || numericPeriod <= 0) return 'Pre-Game';
+  return ((cs.periodMode === 'halves' ? HALF_PERIOD_LABELS : PERIOD_LABELS)[numericPeriod]) || `P${numericPeriod}`;
+}
+
+function _formatLivePeriod(period, gameOrRef, fallback = '') {
+  const numericPeriod = Number(period || 0);
+  if (!Number.isFinite(numericPeriod) || numericPeriod <= 0) return fallback;
+  return _getPeriodLabel(numericPeriod, gameOrRef);
 }
 
 // Log a game-state transition (Start, Q1, Q2, Half, Q3, Q4, OT, Final)
@@ -8794,6 +8806,27 @@ function _buildScheduleControlsHtml(dayPickerHtml = '', target = 'schedule', act
   </div>${dayBanner}`;
 }
 
+function _buildTabLoadingSkeleton(target = 'schedule') {
+  const cardCount = target === 'scores' ? 2 : 3;
+  const controls = target === 'schedule'
+    ? _buildScheduleControlsHtml('', 'schedule')
+    : _buildScoresTopUtilityHtml({ showLogin: false, scorerUnlocked: false, anyLive: false });
+  const cards = Array.from({ length: cardCount }).map(() => `
+    <div class="loading-card-skeleton">
+      <div class="loading-line lg"></div>
+      <div class="loading-line md"></div>
+      <div class="loading-line sm"></div>
+    </div>
+  `).join('');
+  return `${controls}<div class="loading-skeleton-wrap">${cards}</div>`;
+}
+
+function _scheduleDayEmptyMessage(activeDayLabel = '', hasFeaturedGame = false) {
+  if (activeDayLabel && hasFeaturedGame) return `${activeDayLabel} only has the featured game shown above.`;
+  if (activeDayLabel) return `No games scheduled for ${activeDayLabel}.`;
+  return _scheduleEmptyMessage();
+}
+
 function _buildScoresTopUtilityHtml({ showLogin = false, scorerUnlocked = false, anyLive = false } = {}) {
   const rightHtml = scorerUnlocked
     ? `<div class="scores-top-status">🔓 Scorer Mode Active</div>`
@@ -8864,8 +8897,13 @@ function buildScoreDetailView(ctx) {
 function renderScoresTab() {
   const el = $('view-scores');
   if (!el) return;
+  if (state.teamDataLoading && !Object.keys(TEAM_CACHE).length) {
+    el.innerHTML = _buildTabLoadingSkeleton('scores');
+    return;
+  }
   state.scorerConflicts = _getScorerConflicts();
   const recoveryCard = _buildRecoveredDraftsCard();
+  const livePollStaleNote = _pollStaleNote(state.livePollLastError, state.livePollLastSuccess);
 
   // ── Director "Submit Live Scores" section (prepended regardless of scorer mode) ──
   const dirPkg = getDirectorPkg();
@@ -8913,6 +8951,7 @@ function renderScoresTab() {
         ? `<div class="scorer-gate-bar"><button class="scorer-gate-btn" onclick="openScoringPasswordModal()">🔒 Login to Score</button></div>`
         : '');
     let html = _buildScoresTopUtilityHtml({ showLogin: scorerLocked, scorerUnlocked: anySlotUnlocked, anyLive: false });
+    if (scorerLocked && livePollStaleNote) html += livePollStaleNote;
     if (anySlotUnlocked) html += loginBar;
     const gameNumVal = g => parseInt((g.gameNum || '').replace(/\D/g, ''), 10) || 9999;
     for (const { groupKey, letter } of scoreSlots) {
@@ -9026,6 +9065,7 @@ const active = _dedupeScheduledGames(
     const _guideLink = `<div class="scores-guide-link">New to box scoring? <a href="https://eggbeater.app/scoring-guide.html" target="_blank" rel="noopener">Read the guide here →</a></div>`;
     el.innerHTML = dirHtml + recoveryCard + `
         ${_buildScoresTopUtilityHtml({ showLogin: true, anyLive })}
+        ${livePollStaleNote}
         ${cardsHtml}${_guideLink}`;
     return;
   }
@@ -9968,6 +10008,12 @@ function initHeaderCompactionWatcher() {
 function renderScheduleTab() {
   _restorePrimaryTournamentContext();
   _renderSuffix = '';
+  if (state.teamDataLoading && !Object.keys(TEAM_CACHE).length) {
+    const ns = $('next-game-section'); if (ns) ns.innerHTML = '';
+    const sl = $('schedule-list'); if (sl) sl.innerHTML = _buildTabLoadingSkeleton('schedule');
+    const ss = $('schedule-standings'); if (ss) ss.innerHTML = '';
+    return;
+  }
   const slots = getExpandedTeamSlots();
   if (slots.length === 0) {
     const msg = `<p class="empty-msg" style="padding:24px;text-align:center;color:var(--gray-500)">${appT('schedule_select_prompt')}</p>`;
@@ -10474,10 +10520,11 @@ function renderGamesList() {
       return;
     }
     if (nextAlreadyFeatured) {
-      listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule', _activeDayLabel);
+      listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule', _activeDayLabel)
+        + `<p class="empty-msg polished-empty-msg" style="padding:24px 18px;">${escHtml(_scheduleDayEmptyMessage(_activeDayLabel, true))}</p>`;
       return;
     }
-    listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule', _activeDayLabel) + `<p class="empty-msg polished-empty-msg" style="padding:24px 18px;">${escHtml(_scheduleEmptyMessage())}</p>`;
+    listEl.innerHTML = _buildScheduleControlsHtml(dayPickerHtml, 'schedule', _activeDayLabel) + `<p class="empty-msg polished-empty-msg" style="padding:24px 18px;">${escHtml(_scheduleDayEmptyMessage(_activeDayLabel, false))}</p>`;
     return;
   }
 
@@ -10616,10 +10663,14 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
     const updatedAt = s._broadcastAt
       ? new Date(s._broadcastAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : '';
-    const periodStr = PERIOD_LABELS[s.period] || '';
+    const periodStr = _formatLivePeriod(s.period, gid, '');
     const liveClock = s.clock || '';
+    const tieBadge = Number(s.team) === Number(s.opp)
+      ? `<span class="lsb-tie">TIE</span>`
+      : '';
     return `<div class="live-score-bar">
       <span class="lsb-scores">${escHtml(teamDisplayName)}&nbsp;<strong>${Number.isInteger(s.team) ? s.team : s.team.toFixed(1)}</strong>&nbsp;—&nbsp;<strong>${Number.isInteger(s.opp) ? s.opp : s.opp.toFixed(1)}</strong>&nbsp;${escHtml(g.opponent||'Opp')}</span>
+      ${tieBadge}
       ${periodStr ? `<span class="lsb-period">${periodStr}</span>` : ''}
       ${liveClock ? `<span class="lsb-clock">${escHtml(liveClock)}</span>` : ''}
       ${updatedAt ? `<span class="lsb-updated">↻ ${updatedAt}</span>` : ''}
@@ -12266,7 +12317,9 @@ function init() {
   if (_appClubId) sessionStorage.setItem('ebwp-last-club-id', _appClubId);
 
   const _doTeamLoad = async () => {
+    state.teamDataLoading = true;
     // Fetch club info to ensure we have the right team options
+    try {
     if (_appClubId) {
       // Reset primary color so applyClubLogo can detect "no branding" on club switch
       window._clubPrimaryColor = null;
@@ -12363,6 +12416,11 @@ function init() {
     if (typeof fbListenToTournament === 'function') {
       getSelectedTeams().forEach(k => fbListenToTournament(k));
     }
+    } finally {
+      state.teamDataLoading = false;
+      renderScheduleTab();
+      renderScoresTab();
+    }
   };
 
   _doTeamLoad();
@@ -12441,18 +12499,24 @@ function init() {
     _applyNativeSystemState(info || {});
     _restartPollOnPowerChange();
   });
+  async function _refreshOnForeground(reason = '') {
+    const now = Date.now();
+    if ((now - (state._lastForegroundRefreshAt || 0)) < 1500) return;
+    state._lastForegroundRefreshAt = now;
+    try { await refreshNativeSystemState(); } catch (_) {}
+    try { await reloadTournamentJs(); } catch (_) {}
+    try { await pollLiveScores(); } catch (_) {}
+    startLivePoller();
+  }
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-      refreshNativeSystemState().catch(() => {});
-      pollLiveScores().catch(() => {});
-      startLivePoller();
-    }
+    if (!document.hidden) _refreshOnForeground('visibilitychange').catch(() => {});
+  });
+  window.addEventListener('focus', () => {
+    _refreshOnForeground('focus').catch(() => {});
   });
   try {
     window.Capacitor?.Plugins?.App?.addListener?.('resume', () => {
-      refreshNativeSystemState().catch(() => {});
-      pollLiveScores().catch(() => {});
-      startLivePoller();
+      _refreshOnForeground('resume').catch(() => {});
     });
   } catch (_) {}
   if ('getBattery' in navigator) {
@@ -12503,34 +12567,10 @@ function init() {
   // Initial Widget Sync — wait 2 s for team-data KV fetch before writing
   setTimeout(() => _syncWidgetsAll(), 2000);
 
-  // On app resume (foreground after background): immediately re-poll live scores and
-  // reload team data so Android viewers don't have to force-quit to see live games.
-  // pollLiveScores() is called both immediately AND after loadAllSelectedTeams() because
-  // on cold start the tournament data may not be cached yet, causing the first poll to
-  // find no games. The second poll (in .then) runs once data is confirmed loaded.
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      pollLiveScores();
-      loadAllSelectedTeams().then(() => {
-        state.roster = loadRoster(getSelectedTeam());
-        renderScheduleTab();
-        renderRosterTab();
-        pollLiveScores();
-      }).catch(() => {});
-    }
-  });
-  // Capacitor native app resume event (fires when app comes back from background)
+  // Capacitor native app foreground event (fires when app comes back from background)
   if (window.Capacitor?.Plugins?.App) {
     window.Capacitor.Plugins.App.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) {
-        pollLiveScores();
-        loadAllSelectedTeams().then(() => {
-          state.roster = loadRoster(getSelectedTeam());
-          renderScheduleTab();
-          renderRosterTab();
-          pollLiveScores();
-        }).catch(() => {});
-      }
+      if (isActive) _refreshOnForeground('appStateChange').catch(() => {});
     });
   }
 }
@@ -14688,19 +14728,25 @@ async function pollLiveScores() {
         try {
           const tid = encodeURIComponent(tournamentId);
           const res = await fetch(`${PUSH_SERVER_URL}/live-scores?t=${tid}`, { cache: 'no-store' });
-          if (!res.ok) return {};
-          return await res.json();
+          if (!res.ok) return { ok: false, payload: {} };
+          return { ok: true, payload: await res.json() };
         } catch {
-          return {};
+          return { ok: false, payload: {} };
         }
       })
     );
+    const hadSuccess = remotePayloads.some(entry => entry.ok);
+    const hadFailure = remotePayloads.some(entry => !entry.ok);
+    const wasStale = state.livePollLastError > state.livePollLastSuccess;
+    if (hadSuccess) state.livePollLastSuccess = Date.now();
+    if (hadFailure) state.livePollLastError = Date.now();
 
     let changed = false;
     const myGames = getMyGames();
     const changedGameIds = []; // track which games updated for aria-live announcement
 
-    for (const remote of remotePayloads) {
+    for (const remoteEntry of remotePayloads) {
+      const remote = remoteEntry.payload || {};
       for (const [gameId, remoteScore] of Object.entries(remote || {})) {
       const scopedKey = _scopedGameKey(gameId, remoteScore.ageGroup || remoteScore.score?.ageGroup || '');
       const local = state.liveScores[scopedKey] || state.liveScores[gameId] || {};
@@ -14841,6 +14887,9 @@ async function pollLiveScores() {
         }
       }
     }
+    if (!changed && state.currentTab === 'scores' && (hadFailure || (wasStale && hadSuccess))) {
+      renderScoresTab();
+    }
     // Android 16 Live Update — runs on EVERY successful poll cycle (not just when changed).
     // If the foreground service start fails silently on first detection, the 5-second poller
     // retries automatically without needing broadcastAt to change again.
@@ -14864,7 +14913,11 @@ async function pollLiveScores() {
         EggbeaterLiveUpdate.stop();
       }
     }
-  } catch { /* ignore network errors — offline is fine */ }
+  } catch {
+    state.livePollLastError = Date.now();
+    if (state.currentTab === 'scores') renderScoresTab();
+    /* ignore network errors — offline is fine */
+  }
 }
 
 let _liveToastShown = false;
@@ -15561,7 +15614,7 @@ function _buildWatchPayload(availableTeams, clubName) {
         ageGroup: team.label,
         liveTeamScore: (liveScore.team != null || isFinal) ? (liveScore.team ?? 0) : null,
         liveOppScore: (liveScore.opp != null || isFinal) ? (liveScore.opp ?? 0) : null,
-        livePeriod: liveScore.period ? `Q${liveScore.period}` : (isFinal ? 'Final' : null),
+        livePeriod: _formatLivePeriod(liveScore.period, `${team.key}:${id}`, isFinal ? 'Final' : ''),
         liveIsActive,
       });
     });
@@ -15618,7 +15671,7 @@ async function _syncWidgetsAll() {
           awayScore:       score.opp       ?? 0,
           status:          'LIVE',
           clock:           score.clock     || '',
-          period:          score.period    ? `Q${score.period}` : '',
+          period:          _formatLivePeriod(score.period, gameId, ''),
           gameId,
           timerRunning:    !!(score.timerRunning),
           timerSecondsLeft: score.timerSecondsLeft || 0,

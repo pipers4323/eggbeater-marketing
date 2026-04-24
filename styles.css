@@ -107,7 +107,7 @@ body {
   font-size: 0.82rem;
   font-weight: 700;
   text-align: center;
-  padding: 8px 16px;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px;
   letter-spacing: 0.02em;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
@@ -1395,9 +1395,12 @@ h2 {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 12px 4px;
-  margin-top: 4px;
+  padding: 12px 14px 8px;
+  margin: 8px 0 4px;
   border-top: 1.5px solid rgba(255,255,255,.15);
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.14), rgba(255,255,255,0.05));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
 }
 .scores-slot-header:first-child { border-top: none; margin-top: 0; }
 .scores-slot-header::after {
@@ -1408,11 +1411,11 @@ h2 {
   opacity: 0.5;
 }
 .scores-slot-label {
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.8rem;
+  font-weight: 800;
   color: rgba(255,255,255,0.96);
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.8px;
 }
 .scores-slot-header { border-top-color: rgba(255,255,255,.18); }
 
@@ -6456,10 +6459,56 @@ body.modal-open { overflow: hidden; }
   padding: 1px 6px;
 }
 
+.lsb-tie {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #92400e;
+  background: #fef3c7;
+  border-radius: 999px;
+  padding: 2px 7px;
+  letter-spacing: 0.06em;
+}
+
 .lsb-updated {
   font-size: 0.72rem;
   color: var(--gray-400);
   margin-left: auto;
+}
+
+.loading-skeleton-wrap {
+  display: grid;
+  gap: 12px;
+  padding: 8px 12px 18px;
+}
+
+.loading-card-skeleton {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
+  padding: 16px 14px;
+  overflow: hidden;
+}
+
+.loading-line {
+  height: 12px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.24) 45%, rgba(255,255,255,0.10) 100%);
+  background-size: 220% 100%;
+  animation: loading-shimmer 1.35s ease-in-out infinite;
+}
+
+.loading-line:last-child {
+  margin-bottom: 0;
+}
+
+.loading-line.lg { width: 72%; }
+.loading-line.md { width: 48%; }
+.loading-line.sm { width: 34%; }
+
+@keyframes loading-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -20% 0; }
 }
 
 /* Live-scoring banner — fixed overlay at top of screen (above header) */
