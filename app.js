@@ -1776,6 +1776,55 @@ function _repairHistoryEntries(entries) {
   return { entries: next, changed };
 }
 
+function _historyEntryEventCount(entry) {
+  return (Array.isArray(entry?.games) ? entry.games : []).reduce((sum, game) => {
+    const events = Array.isArray(game?.liveScore?.events) ? game.liveScore.events.length : 0;
+    return sum + events;
+  }, 0);
+}
+
+function _historyEntryDuplicateKey(entry) {
+  return [
+    String(entry?.id || '').trim().toLowerCase(),
+    _historySignatureForEntry(entry),
+    _historyOpponentTokens(entry).join('|'),
+  ].join('::');
+}
+
+function _preferHistoryEntry(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  const realA = _historyEntryHasRealResults(a) ? 1 : 0;
+  const realB = _historyEntryHasRealResults(b) ? 1 : 0;
+  if (realA !== realB) return realA > realB ? a : b;
+  const eventsA = _historyEntryEventCount(a);
+  const eventsB = _historyEntryEventCount(b);
+  if (eventsA !== eventsB) return eventsA > eventsB ? a : b;
+  const archivedA = new Date(a?.archivedAt || 0).getTime() || 0;
+  const archivedB = new Date(b?.archivedAt || 0).getTime() || 0;
+  if (archivedA !== archivedB) return archivedA > archivedB ? a : b;
+  const gamesA = Array.isArray(a?.games) ? a.games.length : 0;
+  const gamesB = Array.isArray(b?.games) ? b.games.length : 0;
+  return gamesA >= gamesB ? a : b;
+}
+
+function _dedupeHistoryEntries(entries) {
+  if (!Array.isArray(entries) || entries.length < 2) return { entries: Array.isArray(entries) ? entries : [], changed: false };
+  const kept = new Map();
+  let changed = false;
+  for (const entry of entries) {
+    const key = _historyEntryDuplicateKey(entry);
+    if (!kept.has(key)) {
+      kept.set(key, entry);
+      continue;
+    }
+    const winner = _preferHistoryEntry(kept.get(key), entry);
+    if (winner !== kept.get(key)) kept.set(key, winner);
+    changed = true;
+  }
+  return { entries: Array.from(kept.values()), changed };
+}
+
 function _historySignatureForEntry(entry) {
   const norm = (value) => String(value || '').trim().toLowerCase();
   return [
@@ -3122,6 +3171,12 @@ function _isTournamentPastWindow(tournament = TOURNAMENT, now = new Date()) {
   return now.getTime() > cutoff.getTime();
 }
 
+function _shouldAutoStayTuned(tournament = TOURNAMENT, now = new Date()) {
+  if (!tournament) return false;
+  if (tournament.stayTuned || tournament.upcomingMode || tournament.comingSoon) return false;
+  return _isTournamentPastWindow(tournament, now);
+}
+
 function _renderTournamentCompleteCard() {
   const record = getPoolRecord();
   return `
@@ -3304,16 +3359,18 @@ function getPoolRecord() {
 
 function getHistory() {
   if (_historyOverride !== null) {
-    return Array.isArray(_historyOverride)
-      ? _pruneLegacyCombinedHistoryEntries(_repairHistoryEntries(_historyOverride).entries.filter(entry => !_isBogusHistoryEntry(entry)))
-      : [];
+    if (!Array.isArray(_historyOverride)) return [];
+    const repairedOverride = _repairHistoryEntries(_historyOverride);
+    const dedupedOverride = _dedupeHistoryEntries(repairedOverride.entries);
+    return _pruneLegacyCombinedHistoryEntries(dedupedOverride.entries.filter(entry => !_isBogusHistoryEntry(entry)));
   }
   try {
     const parsed = JSON.parse(localStorage.getItem(STORE.HISTORY) || '[]');
     if (!Array.isArray(parsed)) return [];
     const repaired = _repairHistoryEntries(parsed);
-    const filtered = _pruneLegacyCombinedHistoryEntries(repaired.entries.filter(entry => !_isBogusHistoryEntry(entry)));
-    if (repaired.changed || filtered.length !== parsed.length || JSON.stringify(filtered) !== JSON.stringify(parsed)) {
+    const deduped = _dedupeHistoryEntries(repaired.entries);
+    const filtered = _pruneLegacyCombinedHistoryEntries(deduped.entries.filter(entry => !_isBogusHistoryEntry(entry)));
+    if (repaired.changed || deduped.changed || filtered.length !== parsed.length || JSON.stringify(filtered) !== JSON.stringify(parsed)) {
       localStorage.setItem(STORE.HISTORY, JSON.stringify(filtered));
     }
     return filtered;
@@ -9667,6 +9724,7 @@ function restoreTournScoreSession() {
 function renderHeader() {
   const primaryTournament = getPrimarySelectedTournament() || {};
   const isUpcoming = !!(primaryTournament.upcomingMode && !(primaryTournament.games || []).length);
+  const autoStayTuned = _shouldAutoStayTuned(primaryTournament);
   const isHS = localStorage.getItem('ebwp-club-type') === 'highschool';
   const clubId = getAppClubId();
 
@@ -9682,7 +9740,7 @@ function renderHeader() {
     const teamLabel = teamOpt ? teamOpt.label : (teamKey || '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     const seasonLabel = `Fall ${new Date().getFullYear()} Season`;
     headerSub = teamLabel ? teamLabel + ' · ' + seasonLabel : seasonLabel;
-  } else if (primaryTournament.stayTuned) {
+  } else if (primaryTournament.stayTuned || autoStayTuned) {
     const savedClubName = localStorage.getItem('ebwp-club-name');
     headerName = savedClubName
       || (clubId ? clubId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : headerName);
@@ -10081,6 +10139,10 @@ function openLiveGameFromSchedule(gameOrRef, ageGroupLabel = '') {
 
 function renderNextGameCard() {
   const section = $('next-game-section');
+  if (_shouldAutoStayTuned()) {
+    section.innerHTML = '';
+    return;
+  }
   const next = findNextGameOrProjected();
 
   if (!next) {
@@ -10271,6 +10333,26 @@ function clearDirectorImport() {
 function renderGamesList() {
   const listEl = $('schedule-list');
   const games  = getTournamentGames();
+  const autoStayTuned = _shouldAutoStayTuned();
+
+  if (autoStayTuned) {
+    window._scheduleDay = null;
+    const teamKey = getSelectedTeam();
+    const teamOpt = TEAM_OPTIONS.find(t => t.key === teamKey);
+    const teamLabel = teamOpt ? teamOpt.label : '';
+    listEl.innerHTML = `
+      <div class="coming-soon-wrap">
+        <div class="coming-soon-card">
+          <div class="coming-soon-icon">⏳</div>
+          <div class="coming-soon-text">
+            <div class="coming-soon-label">Stay Tuned!</div>
+            <div class="coming-soon-sub">${teamLabel ? `The next ${escHtml(teamLabel)} tournament will appear here.` : 'Future tournament information will appear here.'}</div>
+            <div class="coming-soon-sub" style="margin-top:8px;font-size:.82rem;opacity:.8">The previous tournament has moved to History automatically.</div>
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
 
   if (!games.length) {
     // Clear day picker when no games
