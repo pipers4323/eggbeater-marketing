@@ -4647,6 +4647,8 @@
         director_auth_error: 'Auth error: {message}',
         director_export_failed: 'Export failed: {message}',
         director_creating_sheet: 'Creating sheet…',
+        director_import_wizards_title: 'Shared Import Wizards',
+        director_import_wizards_hint: 'Use the same Bracket Sheet Sync, Futures wizard, and other shared import tools from Add Games without leaving Director. These update the current tournament workspace for the selected age group.',
         addgames_no_age_groups_yet: 'No age groups yet — tap {button} below',
         help_archive_title: 'Archive & Season History',
         help_archive_body: `<p>When a tournament is over, archive it to preserve the full record of games, scores, box scores, and player stats.</p>
@@ -5095,6 +5097,8 @@
         director_auth_error: 'Error de autenticacion: {message}',
         director_export_failed: 'Exportacion fallida: {message}',
         director_creating_sheet: 'Creando hoja…',
+        director_import_wizards_title: 'Asistentes de importacion compartidos',
+        director_import_wizards_hint: 'Usa la misma sincronizacion de bracket, el asistente Futures y otras herramientas compartidas de Add Games sin salir de Director. Estas actualizan el torneo actual para el grupo de edad seleccionado.',
         addgames_no_age_groups_yet: 'Todavia no hay grupos de edad — toca {button} abajo',
         help_archive_title: 'Archivo e historial de temporada',
         help_archive_body: `<p>Cuando termina un torneo, archivarlo conserva el registro completo de juegos, marcadores, box scores y estadisticas.</p>
@@ -5538,6 +5542,8 @@
         director_auth_error: "Erreur d'authentification : {message}",
         director_export_failed: "Echec de l'export : {message}",
         director_creating_sheet: 'Creation de la feuille…',
+        director_import_wizards_title: 'Assistants d import partages',
+        director_import_wizards_hint: "Utilisez la meme synchro de bracket, l assistant Futures et les autres outils partages d Add Games sans quitter Director. Ils mettent a jour le tournoi actif pour le groupe d age selectionne.",
         addgames_no_age_groups_yet: "Aucun groupe d'age pour le moment — touchez {button} ci-dessous",
         help_archive_title: 'Archive et historique de saison',
         help_archive_body: `<p>Quand un tournoi est termine, l'archiver preserve l'historique complet des matchs, scores, box scores et statistiques joueurs.</p>
@@ -18646,6 +18652,19 @@
 
       const dirBsAgeGroupOpts = d.ageGroups.map((ag, i) => `<option value="${i}">${esc(ag.name || ('Age Group ' + (i + 1)))}</option>`).join('');
 
+      const _dirWizardOpen = !!(S.bsync?.sheetUrl || (S.bsync?.step && S.bsync.step > 1) || (S.njo && S.njo.sheetUrl));
+
+      const dirSharedImportCard = `
+    <details class="card collapsible-card"${_dirWizardOpen ? ' open' : ''}>
+      <summary class="card-header collapsible-header">🔧 ${esc(adminT('director_import_wizards_title'))} <span class="collapse-icon">▾</span></summary>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:10px 14px 14px">
+        <div class="info-hint" style="margin-bottom:2px">${esc(adminT('director_import_wizards_hint'))}</div>
+        ${bsWizardHtml('standard')}
+        ${bsFuturesWizardLauncherHtml()}
+        ${njoWizardHtml()}
+      </div>
+    </details>`;
+
       const dirBsCard = `
     <div class="card">
       <div class="card-header">📋 Schedule Sheet Import</div>
@@ -18683,6 +18702,7 @@
       if (S.directorView === 'dashboard') return _dirToggle + renderDirectorDashboard();
       return `${_dirToggle}
     ${tournamentInfoCard}
+    ${dirSharedImportCard}
     ${dirBsCard}
     <div class="card">
       <div class="card-header">🏆 Tournament Director — Age Groups &amp; Divisions</div>
