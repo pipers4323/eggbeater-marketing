@@ -2195,51 +2195,99 @@
     }
 
     @media (max-width: 760px) {
-      .admin-header-copy {
-        align-items: flex-start;
+      /* ── Compact logo row ── */
+      .admin-logo-wrap {
+        min-height: 40px;
+        padding-bottom: 3px;
       }
 
+      .admin-logo-wrap.has-custom-logo {
+        min-height: 50px;
+      }
+
+      .admin-logo-img {
+        max-height: 26px;
+      }
+
+      .admin-custom-logo-wrap {
+        min-height: 46px;
+        padding-top: 4px;
+        padding-bottom: 2px;
+      }
+
+      .admin-custom-logo-img {
+        max-height: 38px;
+      }
+
+      /* ── Compact header bar ── */
+      .admin-header-bar {
+        padding: 3px 10px 4px;
+        gap: 6px;
+      }
+
+      .admin-header-copy {
+        align-items: center;
+      }
+
+      /* Keep title + sub on one row, both truncated */
       .admin-header-copy-main {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 3px;
+        flex-direction: row;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
       }
 
       .admin-header-title {
-        font-size: 1rem;
+        font-size: 0.78rem;
+        white-space: nowrap;
+        flex-shrink: 0;
       }
 
       .admin-header-sub {
-        white-space: normal;
-        overflow: visible;
-        text-overflow: clip;
-        line-height: 1.25;
-        font-size: 0.8rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 0.7rem;
       }
 
+      /* Hide tools strip (lang + switch club) — they're in the drawer */
       .admin-header-tools {
         display: none;
       }
 
+      /* Hide deploy button from header on mobile — it's in the ≡ drawer */
+      #deploy-btn {
+        display: none;
+      }
+
+      /* Hide "Select a club to manage" on Super Admin header (redundant on mobile) */
+      #dashboard-header-sub {
+        display: none;
+      }
+
+      /* Hamburger: show */
       .admin-mobile-overflow {
         display: inline-flex;
       }
 
+      /* ── Compact tournament strip — keep single row ── */
       .admin-tourn-strip {
-        padding: 10px 12px 8px;
-        gap: 8px;
-        flex-wrap: wrap;
+        padding: 5px 10px;
+        gap: 6px;
+        flex-wrap: nowrap;
       }
 
       .tourn-select {
-        flex: 1 1 100%;
+        flex: 1 1 auto;
+        font-size: 0.72rem;
+        padding: 4px 8px;
       }
 
       .admin-team-pills {
         flex-direction: column;
         align-items: stretch;
         gap: 10px;
-        padding: 10px 12px 8px;
+        padding: 8px 10px 6px;
       }
 
       .admin-team-summary {
