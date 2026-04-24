@@ -8,8 +8,8 @@
 
 | Repo | HEAD | Status |
 |------|------|--------|
-| `eggbeater-marketing` | `1ba42f2` | ✅ Pushed, Vercel auto-deployed |
-| `eggbeater-waterpolo` | `10db775` | ✅ Pushed, Codemagic build triggered |
+| `eggbeater-marketing` | `d39e2cb` | ✅ Pushed, Vercel auto-deployed |
+| `eggbeater-waterpolo` | `bcd33ea` | ✅ Pushed, ready for next native build |
 
 ### SW Versions
 - **Marketing (web PWA):** `ebwp-v180` / `?v=272`
@@ -518,3 +518,83 @@ eggbeater-marketing:
   - `locationQuery`
   - `venueOverrides`
   - `bsPreserveManualLocation()`
+
+---
+
+## Post-Launch Debugging and Recovery Status (2026-04-23)
+
+### Admin recovery / shared workflow
+- `admin.html` was recovered after a corruption/mojibake incident, then re-reconciled in behavior with the missing mobile/admin work.
+- Superadmin recovery is live again:
+  - club picker restored
+  - `Switch Club` restored
+  - mobile header / drawer controls restored
+- Standard `Bracket Sheet Sync` and a separate `Futures Bracket Import Wizard` are both live again.
+
+### Futures Bracket Import Wizard
+- Google Sheets API auth flow is working end to end.
+- The dedicated Futures wizard now stays inside its own card for the full flow.
+- Legend detection is hardened for:
+  - merged labels
+  - offset labels
+  - shared mixed-age tabs
+- Fixed stale `gid` overrides, stuck legend reads, and the broken `fields=` request path.
+- Fixed the `normalizeOpponentName is not defined` regression.
+- Real-world validation completed on:
+  - 16u Futures tab
+  - 18u Futures tab
+  - Santa Cruz sheet
+- Current live behavior also includes:
+  - mixed-age schedule parsing
+  - follow-on `W-Game` / `L-Game` path detection
+  - group-specific 18u filtering
+  - malformed-row correction in Step 4 with persistent overrides
+  - venue confirmation in Step 4 with persistent directions targets
+  - auto-generated tournament IDs on wizard deploy
+
+### Deploy / history / tournament lifecycle fixes
+- Deploy no longer wipes keyed team bracket paths on re-import.
+- Tournament metadata is inferred or refreshed correctly on deploy.
+- Lingering `stayTuned` flags are cleared on deploy.
+- Spectator history collision protections are live:
+  - duplicate repaired history entries dedupe correctly
+  - conflicting tournament IDs no longer overwrite each other as easily
+- Tournament lifecycle behavior changed:
+  - once tournament dates pass, spectator falls back to `Stay Tuned`
+  - completed events remain in `History`
+
+### Help surfaces updated
+- Web/admin help updated in `eggbeater-marketing`:
+  - in-app admin Help tab (`admin.html`)
+  - `admin-guide.html`
+  - `admin-guide.i18n.js`
+  - `spectator-guide.html`
+  - `spectator-guide.i18n.js`
+- Native help updated in `eggbeater-waterpolo`:
+  - `admin.html` + `admin-guide.html` mirrored
+  - in-app spectator help strings in `app.js`
+  - standalone native spectator guide in `parent-guide.html`
+
+### Current repo heads for this handoff
+- `eggbeater-marketing`: `d39e2cb`
+  - docs: update help surfaces for current tournament flows
+- `eggbeater-waterpolo`: `bcd33ea`
+  - docs: refresh native spectator help surfaces
+
+### Follow-ups still worth doing
+- Trigger a fresh native build from `eggbeater-waterpolo` after `bcd33ea` so the installed app picks up the updated help copy and current shared web behavior.
+- Do one final live smoke test of the standard non-Futures `Bracket Sheet Sync` path:
+  - paste URL
+  - fetch pools
+  - find team
+  - game scan
+  - re-bracket fetch
+  - deploy
+- If more history anomalies appear, inspect both:
+  - tournament ID reuse in admin flows
+  - existing corrupted local/device history that may need one-time repair logic
+
+### Notes for the next agent
+- The user is understandably nervous about regressions after the `admin.html` recovery. Keep claims evidence-based.
+- Treat `eggbeater-marketing` as the primary shared web/admin surface, but verify whether a native-only help or UI surface exists before assuming a mirror already covers it.
+- Do not stage `.wrangler` state files or unrelated `worker.js` changes when making native repo follow-up commits unless the task explicitly calls for them.
