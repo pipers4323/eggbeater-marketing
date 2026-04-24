@@ -1722,6 +1722,60 @@ function _historyEntryTeamLetter(teamLabel) {
   return null; // unassigned
 }
 
+function _historyOpponentTokens(entry) {
+  return (Array.isArray(entry?.games) ? entry.games : [])
+    .map(game => String(game?.opponent || '').trim().toLowerCase())
+    .filter(Boolean)
+    .sort();
+}
+
+function _repairKnownHistoryEntry(entry) {
+  if (!entry || typeof entry !== 'object') return entry;
+  const opponents = _historyOpponentTokens(entry);
+  const hasSantaCruzCalCupPair = opponents.length === 2
+    && opponents.includes('chawp white')
+    && opponents.includes('clovis');
+  const futuresTagged = /kap.?7|futures/i.test(_historyGroupMatchBlob(entry));
+  if (!hasSantaCruzCalCupPair || !futuresTagged) return entry;
+
+  let changed = false;
+  const repaired = { ...entry };
+
+  if (String(repaired.id || '').trim() !== 'calcup-finals-2026-santa-cruz-16u') {
+    repaired.id = 'calcup-finals-2026-santa-cruz-16u';
+    changed = true;
+  }
+  if (String(repaired.name || '').trim() !== 'Cal Cup Finals 2026') {
+    repaired.name = 'Cal Cup Finals 2026';
+    changed = true;
+  }
+  if (!String(repaired.subtitle || '').trim() || /futures|day\s*\d+/i.test(String(repaired.subtitle || ''))) {
+    repaired.subtitle = '16u Girls';
+    changed = true;
+  }
+  if (!String(repaired.dates || '').trim() || /april 26,\s*2026/i.test(String(repaired.dates || ''))) {
+    repaired.dates = 'April 18-19, 2026';
+    changed = true;
+  }
+  if (!String(repaired.location || '').trim() || /harbor high school|harbor hs/i.test(String(repaired.location || ''))) {
+    repaired.location = 'Norco HS';
+    changed = true;
+  }
+
+  return changed ? repaired : entry;
+}
+
+function _repairHistoryEntries(entries) {
+  if (!Array.isArray(entries) || !entries.length) return { entries: Array.isArray(entries) ? entries : [], changed: false };
+  let changed = false;
+  const next = entries.map(entry => {
+    const repaired = _repairKnownHistoryEntry(entry);
+    if (repaired !== entry) changed = true;
+    return repaired;
+  });
+  return { entries: next, changed };
+}
+
 function _historySignatureForEntry(entry) {
   const norm = (value) => String(value || '').trim().toLowerCase();
   return [
@@ -2359,13 +2413,15 @@ function _normalizeStoredHistoryState() {
   if (!Array.isArray(history) || !history.length) return false;
   let changed = false;
   const next = history.map(entry => {
+    let normalizedEntry = _repairKnownHistoryEntry(entry);
+    if (normalizedEntry !== entry) changed = true;
     const guessedGroupKey =
-      entry?.ageGroup
-      || Object.entries(TEAM_CACHE || {}).find(([, cache]) => cache?.tournament?.id === entry?.id)?.[0]
+      normalizedEntry?.ageGroup
+      || Object.entries(TEAM_CACHE || {}).find(([, cache]) => cache?.tournament?.id === normalizedEntry?.id)?.[0]
       || '';
-    if (!guessedGroupKey) return entry;
+    if (!guessedGroupKey) return normalizedEntry;
     let entryChanged = false;
-    const normalized = { ...entry };
+    const normalized = { ...normalizedEntry };
     if (!normalized.ageGroup) {
       normalized.ageGroup = guessedGroupKey;
       entryChanged = true;
@@ -3249,14 +3305,15 @@ function getPoolRecord() {
 function getHistory() {
   if (_historyOverride !== null) {
     return Array.isArray(_historyOverride)
-      ? _pruneLegacyCombinedHistoryEntries(_historyOverride.filter(entry => !_isBogusHistoryEntry(entry)))
+      ? _pruneLegacyCombinedHistoryEntries(_repairHistoryEntries(_historyOverride).entries.filter(entry => !_isBogusHistoryEntry(entry)))
       : [];
   }
   try {
     const parsed = JSON.parse(localStorage.getItem(STORE.HISTORY) || '[]');
     if (!Array.isArray(parsed)) return [];
-    const filtered = _pruneLegacyCombinedHistoryEntries(parsed.filter(entry => !_isBogusHistoryEntry(entry)));
-    if (filtered.length !== parsed.length || JSON.stringify(filtered) !== JSON.stringify(parsed)) {
+    const repaired = _repairHistoryEntries(parsed);
+    const filtered = _pruneLegacyCombinedHistoryEntries(repaired.entries.filter(entry => !_isBogusHistoryEntry(entry)));
+    if (repaired.changed || filtered.length !== parsed.length || JSON.stringify(filtered) !== JSON.stringify(parsed)) {
       localStorage.setItem(STORE.HISTORY, JSON.stringify(filtered));
     }
     return filtered;
