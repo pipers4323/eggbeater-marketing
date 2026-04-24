@@ -16618,12 +16618,26 @@ function _scheduleEmptyMessage() {
   if (!tournament) return 'No tournament loaded. Ask your club admin to set up the app.';
   const today = _localDateStr ? _localDateStr() : new Date().toISOString().split('T')[0];
   const games = tournament.games || [];
+  const allDates = [...new Set(games.filter(g => g.dateISO).map(g => g.dateISO))].sort();
   const futureGames = games.filter(g => g.dateISO > today);
   const pastGames   = games.filter(g => g.dateISO < today);
   if (futureGames.length === 0 && pastGames.length > 0) return '✓ All games complete — great tournament!';
   if (futureGames.length === 0) return 'No upcoming games scheduled yet. Check back soon.';
+  const firstDateISO = allDates[0] || '';
+  if (firstDateISO && firstDateISO > today) {
+    try {
+      const firstDateLabel = new Date(firstDateISO + 'T12:00:00').toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      return `Tournament starts ${firstDateLabel}.`;
+    } catch (e) {
+      return `Tournament starts ${firstDateISO}.`;
+    }
+  }
   // Only reference the day picker if multiple dates are present (so picker is actually rendered)
-  const allDates = [...new Set(games.filter(g => g.dateISO).map(g => g.dateISO))].sort();
   return allDates.length > 1
     ? 'No games today — use the day picker above to see games on other days.'
     : 'No games scheduled for today. Check back soon.';

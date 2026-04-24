@@ -1418,10 +1418,10 @@ h2 {
   padding: 12px 14px 10px;
   margin: 10px 0 6px;
   border: 1px solid rgba(255,255,255,.12);
-  border-left: 4px solid rgba(110, 231, 183, 0.72);
+  border-left: 4px solid rgba(var(--royal-rgb), 0.9);
   border-radius: 16px;
   background:
-    linear-gradient(135deg, rgba(11, 36, 102, 0.72), rgba(17, 63, 165, 0.32)),
+    linear-gradient(135deg, rgba(var(--royal-rgb), 0.72), rgba(var(--royal-rgb), 0.24)),
     linear-gradient(90deg, rgba(255,255,255,0.16), rgba(255,255,255,0.05));
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 8px 22px rgba(8, 27, 88, 0.18);
 }
@@ -1430,7 +1430,7 @@ h2 {
   content: '';
   flex: 1;
   height: 1.5px;
-  background: linear-gradient(90deg, rgba(110, 231, 183, 0.65), rgba(255,255,255,0.05));
+  background: linear-gradient(90deg, rgba(var(--royal-rgb), 0.5), rgba(255,255,255,0.05));
   opacity: 0.9;
 }
 .scores-slot-label {
