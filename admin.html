@@ -9766,6 +9766,10 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
         // Store the share code + scoring password for the main app
         S.tournament.directorCode = S.dirPkgCode;
         S.tournament.directorScoringPassword = pkg.directorScoringPassword || '';
+        if (!S.tournament.bracket) S.tournament.bracket = {};
+        const hostedSyncPaths = _dirImportGetHostedTeamPaths(pkg, ag.name || '', teamName);
+        if (hostedSyncPaths.length) S.tournament.bracket.importedPaths = hostedSyncPaths;
+        else delete S.tournament.bracket.importedPaths;
 
         // Save & deploy
         const res = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
@@ -10322,9 +10326,17 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
         // Step 5
         + '<div id="bs-s5" style="display:' + (step === 5 ? 'block' : 'none') + '">'
         + (isDirectorHost
-          ? '<div style="padding:10px 12px;background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;color:#1d4ed8;font-size:.82rem;line-height:1.55">'
-            + '<div style="font-weight:700;margin-bottom:4px">Director host import does not need team re-bracket setup here.</div>'
-            + '<div>This flow publishes the full tournament schedule and pool blocks into the Director package. Team-specific bracket paths are resolved later when a club admin imports their own team using the director code.</div>'
+          ? '<div class="info-label" style="margin-bottom:6px">Does this hosted tournament include a re-bracket?</div>'
+            + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:8px">If yes, this will publish bracket paths for every team in the imported pool blocks so clubs can pull them from the director package later.</div>'
+            + '<div style="display:flex;gap:8px;margin-bottom:10px">'
+            + '<button id="bs-rb-yes" class="save-btn" style="flex:1;background:' + rbYesBg + ';color:' + rbYesCo + '" onclick="bsSetRebracket(true)">Yes, publish it</button>'
+            + '<button id="bs-rb-no" class="save-btn" style="flex:1;background:' + rbNoBg + ';color:' + rbNoCo + '" onclick="bsSetRebracket(false)">No, single day</button>'
+            + '</div>'
+            + '<div id="bs-rb-fields" style="display:' + (bs.rebracket ? 'block' : 'none') + '">'
+            + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:4px">Enter the re-bracket cells (e.g. <code style="background:var(--g100);padding:1px 4px;border-radius:3px">J13:M29</code>)</div>'
+            + '<input class="info-input" id="bs-rbrange" value="' + esc(bs.rebracketRange || '') + '" placeholder="J13:M29" autocomplete="off" style="margin-bottom:6px" onkeydown="if(event.key===\'Enter\')bsFetchRebracket()">'
+            + '<button class="save-btn" style="width:100%;margin-bottom:6px" onclick="bsFetchRebracket()">Fetch Hosted Re-bracket &rarr;</button>'
+            + '<div id="bs-s5-status" style="font-size:.8rem;margin-bottom:6px;min-height:1em"></div>'
             + '</div>'
           : '<div class="info-label" style="margin-bottom:6px">Does this schedule include a re-bracket?</div>'
             + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:8px">A re-bracket defines Day 2 advancement paths (e.g. "1st in Pool A plays 2nd in Pool B").</div>'
@@ -10347,7 +10359,7 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
         + '</div>'
         + '<div style="display:flex;gap:8px;margin-top:10px">'
         + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g300)" onclick="bsStep(4)">&larr; Back</button>'
-        + '<button class="save-btn" style="flex:2" onclick="' + (isDirectorHost ? 'bsStep(7)' : 'bsStep5Next()') + '">Continue &rarr;</button>'
+        + '<button class="save-btn" style="flex:2" onclick="bsStep5Next()">Continue &rarr;</button>'
         + '</div></div>'
         // Step 6
         + '<div id="bs-s6" style="display:' + (step === 6 ? 'block' : 'none') + '">'
@@ -11700,13 +11712,36 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
 
     async function bsFetchRebracket() {
       if (bsIsDirectorHost(S.bsync)) {
-        if (!S.bsync) S.bsync = {};
-        S.bsync.rebracket = false;
-        S.bsync.bracketPaths = [];
+        const range = (document.getElementById('bs-rbrange')?.value || '').trim();
         const status = document.getElementById('bs-s5-status');
-        if (status) {
-          status.style.color = '#1d4ed8';
-          status.textContent = 'ℹ️ Director host import skips team-specific re-bracket paths here. Publish the full package, then clubs import their own team paths later.';
+        if (!range) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter a range like J13:M29'; } return; }
+        if (!S.bsync?.sheetId) return;
+        if (!Array.isArray(S.bsync?.poolBlocks) || !S.bsync.poolBlocks.length) {
+          if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Go back and fetch pools first'; }
+          return;
+        }
+        if (!S.bsync?.allRows?.length || !S.bsync?.cols) {
+          if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Go back and scan the schedule first'; }
+          return;
+        }
+        S.bsync.rebracket = true;
+        S.bsync.rebracketRange = range;
+        if (status) { status.style.color = 'var(--g400)'; status.textContent = '⏳ Fetching hosted re-bracket…'; }
+        try {
+          const rows = await bsGetRowsForImport(range);
+          const seedingMap = bsParseRebracket(rows);
+          const hostedBracketPaths = bsComputeHostedBracketPaths(S.bsync.allRows, seedingMap, S.bsync.poolBlocks, S.bsync.cols);
+          S.bsync.hostedBracketPaths = hostedBracketPaths;
+          S.bsync.bracketPaths = Object.values(hostedBracketPaths).flat();
+          const teamCount = Object.keys(hostedBracketPaths).length;
+          if (status) {
+            status.style.color = teamCount > 0 ? '#059669' : '#d97706';
+            status.textContent = teamCount > 0
+              ? `✅ Found hosted re-bracket paths for ${teamCount} team${teamCount !== 1 ? 's' : ''} — these will publish into the director package`
+              : '⚠️ Re-bracket loaded but no hosted team paths were generated — check the pool letters and division labels in the re-bracket block';
+          }
+        } catch (e) {
+          if (status) { status.style.color = '#dc2626'; status.textContent = '❌ ' + e.message; }
         }
         return;
       }
@@ -11762,6 +11797,13 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
       if (m) return `${m[2]} ${m[3]}`; // normalize to "1st A"
       const fb = (raw || '').trim().match(/^[A-Z]\d+[-–( ]+(.+)$/i);
       return fb ? fb[1].replace(/[-–) ]+$/, '').trim() : (raw || 'TBD');
+    }
+
+    function bsCloneBracketPaths(paths) {
+      return (paths || []).map(path => ({
+        ...path,
+        steps: Array.isArray(path?.steps) ? path.steps.map(step => ({ ...step })) : []
+      }));
     }
 
     function bsNormalizeSeedKey(raw) {
@@ -11954,6 +11996,30 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
       return paths;
     }
 
+    function bsComputeHostedBracketPaths(allRows, seedingMap, poolBlocks, cols) {
+      const result = {};
+      const cache = {};
+      for (const block of (poolBlocks || [])) {
+        const division = String(block?.division || '').trim();
+        for (const [pool, teams] of Object.entries(block?.pools || {})) {
+          const poolKey = String(pool || '').trim().toUpperCase();
+          if (!poolKey || !Array.isArray(teams) || !teams.length) continue;
+          const cacheKey = `${division}||${poolKey}`;
+          if (!cache[cacheKey]) {
+            cache[cacheKey] = bsComputeBracketPaths(allRows, seedingMap, poolKey, cols, division);
+          }
+          const basePaths = cache[cacheKey];
+          if (!basePaths?.length) continue;
+          for (const team of teams) {
+            const name = String(team || '').trim();
+            if (!name || _dirImportIsSyntheticTeamName(name)) continue;
+            result[name] = bsCloneBracketPaths(basePaths);
+          }
+        }
+      }
+      return result;
+    }
+
     function bsComputeKap7FuturesSpecialPaths(allRows, cols, games) {
       if (!window.AdminBracketImport?.bsComputeKap7FuturesSpecialPaths) return null;
       return window.AdminBracketImport.bsComputeKap7FuturesSpecialPaths({
@@ -11971,7 +12037,12 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
     function bsStep5Next() {
       if (S.bsync?.rebracket && !S.bsync?.bracketPaths?.length) {
         const status = document.getElementById('bs-s5-status');
-        if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Fetch the re-bracket data first, or switch to "No"'; }
+        if (status) {
+          status.style.color = '#dc2626';
+          status.textContent = bsIsDirectorHost(S.bsync)
+            ? '⚠️ Fetch the hosted re-bracket data first, or switch to "No"'
+            : '⚠️ Fetch the re-bracket data first, or switch to "No"';
+        }
         if (document.getElementById('bs-rb-fields')?.style.display === 'none') bsStep(6);
         return;
       }
@@ -12625,6 +12696,15 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
           const keptPools = agLabel ? existingPools.filter(block => (block.ageGroupName || '') !== agLabel) : [];
           S.director.importedPools = [...keptPools, ...labeledPools];
         }
+        {
+          const existingBracketPaths = Array.isArray(S.director.importedBracketPaths) ? S.director.importedBracketPaths : [];
+          const keptBracketPaths = agLabel ? existingBracketPaths.filter(block => (block.ageGroupName || '') !== agLabel) : [];
+          const hostedTeamPaths = S.bsync?.rebracket ? (S.bsync.hostedBracketPaths || {}) : {};
+          const teamCount = Object.keys(hostedTeamPaths).length;
+          S.director.importedBracketPaths = teamCount
+            ? [...keptBracketPaths, { ageGroupName: agLabel || '', teamPaths: hostedTeamPaths, rebracketRange: S.bsync.rebracketRange || '' }]
+            : keptBracketPaths;
+        }
         S.director.scheduleSheetUrl = S._dirBsSheetUrl || '';
         saveDirectorLocally();
         // Publish the full director package (bracket + schedule) so spectators get it immediately
@@ -12809,6 +12889,26 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
       return Array.from(names).sort();
     }
 
+    function _dirImportFindHostedBracketBlock(pkg, ageGroupName) {
+      const blocks = Array.isArray(pkg?.importedBracketPaths) ? pkg.importedBracketPaths : [];
+      const normalizedAgeGroup = String(ageGroupName || '').trim().toLowerCase();
+      if (!normalizedAgeGroup) return blocks[0] || null;
+      return blocks.find(block => String(block?.ageGroupName || '').trim().toLowerCase() === normalizedAgeGroup) || null;
+    }
+
+    function _dirImportGetHostedTeamPaths(pkg, ageGroupName, teamName) {
+      const block = _dirImportFindHostedBracketBlock(pkg, ageGroupName);
+      const teamPaths = block?.teamPaths || {};
+      if (Array.isArray(teamPaths?.[teamName])) return bsCloneBracketPaths(teamPaths[teamName]);
+      const normalized = String(teamName || '').trim().toLowerCase();
+      for (const [name, paths] of Object.entries(teamPaths)) {
+        if (String(name || '').trim().toLowerCase() === normalized && Array.isArray(paths)) {
+          return bsCloneBracketPaths(paths);
+        }
+      }
+      return [];
+    }
+
     function dirImportPickTeam(btnEl) {
       if (!S.dirImport?.pkg) return;
       const teamName = btnEl?.dataset?.team || btnEl;
@@ -12970,13 +13070,40 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
         }
         const importedPaths = Object.values(pathMap)
           .sort((a, b) => a.id.localeCompare(b.id));
+        const hostedImportedPathMap = {};
+        const selectedAgeGroup = S.dirImport.selectedAgeGroup || '';
+        for (const teamName of selTeams) {
+          const letter = teamLetterMap[teamName];
+          if (!letter) continue;
+          const hostedPaths = _dirImportGetHostedTeamPaths(pkg, selectedAgeGroup, teamName);
+          if (hostedPaths.length) hostedImportedPathMap[letter] = hostedPaths;
+        }
+        if (importedPaths.length) {
+          if (selTeams.length <= 1) {
+            const firstLetter = teamLetterMap[selTeams[0] || ''] || 'A';
+            hostedImportedPathMap[firstLetter] = (hostedImportedPathMap[firstLetter] || []).concat(importedPaths);
+          } else {
+            for (const letter of Object.keys(hostedImportedPathMap)) {
+              hostedImportedPathMap[letter] = (hostedImportedPathMap[letter] || []).concat(importedPaths);
+            }
+          }
+        }
+        Object.keys(hostedImportedPathMap).forEach(letter => {
+          const seen = new Set();
+          hostedImportedPathMap[letter] = (hostedImportedPathMap[letter] || []).filter(path => {
+            const key = path?.id || `${path?.label || ''}|${(path?.steps || []).length}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        });
 
         S.tournament.games = merged;
         S.tournament.dirImportCode = S.dirImport.code;
         S.tournament.dirImportName = pkg?.tournamentName || '';
         if (!S.tournament.bracket) S.tournament.bracket = {};
-        if (importedPaths.length) {
-          S.tournament.bracket.importedPaths = importedPaths;
+        if (Object.keys(hostedImportedPathMap).length) {
+          S.tournament.bracket.importedPaths = hostedImportedPathMap;
         } else {
           delete S.tournament.bracket.importedPaths;
         }
@@ -12986,7 +13113,8 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
         const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
         if (!saveRes.ok) throw new Error('Save failed — tap 💾 Deploy in the header to retry');
         await _pushToFirebaseMirror(S.team, S.tournament, S.history || []);
-        const bracketNote = importedPaths.length ? ` + ${bracketGames.length} bracket path(s)` : '';
+        const hostedPathCount = Object.values(hostedImportedPathMap).reduce((sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0);
+        const bracketNote = hostedPathCount ? ` + ${hostedPathCount} bracket path(s)` : '';
         showStatus(`✅ ${merged.length} game(s)${bracketNote} imported from ${pkg?.tournamentName || S.dirImport.code}!`, 'ok');
         S.dirImport = {};
         renderTab();
@@ -18317,6 +18445,7 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
       return {
         ageGroups: [],
         schedDays: [{ date: '', startTime: '8:00 AM', endTime: '6:00 PM' }],
+        importedBracketPaths: [],
         publishedCode: null,
         publishedAt: null,
       };
@@ -18524,6 +18653,7 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
           schedDays: S.director.schedDays,
           importedSchedule: S.director.importedSchedule || [],
           importedPools: S.director.importedPools || [],
+          importedBracketPaths: S.director.importedBracketPaths || [],
           sheetWritebackConfigured: !!(S.director.sheetWriteback?.webhookUrl || ''),
           publishedAt: Date.now(),
         };
