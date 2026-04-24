@@ -9173,9 +9173,7 @@ html.native-android[data-theme="dark"] .card.tab-card.my-player-card .mp-stat-gr
 }
 /* My Players + Player Lookup dark text — handled in the white-card section below */
 
-.native-android .scores-slot-header.slot-header-in-card .scores-slot-label,
-.native-android .roster-view-card .scores-slot-label,
-.native-android .mp-multi-card .scores-slot-label {
+.native-android .scores-slot-header.slot-header-in-card .scores-slot-label {
   color: var(--royal) !important;
   opacity: 1 !important;
 }
@@ -9785,9 +9783,7 @@ html.native-android .finalize-game-body {
   color: #1a202c !important;
 }
 
-[data-theme="dark"] #view-possible .scores-slot-header.slot-header-in-card .scores-slot-label,
-[data-theme="dark"] .roster-view-card .scores-slot-label,
-[data-theme="dark"] .mp-multi-card .scores-slot-label {
+[data-theme="dark"] #view-possible .scores-slot-header.slot-header-in-card .scores-slot-label {
   color: #002868 !important;
   opacity: 1 !important;
 }
@@ -9924,10 +9920,10 @@ html.native-android .finalize-game-body {
 
 .native-ios #view-possible .scores-slot-header.slot-header-in-card .scores-slot-label,
 .native-android #view-possible .scores-slot-header.slot-header-in-card .scores-slot-label,
-.native-ios .roster-view-card .scores-slot-label,
-.native-ios .mp-multi-card .scores-slot-label,
-.native-android .roster-view-card .scores-slot-label,
-.native-android .mp-multi-card .scores-slot-label {
+.native-ios .roster-view-card .scores-slot-header.slot-header-in-card .scores-slot-label,
+.native-ios .mp-multi-card .scores-slot-header.slot-header-in-card .scores-slot-label,
+.native-android .roster-view-card .scores-slot-header.slot-header-in-card .scores-slot-label,
+.native-android .mp-multi-card .scores-slot-header.slot-header-in-card .scores-slot-label {
   color: #002868 !important;
   opacity: 1 !important;
 }
@@ -10067,11 +10063,11 @@ html.native-android .bracket-section:not(.projected) {
 }
 
 html.native-ios #view-possible .scores-slot-header.slot-header-in-card .scores-slot-label,
-html.native-ios .roster-view-card .scores-slot-label,
-html.native-ios .mp-multi-card .scores-slot-label,
+html.native-ios .roster-view-card .scores-slot-header.slot-header-in-card .scores-slot-label,
+html.native-ios .mp-multi-card .scores-slot-header.slot-header-in-card .scores-slot-label,
 html.native-android #view-possible .scores-slot-header.slot-header-in-card .scores-slot-label,
-html.native-android .roster-view-card .scores-slot-label,
-html.native-android .mp-multi-card .scores-slot-label {
+html.native-android .roster-view-card .scores-slot-header.slot-header-in-card .scores-slot-label,
+html.native-android .mp-multi-card .scores-slot-header.slot-header-in-card .scores-slot-label {
   color: #002868 !important;
   opacity: 1 !important;
 }
@@ -10351,10 +10347,8 @@ html.native-android[data-theme="light"] #view-scores > .scores-slot-header:not(.
 
 html.native-ios[data-theme="light"] .scores-slot-header.slot-header-in-card .scores-slot-label,
 html.native-android[data-theme="light"] .scores-slot-header.slot-header-in-card .scores-slot-label,
-html.native-ios[data-theme="light"] #view-history .card.tab-card .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
-html.native-android[data-theme="light"] #view-history .card.tab-card .team-section > .scores-slot-header:not(.slot-header-in-card) .scores-slot-label,
-html.native-ios[data-theme="light"] .roster-view-card .scores-slot-label,
-html.native-android[data-theme="light"] .roster-view-card .scores-slot-label {
+html.native-ios[data-theme="light"] .roster-view-card .scores-slot-header.slot-header-in-card .scores-slot-label,
+html.native-android[data-theme="light"] .roster-view-card .scores-slot-header.slot-header-in-card .scores-slot-label {
   color: #002868 !important;
   opacity: 1 !important;
 }

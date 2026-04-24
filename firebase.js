@@ -370,16 +370,9 @@ async function fbCheckAdminAccess(clubId) {
     const data = doc.data();
     const adminUIDs = data.adminUIDs || [];
     const superAdminUIDs = data.superAdminUIDs || [];
-    let isSuperAdmin = superAdminUIDs.some(matchesAdmin);
-    if (!isSuperAdmin) {
-      const snapshot = await _fbDb.collection('clubs').get();
-      isSuperAdmin = snapshot.docs.some(clubDoc => {
-        const clubData = clubDoc.data() || {};
-        return (clubData.superAdminUIDs || []).some(matchesAdmin);
-      });
-    }
+    const isSuperAdmin = superAdminUIDs.some(matchesAdmin);
     return {
-      isAdmin:      adminUIDs.some(matchesAdmin) || superAdminUIDs.some(matchesAdmin) || isSuperAdmin,
+      isAdmin:      adminUIDs.some(matchesAdmin) || isSuperAdmin,
       isSuperAdmin,
       clubName:     data.name || '',
     };
