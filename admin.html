@@ -12619,7 +12619,12 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
         const kept = agLabel ? existing.filter(g => g.ageGroupName !== agLabel) : [];
         const schedule = [...kept, ...newGames];
         S.director.importedSchedule = schedule;
-        if (Array.isArray(S._dirBsPools) && S._dirBsPools.length) S.director.importedPools = S._dirBsPools.slice();
+        if (Array.isArray(S._dirBsPools) && S._dirBsPools.length) {
+          const labeledPools = S._dirBsPools.map(block => ({ ...block, ageGroupName: agLabel || '' }));
+          const existingPools = Array.isArray(S.director.importedPools) ? S.director.importedPools : [];
+          const keptPools = agLabel ? existingPools.filter(block => (block.ageGroupName || '') !== agLabel) : [];
+          S.director.importedPools = [...keptPools, ...labeledPools];
+        }
         S.director.scheduleSheetUrl = S._dirBsSheetUrl || '';
         saveDirectorLocally();
         // Publish the full director package (bracket + schedule) so spectators get it immediately
@@ -12731,9 +12736,8 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
         const visibleSched = S.dirImport.selectedAgeGroup
           ? sched.filter(g => g.ageGroupName === S.dirImport.selectedAgeGroup)
           : (ageGroups.length === 0 ? sched : []);
-        const names = new Set();
-        for (const g of visibleSched) { if (g.team1Name && g.team1Name !== 'TBD' && !_parseBracketRef(g.team1Name)) names.add(g.team1Name); if (g.team2Name && g.team2Name !== 'TBD' && !_parseBracketRef(g.team2Name)) names.add(g.team2Name); }
-        S.dirImport.teamNames = Array.from(names).sort();
+        const poolNames = _dirImportGetPoolTeamNames(pkg, S.dirImport.selectedAgeGroup);
+        S.dirImport.teamNames = poolNames.length ? poolNames : _dirImportCollectTeamNamesFromSchedule(visibleSched);
         const agNote = ageGroups.length > 1 ? ' — pick your age group first' : ' — pick your team below';
         S.dirImport.statusHtml = `<span style="color:#059669">✅ Found ${sched.length} scheduled games in <strong>${esc(pkg.tournamentName||code)}</strong>${agNote}</span>`;
         if (statusEl) { statusEl.style.color='#059669'; statusEl.innerHTML = S.dirImport.statusHtml; }
@@ -12757,9 +12761,8 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
       // Rebuild team names for this age group
       const sched = S.dirImport.pkg.importedSchedule || [];
       const visible = ag ? sched.filter(g => g.ageGroupName === ag) : sched;
-      const names = new Set();
-      for (const g of visible) { if (g.team1Name && g.team1Name !== 'TBD' && !_parseBracketRef(g.team1Name)) names.add(g.team1Name); if (g.team2Name && g.team2Name !== 'TBD' && !_parseBracketRef(g.team2Name)) names.add(g.team2Name); }
-      S.dirImport.teamNames = Array.from(names).sort();
+      const poolNames = _dirImportGetPoolTeamNames(S.dirImport.pkg, ag);
+      S.dirImport.teamNames = poolNames.length ? poolNames : _dirImportCollectTeamNamesFromSchedule(visible);
       const card = document.getElementById('dir-import-card');
       if (card) { card.outerHTML = dirImportWizardHtml(); document.getElementById('dir-import-card').open = true; }
     }
@@ -12768,6 +12771,42 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
     function _parseBracketRef(str) {
       const m = (str || '').trim().match(/^([WL])\s*G?\s*(\d+)$/i);
       return m ? { type: m[1].toUpperCase(), num: 'G' + m[2] } : null;
+    }
+
+    function _dirImportIsSyntheticTeamName(name) {
+      const text = String(name || '').trim();
+      if (!text || text === 'TBD') return true;
+      if (_parseBracketRef(text)) return true;
+      if (/^[A-Z]\d+$/i.test(text)) return true;
+      if (/^[A-Z]+\d+$/i.test(text)) return true;
+      if (/^(Winner|Loser)\s+/i.test(text)) return true;
+      return false;
+    }
+
+    function _dirImportCollectTeamNamesFromSchedule(sched) {
+      const names = new Set();
+      for (const g of (sched || [])) {
+        if (g.team1Name && !_dirImportIsSyntheticTeamName(g.team1Name)) names.add(g.team1Name);
+        if (g.team2Name && !_dirImportIsSyntheticTeamName(g.team2Name)) names.add(g.team2Name);
+      }
+      return Array.from(names).sort();
+    }
+
+    function _dirImportGetPoolTeamNames(pkg, ageGroupName) {
+      const pools = Array.isArray(pkg?.importedPools) ? pkg.importedPools : [];
+      const normalizedAgeGroup = String(ageGroupName || '').trim().toLowerCase();
+      const matchingBlocks = normalizedAgeGroup
+        ? pools.filter(block => String(block?.ageGroupName || '').trim().toLowerCase() === normalizedAgeGroup)
+        : pools.slice();
+      const names = new Set();
+      for (const block of matchingBlocks) {
+        for (const teams of Object.values(block?.pools || {})) {
+          for (const team of (teams || [])) {
+            if (!_dirImportIsSyntheticTeamName(team)) names.add(team);
+          }
+        }
+      }
+      return Array.from(names).sort();
     }
 
     function dirImportPickTeam(btnEl) {
