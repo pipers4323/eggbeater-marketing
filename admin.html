@@ -9254,36 +9254,59 @@
       return new Promise(resolve => {
         const img = new Image();
         img.onload = () => {
+          const srcCanvas = document.createElement('canvas');
+          srcCanvas.width = img.naturalWidth;
+          srcCanvas.height = img.naturalHeight;
+          const srcCtx = srcCanvas.getContext('2d');
+          srcCtx.drawImage(img, 0, 0);
+
+          const srcData = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
+          const sd = srcData.data;
+          let minX = srcCanvas.width, minY = srcCanvas.height, maxX = -1, maxY = -1;
+          for (let y = 0; y < srcCanvas.height; y++) {
+            for (let x = 0; x < srcCanvas.width; x++) {
+              const pi = (y * srcCanvas.width + x) * 4;
+              if (sd[pi + 3] > 0) {
+                if (x < minX) minX = x;
+                if (y < minY) minY = y;
+                if (x > maxX) maxX = x;
+                if (y > maxY) maxY = y;
+              }
+            }
+          }
+          if (maxX < minX || maxY < minY) { resolve(dataUrl); return; }
+
           const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
+          canvas.width = maxX - minX + 1;
+          canvas.height = maxY - minY + 1;
           const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0);
+          ctx.drawImage(srcCanvas, minX, minY, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
 
           const w = canvas.width, h = canvas.height;
           const imageData = ctx.getImageData(0, 0, w, h);
           const d = imageData.data;
-
-          // Sample background from top-left corner
-          const bgR = d[0], bgG = d[1], bgB = d[2];
-
-          // Only strip if background is near-white (r,g,b all ≥ 200)
-          if (bgR < 200 || bgG < 200 || bgB < 200) { resolve(dataUrl); return; }
-
-          const TOLERANCE = 30;
+          const TOLERANCE = 42;
           const visited = new Uint8Array(w * h);
 
           function matches(pi) {
             if (d[pi + 3] === 0) return true;
-            const dr = d[pi] - bgR, dg = d[pi + 1] - bgG, db = d[pi + 2] - bgB;
-            return (dr * dr + dg * dg + db * db) <= TOLERANCE * TOLERANCE;
+            return d[pi] >= 215 && d[pi + 1] >= 215 && d[pi + 2] >= 215;
           }
 
-          // Seed BFS from all four corners
+          // Seed BFS from all edges so we can strip white cards even when they sit
+          // inside transparent margins and don't touch the original image corners.
           const queue = [];
-          for (const [sx, sy] of [[0, 0], [w - 1, 0], [0, h - 1], [w - 1, h - 1]]) {
-            const si = sy * w + sx;
-            if (!visited[si]) { visited[si] = 1; queue.push(si); }
+          for (let x = 0; x < w; x++) {
+            for (const y of [0, h - 1]) {
+              const idx = y * w + x;
+              if (!visited[idx] && matches(idx * 4)) { visited[idx] = 1; queue.push(idx); }
+            }
+          }
+          for (let y = 0; y < h; y++) {
+            for (const x of [0, w - 1]) {
+              const idx = y * w + x;
+              if (!visited[idx] && matches(idx * 4)) { visited[idx] = 1; queue.push(idx); }
+            }
           }
 
           let qi = 0;
@@ -10127,7 +10150,10 @@
         + '<div class="info-label" style="margin-bottom:4px">Which cells list the pool teams?</div>'
         + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">Enter the range containing pool names + seeds, e.g. <code style="background:var(--g100);padding:1px 4px;border-radius:3px">J3:M6</code>. Include the header row if pool names are in the first row.</div>'
         + '<input class="info-input" id="bs-poolrange" value="' + esc(bs.poolRange || '') + '" placeholder="J3:M6" autocomplete="off" style="margin-bottom:8px" onkeydown="if(event.key===\'Enter\')bsFetchPools()">'
-        + '<button class="save-btn" style="width:100%" onclick="bsFetchPools()">Fetch Pools &rarr;</button>'
+        + '<div style="display:flex;gap:8px">'
+        + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g300)" onclick="bsStep(1)">&larr; Back</button>'
+        + '<button class="save-btn" style="flex:2" onclick="bsFetchPools()">Fetch Pools &rarr;</button>'
+        + '</div>'
         + '<div id="bs-s2-status" style="font-size:.8rem;margin-top:6px;min-height:1em"></div>'
         + '<div id="bs-pool-preview" style="margin-top:8px"></div>'
         + '</div>'
@@ -10137,11 +10163,17 @@
         + (isDirectorHost
           ? '<div class="info-label" style="margin-bottom:4px">Import the full tournament schedule</div>'
           + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:8px">Director host mode imports the full schedule and pool structure. Teams will choose their own squad later when they enter the director code.</div>'
-          + '<button class="save-btn" style="width:100%" onclick="bsFindTeam()">Import Full Schedule &rarr;</button>'
+          + '<div style="display:flex;gap:8px">'
+          + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g300)" onclick="bsStep(2)">&larr; Back</button>'
+          + '<button class="save-btn" style="flex:2" onclick="bsFindTeam()">Import Full Schedule &rarr;</button>'
+          + '</div>'
           : '<div class="info-label" style="margin-bottom:4px">How is your team listed on this sheet?</div>'
           + '<div style="font-size:.78rem;color:var(--g400);margin-bottom:6px">Exact name as it appears. For multiple teams (A &amp; B squad same sheet) separate with a comma — e.g. <em>680 A, 680 B</em></div>'
           + '<input class="info-input" id="bs-teamname" value="' + esc(bs.teamName || '') + '" placeholder="e.g. 680 A, 680 B" autocomplete="off" style="margin-bottom:8px" onkeydown="if(event.key===\'Enter\')bsFindTeam()">'
-          + '<button class="save-btn" style="width:100%" onclick="bsFindTeam()">Find My Team &rarr;</button>')
+          + '<div style="display:flex;gap:8px">'
+          + '<button class="add-btn" style="flex:1;background:var(--g100);color:var(--g600);border:1px solid var(--g300)" onclick="bsStep(2)">&larr; Back</button>'
+          + '<button class="save-btn" style="flex:2" onclick="bsFindTeam()">Find My Team &rarr;</button>'
+          + '</div>')
         + '<div id="bs-s3-status" style="font-size:.8rem;margin-top:6px;min-height:1em"></div>'
         + '</div>'
         // Step 4
