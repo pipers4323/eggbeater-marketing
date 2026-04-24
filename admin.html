@@ -9997,6 +9997,117 @@
       return html;
     }
 
+    function bsIsPoolSeedCell(value) {
+      const text = String(value || '').trim();
+      return !!text && (/^\d+$/.test(text) || /^\d+[.)-]?$/.test(text));
+    }
+
+    function bsLooksLikePoolHeaderToken(value) {
+      const text = String(value || '').trim();
+      return /^[A-Z]$/.test(text) || /^Pool\s+[A-Z0-9]+$/i.test(text);
+    }
+
+    function bsLooksLikeStackedPoolHeaderRow(row) {
+      const nonEmpty = (row || []).map((value, idx) => ({ value: String(value || '').trim(), idx })).filter(cell => cell.value);
+      if (nonEmpty.length < 2) return false;
+      const hasDivisionAndHeaders = nonEmpty.length >= 3
+        && !bsLooksLikePoolHeaderToken(nonEmpty[0].value)
+        && !bsIsPoolSeedCell(nonEmpty[0].value)
+        && nonEmpty.slice(1).every(cell => bsLooksLikePoolHeaderToken(cell.value));
+      if (hasDivisionAndHeaders) return true;
+      return nonEmpty.every(cell => bsLooksLikePoolHeaderToken(cell.value));
+    }
+
+    function bsParsePoolBlocks(rows) {
+      const trimmedRows = (rows || []).map(row => (row || []).map(cell => String(cell || '').trim()));
+      const blocks = [];
+      const flatPools = {};
+      let i = 0;
+
+      while (i < trimmedRows.length) {
+        const row = trimmedRows[i] || [];
+        const nonEmpty = row.map((value, idx) => ({ value, idx })).filter(cell => cell.value);
+        if (!nonEmpty.length) { i++; continue; }
+
+        let division = '';
+        let headers = [];
+        let headerCols = [];
+
+        const hasDivisionAndHeaders = nonEmpty.length >= 3
+          && !bsLooksLikePoolHeaderToken(nonEmpty[0].value)
+          && !bsIsPoolSeedCell(nonEmpty[0].value)
+          && nonEmpty.slice(1).every(cell => bsLooksLikePoolHeaderToken(cell.value));
+        const headerOnly = nonEmpty.length >= 2 && nonEmpty.every(cell => bsLooksLikePoolHeaderToken(cell.value));
+
+        if (hasDivisionAndHeaders) {
+          division = nonEmpty[0].value;
+          headers = nonEmpty.slice(1).map(cell => cell.value);
+          headerCols = nonEmpty.slice(1).map(cell => cell.idx);
+        } else if (headerOnly) {
+          headers = nonEmpty.map(cell => cell.value);
+          headerCols = nonEmpty.map(cell => cell.idx);
+        } else {
+          i++;
+          continue;
+        }
+
+        const block = { division, pools: {} };
+        headers.forEach(header => { block.pools[header] = []; });
+
+        let j = i + 1;
+        while (j < trimmedRows.length) {
+          const dataRow = trimmedRows[j] || [];
+          const rowHasAny = dataRow.some(Boolean);
+          if (!rowHasAny) { j++; break; }
+          if (bsLooksLikeStackedPoolHeaderRow(dataRow)) break;
+
+          let foundTeam = false;
+          headers.forEach((header, idx) => {
+            const colIdx = headerCols[idx];
+            const value = String(dataRow[colIdx] || '').trim();
+            if (!value || bsIsPoolSeedCell(value)) return;
+            block.pools[header].push(value);
+            foundTeam = true;
+          });
+
+          if (!foundTeam && Object.values(block.pools).some(list => list.length)) break;
+          j++;
+        }
+
+        const hasTeams = Object.values(block.pools).some(list => list.length);
+        if (hasTeams) {
+          blocks.push(block);
+          Object.entries(block.pools).forEach(([header, teams]) => {
+            const key = division ? `${division} - ${header}` : header;
+            flatPools[key] = teams.slice();
+          });
+        }
+
+        i = Math.max(j, i + 1);
+      }
+
+      if (!blocks.length) return { blocks: [], flatPools: {} };
+      return { blocks, flatPools };
+    }
+
+    function bsRenderPoolBlocksPreview(blocks, highlightTeam) {
+      if (!Array.isArray(blocks) || !blocks.length) return '';
+      const hl = String(highlightTeam || '').toLowerCase();
+      return blocks.map(block => {
+        const title = block.division
+          ? `<div style="font-size:.76rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--g600);margin:0 0 6px">${esc(block.division)}</div>`
+          : '';
+        return `<div style="margin-bottom:10px">${title}${bsRenderPoolPreview(block.pools, hl)}</div>`;
+      }).join('');
+    }
+
+    function bsRenderActivePoolPreview(bs, highlightTeam) {
+      if (Array.isArray(bs?.poolBlocks) && bs.poolBlocks.length) {
+        return bsRenderPoolBlocksPreview(bs.poolBlocks, highlightTeam);
+      }
+      return bsRenderPoolPreview(bs?.pools, highlightTeam);
+    }
+
     function _fmtLastSync(iso) {
       if (!iso) return 'Never';
       try {
@@ -10091,7 +10202,7 @@
       var dots = [1, 2, 3, 4, 5, 6].map(function (n) { return '<div id="bs-dot-' + n + '" style="flex:1;height:5px;border-radius:3px;background:' + (step >= n ? 'var(--royal)' : 'var(--g200)') + '"></div>'; }).join('');
       var curMins = (bs.pollMins === undefined) ? 10 : bs.pollMins;
       var opts = [5, 10, 30, 0].map(function (n) { return '<option value="' + n + '"' + (curMins === n ? ' selected' : '') + '>' + (n ? n + ' minutes' : 'Manual only (no auto-sync)') + '</option>'; }).join('');
-      var poolsHtml = bsRenderPoolPreview(bs.pools, bs.teamName);
+      var poolsHtml = bsRenderActivePoolPreview(bs, bs.teamName);
       var summaryHtml = bsRenderDeploySummary(bs);
       var rbYesBg = bs.rebracket ? 'var(--royal)' : 'var(--g100)';
       var rbYesCo = bs.rebracket ? 'white' : 'var(--g600)';
@@ -10738,29 +10849,35 @@
       if (preview) preview.innerHTML = '';
       try {
         const rows = await bsGetRowsForImport(range);
+        const parsed = bsParsePoolBlocks(rows);
+        let pools = parsed.flatPools;
+        let poolBlocks = parsed.blocks;
 
-        // First row: if all cells are non-numeric short text, treat as pool name headers
-        const firstRow = rows[0];
-        let headers, dataRows;
-        const looksLikeHeaders = firstRow.some(c => c.trim()) &&
-          firstRow.every(c => !c.trim() || (!/^\d/.test(c.trim()) && c.trim().length < 40));
-        if (looksLikeHeaders) {
-          headers = firstRow.map(c => c.trim()).filter(Boolean);
-          dataRows = rows.slice(1);
-        } else {
-          headers = firstRow.map((_, i) => 'Pool ' + String.fromCharCode(65 + i));
-          dataRows = rows;
+        if (!Object.keys(pools).length) {
+          const firstRow = rows[0];
+          let headers, dataRows;
+          const looksLikeHeaders = firstRow.some(c => c.trim()) &&
+            firstRow.every(c => !c.trim() || (!/^\d/.test(c.trim()) && c.trim().length < 40));
+          if (looksLikeHeaders) {
+            headers = firstRow.map(c => c.trim()).filter(Boolean);
+            dataRows = rows.slice(1);
+          } else {
+            headers = firstRow.map((_, i) => 'Pool ' + String.fromCharCode(65 + i));
+            dataRows = rows;
+          }
+          pools = {};
+          headers.forEach((h, ci) => {
+            pools[h] = dataRows.map(r => (r[ci] || '').trim()).filter(Boolean);
+          });
+          poolBlocks = [{ division: '', pools }];
         }
 
-        const pools = {};
-        headers.forEach((h, ci) => {
-          pools[h] = dataRows.map(r => (r[ci] || '').trim()).filter(Boolean);
-        });
         S.bsync.pools = pools;
+        S.bsync.poolBlocks = poolBlocks;
 
-        if (status) { status.style.color = '#059669'; status.textContent = `✅ Found ${headers.length} pool(s) — review below`; }
-        if (preview) preview.innerHTML = bsRenderPoolPreview(pools, '') +
-          `<button class="save-btn" style="width:100%;margin-top:10px" onclick="bsStep(3);document.getElementById('bs-s3-pools').innerHTML=bsRenderPoolPreview(S.bsync.pools,S.bsync.teamName)">Looks Good →</button>`;
+        if (status) { status.style.color = '#059669'; status.textContent = `✅ Found ${Object.keys(pools).length} pool(s) in ${poolBlocks.length} block(s) — review below`; }
+        if (preview) preview.innerHTML = bsRenderActivePoolPreview(S.bsync, '') +
+          `<button class="save-btn" style="width:100%;margin-top:10px" onclick="bsStep(3);document.getElementById('bs-s3-pools').innerHTML=bsRenderActivePoolPreview(S.bsync,S.bsync.teamName)">Looks Good →</button>`;
       } catch (e) {
         if (status) { status.style.color = '#dc2626'; status.textContent = '❌ ' + e.message; }
       }
@@ -10789,15 +10906,28 @@
 
       // Refresh pool preview highlighting all entered names
       const poolsEl = document.getElementById('bs-s3-pools');
-      if (poolsEl) poolsEl.innerHTML = bsRenderPoolPreview(S.bsync.pools, teamNames[0]);
+      if (poolsEl) poolsEl.innerHTML = bsRenderActivePoolPreview(S.bsync, teamNames[0]);
 
       // Find pool for each name — use first match as primary
       let found = null;
       for (const tName of teamNames) {
         const tLower = tName.toLowerCase();
-        for (const [pool, teams] of Object.entries(S.bsync.pools)) {
-          const idx = teams.findIndex(t => t.toLowerCase().includes(tLower) || tLower.includes(t.toLowerCase()) && t.trim().length > 2);
-          if (idx !== -1) { found = { pool, seed: idx + 1, matchedName: teams[idx] }; break; }
+        if (Array.isArray(S.bsync.poolBlocks) && S.bsync.poolBlocks.length) {
+          for (const block of S.bsync.poolBlocks) {
+            for (const [pool, teams] of Object.entries(block.pools || {})) {
+              const idx = teams.findIndex(t => t.toLowerCase().includes(tLower) || tLower.includes(t.toLowerCase()) && t.trim().length > 2);
+              if (idx !== -1) {
+                found = { pool, division: block.division || '', seed: idx + 1, matchedName: teams[idx] };
+                break;
+              }
+            }
+            if (found) break;
+          }
+        } else {
+          for (const [pool, teams] of Object.entries(S.bsync.pools)) {
+            const idx = teams.findIndex(t => t.toLowerCase().includes(tLower) || tLower.includes(t.toLowerCase()) && t.trim().length > 2);
+            if (idx !== -1) { found = { pool, division: '', seed: idx + 1, matchedName: teams[idx] }; break; }
+          }
         }
         if (found) break;
       }
@@ -10806,8 +10936,10 @@
         return;
       }
       S.bsync.myPool = found.pool;
+      S.bsync.myPoolDivision = found.division || '';
       S.bsync.mySeed = found.seed;
-      const foundMsg = teamNames.length > 1 ? `✅ Found pools for ${teamNames.length} teams (primary: ${found.pool}) — scanning schedule…` : `✅ Found: ${found.pool}, Seed ${found.seed} (matched "${found.matchedName}") — scanning schedule…`;
+      const poolLabel = found.division ? `${found.division} · ${found.pool}` : found.pool;
+      const foundMsg = teamNames.length > 1 ? `✅ Found pools for ${teamNames.length} teams (primary: ${poolLabel}) — scanning schedule…` : `✅ Found: ${poolLabel}, Seed ${found.seed} (matched "${found.matchedName}") — scanning schedule…`;
       if (status) { status.style.color = '#059669'; status.textContent = foundMsg; }
       setTimeout(bsScanGames, 400);
     }
@@ -10950,6 +11082,8 @@
 
     function bsParseCourseSched(allRows, teamNameLower) {
       const importAllTeams = !teamNameLower;
+      const sheetId = S.bsync?.sheetId || '';
+      const sheetGid = S.bsync?.sheetGid || '';
       // Find the header row: has "Time" in col 0 AND multiple "White Team" or "White" entries
       let headerRow = -1;
       for (let ri = 0; ri < Math.min(allRows.length, 35); ri++) {
@@ -10989,16 +11123,24 @@
       for (var ci2 = 0; ci2 < courses.length; ci2++) {
         var course = courses[ci2];
         var sc = course.startCol;
-        var whiteCol = sc, darkCol = sc + 2, divCol = sc + 4;
+        var whiteCol = sc, darkCol = sc + 2, divCol = sc + 4, whiteScoreCol = -1, darkScoreCol = -1, statusCol = -1;
         for (var ci3 = sc; ci3 < Math.min(sc + 7, hRow.length); ci3++) {
           var lc = (hRow[ci3] || '').toLowerCase().trim();
           if (lc.includes('white')) whiteCol = ci3;
           else if (lc.includes('dark') || lc.includes('navy')) darkCol = ci3;
           else if (lc.includes('div') || lc === 'gender' || lc === 'group') divCol = ci3;
+          if (whiteScoreCol < 0 && lc.includes('white score')) whiteScoreCol = ci3;
+          else if (darkScoreCol < 0 && (lc.includes('dark score') || lc.includes('navy score'))) darkScoreCol = ci3;
+          else if (statusCol < 0 && (lc === 'status' || lc.includes('state'))) statusCol = ci3;
         }
+        if (whiteScoreCol < 0 && darkCol - whiteCol > 1) whiteScoreCol = whiteCol + 1;
+        if (darkScoreCol < 0 && darkCol + 1 < Math.min(sc + 7, hRow.length)) darkScoreCol = darkCol + 1;
         course.whiteCol = whiteCol;
         course.darkCol = darkCol;
         course.divCol = divCol;
+        course.whiteScoreCol = whiteScoreCol;
+        course.darkScoreCol = darkScoreCol;
+        course.statusCol = statusCol;
       }
 
       // Time and time-slot columns (usually 0 and 1)
@@ -11070,6 +11212,18 @@
             pool: 'Course ' + crs.num,
             cap: importAllTeams ? '' : (isDark ? 'Dark' : 'White'),
             division: div,
+            sourceSheet: {
+              sheetId,
+              sheetGid,
+              rowNumber: ri3 + 1,
+              gameNumCol: null,
+              whiteTeamCol: crs.whiteCol + 1,
+              whiteScoreCol: crs.whiteScoreCol >= 0 ? crs.whiteScoreCol + 1 : null,
+              darkTeamCol: crs.darkCol + 1,
+              darkScoreCol: crs.darkScoreCol >= 0 ? crs.darkScoreCol + 1 : null,
+              statusCol: crs.statusCol >= 0 ? crs.statusCol + 1 : null,
+              divisionCol: crs.divCol >= 0 ? crs.divCol + 1 : null,
+            },
           });
         }
       }
@@ -11121,7 +11275,7 @@
         }
 
         // ── Auto-detect column structure from first header row containing "white" + "dark" ──
-        let dateCol = 0, locationCol = 1, timeCol = 2, whiteCol = 3, darkCol = 5, gameNumCol = -1, poolCol = -1, groupCol = -1;
+        let dateCol = 0, locationCol = 1, timeCol = 2, whiteCol = 3, darkCol = 5, gameNumCol = -1, poolCol = -1, groupCol = -1, whiteScoreCol = -1, darkScoreCol = -1, statusCol = -1;
         let dataStartRow = 0;
         for (let ri = 0; ri < Math.min(allRows.length, 40); ri++) {
           const lower = allRows[ri].map(function (c) { return (c || '').toLowerCase().trim(); });
@@ -11138,6 +11292,9 @@
               if (c === 'group' || c.includes('group')) groupCol = ci;
               if (c === 'date') dateCol = ci;
               if (c.includes('location')) locationCol = ci;
+              if (c.includes('white score') || c === 'w score') whiteScoreCol = ci;
+              if (c.includes('dark score') || c.includes('navy score') || c === 'blue score') darkScoreCol = ci;
+              if (c === 'status' || c.includes('state')) statusCol = ci;
             }
             dataStartRow = ri + 1;
             break;
@@ -11150,6 +11307,8 @@
         if (timeCol === whiteCol) timeCol = whiteCol > 0 ? whiteCol - 1 : 0; // time is 1 col before white
         if (poolCol === -1) poolCol = darkCol + 1; // pool is 1 col after dark
         if (gameNumCol === -1 && whiteCol >= 2) gameNumCol = whiteCol - 2; // game# is 2 cols before white
+        if (whiteScoreCol < 0 && darkCol - whiteCol > 1) whiteScoreCol = whiteCol + 1;
+        if (darkScoreCol < 0 && darkCol + 1 < allRows[dataStartRow - 1]?.length) darkScoreCol = darkCol + 1;
         // ── Auto-correct year typos in date column ──────────────────────────────
         // e.g. sheet has 4/12/2025 when all others are 4/11/2026 → fix to dominant year
         const _yearCount = {};
@@ -11300,6 +11459,21 @@
             syncKey,
             needsFix: _invalidGameNum,
             rawGameNum: _rawGameNumCheck,
+            sourceSheet: {
+              sheetId: S.bsync?.sheetId || '',
+              sheetGid: S.bsync?.sheetGid || '',
+              rowNumber: ri + 1,
+              gameNumCol: gameNumCol >= 0 ? gameNumCol + 1 : null,
+              dateCol: dateCol >= 0 ? dateCol + 1 : null,
+              timeCol: timeCol >= 0 ? timeCol + 1 : null,
+              locationCol: locationCol >= 0 ? locationCol + 1 : null,
+              whiteTeamCol: whiteCol >= 0 ? whiteCol + 1 : null,
+              whiteScoreCol: whiteScoreCol >= 0 ? whiteScoreCol + 1 : null,
+              darkTeamCol: darkCol >= 0 ? darkCol + 1 : null,
+              darkScoreCol: darkScoreCol >= 0 ? darkScoreCol + 1 : null,
+              statusCol: statusCol >= 0 ? statusCol + 1 : null,
+              divisionCol: groupCol >= 0 ? groupCol + 1 : null,
+            },
             ...(teamSlot ? { team: teamSlot } : {}),
           });
         }
@@ -11735,8 +11909,10 @@
             location: g.location || '',
             division: g.division || '',
             pool: g.pool || '',
+            sourceSheet: g.sourceSheet || null,
           }));
           S._dirBsSheetUrl = S.bsync.sheetUrl || '';
+          S._dirBsPools = Array.isArray(S.bsync.poolBlocks) ? S.bsync.poolBlocks.slice() : [];
           await dirBsDeploy(null);
           if (status) { status.style.color = '#059669'; status.textContent = `✅ ${S._dirBsGames.length} game(s) published to the director package`; }
           return;
@@ -12058,8 +12234,18 @@
 
     // ─── Director tab bracket import ─────────────────────────────────────────────
 
+    function dirUpdateSheetWriteback(field, value) {
+      if (!S.director) S.director = defaultDirector();
+      const next = { ...(S.director.sheetWriteback || {}) };
+      next[field] = String(value || '').trim();
+      if (!next.webhookUrl && !next.secret) delete S.director.sheetWriteback;
+      else S.director.sheetWriteback = next;
+      saveDirectorLocally();
+    }
+
     function dirBsParseAllCourses(allRows) {
       // Same as bsParseCourseSched but returns ALL games without team-name filtering
+      const sheetMeta = S._dirBsSheetMeta || {};
       let headerRow = -1;
       for (let ri = 0; ri < Math.min(allRows.length, 35); ri++) {
         const lower = allRows[ri].map(c => (c || '').toLowerCase().trim());
@@ -12102,16 +12288,22 @@
         // Stop at the next course's start column (or +7, whichever is sooner) to avoid stealing columns
         const nextStart = courses[ci2 + 1]?.startCol ?? hRow.length;
         const scanEnd = Math.min(course.startCol + 7, nextStart, hRow.length);
-        let whiteCol = course.startCol, darkCol = course.startCol + 2, divCol = -1;
+        let whiteCol = course.startCol, darkCol = course.startCol + 2, divCol = -1, whiteScoreCol = -1, darkScoreCol = -1, statusCol = -1;
         let foundWhite = false, foundDark = false, foundDiv = false;
         for (let ci = course.startCol; ci < scanEnd; ci++) {
           const lc = (hRow[ci] || '').toLowerCase().trim();
           if (!foundWhite && lc.includes('white')) { whiteCol = ci; foundWhite = true; }
           else if (!foundDark && (lc.includes('dark') || lc.includes('navy'))) { darkCol = ci; foundDark = true; }
           else if (!foundDiv && (lc.includes('div') || lc === 'gender' || lc === 'group')) { divCol = ci; foundDiv = true; }
+          if (whiteScoreCol < 0 && lc.includes('white score')) whiteScoreCol = ci;
+          else if (darkScoreCol < 0 && (lc.includes('dark score') || lc.includes('navy score'))) darkScoreCol = ci;
+          else if (statusCol < 0 && (lc === 'status' || lc.includes('state'))) statusCol = ci;
         }
         if (divCol < 0) divCol = course.startCol + 4; // fallback
+        if (whiteScoreCol < 0 && darkCol - whiteCol > 1) whiteScoreCol = whiteCol + 1;
+        if (darkScoreCol < 0 && darkCol + 1 < scanEnd) darkScoreCol = darkCol + 1;
         course.whiteCol = whiteCol; course.darkCol = darkCol; course.divCol = divCol;
+        course.whiteScoreCol = whiteScoreCol; course.darkScoreCol = darkScoreCol; course.statusCol = statusCol;
       }
       let timeCol = 0, slotCol = 1;
       for (let ci = 0; ci < Math.min(hRow.length, 5); ci++) {
@@ -12172,6 +12364,18 @@
             location: 'Course ' + crs.num,
             pool: 'Course ' + crs.num,
             division: div,
+            sourceSheet: {
+              sheetId: sheetMeta.sheetId || '',
+              sheetGid: sheetMeta.sheetGid || '',
+              rowNumber: ri + 1,
+              gameNumCol: null,
+              whiteTeamCol: crs.whiteCol + 1,
+              whiteScoreCol: crs.whiteScoreCol >= 0 ? crs.whiteScoreCol + 1 : null,
+              darkTeamCol: crs.darkCol + 1,
+              darkScoreCol: crs.darkScoreCol >= 0 ? crs.darkScoreCol + 1 : null,
+              statusCol: crs.statusCol >= 0 ? crs.statusCol + 1 : null,
+              divisionCol: crs.divCol >= 0 ? crs.divCol + 1 : null,
+            },
           });
         }
       }
@@ -12185,6 +12389,7 @@
       const deployBtn = document.getElementById('dir-bs-deploy');
       if (!url) { if (status) { status.style.color = '#dc2626'; status.textContent = '⚠️ Enter a Google Sheets URL first'; } return; }
       const sheetId = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1];
+      const sheetGid = url.match(/[?&#]gid=(\d+)/)?.[1] || '';
       if (!sheetId) { if (status) { status.style.color = '#dc2626'; status.textContent = '❌ Could not find a sheet ID — paste the full Google Sheets URL'; } return; }
       const courseFormat = document.getElementById('dir-bs-cf')?.checked;
       if (status) { status.style.color = 'var(--g400)'; status.textContent = '⏳ Fetching sheet…'; }
@@ -12197,6 +12402,7 @@
         if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — make sure the sheet is "Anyone with the link can view"');
         const text = await resp.text();
         const allRows = parseCSV(text);
+        S._dirBsSheetMeta = { sheetId, sheetGid };
         let games;
         if (courseFormat) {
           games = dirBsParseAllCourses(allRows);
@@ -12241,6 +12447,7 @@
           dateISO: g.dateISO || '',
           location: g.location || '',
           division: g.division || '',
+          sourceSheet: g.sourceSheet || null,
         }));
         if (!S.director) S.director = defaultDirector();
         // Merge by label: keep games from OTHER labels, replace games with this label
@@ -12248,6 +12455,7 @@
         const kept = agLabel ? existing.filter(g => g.ageGroupName !== agLabel) : [];
         const schedule = [...kept, ...newGames];
         S.director.importedSchedule = schedule;
+        if (Array.isArray(S._dirBsPools) && S._dirBsPools.length) S.director.importedPools = S._dirBsPools.slice();
         S.director.scheduleSheetUrl = S._dirBsSheetUrl || '';
         saveDirectorLocally();
         // Publish the full director package (bracket + schedule) so spectators get it immediately
@@ -18096,9 +18304,15 @@
           })),
           schedDays: S.director.schedDays,
           importedSchedule: S.director.importedSchedule || [],
+          importedPools: S.director.importedPools || [],
+          sheetWritebackConfigured: !!(S.director.sheetWriteback?.webhookUrl || ''),
           publishedAt: Date.now(),
         };
-        const res = await api('PUT', '/admin/tournament-pkg', { pkg, code: S.director.publishedCode || undefined });
+        const res = await api('PUT', '/admin/tournament-pkg', {
+          pkg,
+          code: S.director.publishedCode || undefined,
+          writeback: S.director.sheetWriteback || null,
+        });
         const data = await res.json();
         if (!data.ok) throw new Error(data.description || 'Publish failed');
         S.director.publishedCode = data.code;
@@ -18756,6 +18970,16 @@
       <summary class="card-header collapsible-header">🔧 ${esc(adminT('director_import_wizards_title'))} <span class="collapse-icon">▾</span></summary>
       <div style="display:flex;flex-direction:column;gap:8px;padding:10px 14px 14px">
         <div class="info-hint" style="margin-bottom:2px">${esc(adminT('director_import_wizards_hint'))}</div>
+        <div style="padding:10px 12px;background:var(--g50);border:1px solid var(--g200);border-radius:8px">
+          <div class="info-label" style="margin-bottom:4px">Apps Script score write-back webhook <span style="font-weight:400;color:var(--g400)">(optional)</span></div>
+          <div class="info-hint" style="margin-bottom:8px">If set, imported games keep their source sheet row and Eggbeater will POST score updates back to your Apps Script webhook as scores are recorded.</div>
+          <input class="info-input" type="url" placeholder="https://script.google.com/macros/s/…/exec"
+                 value="${esc(S.director?.sheetWriteback?.webhookUrl || '')}"
+                 oninput="dirUpdateSheetWriteback('webhookUrl', this.value)" style="margin-bottom:8px">
+          <input class="info-input" type="password" placeholder="Optional shared secret"
+                 value="${esc(S.director?.sheetWriteback?.secret || '')}"
+                 oninput="dirUpdateSheetWriteback('secret', this.value)">
+        </div>
         ${bsWizardHtml('standard', 'director')}
         ${bsFuturesWizardLauncherHtml('director')}
         ${njoWizardHtml()}
