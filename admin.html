@@ -11089,6 +11089,21 @@
       return /^[A-Z]?\d+[A-Z]?$/i.test(String(value || '').trim());
     }
 
+    function bsIsRepeatedScheduleHeaderRow(white, dark, gameNum) {
+      const w = String(white || '').trim().toLowerCase();
+      const d = String(dark || '').trim().toLowerCase();
+      const g = String(gameNum || '').trim().toLowerCase();
+      return (w === 'white' && (d === 'blue' || d === 'dark' || d === 'navy'))
+        || (g === 'game id' || g === 'game #' || g === 'gm#');
+    }
+
+    function bsIsNonGameUtilityRow(white, dark) {
+      const combined = `${String(white || '').trim()} ${String(dark || '').trim()}`.toLowerCase();
+      return combined.includes('pool preparation')
+        || combined.includes('clear pool')
+        || combined.includes('end of games');
+    }
+
     function bsInferTimeColumnFromRows(allRows, dataStartRow, fallbackCol, blockedCols) {
       const blocked = new Set((blockedCols || []).filter(v => Number.isInteger(v) && v >= 0));
       const limit = Math.min(allRows.length, dataStartRow + 20);
@@ -11424,6 +11439,8 @@
           const isWhite = !importAllTeams && _teamNamesLower.some(n => white.toLowerCase().includes(n));
           const isBlue = !importAllTeams && _teamNamesLower.some(n => dark.toLowerCase().includes(n));
           if (!importAllTeams && !isWhite && !isBlue) continue;
+          const _rawGameNumCheck = gameNumCol >= 0 ? String(row[gameNumCol] || '').trim() : '';
+          if (bsIsRepeatedScheduleHeaderRow(white, dark, _rawGameNumCheck) || bsIsNonGameUtilityRow(white, dark)) continue;
           const _wantedGroup = ((S.bsync.myPool || '').match(/[A-Z]/i)?.[0] || '').toUpperCase();
           const _rowGroup = groupCol >= 0 ? ((row[groupCol] || '').trim().match(/[A-Z]/i)?.[0] || '').toUpperCase() : '';
           if (S.bsync.colorCoded && _wantedGroup && _rowGroup && _rowGroup !== _wantedGroup) continue;
@@ -11433,8 +11450,7 @@
           // and no date context — detecting them as games produces phantom entries.
           const _rowTime = (row[timeCol] || '').trim();
           if (!_rowDate[ri] && !_rowLoc[ri] && !_rowTime) continue;
-          const _rawGameNumCheck = gameNumCol >= 0 ? String(row[gameNumCol] || '').trim() : '';
-          const _invalidGameNum = !!(_rawGameNumCheck && !/^\d+[A-Z]?$/.test(_rawGameNumCheck));
+          const _invalidGameNum = !!(_rawGameNumCheck && !/^[A-Z]?\d+[A-Z]?$/i.test(_rawGameNumCheck));
 
           // Only use dateCol cell if it actually parses as a valid date, so bare game
           // numbers in col 0 ("1","2","7") and other non-date values don't shadow the
@@ -13069,7 +13085,8 @@
           const _rowGroup = groupCol >= 0 ? ((row[groupCol] || '').trim().match(/[A-Z]/i)?.[0] || '').toUpperCase() : '';
           if (S.bsync.colorCoded && _wantedGroup && _rowGroup && _rowGroup !== _wantedGroup) continue;
           const _rawGameNumCheck = gameNumCol >= 0 ? String(row[gameNumCol] || '').trim() : '';
-          const _invalidGameNum = !!(_rawGameNumCheck && !/^\d+[A-Z]?$/.test(_rawGameNumCheck));
+          if (bsIsRepeatedScheduleHeaderRow(white, dark, _rawGameNumCheck) || bsIsNonGameUtilityRow(white, dark)) continue;
+          const _invalidGameNum = !!(_rawGameNumCheck && !/^[A-Z]?\d+[A-Z]?$/i.test(_rawGameNumCheck));
           const rawGnum = _rawGameNumCheck;
           const _apDateCell = (dateCol >= 0 ? (row[dateCol] || '').trim() : '');
           const dateRaw = (parseDateToISO(_apDateCell) ? _apDateCell : '') || _apRowDate[ri] || '';
