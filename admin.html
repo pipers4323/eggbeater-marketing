@@ -3081,9 +3081,10 @@
             <div class="admin-more-section-title">Quick actions</div>
             <div class="admin-more-quick-grid">
               <button class="admin-more-quick-btn primary" type="button" onclick="toggleAdminMore(); createNewTournament()">{{ t('New Tournament') }}</button>
-              <button class="admin-more-quick-btn accent" type="button" onclick="toggleAdminMore(); saveAndDeploy()">{{ t('Deploy Current Group') }}</button>
+              <button class="admin-more-quick-btn accent" type="button" onclick="toggleAdminMore(); saveAndDeploy()" title="Save and publish this age group's schedule to the live app">{{ t('Deploy Current Group') }}</button>
               <button id="switch-club-btn-drawer" class="admin-more-quick-btn warning hidden" type="button" onclick="toggleAdminMore(); switchClub()">{{ t('Switch Club') }}</button>
             </div>
+            <div style="font-size:0.72rem;color:var(--g400);text-align:center;padding:0 20px 4px">Deploy Current Group publishes this age group only. Use <strong>Deploy All</strong> (in the schedule header) to update every age group at once.</div>
           </div>
           <div class="admin-more-section">
             <div class="admin-more-section-title">Admin language</div>
@@ -4465,12 +4466,13 @@
         <li><strong>Season stats:</strong> archived tournament stats feed cumulative player stats on eligible plans.</li>
         <li><strong>Clone from archive:</strong> reuse an older tournament structure with games and roster while clearing scores.</li>
         <li>Spectators continue to see past results in the History tab of the spectator app.</li>
+        <li>When a tournament's dates have passed, the spectator app now falls back to Stay Tuned automatically even before you archive it.</li>
       </ul>`,
         help_addgames_settings_title: 'Add Games Tab — Tournament Settings',
         help_addgames_settings_body: `<p>Configure the current tournament and how the app behaves.</p>
       <ul>
         <li><strong>Club Name</strong> controls how your team name appears on game cards.</li>
-        <li><strong>Tournament ID</strong> is the unique key for this event. Only change it when starting a new tournament because changing it archives the current event on spectator devices.</li>
+        <li><strong>Tournament ID</strong> is the unique key for this event. Wizard imports now auto-generate it from the tournament name, date, and age group so re-syncs stay attached to the correct event.</li>
         <li><strong>Name, subtitle, dates, location, and pool</strong> appear in the app header and schedule.</li>
         <li><strong>Coming Soon message</strong> is shown before games are posted. Clear it after publishing games.</li>
         <li><strong>Scoring Password</strong> controls who can unlock scorer mode in the spectator app.</li>
@@ -4478,7 +4480,7 @@
         <li><strong>Multi-Team Mode</strong> lets you manage A, B, and optional C teams independently.</li>
         <li><strong>Sync Games from Sheet</strong> imports schedule data from Google Sheets.</li>
       </ul>
-      <p style="margin-top:8px">Use <strong>Save & Deploy Info</strong> or the header Deploy button to push changes live.</p>`,
+      <p style="margin-top:8px">Use <strong>Save & Deploy Info</strong> or the header Deploy button to push changes live. Only edit the tournament ID manually when you are intentionally creating a different tournament record.</p>`,
         help_deploy_title: 'The Deploy Button — When & Why',
         help_deploy_body: `<p>The <strong>Deploy</strong> button in the header publishes your latest changes to the live app.</p>
       <ul>
@@ -4503,6 +4505,7 @@
       <ul>
         <li><strong>Pick the tournament and age group first:</strong> the tournament selector chooses the cloud record, and the age-group picker scopes schedule, roster, history, and team data.</li>
         <li><strong>Add Games:</strong> update tournament info, clock settings, scoring password, and multi-team setup before game day.</li>
+        <li><strong>Choose the right import path:</strong> use Hosted Tournament first, the standard Bracket Sheet Sync for regular Google Sheets, and the Futures Bracket Import Wizard for mixed-age, color-coded Futures sheets.</li>
         <li><strong>Schedule + Roster:</strong> confirm games, cap colors, and player lists for every active squad.</li>
         <li><strong>Director / T-Score flows:</strong> use hosted tournament imports when a tournament director publishes a package or official scores.</li>
         <li><strong>Deploy:</strong> spectator app changes are not live until you deploy the updated tournament record.</li>
@@ -4513,7 +4516,10 @@
         <li><strong>Games are edited in Add Games:</strong> set opponent, time, date, location, pool, cap color, and team assignment there.</li>
         <li><strong>Cap color matters:</strong> white and dark caps now change the card treatment spectators see in Schedule and Scores.</li>
         <li><strong>Multi-team mode:</strong> assign each game to A, B, or optional C so split-team schedules stay separated in the spectator app.</li>
-        <li><strong>Google Sheet sync:</strong> replacing the sheet replaces the imported games for that age group.</li>
+        <li><strong>Standard Bracket Sheet Sync:</strong> use this for regular Google Sheets when the event is not using the dedicated Futures flow.</li>
+        <li><strong>Futures Bracket Import Wizard:</strong> use this for shared-tab Futures sheets with legend colors, Google sign-in, mixed-age parsing, malformed-row fixes, and venue confirmation.</li>
+        <li><strong>Venue confirmation:</strong> confirm the directions target once in Step 4 and later syncs preserve it unless the sheet shows a different venue.</li>
+        <li><strong>Google Sheet sync:</strong> replacing the sheet replaces the imported games for that age group, while saved row fixes and venue confirmations continue to apply during later syncs.</li>
         <li><strong>Hosted tournament import:</strong> team admins can pull published games from a director package using its share code.</li>
       </ul>`,
         help_roster_stats_title: 'Roster, Stats, and Spectator History',
@@ -5987,6 +5993,11 @@
     }
 
     function onAdminTeamChange(teamKey) {
+      // Warn if there are unsaved changes before switching age groups
+      if (window._adminDirty) {
+        if (!confirm('You have unsaved changes. Switch age group and discard them?')) return;
+        _clearDirty();
+      }
       S.team = teamKey;
       S.director = JSON.parse(localStorage.getItem('ebadmin-director-' + teamKey) || 'null');
       S.bsync = null; // Reset bracket wizard state — each age group starts fresh
@@ -6257,7 +6268,7 @@
         } else {
           gameListHtml = gamesArray.map(g => _scheduleGameRow(g)).join('');
         }
-        return gameListHtml || '<div style="padding:16px;color:var(--g400);font-size:.85rem;text-align:center">No games loaded yet — go to the <strong>Add Games</strong> tab to add games.</div>';
+        return gameListHtml || '<div style="padding:20px;color:var(--g400);font-size:.85rem;text-align:center">No games in this draft yet.</div>';
       };
 
       const liveGames = [...(S.tournament.games || [])].sort((a, b) => gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum));
@@ -6272,10 +6283,24 @@
           <div><strong>${_anyMissingDate ? 'Some games are missing dates' : 'All game dates are in the past'}</strong> — spectators will see <em>"All games complete"</em> instead of the schedule. Tap <strong>Edit</strong> on each game and set the correct upcoming date.</div>
         </div>` : '';
 
-      let cardsHtml = liveGames.length
+      // First-run welcome card — shown when no tournaments exist at all
+      const firstRunCard = !S.tournamentList.length ? `
+    <div class="card" style="border:1.5px solid #3b82f6;background:#eff6ff;margin-bottom:10px">
+      <div style="padding:28px 20px;text-align:center">
+        <div style="font-size:2.5rem;margin-bottom:10px">👋</div>
+        <div style="font-weight:800;color:var(--royal);font-size:1.05rem;margin-bottom:6px">Welcome! Let's set up your first tournament.</div>
+        <div style="font-size:0.85rem;color:var(--g500);margin-bottom:18px;line-height:1.5">Create a tournament, add your games, then deploy so parents can see the schedule in the app.</div>
+        <button class="save-btn" style="background:var(--royal);color:white;border-color:var(--royal);padding:11px 28px;font-size:0.95rem;font-weight:800" onclick="switchTab('addgames');setTimeout(createNewTournament,120)">➕ Create first tournament</button>
+      </div>
+    </div>` : '';
+
+      let cardsHtml = firstRunCard + (liveGames.length
         ? `
     <div class="card" style="border: 1.5px solid var(--green)">
-      <div class="card-header" style="background:var(--green-lt);color:var(--green);border-bottom:1px solid #bbf7d0">🟢 Currently Deployed (Live)</div>
+      <div class="card-header" style="background:var(--green-lt);color:var(--green);border-bottom:1px solid #bbf7d0;display:flex;align-items:center;justify-content:space-between">
+        <span>🟢 Currently Deployed (Live)</span>
+        <button onclick="switchTab('addgames')" style="font-size:0.72rem;font-weight:700;color:var(--royal);background:none;border:none;cursor:pointer;padding:0;opacity:0.75">✏️ Edit games →</button>
+      </div>
       ${_pastDateBanner}
       ${renderGameList(liveGames, S.tournament)}
     </div>
@@ -6284,11 +6309,12 @@
     <div class="card" style="border:1.5px dashed var(--g200);background:var(--g50)">
       <div style="padding:32px 20px;text-align:center">
         <div style="font-size:2rem;margin-bottom:8px">📭</div>
-        <div style="font-weight:700;color:var(--g700);margin-bottom:4px">No games deployed yet</div>
-        <div style="font-size:0.82rem;color:var(--g400)">Add games in the <strong>Add Games</strong> tab, then deploy them here.</div>
+        <div style="font-weight:700;color:var(--g700);margin-bottom:6px">No games deployed yet</div>
+        <div style="font-size:0.82rem;color:var(--g400);margin-bottom:14px">Add your games in the <strong>Add Games</strong> tab, then hit Deploy to make them live.</div>
+        <button onclick="switchTab('addgames')" style="background:var(--royal);color:white;border:none;border-radius:8px;padding:8px 20px;font-size:0.85rem;font-weight:700;cursor:pointer">Go to Add Games →</button>
       </div>
     </div>
-  `;
+  `);
 
       // Only show drafts that belong to the active age group.
       // Drafts saved before team-scoping was added (no draft.team) are shown to all groups
@@ -7039,7 +7065,7 @@
       if (!confirmed) return;
 
       // Double-confirm for safety
-      const doubleConfirm = confirm(`Are you sure? Type OK to confirm clearing ${teamLabel} data.`);
+      const doubleConfirm = confirm(`⛔ FINAL WARNING\n\nPermanently deletes ALL games, history and roster for "${teamLabel}".\n\nThis action CANNOT be undone — there is no recovery.\n\nPress OK only if you are absolutely sure.`);
       if (!doubleConfirm) return;
 
       showStatus('Clearing data…', 'info');
@@ -7189,9 +7215,20 @@
 
     function deleteGame(id) {
       if (!confirm('Delete this game?')) return;
-      S.tournament.games = S.tournament.games.filter(g => g.id !== id);
+      const deletedGame = (S.tournament.games || []).find(g => g.id === id);
+      S.tournament.games = (S.tournament.games || []).filter(g => g.id !== id);
       S.editingGame = null;
       renderTab();
+      // Offer undo for 6 seconds
+      if (deletedGame) {
+        _showUndoStatus('🗑 Game deleted', function () {
+          S.tournament.games = S.tournament.games || [];
+          S.tournament.games.push(deletedGame);
+          S.tournament.games.sort((a, b) => gameNumToInt(a.gameNum) - gameNumToInt(b.gameNum));
+          renderTab();
+          showStatus('↩ Game restored', 'ok');
+        });
+      }
     }
 
     // ─── HS SEASON SCHEDULE IMPORT ────────────────────────────────────────────────
@@ -7445,7 +7482,8 @@
 
     function renderRosterTab() {
       const savedSheetUrl = localStorage.getItem('ebadmin-sheets-url') || '';
-      const saveBtn = `<button class="save-btn" style="width:100%;margin-top:10px" onclick="saveRoster()">💾 ${esc(adminT('roster_save_button'))}</button>`;
+      const saveBtn = `<button class="save-btn" style="width:100%;margin-top:10px" onclick="saveRoster()">💾 ${esc(adminT('roster_save_button'))}</button>
+    <div style="font-size:0.75rem;color:var(--g400);text-align:center;margin-top:5px;line-height:1.4">After saving, go to the <strong>Schedule</strong> tab and tap <strong>Deploy</strong> to publish roster changes to the app.</div>`;
       const sheetCard = `
     <div class="card" style="margin-top:8px">
       <div class="card-header">📊 ${esc(adminT('roster_sheet_card_title'))}</div>
@@ -11518,7 +11556,20 @@
         const summaryEl = document.getElementById('bs-deploy-summary');
         if (summaryEl && S.bsync) summaryEl.innerHTML = bsRenderDeploySummary(S.bsync);
       } catch (e) {
-        if (status) { status.style.color = '#dc2626'; status.textContent = '❌ Sync failed: ' + e.message; }
+        const _errRaw = e.message || 'Unknown error';
+        let _errHint = '';
+        if (/403|forbidden|permission denied/i.test(_errRaw)) {
+          _errHint = ' — Open the Google Sheet → Share → "Anyone with the link can view"';
+        } else if (/401|unauthorized|invalid.credentials|token/i.test(_errRaw)) {
+          _errHint = ' — Google auth expired, tap Reconnect Google above';
+        } else if (/failed to fetch|network|offline|ERR_/i.test(_errRaw)) {
+          _errHint = ' — Check your internet connection and try again';
+        } else if (/empty|no (game|row|data)|not found/i.test(_errRaw)) {
+          _errHint = ' — Check sheet columns: Date · Time · Team · Opponent · Location · Pool · Cap Color';
+        } else if (/no sheet\b|spreadsheet/i.test(_errRaw)) {
+          _errHint = ' — Paste the full Google Sheets URL above first';
+        }
+        if (status) { status.style.color = '#dc2626'; status.textContent = '❌ ' + _errRaw + _errHint; }
       } finally {
         if (btn) { btn.disabled = false; btn.textContent = '🔄 Sync Now'; }
       }
@@ -13520,10 +13571,13 @@
 
     async function saveAndDeploy() {
       const btn = document.getElementById('deploy-btn');
-      btn.disabled = true;
-      btn.textContent = '⏳ Deploying…';
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Deploying…'; }
+      // Also update the drawer quick-btn if the drawer is open
+      const drawerDeployBtn = document.querySelector('#admin-more-drawer .admin-more-quick-btn.accent');
+      if (drawerDeployBtn) { drawerDeployBtn._origText = drawerDeployBtn.textContent; drawerDeployBtn.disabled = true; drawerDeployBtn.textContent = '⏳ Deploying…'; }
 
-      showStatus(adminT('publish_saving_kv'), 'info');
+      showStatus('⏳ Deploying…', 'info');
+      clearTimeout(_statusTimer); // pin — prevent auto-dismiss while network call is in flight
       try {
         // Any real tournament deploy should clear placeholder/upcoming flags so
         // headers and spectator views stop treating this age group as unloaded.
@@ -13597,7 +13651,8 @@
           const txt = await deployRes.text();
           throw new Error(txt);
         }
-        showStatus(adminT('publish_live_done'), 'ok');
+        const _deployTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        showStatus('✅ Deployed at ' + _deployTimeStr, 'ok');
         updateAdminHeader();
         renderTab();
         _clearDirty();
@@ -13614,8 +13669,8 @@
       } catch (e) {
         showStatus('❌ ' + e.message, 'err');
       } finally {
-        btn.disabled = false;
-        btn.textContent = '💾 Deploy Current Group';
+        if (btn) { btn.disabled = false; btn.textContent = '💾 Deploy Current Group'; }
+        if (drawerDeployBtn) { drawerDeployBtn.disabled = false; drawerDeployBtn.textContent = drawerDeployBtn._origText || 'Deploy Current Group'; }
       }
     }
 
@@ -14015,13 +14070,27 @@
     let _statusTimer;
     function showStatus(msg, type = 'info') {
       const el = document.getElementById('status-bar');
+      window._statusUndoFn = null; // clear any pending undo action
       if (!msg) { el.classList.remove('show'); return; }
       el.textContent = msg;
       el.className = 'show ' + type;
       clearTimeout(_statusTimer);
       // Auto-dismiss success and info messages; errors stay until next action
-      if (type === 'ok') _statusTimer = setTimeout(() => el.classList.remove('show'), 3500);
+      if (type === 'ok') _statusTimer = setTimeout(() => el.classList.remove('show'), 7000);
       if (type === 'info') _statusTimer = setTimeout(() => el.classList.remove('show'), 4000);
+    }
+
+    /** Show a status bar with an inline Undo button. undoFn is called if user taps Undo within 6s. */
+    function _showUndoStatus(msg, undoFn) {
+      const el = document.getElementById('status-bar');
+      clearTimeout(_statusTimer);
+      window._statusUndoFn = undoFn;
+      el.innerHTML = `${msg} <button onclick="if(window._statusUndoFn){window._statusUndoFn();window._statusUndoFn=null;}" style="margin-left:10px;background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.55);border-radius:5px;padding:3px 10px;cursor:pointer;font-size:0.78rem;color:white;font-weight:700;vertical-align:middle">Undo</button>`;
+      el.className = 'show ok';
+      _statusTimer = setTimeout(() => {
+        el.classList.remove('show');
+        window._statusUndoFn = null;
+      }, 6000);
     }
 
     // ─── UTILITIES ────────────────────────────────────────────────────────────────

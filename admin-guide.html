@@ -582,7 +582,8 @@ kbd {
     <p>Go to the <strong>Games</strong> tab to build your tournament schedule. You have several options:</p>
     <ul>
       <li><strong>🏟️ Hosted Tournament / Tournament Director</strong> &mdash; <em>Recommended for tournaments.</em> Import the hosted tournament package from the director or use T-Score when the event provides it. This is the cleanest path for bracketed events, rebracketing, and shared tournament data.</li>
-      <li><strong>📊 Bracket Sheet Sync</strong> &mdash; Use this when the tournament is sharing a Google Sheet instead of a hosted package. See below for the full walkthrough.</li>
+      <li><strong>📊 Bracket Sheet Sync</strong> &mdash; Use this for standard Google Sheet imports when the sheet has separate tabs or a normal layout.</li>
+      <li><strong>Futures Bracket Import Wizard</strong> &mdash; Use this for Futures sheets that share one tab across multiple age groups and separate them by legend colors.</li>
       <li><strong>Tournament Library</strong> &mdash; Save your current "Workspace" (games and roster) as a named draft. You can build these in advance and load them when needed.</li>
       <li><strong>+ Add Game</strong> &mdash; Add games manually with opponent, time, location, pool, and cap color.</li>
       <li><strong>Start Fresh</strong> &mdash; Use the "✨ Start Fresh" button to clear your current workspace games and roster without affecting your saved drafts or the live site.</li>
@@ -592,19 +593,19 @@ kbd {
   </div>
 
   <div class="card">
-    <h3>🏟️ Hosted Tournament First, Bracket Sheet Sync When Needed</h3>
-    <p>For most tournaments, start with the hosted tournament flow: the tournament director publishes the event package and team admins import it with the share code. Use Bracket Sheet Sync when the event is only sharing a Google Sheet and not a hosted package.</p>
+    <h3>🏟️ Hosted Tournament First, Then Pick the Right Sheet Wizard</h3>
+    <p>For most tournaments, start with the hosted tournament flow: the tournament director publishes the event package and team admins import it with the share code. Use the standard Bracket Sheet Sync when the event is only sharing a normal Google Sheet. Use the Futures Bracket Import Wizard when the tournament is sharing a mixed-age Futures sheet with color legends.</p>
 
     <div class="callout callout-tip" style="margin:14px 0 10px">
       <div class="callout-icon">🏆</div>
-      <p><strong>Current recommended tournament flow:</strong> Ask the tournament director for the hosted tournament package or T-Score share code first. That path carries the full tournament structure more cleanly, especially for divisions, crossover games, and rebracketing. Use Bracket Sheet Sync as the fallback when the event is only distributing a Google Sheet.</p>
+      <p><strong>Current recommended tournament flow:</strong> Ask the tournament director for the hosted tournament package or T-Score share code first. That path carries the full tournament structure more cleanly, especially for divisions, crossover games, and rebracketing. If the event only distributes a Google Sheet, use the standard Bracket Sheet Sync for a normal sheet and the Futures wizard for mixed-age Futures tabs.</p>
     </div>
 
     <p>If you do receive a Google Sheet from the tournament director, you can still pull your team's schedule directly from it &mdash; no copy-pasting required. The app re-checks the sheet on a schedule and now updates <strong>games, official final scores, resolved next opponents, venue, and cap color</strong> from that sheet when the data becomes available.</p>
 
     <div class="callout callout-tip" style="margin:14px 0 10px">
       <div class="callout-icon">💡</div>
-      <p><strong>Before you start:</strong> Make sure the Google Sheet is set to <strong>Anyone with the link can view</strong> (Share → Change → Anyone with the link). It won't work on a private sheet.</p>
+      <p><strong>Before you start:</strong> Standard Bracket Sheet Sync works with a public viewable sheet. The Futures wizard uses Google Sheets API access, so the admin signs in with Google during setup and the testing account must have access to the sheet.</p>
     </div>
 
     <div class="kv-row" style="align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
@@ -643,7 +644,7 @@ kbd {
 
     <div class="callout callout-tip" style="margin-top:14px">
       <div class="callout-icon">🎨</div>
-      <p><strong>Colour-coded bracket sheets:</strong> Some tournament directors use row background colours (e.g. yellow = 14u, cyan = 12u) instead of a text column to indicate age groups. The Bracket Sheet Sync wizard handles this automatically. In Step 1, check <strong>"Age groups separated by row colour"</strong>, enter the legend cells (e.g. <code>A18, B18</code>) where the sheet labels each colour, and tap <em>Detect</em>. The wizard reads the age group labels, shows them as buttons, and you tap yours. The column layout is also auto-detected, so sheets with non-standard column orders (e.g. Game# / Time / White Hats / Dark Hats / Pool) work without manual configuration.</p>
+      <p><strong>Futures color-aware import:</strong> The dedicated Futures Bracket Import Wizard now handles mixed-age shared tabs, merged or offset legend labels, Google sign-in, malformed row corrections, venue confirmation for directions, and follow-on path detection. It also auto-generates the tournament ID so later syncs stay attached to the correct event.</p>
     </div>
   </div>
 
@@ -1009,7 +1010,7 @@ kbd {
 
   <div class="card">
     <h3>History &amp; MaxPreps (High School)</h3>
-    <p>If your organization type is set to "High School," you get a <strong>History</strong> tab for tracking season-by-season tournament results. Import results directly from MaxPreps by pasting the schedule page URL, or add them manually. History data powers the multi-season record displayed to spectators.</p>
+    <p>If your organization type is set to "High School," you get a <strong>History</strong> tab for tracking season-by-season tournament results. Import results directly from MaxPreps by pasting the schedule page URL, or add them manually. History data powers the multi-season record displayed to spectators. The app now also guards against duplicate tournament-history collisions when IDs or repaired imports overlap.</p>
   </div>
 
   <div class="card">
