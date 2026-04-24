@@ -714,7 +714,7 @@
       background: white;
       border-bottom: 1px solid var(--g200);
       position: sticky;
-      top: calc(60px + env(safe-area-inset-top, 0));
+      top: var(--admin-header-h, 90px); /* JS sets this dynamically; 90px = safe fallback */
       z-index: 99;
       justify-content: stretch;
     }
@@ -844,6 +844,88 @@
       height: 1px;
       background: #e5e7eb;
       margin: 4px 20px;
+    }
+
+    /* ── Drawer: section titles ── */
+    .admin-more-section {
+      padding: 4px 0;
+    }
+
+    .admin-more-section-title {
+      font-size: 0.65rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+      padding: 8px 20px 4px;
+    }
+
+    /* ── Drawer: quick action grid ── */
+    .admin-more-quick-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 4px 20px 12px;
+    }
+
+    .admin-more-quick-btn {
+      flex: 1 1 auto;
+      min-height: 44px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1.5px solid var(--g200);
+      background: #f9fafb;
+      color: var(--g700, #374151);
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .admin-more-quick-btn:active {
+      opacity: 0.75;
+    }
+
+    .admin-more-quick-btn.primary {
+      background: rgba(0, 40, 104, 0.08);
+      border-color: rgba(0, 40, 104, 0.22);
+      color: var(--royal);
+    }
+
+    .admin-more-quick-btn.accent {
+      background: rgba(74, 222, 128, 0.12);
+      border-color: rgba(74, 222, 128, 0.35);
+      color: #15803d;
+    }
+
+    .admin-more-quick-btn.warning {
+      background: rgba(251, 146, 60, 0.1);
+      border-color: rgba(251, 146, 60, 0.35);
+      color: #c2410c;
+    }
+
+    /* ── Drawer: language picker (dark-on-white variant) ── */
+    .admin-more-select-wrap {
+      padding: 4px 20px 12px;
+    }
+
+    .admin-lang-select-dark {
+      appearance: auto;
+      -webkit-appearance: auto;
+      width: 100%;
+      min-height: 44px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1.5px solid var(--g200);
+      background: white;
+      background-image: none;
+      color: var(--g900, #111827);
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
     }
 
     /* ── Content ───────────────────────────────────────────────── */
