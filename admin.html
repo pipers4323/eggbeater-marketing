@@ -10208,6 +10208,7 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
       var opts = [5, 10, 30, 0].map(function (n) { return '<option value="' + n + '"' + (curMins === n ? ' selected' : '') + '>' + (n ? n + ' minutes' : 'Manual only (no auto-sync)') + '</option>'; }).join('');
       var poolsHtml = bsRenderActivePoolPreview(bs, bs.teamName);
       var summaryHtml = bsRenderDeploySummary(bs);
+      var directorAgeLabel = isDirectorHost ? bsSuggestedDirectorAgeLabel(bs) : '';
       var rbYesBg = bs.rebracket ? 'var(--royal)' : 'var(--g100)';
       var rbYesCo = bs.rebracket ? 'white' : 'var(--g600)';
       var rbNoBg = !bs.rebracket ? 'var(--royal)' : 'var(--g100)';
@@ -10373,6 +10374,13 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
         // Step 7
         + '<div id="bs-s7" style="display:' + (step === 7 ? 'block' : 'none') + '">'
         + '<div id="bs-deploy-summary" style="background:var(--g50);border:1px solid var(--g200);border-radius:8px;padding:10px 12px;font-size:.82rem;line-height:1.9;margin-bottom:12px">' + summaryHtml + '</div>'
+        + (isDirectorHost
+          ? '<div class="info-field" style="margin-bottom:10px">'
+            + '<div class="info-label">Age Group / Division label <span style="font-weight:400;color:var(--g400)">(required)</span></div>'
+            + '<input class="info-input" id="bs-host-ag-label" placeholder="e.g. Division 1, Division 2, Masters B" value="' + esc(directorAgeLabel || '') + '" oninput="bsSetDirectorAgeLabel(this.value)">'
+            + '<div class="info-hint">This is how the hosted package keeps Division 1, Division 2, and Masters B separate for team import and re-bracket paths.</div>'
+            + '</div>'
+          : '')
         + '<div style="display:flex;gap:8px;margin-bottom:8px">'
         + '<button class="save-btn" style="flex:3;background:var(--royal);color:white;font-size:.95rem;padding:12px;border-radius:8px" onclick="bsDeploy()">' + (isDirectorHost ? '&#x1f4e4; Publish to Director Package' : '&#x1f680; Deploy to App') + '</button>'
         + (isDirectorHost
@@ -10393,6 +10401,26 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
 
     function bsFuturesWizardLauncherHtml(hostMode) {
       return bsWizardHtml('futures', hostMode);
+    }
+
+    function bsSuggestedDirectorAgeLabel(bs) {
+      const divisionNames = (Array.isArray(bs?.poolBlocks) ? bs.poolBlocks : [])
+        .map(block => String(block?.division || '').trim())
+        .filter(Boolean);
+      const uniqueDivisions = [...new Set(divisionNames)];
+      if (uniqueDivisions.length === 1) return uniqueDivisions[0];
+      const gameDivisions = (Array.isArray(bs?.games) ? bs.games : [])
+        .map(game => String(game?.division || '').trim())
+        .filter(Boolean);
+      const uniqueGameDivisions = [...new Set(gameDivisions)];
+      if (uniqueGameDivisions.length === 1) return uniqueGameDivisions[0];
+      return S._dirBsLastLabel || bs?.myAgeGroup || '';
+    }
+
+    function bsSetDirectorAgeLabel(value) {
+      S._dirBsLastLabel = String(value || '').trim();
+      const legacyInput = document.getElementById('dir-bs-ag-label');
+      if (legacyInput && legacyInput.value !== S._dirBsLastLabel) legacyInput.value = S._dirBsLastLabel;
     }
 
     function bsLaunchFuturesWizard(hostMode) {
@@ -10912,6 +10940,10 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
 
         S.bsync.pools = pools;
         S.bsync.poolBlocks = poolBlocks;
+        if (bsIsDirectorHost(S.bsync) && !S._dirBsLastLabel) {
+          const suggestedLabel = bsSuggestedDirectorAgeLabel({ ...(S.bsync || {}), poolBlocks });
+          if (suggestedLabel) S._dirBsLastLabel = suggestedLabel;
+        }
 
         if (status) { status.style.color = '#059669'; status.textContent = `✅ Found ${Object.keys(pools).length} pool(s) in ${poolBlocks.length} block(s) — review below`; }
         if (preview) preview.innerHTML = bsRenderActivePoolPreview(S.bsync, '') +
@@ -12123,6 +12155,8 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
       if (status) { status.style.color = 'var(--g400)'; status.textContent = '⏳ Deploying games…'; }
       try {
         if (bsIsDirectorHost(S.bsync)) {
+          const hostLabel = (document.getElementById('bs-host-ag-label')?.value || '').trim();
+          if (hostLabel) bsSetDirectorAgeLabel(hostLabel);
           S._dirBsGames = (S.bsync.games || []).map(g => ({
             id: g.id,
             gameNum: g.gameNum,
@@ -12672,6 +12706,14 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
       try {
         // Read the age group label from the free-text field; fall back to division column on each game
         const agLabel = (document.getElementById('dir-bs-ag-label')?.value || '').trim();
+        if (!agLabel) {
+          if (status) {
+            status.style.color = '#dc2626';
+            status.textContent = '⚠️ Enter an age group label before publishing (for example: Division 1, Division 2, Masters B)';
+          }
+          if (btn) btn.disabled = false;
+          return;
+        }
         S._dirBsLastLabel = agLabel;
         const newGames = games.map(g => ({
           id: g.id,
