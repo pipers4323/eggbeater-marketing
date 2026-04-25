@@ -11412,28 +11412,75 @@ function _getHostedFullDrawPaths(tournament, groupKey) {
   return getAllTournamentBracketPaths() || [];
 }
 
-function _renderFullDrawBracketInventory(paths) {
-  const gamesByKey = new Map();
+function _looksLikeBracketSeedRef(text) {
+  const value = String(text || '').trim();
+  if (!value) return false;
+  if (/^(Winner|Loser)\s+[A-Z]\d+$/i.test(value)) return true;
+  if (/^[A-Z]\d+$/i.test(value)) return true;
+  if (/^[A-Z]\d+\s+vs\s+[A-Z]\d+$/i.test(value)) return true;
+  return false;
+}
+
+function _isHostedBracketScheduleGame(game) {
+  if (!game || typeof game !== 'object') return false;
+  const myTeam = String(game.myTeam || '').trim();
+  const opponent = String(game.opponent || '').trim();
+  return _looksLikeBracketSeedRef(myTeam) ||
+    _looksLikeBracketSeedRef(opponent) ||
+    /^(Winner|Loser)\s+/i.test(myTeam) ||
+    /^(Winner|Loser)\s+/i.test(opponent);
+}
+
+function _getHostedFullDrawGameInventory(tournament, paths) {
+  const scheduledBracketGames = (tournament?.games || [])
+    .filter(_isHostedBracketScheduleGame)
+    .map(game => ({
+      gameNum: String(game?.gameNum || '').trim(),
+      desc: `${String(game?.myTeam || '').trim()} vs ${String(game?.opponent || '').trim()}`.trim(),
+      dateISO: String(game?.dateISO || '').trim(),
+      date: String(game?.date || '').trim(),
+      time: String(game?.time || '').trim(),
+      location: String(game?.location || '').trim(),
+    }))
+    .filter(game => game.desc && game.desc !== 'vs');
+  if (scheduledBracketGames.length) return scheduledBracketGames;
+
+  const fallbackGames = [];
   for (const path of (paths || [])) {
     for (const step of (path?.steps || [])) {
-      const gameNum = String(step?.gameNum || '').trim();
-      const desc = String(step?.desc || '').trim();
-      const dateISO = String(step?.dateISO || '').trim();
-      const date = String(step?.date || '').trim();
-      const time = String(step?.time || '').trim();
-      const location = String(step?.location || '').trim();
-      const key = gameNum || `${desc}|${dateISO}|${date}|${time}|${location}`;
-      if (!key) continue;
-      if (!gamesByKey.has(key)) {
-        gamesByKey.set(key, {
-          gameNum,
-          desc,
-          dateISO,
-          date,
-          time,
-          location,
-        });
-      }
+      fallbackGames.push({
+        gameNum: String(step?.gameNum || '').trim(),
+        desc: String(step?.desc || '').trim(),
+        dateISO: String(step?.dateISO || '').trim(),
+        date: String(step?.date || '').trim(),
+        time: String(step?.time || '').trim(),
+        location: String(step?.location || '').trim(),
+      });
+    }
+  }
+  return fallbackGames;
+}
+
+function _renderFullDrawBracketInventory(gamesInput) {
+  const gamesByKey = new Map();
+  for (const game of (gamesInput || [])) {
+    const gameNum = String(game?.gameNum || '').trim();
+    const desc = String(game?.desc || '').trim();
+    const dateISO = String(game?.dateISO || '').trim();
+    const date = String(game?.date || '').trim();
+    const time = String(game?.time || '').trim();
+    const location = String(game?.location || '').trim();
+    const key = gameNum || `${desc}|${dateISO}|${date}|${time}|${location}`;
+    if (!key) continue;
+    if (!gamesByKey.has(key)) {
+      gamesByKey.set(key, {
+        gameNum,
+        desc,
+        dateISO,
+        date,
+        time,
+        location,
+      });
     }
   }
   const games = Array.from(gamesByKey.values()).sort((a, b) => {
@@ -11552,7 +11599,7 @@ function renderFullDraw() {
 
   // ── 2. All bracket games ───────────────────────────────────────────────────
   if (paths.length) {
-    html += _renderFullDrawBracketInventory(paths);
+    html += _renderFullDrawBracketInventory(_getHostedFullDrawGameInventory(tournament, paths));
   }
 
   if (!hasPools && !paths.length) {
