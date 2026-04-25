@@ -11347,16 +11347,61 @@ function _getHostedFullDrawPools(tournament, groupKey) {
   const localPools = tournament?.bracket?.pools;
   if (localPools && Object.keys(localPools).length) return localPools;
   const dirPkg = getDirectorPkg();
-  const normalizedGroup = String(tournament?.dirImportAgeGroupName || groupKey || '').trim().toLowerCase();
+  const normalizedGroup = String(_resolveHostedImportAgeGroupName(tournament, groupKey, dirPkg) || '').trim().toLowerCase();
   const hostedBlock = (dirPkg?.importedPools || []).find(block =>
     String(block?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
   );
   return hostedBlock?.pools || {};
 }
 
+function _looksSyntheticHostedTeamName(name) {
+  const text = String(name || '').trim();
+  if (!text || text === 'TBD') return true;
+  if (/^[A-Z]\d+$/i.test(text)) return true;
+  if (/^[A-Z]+\d+$/i.test(text)) return true;
+  if (/^(Winner|Loser)\s+/i.test(text)) return true;
+  if (/^(W|L)\s*G?\s*\d+$/i.test(text)) return true;
+  return false;
+}
+
+function _resolveHostedImportAgeGroupName(tournament, groupKey, dirPkg) {
+  const explicit = String(tournament?.dirImportAgeGroupName || '').trim();
+  if (explicit) return explicit;
+  const blocks = Array.isArray(dirPkg?.importedPools) ? dirPkg.importedPools : [];
+  if (blocks.length === 1) return String(blocks[0]?.ageGroupName || '').trim();
+  const localNames = new Set();
+  for (const game of (tournament?.games || [])) {
+    const myTeam = String(game?.myTeam || '').trim();
+    const opponent = String(game?.opponent || '').trim();
+    if (myTeam && !_looksSyntheticHostedTeamName(myTeam)) localNames.add(myTeam.toLowerCase());
+    if (opponent && !_looksSyntheticHostedTeamName(opponent) && !/\svs\s/i.test(opponent)) {
+      localNames.add(opponent.toLowerCase());
+    }
+  }
+  if (!localNames.size) return String(groupKey || '').trim();
+  let bestName = '';
+  let bestScore = 0;
+  for (const block of blocks) {
+    const blockNames = new Set();
+    for (const teams of Object.values(block?.pools || {})) {
+      for (const team of (teams || [])) {
+        const clean = String(team || '').trim();
+        if (clean && !_looksSyntheticHostedTeamName(clean)) blockNames.add(clean.toLowerCase());
+      }
+    }
+    let score = 0;
+    localNames.forEach(name => { if (blockNames.has(name)) score += 1; });
+    if (score > bestScore) {
+      bestScore = score;
+      bestName = String(block?.ageGroupName || '').trim();
+    }
+  }
+  return bestName || String(groupKey || '').trim();
+}
+
 function _getHostedFullDrawPaths(tournament, groupKey) {
   const dirPkg = getDirectorPkg();
-  const normalizedGroup = String(tournament?.dirImportAgeGroupName || groupKey || '').trim().toLowerCase();
+  const normalizedGroup = String(_resolveHostedImportAgeGroupName(tournament, groupKey, dirPkg) || '').trim().toLowerCase();
   const hostedBlock = (dirPkg?.importedBracketPaths || []).find(block =>
     String(block?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
   );
