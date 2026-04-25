@@ -1654,7 +1654,7 @@ function getTournamentBracketPaths() {
   const dedupePaths = paths => {
     const seen = new Set();
     return (paths || []).filter(path => {
-      const key = path?.id || `${path?.label || ''}|${(path?.steps || []).map(step => step?.gameNum || '').join(',')}`;
+      const key = `${path?.label || ''}|${path?.qualifier || ''}|${(path?.steps || []).map(step => `${step?.gameNum || ''}:${step?.desc || ''}`).join(',')}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -1704,7 +1704,7 @@ function getAllTournamentBracketPaths() {
   const dedupePaths = paths => {
     const seen = new Set();
     return (paths || []).filter(path => {
-      const key = path?.id || `${path?.label || ''}|${(path?.steps || []).map(step => step?.gameNum || '').join(',')}`;
+      const key = `${path?.label || ''}|${path?.qualifier || ''}|${(path?.steps || []).map(step => `${step?.gameNum || ''}:${step?.desc || ''}`).join(',')}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -11449,6 +11449,19 @@ function _looksLikeBracketSeedRef(text) {
   if (/^[A-Z]\d+$/i.test(value)) return true;
   if (/^[A-Z]\d+\s+vs\s+[A-Z]\d+$/i.test(value)) return true;
   return false;
+}
+
+function _parseTimeToMinutes(value) {
+  const text = String(value || '').trim();
+  if (!text) return 9999;
+  const match = text.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (!match) return 9999;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const meridiem = String(match[3] || '').toUpperCase();
+  if (meridiem === 'PM' && hours !== 12) hours += 12;
+  if (meridiem === 'AM' && hours === 12) hours = 0;
+  return (hours * 60) + minutes;
 }
 
 function _isHostedBracketScheduleGame(game) {
