@@ -13236,6 +13236,7 @@ function _dirImportFindHostedBracketBlock(pkg, ageGroupName) {
 
         S.tournament.games = merged;
         S.tournament.dirImportCode = S.dirImport.code;
+        S.tournament.dirImportAgeGroupName = selectedAgeGroup || '';
         S.tournament.dirImportName = pkg?.tournamentName || '';
         if (!S.tournament.bracket) S.tournament.bracket = {};
         const hostedPools = _dirImportGetHostedPools(pkg, selectedAgeGroup);
@@ -18631,6 +18632,46 @@ async function restoreDirectorFromPublishedCode() {
   saveDirectorLocally();
 }
 
+async function restoreDirectorByCode(btn) {
+  const input = document.getElementById('dir-restore-code');
+  const code = String(input?.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (code.length < 6) { showStatus('Enter the 6-character share code first', 'err'); return; }
+  const original = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Restoring…'; }
+  try {
+    const res = await fetch(WORKER + '/tournament-pkg?code=' + encodeURIComponent(code));
+    const data = await res.json().catch(() => null);
+    const pkg = data?.pkg;
+    if (!res.ok || !pkg) throw new Error(data?.description || 'Package not found');
+    if (!S.director) S.director = defaultDirector();
+    S.director = {
+      ...defaultDirector(),
+      ...S.director,
+      ageGroups: Array.isArray(pkg.ageGroups) ? pkg.ageGroups : [],
+      schedDays: Array.isArray(pkg.schedDays) ? pkg.schedDays : defaultDirector().schedDays,
+      importedSchedule: Array.isArray(pkg.importedSchedule) ? pkg.importedSchedule : [],
+      importedPools: Array.isArray(pkg.importedPools) ? pkg.importedPools : [],
+      importedRosters: Array.isArray(pkg.importedRosters) ? pkg.importedRosters : [],
+      importedBracketPaths: Array.isArray(pkg.importedBracketPaths) ? pkg.importedBracketPaths : [],
+      publishedCode: code,
+      publishedAt: pkg.publishedAt || Date.now(),
+      directorScoringPassword: pkg.directorScoringPassword || S.director.directorScoringPassword || '',
+    };
+    S.tournament.directorCode = code;
+    S.tournament.directorScoringPassword = S.director.directorScoringPassword || '';
+    const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+    if (!saveRes.ok) throw new Error('Restored package, but failed to persist the share code');
+    try { await _pushToFirebaseMirror(S.team, S.tournament, S.history || []); } catch (_) {}
+    saveDirectorLocally();
+    renderTab();
+    showStatus('✅ Restored Director package from share code ' + code, 'ok');
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = original || 'Restore'; }
+  }
+}
+
     function _dirHostedRosterSummary(entries) {
       const totalTeams = entries.length;
       const totalPlayers = entries.reduce((sum, entry) => sum + ((entry?.players || []).length), 0);
@@ -18648,9 +18689,9 @@ async function restoreDirectorFromPublishedCode() {
       showStatus(`Parsed ${players.length} roster row(s)`, 'ok');
     }
 
-    function dirRosterUploadFile(event) {
-      const file = event.target.files?.[0];
-      if (!file) return;
+function dirRosterUploadFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
       const reader = new FileReader();
       reader.onload = e => {
         const players = _parseBulkText(e.target.result || '');
@@ -18659,9 +18700,37 @@ async function restoreDirectorFromPublishedCode() {
         S._dirRosterParsed = players;
         renderTab();
         showStatus(`Parsed ${players.length} roster row(s)`, 'ok');
-      };
-      reader.readAsText(file);
-    }
+  };
+  reader.readAsText(file);
+}
+
+async function dirRosterFetchSheet(btn) {
+  const url = (document.getElementById('dir-roster-sheet-url')?.value || '').trim();
+  const ageGroupName = (document.getElementById('dir-roster-sheet-age')?.value || '').trim();
+  if (!url) { showStatus('Enter a roster Google Sheet URL first', 'err'); return; }
+  const sheetId = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1];
+  if (!sheetId) { showStatus('Could not find a Google Sheet ID in that roster URL', 'err'); return; }
+  if (btn) btn.disabled = true;
+  try {
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:csv';
+    const resp = await fetch(csvUrl);
+    if (!resp.ok) throw new Error('Roster sheet fetch failed: HTTP ' + resp.status);
+    const text = await resp.text();
+    const players = _parseBulkText(text);
+    if (!players.length) throw new Error('No roster rows found in the sheet');
+    if (!players.some(p => p.team)) throw new Error('Roster sheet needs a Team column');
+    S._dirRosterParsed = players.map(player => ({
+      ...player,
+      ageGroup: player.ageGroup || ageGroupName || '',
+    }));
+    renderTab();
+    showStatus(`Parsed ${players.length} roster row(s) from sheet`, 'ok');
+  } catch (e) {
+    showStatus('❌ ' + e.message, 'err');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
 
     function dirRosterCommitParsed() {
       const players = S._dirRosterParsed || [];
@@ -18929,6 +18998,11 @@ async function restoreDirectorFromPublishedCode() {
         if (!data.ok) throw new Error(data.description || 'Publish failed');
         S.director.publishedCode = data.code;
         S.director.publishedAt = Date.now();
+        S.tournament.directorCode = data.code;
+        S.tournament.directorScoringPassword = (S.director.directorScoringPassword || '').trim();
+        const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
+        if (!saveRes.ok) throw new Error('Saved package, but failed to persist share code to tournament');
+        try { await _pushToFirebaseMirror(S.team, S.tournament, S.history || []); } catch (_) {}
         saveDirectorLocally();
         renderTab();
         alert('✅ Director package published!\n\nShare Code: ' + data.code + '\n\nSend this 6-character code to each team\'s admin. They enter it in Add Games → Import from Hosted Tournament to pull their games.\n\nThe code also appears in the Brackets & Publishing card below.');
@@ -19606,6 +19680,17 @@ async function restoreDirectorFromPublishedCode() {
       <div class="card-header">👥 Hosted Tournament Rosters</div>
       <div style="padding:10px 14px 14px">
         <div class="info-hint" style="margin-bottom:8px">Load all tournament rosters once here, then hosted team imports will auto-save the selected team roster before deploy. Expected columns: Team, Cap #, First Name, Last Name. Optional column: Age Group / Division.</div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.8fr) minmax(180px,1fr) auto;gap:8px;align-items:end;margin-bottom:8px">
+          <div>
+            <div class="info-label">Google Sheets URL</div>
+            <input id="dir-roster-sheet-url" class="info-input" placeholder="https://docs.google.com/spreadsheets/d/..." />
+          </div>
+          <div>
+            <div class="info-label">Age Group / Division (optional)</div>
+            <input id="dir-roster-sheet-age" class="info-input" placeholder="Division 1" />
+          </div>
+          <button class="save-btn" onclick="dirRosterFetchSheet(this)" style="white-space:nowrap">Fetch Team Sheet</button>
+        </div>
         <textarea id="dir-roster-bulk-input" class="info-input" style="min-height:120px;margin-bottom:8px" placeholder="Paste roster rows here...">${esc(S._dirRosterRaw || '')}</textarea>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
           <button class="save-btn" style="flex:1" onclick="S._dirRosterRaw=document.getElementById('dir-roster-bulk-input')?.value||'';dirRosterParseBulk()">🔍 Parse Tournament Rosters</button>
@@ -19702,7 +19787,15 @@ async function restoreDirectorFromPublishedCode() {
               ${adminT('addgames_share_code_expiry')} ·
               <a href="#" onclick="S.director.publishedCode=null;saveDirectorLocally();renderTab();return false" style="color:var(--red)">${adminT('addgames_clear')}</a>
             </div>
-          </div>` : ''}
+          </div>` : `
+          <div style="border:1px dashed var(--g300);border-radius:8px;padding:12px 14px;margin-bottom:12px;background:var(--g50)">
+            <div style="font-weight:700;color:var(--g700);font-size:0.86rem;margin-bottom:6px">Restore Existing Share Code</div>
+            <div style="font-size:0.78rem;color:var(--g500);margin-bottom:8px">If this tournament was already published and a refresh lost the code, enter it here to reload the published Director package and save it back onto this tournament.</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <input id="dir-restore-code" class="info-input" maxlength="6" placeholder="XHD2BG" style="flex:1;min-width:180px;text-transform:uppercase;letter-spacing:0.12em;font-weight:800" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+              <button class="add-btn" onclick="restoreDirectorByCode(this)">↺ Restore by Code</button>
+            </div>
+          </div>`}
       </div>
     </div>
 

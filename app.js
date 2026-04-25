@@ -7713,11 +7713,13 @@ function moreNavigate(tab) {
 function updateTScoreTabVisibility() {
   // Drawer item
   const drawerItem = document.querySelector('.more-drawer-tscore');
+  const desktopItem = document.querySelector('.desktop-nav-tscore');
+  const activeTournament = getPrimarySelectedTournament ? (getPrimarySelectedTournament() || window.TOURNAMENT || {}) : (window.TOURNAMENT || {});
+  const hasPkg = !!(getDirectorPkg() || state.tscorePkg || activeTournament?.directorCode || activeTournament?.dirImportCode);
   if (drawerItem) {
-    const activeTournament = getPrimarySelectedTournament ? (getPrimarySelectedTournament() || window.TOURNAMENT || {}) : (window.TOURNAMENT || {});
-    const hasPkg = !!(getDirectorPkg() || state.tscorePkg || activeTournament?.directorCode || activeTournament?.dirImportCode);
     drawerItem.classList.toggle('hidden', !hasPkg);
   }
+  if (desktopItem) desktopItem.classList.toggle('hidden', !hasPkg);
 }
 
 /** Render the Settings tab with team picker, favorites, and club change */
@@ -10408,6 +10410,24 @@ function getDirectorPkg() {
   try { return JSON.parse(localStorage.getItem(DIR_STORE) || 'null'); } catch { return null; }
 }
 
+async function ensureDirectorPkgForActiveTournament() {
+  const activeTournament = getPrimarySelectedTournament ? (getPrimarySelectedTournament() || window.TOURNAMENT || {}) : (window.TOURNAMENT || {});
+  const code = String(activeTournament?.dirImportCode || activeTournament?.directorCode || '').trim();
+  if (!code) return null;
+  const cached = getDirectorPkg();
+  if (cached?.code === code) return cached;
+  try {
+    const res = await fetch(`${WORKER}/tournament-pkg?code=${encodeURIComponent(code)}`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.ok || !data?.pkg) return null;
+    const pkg = { ...data.pkg, importedAt: Date.now(), code };
+    localStorage.setItem(DIR_STORE, JSON.stringify(pkg));
+    return pkg;
+  } catch (_) {
+    return null;
+  }
+}
+
 function renderDirectorImportCard() {
   // Director import moved to T-Score tab — this is now a no-op
 }
@@ -11327,11 +11347,24 @@ function _getHostedFullDrawPools(tournament, groupKey) {
   const localPools = tournament?.bracket?.pools;
   if (localPools && Object.keys(localPools).length) return localPools;
   const dirPkg = getDirectorPkg();
-  const normalizedGroup = String(groupKey || '').trim().toLowerCase();
+  const normalizedGroup = String(tournament?.dirImportAgeGroupName || groupKey || '').trim().toLowerCase();
   const hostedBlock = (dirPkg?.importedPools || []).find(block =>
     String(block?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
   );
   return hostedBlock?.pools || {};
+}
+
+function _getHostedFullDrawPaths(tournament, groupKey) {
+  const dirPkg = getDirectorPkg();
+  const normalizedGroup = String(tournament?.dirImportAgeGroupName || groupKey || '').trim().toLowerCase();
+  const hostedBlock = (dirPkg?.importedBracketPaths || []).find(block =>
+    String(block?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
+  );
+  if (hostedBlock?.teamPaths && typeof hostedBlock.teamPaths === 'object') {
+    const allPaths = Object.values(hostedBlock.teamPaths).flatMap(list => Array.isArray(list) ? list : []);
+    if (allPaths.length) return allPaths;
+  }
+  return getAllTournamentBracketPaths() || [];
 }
 
 function _renderFullDrawBracketInventory(paths) {
@@ -11438,7 +11471,7 @@ function renderFullDraw() {
   const groupKey = _activeAgeGroup || getSelectedTeam() || getSelectedTeams()[0] || '';
   const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
   const pools = _getHostedFullDrawPools(tournament, groupKey);
-  const paths = getAllTournamentBracketPaths() || [];
+  const paths = _getHostedFullDrawPaths(tournament, groupKey);
   const hasPools = Object.keys(pools).length > 0;
 
   // Best available score source: T-Score > director scores
@@ -12548,6 +12581,7 @@ function init() {
 
     // Now load team data with correct team keys
     await loadAllSelectedTeams();
+    await ensureDirectorPkgForActiveTournament();
     checkTournamentChange();
     await _restoreScorerSessionsFromDB();
     await _restoreScorerOutboxFromDB();
