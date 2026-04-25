@@ -1715,7 +1715,11 @@ function getTournamentBracketPaths() {
   const preferredImported = importedFallback();
   const isHostedTournamentImport = !!(tournament?.dirImportCode || tournament?.directorCode);
 
-  if (isHostedTournamentImport && preferredImported?.length) return preferredImported;
+  if (isHostedTournamentImport) {
+    const hostedDirect = dedupePaths(_getHostedSelectedTeamPathsFromDirector(tournament, groupKey));
+    if (hostedDirect.length) return hostedDirect;
+    if (preferredImported?.length) return preferredImported;
+  }
   if (!bp) return preferredImported;
 
   const letters = getActiveTeams();
@@ -3242,6 +3246,16 @@ function _setLiveBanner(visible) {
 function _localDateStr(d = new Date()) {
   const pad = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function parseDateToISO(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+  const parsed = new Date(text);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`;
 }
 
 function _getTournamentLastDateISO(tournament = TOURNAMENT) {
@@ -11475,6 +11489,30 @@ function _resolveHostedImportAgeGroupName(tournament, groupKey, dirPkg) {
   return bestName || String(groupKey || '').trim();
 }
 
+function _getHostedSelectedTeamPathsFromDirector(tournament, groupKey) {
+  const dirPkg = getDirectorPkg();
+  const normalizedGroup = String(_resolveHostedImportAgeGroupName(tournament, groupKey, dirPkg) || '').trim().toLowerCase();
+  const hostedBlock = (dirPkg?.importedBracketPaths || []).find(block =>
+    String(block?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
+  );
+  const teamPaths = hostedBlock?.teamPaths;
+  if (!teamPaths || typeof teamPaths !== 'object' || Array.isArray(teamPaths)) return [];
+
+  const selectedNames = new Set();
+  for (const game of (tournament?.games || [])) {
+    const myTeam = String(game?.myTeam || '').trim();
+    if (myTeam && !_looksSyntheticHostedTeamName(myTeam)) {
+      selectedNames.add(myTeam.toLowerCase());
+    }
+  }
+  if (!selectedNames.size) return [];
+
+  const matched = Object.entries(teamPaths)
+    .filter(([teamName, paths]) => selectedNames.has(String(teamName || '').trim().toLowerCase()) && Array.isArray(paths))
+    .flatMap(([, paths]) => paths);
+  return matched;
+}
+
 function _getHostedFullDrawPaths(tournament, groupKey) {
   const dirPkg = getDirectorPkg();
   const normalizedGroup = String(_resolveHostedImportAgeGroupName(tournament, groupKey, dirPkg) || '').trim().toLowerCase();
@@ -11532,6 +11570,7 @@ function _isHostedBracketScheduleGame(game) {
 
 function _getHostedFullDrawGameInventory(tournament, paths) {
   const groupKey = _activeAgeGroup || getSelectedTeam() || getSelectedTeams()[0] || '';
+  const isHostedTournamentImport = !!(tournament?.dirImportCode || tournament?.directorCode);
   const scheduledBracketGames = _getHostedFullDrawScheduleGames(tournament, groupKey)
     .filter(_isHostedBracketScheduleGame)
     .map(game => ({
@@ -11544,6 +11583,7 @@ function _getHostedFullDrawGameInventory(tournament, paths) {
     }))
     .filter(game => game.desc && game.desc !== 'vs');
   if (scheduledBracketGames.length) return scheduledBracketGames;
+  if (isHostedTournamentImport) return [];
 
   const fallbackGames = [];
   for (const path of (paths || [])) {
@@ -11698,11 +11738,12 @@ function renderFullDraw() {
   }
 
   // ── 2. All bracket games ───────────────────────────────────────────────────
-  if (paths.length) {
-    html += _renderFullDrawBracketInventory(_getHostedFullDrawGameInventory(tournament, paths));
+  const inventoryGames = _getHostedFullDrawGameInventory(tournament, paths);
+  if (inventoryGames.length) {
+    html += _renderFullDrawBracketInventory(inventoryGames);
   }
 
-  if (!hasPools && !paths.length) {
+  if (!hasPools && !paths.length && !inventoryGames.length) {
     html = `<div class="full-draw-shell">
       <div class="full-draw-empty">
         <div class="full-draw-empty-icon">📋</div>
