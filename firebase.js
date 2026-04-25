@@ -936,18 +936,33 @@ async function fbSaveTournamentAgeGroup(tournamentId, teamKey, { tournament, his
   if (!col) return false;
   try {
     const now = new Date().toISOString();
+    const _stripUndefined = (value) => {
+      if (Array.isArray(value)) return value.map(_stripUndefined).filter(v => v !== undefined);
+      if (value && typeof value === 'object') {
+        const out = {};
+        for (const [k, v] of Object.entries(value)) {
+          const cleaned = _stripUndefined(v);
+          if (cleaned !== undefined) out[k] = cleaned;
+        }
+        return out;
+      }
+      return value === undefined ? undefined : value;
+    };
+    const cleanTournament = _stripUndefined(tournament || null);
+    const cleanHistory = _stripUndefined(history || []) || [];
+    const cleanRoster = _stripUndefined(roster || null);
     const updates = {
-      [`ageGroups.${teamKey}`]: { tournament, history: history || [], roster: roster || null },
+      [`ageGroups.${teamKey}`]: { tournament: cleanTournament, history: cleanHistory, roster: cleanRoster },
       updatedAt: now,
     };
     // Also update top-level metadata from tournament data
-    if (tournament?.name)     updates.name     = tournament.name;
-    if (tournament?.dates)    updates.dates    = tournament.dates;
-    if (tournament?.location) updates.location = tournament.location;
-    if (tournament?.address)  updates.address  = tournament.address;
+    if (cleanTournament?.name)     updates.name     = cleanTournament.name;
+    if (cleanTournament?.dates)    updates.dates    = cleanTournament.dates;
+    if (cleanTournament?.location) updates.location = cleanTournament.location;
+    if (cleanTournament?.address)  updates.address  = cleanTournament.address;
     await col.doc(tournamentId).update(updates);
     // Dual-write to flat path for backward compat
-    await fbSaveTournamentMirror(teamKey, { tournament, history });
+    await fbSaveTournamentMirror(teamKey, { tournament: cleanTournament, history: cleanHistory });
     return true;
   } catch (e) {
     console.warn('[firebase] fbSaveTournamentAgeGroup error:', e.message);
