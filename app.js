@@ -11563,36 +11563,54 @@ function _getHostedFullDrawScheduleGames(tournament, groupKey) {
   const hostedGames = allImportedGames.filter(game =>
     String(game?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
   );
-  if (hostedGames.length) return hostedGames;
-  if (allImportedGames.length) {
-    const hostedPoolsBlock = (dirPkg?.importedPools || []).find(block =>
-      String(block?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
-    );
-    const divisionTeams = new Set();
-    for (const teams of Object.values(hostedPoolsBlock?.pools || {})) {
-      for (const team of (teams || [])) {
-        const clean = String(team || '').trim();
-        if (clean && !_looksSyntheticHostedTeamName(clean)) divisionTeams.add(clean.toLowerCase());
+  const hostedPoolsBlock = (dirPkg?.importedPools || []).find(block =>
+    String(block?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
+  );
+  const divisionTeams = new Set();
+  for (const teams of Object.values(hostedPoolsBlock?.pools || {})) {
+    for (const team of (teams || [])) {
+      const clean = String(team || '').trim();
+      if (clean && !_looksSyntheticHostedTeamName(clean)) divisionTeams.add(clean.toLowerCase());
+    }
+  }
+  const hostedBracketBlock = (dirPkg?.importedBracketPaths || []).find(block =>
+    String(block?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
+  );
+  const bracketGameNums = new Set();
+  const bracketSeedPrefixes = new Set();
+  for (const paths of Object.values(hostedBracketBlock?.teamPaths || {})) {
+    for (const path of (Array.isArray(paths) ? paths : [])) {
+      for (const step of (path?.steps || [])) {
+        const gameNum = String(step?.gameNum || '').trim();
+        if (gameNum) bracketGameNums.add(gameNum);
+        const desc = String(step?.desc || '').trim();
+        const refs = desc.match(/\b([A-Z])\d+\b/g) || [];
+        refs.forEach(ref => bracketSeedPrefixes.add(String(ref[0] || '').toUpperCase()));
       }
     }
-    const hostedBracketBlock = (dirPkg?.importedBracketPaths || []).find(block =>
-      String(block?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
-    );
-    const bracketGameNums = new Set();
-    for (const paths of Object.values(hostedBracketBlock?.teamPaths || {})) {
-      for (const path of (Array.isArray(paths) ? paths : [])) {
-        for (const step of (path?.steps || [])) {
-          const gameNum = String(step?.gameNum || '').trim();
-          if (gameNum) bracketGameNums.add(gameNum);
-        }
-      }
+  }
+  const matchesHostedBracketRef = text => {
+    const value = String(text || '').trim();
+    if (!value) return false;
+    if (/^(Winner|Loser)\s+([A-Z])\d+$/i.test(value)) {
+      return bracketSeedPrefixes.has(RegExp.$2.toUpperCase());
     }
-    const fallbackDivisionGames = allImportedGames.filter(game => {
-      const myTeam = String(game?.myTeam || '').trim().toLowerCase();
-      const opponent = String(game?.opponent || '').trim().toLowerCase();
+    if (/^([A-Z])\d+$/i.test(value)) {
+      return bracketSeedPrefixes.has(RegExp.$1.toUpperCase());
+    }
+    return false;
+  };
+  const gameCandidates = hostedGames.length ? hostedGames : allImportedGames;
+  if (gameCandidates.length) {
+    const fallbackDivisionGames = gameCandidates.filter(game => {
+      const sideA = String(game?.myTeam || game?.team1Name || '').trim();
+      const sideB = String(game?.opponent || game?.team2Name || '').trim();
+      const sideALower = sideA.toLowerCase();
+      const sideBLower = sideB.toLowerCase();
       const gameNum = String(game?.gameNum || '').trim();
-      if (divisionTeams.has(myTeam) || divisionTeams.has(opponent)) return true;
+      if (divisionTeams.has(sideALower) || divisionTeams.has(sideBLower)) return true;
       if (gameNum && bracketGameNums.has(gameNum)) return true;
+      if (matchesHostedBracketRef(sideA) && matchesHostedBracketRef(sideB)) return true;
       return false;
     });
     if (fallbackDivisionGames.length) return fallbackDivisionGames;
@@ -11794,8 +11812,8 @@ function _renderHostedGamesSection(gamesInput, scoreSource, options = {}) {
   for (const rawGame of (gamesInput || [])) {
     const game = {
       gameNum: String(rawGame?.gameNum || '').trim(),
-      myTeam: String(rawGame?.myTeam || '').trim(),
-      opponent: String(rawGame?.opponent || '').trim(),
+      myTeam: String(rawGame?.myTeam || rawGame?.team1Name || '').trim(),
+      opponent: String(rawGame?.opponent || rawGame?.team2Name || '').trim(),
       dateISO: String(rawGame?.dateISO || '').trim() || parseDateToISO(rawGame?.date || ''),
       date: String(rawGame?.date || '').trim(),
       time: String(rawGame?.time || '').trim(),
