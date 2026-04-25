@@ -11559,10 +11559,44 @@ function _getHostedFullDrawPaths(tournament, groupKey) {
 function _getHostedFullDrawScheduleGames(tournament, groupKey) {
   const dirPkg = getDirectorPkg();
   const normalizedGroup = String(_resolveHostedImportAgeGroupName(tournament, groupKey, dirPkg) || '').trim().toLowerCase();
-  const hostedGames = (dirPkg?.importedSchedule || []).filter(game =>
+  const allImportedGames = Array.isArray(dirPkg?.importedSchedule) ? dirPkg.importedSchedule : [];
+  const hostedGames = allImportedGames.filter(game =>
     String(game?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
   );
   if (hostedGames.length) return hostedGames;
+  if (allImportedGames.length) {
+    const hostedPoolsBlock = (dirPkg?.importedPools || []).find(block =>
+      String(block?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
+    );
+    const divisionTeams = new Set();
+    for (const teams of Object.values(hostedPoolsBlock?.pools || {})) {
+      for (const team of (teams || [])) {
+        const clean = String(team || '').trim();
+        if (clean && !_looksSyntheticHostedTeamName(clean)) divisionTeams.add(clean.toLowerCase());
+      }
+    }
+    const hostedBracketBlock = (dirPkg?.importedBracketPaths || []).find(block =>
+      String(block?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
+    );
+    const bracketGameNums = new Set();
+    for (const paths of Object.values(hostedBracketBlock?.teamPaths || {})) {
+      for (const path of (Array.isArray(paths) ? paths : [])) {
+        for (const step of (path?.steps || [])) {
+          const gameNum = String(step?.gameNum || '').trim();
+          if (gameNum) bracketGameNums.add(gameNum);
+        }
+      }
+    }
+    const fallbackDivisionGames = allImportedGames.filter(game => {
+      const myTeam = String(game?.myTeam || '').trim().toLowerCase();
+      const opponent = String(game?.opponent || '').trim().toLowerCase();
+      const gameNum = String(game?.gameNum || '').trim();
+      if (divisionTeams.has(myTeam) || divisionTeams.has(opponent)) return true;
+      if (gameNum && bracketGameNums.has(gameNum)) return true;
+      return false;
+    });
+    if (fallbackDivisionGames.length) return fallbackDivisionGames;
+  }
   return tournament?.games || [];
 }
 
