@@ -3803,6 +3803,59 @@ h2 {
   background: rgba(148, 163, 184, 0.1);
 }
 
+.full-draw-day-group + .full-draw-day-group {
+  margin-top: 18px;
+}
+
+.full-draw-day-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--royal);
+}
+
+.full-draw-day-head::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(var(--royal-rgb), 0.28), rgba(var(--royal-rgb), 0.02));
+}
+
+.full-draw-game-grid {
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 14px;
+}
+
+.full-draw-game-list-card {
+  display: block;
+}
+
+.full-draw-game-list-card .full-draw-step-shell {
+  min-height: 160px;
+  padding: 18px;
+  border-radius: 18px;
+}
+
+.full-draw-game-list-card .full-draw-step-top {
+  margin-bottom: 10px;
+}
+
+.full-draw-game-list-card .full-draw-step-desc {
+  font-size: 1.08rem;
+  line-height: 1.25;
+  margin-bottom: 10px;
+}
+
+.full-draw-game-list-card .full-draw-step-meta {
+  gap: 10px;
+  font-size: 0.82rem;
+}
+
 .full-draw-empty {
   text-align: center;
   padding: 32px 0;
@@ -3838,6 +3891,10 @@ h2 {
     grid-template-columns: 1fr;
   }
 
+  .full-draw-game-grid {
+    grid-template-columns: 1fr;
+  }
+
   .full-draw-pool-row {
     grid-template-columns: 24px minmax(0, 1fr);
   }
@@ -3861,6 +3918,11 @@ h2 {
 
   .full-draw-step-connector span {
     min-height: 96px;
+  }
+
+  .full-draw-game-list-card .full-draw-step-shell {
+    min-height: 0;
+    padding: 14px;
   }
 }
 
