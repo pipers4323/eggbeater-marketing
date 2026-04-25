@@ -4026,10 +4026,11 @@ function _getScorerSession(gameOrRef, explicitGroupKey = '') {
 
 function _findOpenScorerSession(exceptGameOrRef = '', explicitGroupKey = '') {
   const exceptScopedKey = exceptGameOrRef ? _scopedGameKey(exceptGameOrRef, explicitGroupKey) : '';
+  if (!exceptScopedKey) return null;
   const sessions = Object.values(_getScorerSessions() || {});
   return sessions.find(session => {
     if (!session || session.status !== 'open' || !session.scopedKey) return false;
-    if (exceptScopedKey && session.scopedKey === exceptScopedKey) return false;
+    if (session.scopedKey !== exceptScopedKey) return false;
     return (session.eventCount || 0) > 0 || session.gameState === 'final';
   }) || null;
 }
@@ -5066,6 +5067,7 @@ function _buildScoreDetailScorerPanel(game, s) {
       </div>
       <div class="auto-clock-controls auto-clock-controls-secondary">
         <button class="auto-clock-btn auto-clock-reset" onclick="resetGameClock('${gid}')">Reset Clock</button>
+        <button class="auto-clock-btn auto-clock-advance" onclick="openQuarterStartSprintPicker('${gid}', '${escHtml(s.timerPhase || pendingAdvance || 'q1')}')">Sprint</button>
         ${pendingAdvance === 'done' ? `<button class="auto-clock-btn auto-clock-finalize" onclick="openFinalizeGameModal('${gid}','manual')">Review Final Score</button>` : ''}
       </div>
       ${cs.timeoutsPerTeam > 0 ? `
@@ -6348,19 +6350,25 @@ function _handleClockExpired(gameId) {
   const cs = getClockSettings(gameId);
   const cur  = s.timerPhase || 'q1';
   if (cur === 'timeout' || cur === 'opp_timeout') {
-    s.timerRunning = false;
-    s.timerStartedAt = null;
-    s.timerSecondsLeft = 0;
-    s.clock = '0:00';
+    const resumePhase = s.timeoutResumePhase || 'q1';
+    const resumeSeconds = Math.max(0, Number(s.timeoutResumeSecondsLeft || 0));
+    s.timerRunning = true;
+    s.timerStartedAt = Date.now();
+    s.timerSecondsLeft = resumeSeconds;
+    s.clock = s.timeoutResumeClock || fmtClock(resumeSeconds);
     s._clockExpiring = false;
     s.timerExpired = false;
     s.timerAdvanceTo = null;
-    s.timerPhase = s.timeoutResumePhase || 'q1';
+    s.timerPhase = resumePhase;
     delete s.timeoutResumePhase;
+    delete s.timeoutResumeSecondsLeft;
+    delete s.timeoutResumeClock;
     _setLiveScore(gameId, s);
     saveLiveScores();
+    ensureClockTicker();
+    _pushLAClockState(gameId);
     afterScore(gameId);
-    showToast('Timeout complete');
+    showToast('Timeout complete — quarter clock resumed');
     return;
   }
   const next = _nextPhase(cur, cs);
@@ -6542,6 +6550,8 @@ function callTeamTimeout(gameId, lengthMins) {
   pauseGameTimer(gameId);
   const latest = getLiveScore(gameId);
   latest.timeoutResumePhase = latest.timerPhase || 'q1';
+  latest.timeoutResumeSecondsLeft = latest.timerSecondsLeft || 0;
+  latest.timeoutResumeClock = latest.clock || fmtClock(latest.timerSecondsLeft || 0);
   latest.timerPhase = 'timeout';
   latest.timeoutMins = lengthMins;
   latest.timerSecondsLeft = Math.round(lengthMins * 60);
@@ -6555,6 +6565,7 @@ function callTeamTimeout(gameId, lengthMins) {
   _setLiveScore(gameId, latest);
   saveLiveScores();
   ensureClockTicker();
+  _pushLAClockState(gameId);
   s.teamTimeoutsUsed = [...s.teamTimeoutsUsed, lengthMins];
   _pendingClock = getCurrentClockStr(gameId);
   _doRecordDirect(gameId, 'timeout');
@@ -6578,6 +6589,8 @@ function callOppTimeout(gameId, lengthMins) {
   pauseGameTimer(gameId);
   const latest = getLiveScore(gameId);
   latest.timeoutResumePhase = latest.timerPhase || 'q1';
+  latest.timeoutResumeSecondsLeft = latest.timerSecondsLeft || 0;
+  latest.timeoutResumeClock = latest.clock || fmtClock(latest.timerSecondsLeft || 0);
   latest.timerPhase = 'opp_timeout';
   latest.timeoutMins = lengthMins;
   latest.timerSecondsLeft = Math.round(lengthMins * 60);
@@ -6591,6 +6604,7 @@ function callOppTimeout(gameId, lengthMins) {
   _setLiveScore(gameId, latest);
   saveLiveScores();
   ensureClockTicker();
+  _pushLAClockState(gameId);
   s.oppTimeoutsUsed = [...s.oppTimeoutsUsed, lengthMins];
   _pendingClock = getCurrentClockStr(gameId);
   _doRecordDirect(gameId, 'opp_timeout');
@@ -14889,13 +14903,15 @@ const ScorerMirror = {
       if (!score || !_hasMeaningfulLiveScoreData(score)) return;
       const clubId = getAppClubId() || '';
       const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
+      const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
       const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
       const tournamentId = tournament.id || score.tournamentId || '_';
       if (!clubId || !groupKey) return;
       const session = extra.session || _getScorerSession(gameOrRef, groupKey);
       const payload = {
         clubId,
-        ageGroup: groupKey,
+        ageGroup: scopedKey,
+        groupKey,
         tournamentId,
         gameId: _gameIdOnly(gameOrRef),
         score: _meaningfulScoreSnapshot(score),
@@ -14921,6 +14937,7 @@ const ScorerMirror = {
     try {
       const clubId = getAppClubId() || '';
       const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
+      const scopedKey = _scopedGameKey(gameOrRef, explicitGroupKey);
       const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
       const session = extra.session || _getScorerSession(gameOrRef, groupKey);
       const tournamentId = tournament.id || _getTournamentIdForGame(gameOrRef, explicitGroupKey)
@@ -14934,13 +14951,14 @@ const ScorerMirror = {
         headers,
         body: JSON.stringify({
           clubId,
-          ageGroup: groupKey,
+          ageGroup: scopedKey,
+          groupKey,
           tournamentId,
           gameId: session.gameId || _gameIdOnly(gameOrRef),
           session: {
             ...session,
             sessionKey: session.sessionKey || _getScorerSessionKey(gameOrRef, groupKey),
-            scopedKey: session.scopedKey || _scopedGameKey(gameOrRef, groupKey),
+            scopedKey: session.scopedKey || scopedKey,
           },
           deviceId: getDeviceId(),
           status: extra.status || session.status || 'open',
