@@ -19585,12 +19585,18 @@ async function dirRosterFetchSheet(btn) {
       </div>`;
       }).join('') : `<div style="padding:12px;text-align:center;color:var(--g400);font-size:.85rem">${esc(adminFormat('addgames_no_age_groups_yet', { button: adminT('addgames_add_age_group') }))}</div>`;
 
-      // ── Check if any brackets (game formats) are defined ──
-      const hasBrackets = d.ageGroups.some(ag =>
+      // ── Check if there is any publishable director content ──
+      const hasManualBrackets = d.ageGroups.some(ag =>
         (ag.divisionGroups || []).some(grp =>
           (grp.divisions || []).some(dv => dv.format && dv.format.trim())
         )
       );
+      const hasImportedDirectorData =
+        (Array.isArray(d.importedSchedule) && d.importedSchedule.length) ||
+        (Array.isArray(d.importedPools) && d.importedPools.length) ||
+        (Array.isArray(d.importedBracketPaths) && d.importedBracketPaths.length) ||
+        (Array.isArray(d.importedRosters) && d.importedRosters.length);
+      const hasBrackets = !!(hasManualBrackets || hasImportedDirectorData);
 
       // ── Publish section ──
       const scoringPwField = `
