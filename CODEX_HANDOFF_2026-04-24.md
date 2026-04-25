@@ -7,9 +7,9 @@ This handoff captures the current release state across the shared web/admin repo
 
 - Web/source repo: `eggbeater-marketing`
 - Native wrapper repo: `eggbeater-waterpolo`
-- Current web commit: `2c4e394`
-- Current wrapper commit: `0e49844`
-- Latest web production deploy status: `READY`
+- Current web commit: `9291572`
+- Current wrapper commit: `64f01ad`
+- Latest known web production deploy status: pushed from `main`; re-check live deploy state before assuming `READY`
 
 The shared rule for this codebase still applies:
 
@@ -221,3 +221,62 @@ Even though the blocker was resolved, these remain worthwhile:
    - `location`
 3. Clean up `Full Draw` desktop formatting for hosted division scoreboards, especially spacing/card sizing.
 4. Keep monitoring Hydres-style hosted imports, because this path now depends on package shape consistency more than local tournament state.
+
+---
+
+## 2026-04-25 Game-Day Scoring Hotfix
+
+After first live games of the day, four scorer issues were reported. Three were patched directly in `app.js` and mirrored into the wrapper; the fourth was improved but still needs live confirmation on device.
+
+### Fixed in code
+
+1. Simultaneous scoring conflict for different games in the same club/division
+   - Previous behavior:
+     - scorer conflict detection treated any open scorer session in the same context as a blocker
+     - example: `680 Red` and `680 Blue` at the same time could interfere with each other
+   - Fix:
+     - local unfinished-session detection is now scoped to the exact game key
+     - scorer mirror payloads now send game-scoped identifiers (`scopedKey`) instead of only the age-group key
+   - Intended result:
+     - multiple people can score different games at the same time
+     - only same-game scoring should conflict
+
+2. Timeout lost the quarter clock
+   - Previous behavior:
+     - timeout ended and the scorer returned to the quarter with `0:00`
+   - Fix:
+     - timeout now stores:
+       - resume phase
+       - remaining quarter seconds
+       - frozen quarter clock string
+     - when timeout ends, it resumes the quarter clock from that saved state
+
+3. Manual sprint fallback was missing
+   - Fix:
+     - added a `Sprint` button back into the scorer timing controls as a manual fallback
+     - this is intended for cases where quarters are started manually and sprint tracking still needs to be recorded
+
+### Still needs live verification
+
+4. Live Activities reliability
+   - I added extra Live Activity timer pushes on timeout start/end, and the simultaneous-game scorer lock fix may also reduce update churn.
+   - However, this was not fully re-verified on-device in the same turn.
+   - Treat this as:
+     - improved in code
+     - not fully proven until the next native/live test
+
+### Commit anchors
+
+- Web/source repo hotfix commit: `9291572`
+- Wrapper repo hotfix commit: `64f01ad`
+
+### Tomorrow morning checks
+
+1. Verify two simultaneous scorers on different games no longer conflict.
+2. Verify timeout resumes the correct quarter clock.
+3. Verify manual `Sprint` control is present and usable.
+4. Verify Live Activities update through:
+   - score changes
+   - timeout start
+   - timeout end
+   - finalization
