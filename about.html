@@ -66,7 +66,7 @@
       max-width: 1120px;
       margin: 0 auto;
       padding: 0 24px;
-      height: 96px;
+      height: 68px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -76,25 +76,27 @@
       align-items: center;
       gap: 10px;
       text-decoration: none;
+      flex-shrink: 0;
     }
     .nav-logo-img {
-      height: 88px;
+      height: 48px;
       width: auto;
       display: block;
     }
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 4px;
       list-style: none;
     }
     .nav-links a {
       text-decoration: none;
       color: rgba(255,255,255,0.8);
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
-      padding: 6px 12px;
+      padding: 6px 10px;
       border-radius: 6px;
+      white-space: nowrap;
       transition: color 0.15s, background 0.15s;
     }
     .nav-links a:hover { color: var(--white); background: rgba(255,255,255,0.08); }
@@ -132,7 +134,7 @@
       min-height: 100vh;
       display: flex;
       align-items: center;
-      padding: 128px 24px 80px;
+      padding: 100px 24px 80px;
       position: relative;
       overflow: hidden;
     }
