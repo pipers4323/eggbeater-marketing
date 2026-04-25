@@ -1651,6 +1651,19 @@ function getTournamentBracketPaths() {
   const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
   const bp = tournament.bracket?.paths;
   const ip = tournament.bracket?.importedPaths;
+  const dedupeBracketSteps = steps => {
+    const seen = new Set();
+    return (steps || []).filter(step => {
+      const key = `${step?.gameNum || ''}|${step?.desc || ''}|${step?.dateISO || ''}|${step?.date || ''}|${step?.time || ''}|${step?.location || ''}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+  const normalizeBracketPath = path => ({
+    ...path,
+    steps: dedupeBracketSteps(path?.steps || []),
+  });
   const currentHostedTeamNames = () => {
     const names = new Set();
     for (const game of (tournament.games || [])) {
@@ -1681,7 +1694,7 @@ function getTournamentBracketPaths() {
   };
   const dedupePaths = paths => {
     const seen = new Set();
-    return (paths || []).filter(path => {
+    return (paths || []).map(normalizeBracketPath).filter(path => {
       const key = `${path?.label || ''}|${path?.qualifier || ''}|${(path?.steps || []).map(step => `${step?.gameNum || ''}:${step?.desc || ''}`).join(',')}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -1727,13 +1740,26 @@ function getTournamentBracketPaths() {
 function getAllTournamentBracketPaths() {
   const groupKey = _activeAgeGroup || getSelectedTeam() || getSelectedTeams()[0] || '';
   const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
+  const dedupeBracketSteps = steps => {
+    const seen = new Set();
+    return (steps || []).filter(step => {
+      const key = `${step?.gameNum || ''}|${step?.desc || ''}|${step?.dateISO || ''}|${step?.date || ''}|${step?.time || ''}|${step?.location || ''}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+  const normalizeBracketPath = path => ({
+    ...path,
+    steps: dedupeBracketSteps(path?.steps || []),
+  });
   const normalizePathMap = map =>
     map && !Array.isArray(map) && typeof map === 'object'
       ? Object.values(map).flatMap(v => Array.isArray(v) ? v : [])
       : [];
   const dedupePaths = paths => {
     const seen = new Set();
-    return (paths || []).filter(path => {
+    return (paths || []).map(normalizeBracketPath).filter(path => {
       const key = `${path?.label || ''}|${path?.qualifier || ''}|${(path?.steps || []).map(step => `${step?.gameNum || ''}:${step?.desc || ''}`).join(',')}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -11465,10 +11491,10 @@ function _getHostedFullDrawPaths(tournament, groupKey) {
 function _getHostedFullDrawScheduleGames(tournament, groupKey) {
   const dirPkg = getDirectorPkg();
   const normalizedGroup = String(_resolveHostedImportAgeGroupName(tournament, groupKey, dirPkg) || '').trim().toLowerCase();
-  const hostedBlock = (dirPkg?.importedSchedule || []).find(block =>
-    String(block?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
+  const hostedGames = (dirPkg?.importedSchedule || []).filter(game =>
+    String(game?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
   );
-  if (Array.isArray(hostedBlock?.games) && hostedBlock.games.length) return hostedBlock.games;
+  if (hostedGames.length) return hostedGames;
   return tournament?.games || [];
 }
 
