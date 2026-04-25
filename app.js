@@ -11559,7 +11559,23 @@ function _getHostedFullDrawPaths(tournament, groupKey) {
 function _getHostedFullDrawScheduleGames(tournament, groupKey) {
   const dirPkg = getDirectorPkg();
   const normalizedGroup = String(_resolveHostedImportAgeGroupName(tournament, groupKey, dirPkg) || '').trim().toLowerCase();
-  const allImportedGames = Array.isArray(dirPkg?.importedSchedule) ? dirPkg.importedSchedule : [];
+  const normalizeHostedScheduleGame = rawGame => {
+    const myTeam = String(rawGame?.myTeam || rawGame?.team1Name || '').trim();
+    const opponent = String(rawGame?.opponent || rawGame?.team2Name || '').trim();
+    const gameNum = String(rawGame?.gameNum || '').trim();
+    const dateISO = String(rawGame?.dateISO || '').trim() || parseDateToISO(rawGame?.date || '');
+    const date = String(rawGame?.date || '').trim() || (dateISO ? isoToDate(dateISO) : '');
+    const time = String(rawGame?.time || '').trim();
+    const location = String(rawGame?.location || rawGame?.pool || rawGame?.venue || '').trim();
+    const ageGroupName = String(rawGame?.ageGroupName || rawGame?.groupKey || rawGame?.division || '').trim();
+    return { ...rawGame, myTeam, opponent, gameNum, dateISO, date, time, location, ageGroupName };
+  };
+  const allImportedGames = Array.isArray(dirPkg?.importedSchedule)
+    ? dirPkg.importedSchedule.map(normalizeHostedScheduleGame)
+    : [];
+  const allDirectorGames = Array.isArray(dirPkg?.directorGames)
+    ? dirPkg.directorGames.map(normalizeHostedScheduleGame)
+    : [];
   const hostedGames = allImportedGames.filter(game =>
     String(game?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
   );
@@ -11600,22 +11616,27 @@ function _getHostedFullDrawScheduleGames(tournament, groupKey) {
     }
     return false;
   };
-  const gameCandidates = hostedGames.length ? hostedGames : allImportedGames;
-  if (gameCandidates.length) {
-    const fallbackDivisionGames = gameCandidates.filter(game => {
-      const sideA = String(game?.myTeam || game?.team1Name || '').trim();
-      const sideB = String(game?.opponent || game?.team2Name || '').trim();
+  const sourceGames = hostedGames.length
+    ? hostedGames
+    : allImportedGames.length
+    ? allImportedGames
+    : allDirectorGames;
+  if (sourceGames.length) {
+    const fallbackDivisionGames = sourceGames.filter(game => {
+      const sideA = String(game?.myTeam || '').trim();
+      const sideB = String(game?.opponent || '').trim();
       const sideALower = sideA.toLowerCase();
       const sideBLower = sideB.toLowerCase();
       const gameNum = String(game?.gameNum || '').trim();
-      if (divisionTeams.has(sideALower) || divisionTeams.has(sideBLower)) return true;
+      if (divisionTeams.size && (divisionTeams.has(sideALower) || divisionTeams.has(sideBLower))) return true;
       if (gameNum && bracketGameNums.has(gameNum)) return true;
       if (matchesHostedBracketRef(sideA) && matchesHostedBracketRef(sideB)) return true;
       return false;
     });
     if (fallbackDivisionGames.length) return fallbackDivisionGames;
+    if (hostedGames.length) return hostedGames;
   }
-  return tournament?.games || [];
+  return [];
 }
 
 function _isHostedDivisionContext(tournament, groupKey) {
