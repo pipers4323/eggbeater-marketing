@@ -7714,7 +7714,7 @@ function updateTScoreTabVisibility() {
   // Drawer item
   const drawerItem = document.querySelector('.more-drawer-tscore');
   if (drawerItem) {
-    const hasPkg = !!(getDirectorPkg() || state.tscorePkg);
+    const hasPkg = !!(getDirectorPkg() || state.tscorePkg || tournament?.directorCode);
     drawerItem.classList.toggle('hidden', !hasPkg);
   }
 }
@@ -9550,7 +9550,7 @@ function renderTournScoreTab() {
 
   // Step 1: Scorer password gate
   if (!state.tscoreUnlocked) {
-    const savedCode = localStorage.getItem(TSCORE_CODE_KEY) || '';
+    const savedCode = localStorage.getItem(TSCORE_CODE_KEY) || tournament?.directorCode || '';
     el.innerHTML = `
       <div class="card tab-card">
         <h2>🏆 Tournament Score</h2>

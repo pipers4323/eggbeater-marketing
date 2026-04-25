@@ -9585,7 +9585,7 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
     function renderDirSyncResult() {
       const pkg = S.dirPkg;
       if (!pkg) return '';
-      const ags = pkg.ageGroups || [];
+      const ags = _dirSyncGetAgeGroups(pkg);
       if (!ags.length) return '<div style="color:var(--g500);font-size:0.82rem;margin-top:8px">⚠️ This T-Score sync requires age groups — this director package has none. To add games to your schedule instead, scroll up and use the <strong>📋 Import from Hosted Tournament</strong> card.</div>';
 
       // Age group pills
@@ -9614,6 +9614,16 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
             });
           });
         });
+        if (!teams.length) {
+          _dirImportGetPoolTeamNames(pkg, ag.name || '').forEach(name => {
+            if (name && !teams.includes(name)) teams.push(name);
+          });
+        }
+        if (!teams.length) {
+          _dirImportCollectTeamNamesFromSchedule((pkg.importedSchedule || []).filter(g => !ag.name || g.ageGroupName === ag.name)).forEach(name => {
+            if (name && !teams.includes(name)) teams.push(name);
+          });
+        }
         if (teams.length) {
           html += `<div style="font-size:0.82rem;color:var(--g600);margin-bottom:8px">Select your team:</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">`;
@@ -9673,7 +9683,7 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
     async function pushDirSyncToApp(btn) {
       if (!S.dirPkg || S.dirSelectedAg < 0 || !S.dirSelectedTeam) return;
       const pkg = S.dirPkg;
-      const ag = pkg.ageGroups[S.dirSelectedAg];
+      const ag = _dirSyncGetAgeGroups(pkg)[S.dirSelectedAg];
       if (!ag) return;
       const teamName = S.dirSelectedTeam;
 
@@ -9797,6 +9807,26 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
           S.dirPkg = JSON.parse(pkgStr);
         }
       } catch { }
+    }
+
+    function _dirSyncGetAgeGroups(pkg) {
+      const direct = Array.isArray(pkg?.ageGroups) ? pkg.ageGroups.filter(ag => ag && String(ag.name || '').trim()) : [];
+      if (direct.length) return direct;
+      const names = [];
+      const seen = new Set();
+      const addName = (name) => {
+        const clean = String(name || '').trim();
+        if (!clean) return;
+        const key = clean.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        names.push(clean);
+      };
+      (pkg?.importedSchedule || []).forEach(g => addName(g?.ageGroupName));
+      (pkg?.importedPools || []).forEach(block => addName(block?.ageGroupName));
+      (pkg?.importedBracketPaths || []).forEach(block => addName(block?.ageGroupName));
+      (pkg?.directorGames || []).forEach(g => addName(g?.ageGroupName));
+      return names.map(name => ({ name, divisionGroups: [] }));
     }
 
     // ─── MULTI-TEAM ADMIN HELPERS ─────────────────────────────────────────────────
