@@ -11136,11 +11136,22 @@ function _resolvePoolSeedRef(text, standings) {
   });
 }
 
+function _isIgnoredPoolStandingsEntry(name) {
+  const text = String(name || '').trim();
+  if (!text) return true;
+  if (/^seed order$/i.test(text)) return true;
+  if (/^games played\b/i.test(text)) return true;
+  if (/^pool preparation$/i.test(text)) return true;
+  if (/^clear pool$/i.test(text)) return true;
+  if (/^end of games$/i.test(text)) return true;
+  return false;
+}
+
 function _computeFullDrawStandings(pools, scoreSource) {
   const result = {};
   for (const [poolName, teamNames] of Object.entries(pools)) {
     const byName = {};
-    (teamNames || []).forEach((name, i) => {
+    (teamNames || []).filter(name => !_isIgnoredPoolStandingsEntry(name)).forEach((name, i) => {
       byName[name] = { name, seed: i + 1, w: 0, l: 0, t: 0, gf: 0, ga: 0, gd: 0, gp: 0 };
     });
     if (scoreSource) {
@@ -11421,6 +11432,16 @@ function _getHostedFullDrawPaths(tournament, groupKey) {
   return getAllTournamentBracketPaths() || [];
 }
 
+function _getHostedFullDrawScheduleGames(tournament, groupKey) {
+  const dirPkg = getDirectorPkg();
+  const normalizedGroup = String(_resolveHostedImportAgeGroupName(tournament, groupKey, dirPkg) || '').trim().toLowerCase();
+  const hostedBlock = (dirPkg?.importedSchedule || []).find(block =>
+    String(block?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
+  );
+  if (Array.isArray(hostedBlock?.games) && hostedBlock.games.length) return hostedBlock.games;
+  return tournament?.games || [];
+}
+
 function _looksLikeBracketSeedRef(text) {
   const value = String(text || '').trim();
   if (!value) return false;
@@ -11441,7 +11462,8 @@ function _isHostedBracketScheduleGame(game) {
 }
 
 function _getHostedFullDrawGameInventory(tournament, paths) {
-  const scheduledBracketGames = (tournament?.games || [])
+  const groupKey = _activeAgeGroup || getSelectedTeam() || getSelectedTeams()[0] || '';
+  const scheduledBracketGames = _getHostedFullDrawScheduleGames(tournament, groupKey)
     .filter(_isHostedBracketScheduleGame)
     .map(game => ({
       gameNum: String(game?.gameNum || '').trim(),
