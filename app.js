@@ -11135,7 +11135,7 @@ const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && get
       hostedHtml += _renderFullDrawPoolsGrid(standings, pathScoreSource);
     }
     hostedHtml += _renderHostedGamesSection(_getHostedSelectedTeamScheduleGames(activeTournament), pathScoreSource, {
-      kicker: 'Possible Games',
+      kicker: 'Team Schedule',
       title: 'Scheduled games for this team',
       note: 'Pool play and published bracket games for the selected team.',
       gameStateLabel: game => _isHostedBracketScheduleGame(game) ? 'Bracket' : 'Pool'
