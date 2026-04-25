@@ -1651,14 +1651,23 @@ function getTournamentBracketPaths() {
   const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
   const bp = tournament.bracket?.paths;
   const ip = tournament.bracket?.importedPaths;
+  const dedupePaths = paths => {
+    const seen = new Set();
+    return (paths || []).filter(path => {
+      const key = path?.id || `${path?.label || ''}|${(path?.steps || []).map(step => step?.gameNum || '').join(',')}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
   const normalizePathMap = map =>
     map && !Array.isArray(map) && typeof map === 'object'
       ? Object.values(map).flatMap(v => Array.isArray(v) ? v : [])
       : [];
   const importedFallback = () => {
-    if (Array.isArray(ip) && ip.length) return ip;
+    if (Array.isArray(ip) && ip.length) return dedupePaths(ip);
     const keyedImported = normalizePathMap(ip);
-    return keyedImported.length ? keyedImported : null;
+    return keyedImported.length ? dedupePaths(keyedImported) : null;
   };
   const preferredImported = importedFallback();
   const isHostedTournamentImport = !!(tournament?.dirImportCode || tournament?.directorCode);
@@ -1668,9 +1677,9 @@ function getTournamentBracketPaths() {
 
   const letters = getActiveTeams();
   if (!letters) {
-    if (Array.isArray(bp)) return bp;
+    if (Array.isArray(bp)) return dedupePaths(bp);
     const mergedPaths = normalizePathMap(bp);
-    return mergedPaths.length ? mergedPaths : preferredImported;
+    return mergedPaths.length ? dedupePaths(mergedPaths) : preferredImported;
   }
 
   const firstTeam = Array.isArray(tournament.teams) && tournament.teams.length
@@ -1678,11 +1687,11 @@ function getTournamentBracketPaths() {
     : 'A';
 
   if (Array.isArray(bp)) {
-    return letters.includes(firstTeam) ? bp : preferredImported;
+    return letters.includes(firstTeam) ? dedupePaths(bp) : preferredImported;
   }
 
   const paths = letters.flatMap(l => bp[l] || []);
-  return paths.length ? paths : preferredImported;
+  return paths.length ? dedupePaths(paths) : preferredImported;
 }
 
 function getAllTournamentBracketPaths() {
