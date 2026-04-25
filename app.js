@@ -7715,7 +7715,7 @@ function updateTScoreTabVisibility() {
   const drawerItem = document.querySelector('.more-drawer-tscore');
   if (drawerItem) {
     const activeTournament = getPrimarySelectedTournament ? (getPrimarySelectedTournament() || window.TOURNAMENT || {}) : (window.TOURNAMENT || {});
-    const hasPkg = !!(getDirectorPkg() || state.tscorePkg || activeTournament?.directorCode);
+    const hasPkg = !!(getDirectorPkg() || state.tscorePkg || activeTournament?.directorCode || activeTournament?.dirImportCode);
     drawerItem.classList.toggle('hidden', !hasPkg);
   }
 }
@@ -9552,7 +9552,7 @@ function renderTournScoreTab() {
   // Step 1: Scorer password gate
   if (!state.tscoreUnlocked) {
     const activeTournament = getPrimarySelectedTournament ? (getPrimarySelectedTournament() || window.TOURNAMENT || {}) : (window.TOURNAMENT || {});
-    const savedCode = localStorage.getItem(TSCORE_CODE_KEY) || activeTournament?.directorCode || '';
+    const savedCode = localStorage.getItem(TSCORE_CODE_KEY) || activeTournament?.directorCode || activeTournament?.dirImportCode || '';
     el.innerHTML = `
       <div class="card tab-card">
         <h2>🏆 Tournament Score</h2>
@@ -11323,6 +11323,96 @@ function _renderFullDrawPathLanes(paths, projected, standings) {
   </section>`;
 }
 
+function _getHostedFullDrawPools(tournament, groupKey) {
+  const localPools = tournament?.bracket?.pools;
+  if (localPools && Object.keys(localPools).length) return localPools;
+  const dirPkg = getDirectorPkg();
+  const normalizedGroup = String(groupKey || '').trim().toLowerCase();
+  const hostedBlock = (dirPkg?.importedPools || []).find(block =>
+    String(block?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
+  );
+  return hostedBlock?.pools || {};
+}
+
+function _renderFullDrawBracketInventory(paths) {
+  const gamesByKey = new Map();
+  for (const path of (paths || [])) {
+    for (const step of (path?.steps || [])) {
+      const gameNum = String(step?.gameNum || '').trim();
+      const desc = String(step?.desc || '').trim();
+      const dateISO = String(step?.dateISO || '').trim();
+      const date = String(step?.date || '').trim();
+      const time = String(step?.time || '').trim();
+      const location = String(step?.location || '').trim();
+      const key = gameNum || `${desc}|${dateISO}|${date}|${time}|${location}`;
+      if (!key) continue;
+      if (!gamesByKey.has(key)) {
+        gamesByKey.set(key, {
+          gameNum,
+          desc,
+          dateISO,
+          date,
+          time,
+          location,
+        });
+      }
+    }
+  }
+  const games = Array.from(gamesByKey.values()).sort((a, b) => {
+    const leftDate = a.dateISO || parseDateToISO(a.date || '') || '9999-12-31';
+    const rightDate = b.dateISO || parseDateToISO(b.date || '') || '9999-12-31';
+    if (leftDate !== rightDate) return leftDate.localeCompare(rightDate);
+    const leftTime = _parseTimeToMinutes(a.time || '');
+    const rightTime = _parseTimeToMinutes(b.time || '');
+    if (leftTime !== rightTime) return leftTime - rightTime;
+    return (a.gameNum || a.desc || '').localeCompare(b.gameNum || b.desc || '');
+  });
+  if (!games.length) return '';
+
+  const groups = new Map();
+  for (const game of games) {
+    const key = game.dateISO || parseDateToISO(game.date || '') || game.date || 'TBD';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(game);
+  }
+
+  const sections = Array.from(groups.entries()).map(([dayKey, dayGames]) => {
+    const headerLabel = dayGames[0]?.date || (dayKey && dayKey !== 'TBD' ? isoToDate(dayKey) : 'Date TBD');
+    const cards = dayGames.map(game => {
+      const desc = normalizeDisplayText(game.desc || 'Bracket Game');
+      const loc = bracketLocationDisplay(game.location || '');
+      return `<article class="full-draw-step-card full-draw-game-list-card">
+        <div class="full-draw-step-shell">
+          <div class="full-draw-step-top">
+            <span class="full-draw-game-chip">Game ${escHtml(game.gameNum || 'TBD')}</span>
+            <span class="full-draw-step-state">Bracket</span>
+          </div>
+          <div class="full-draw-step-desc">${escHtml(desc)}</div>
+          <div class="full-draw-step-meta">
+            <span>${escHtml(game.time || 'Time TBD')}</span>
+            <span>${escHtml(loc || 'Location TBD')}</span>
+          </div>
+        </div>
+      </article>`;
+    }).join('');
+    return `<section class="full-draw-day-group">
+      <div class="full-draw-day-head">${escHtml(headerLabel)}</div>
+      <div class="full-draw-path-grid full-draw-game-grid">${cards}</div>
+    </section>`;
+  }).join('');
+
+  return `<section class="full-draw-section">
+    <div class="full-draw-section-head">
+      <div>
+        <div class="full-draw-kicker">Full Draw</div>
+        <h3 class="full-draw-title">All bracket games in this division</h3>
+      </div>
+    </div>
+    <div class="full-draw-note">This view shows every published bracket game for the active age group or division.</div>
+    ${sections}
+  </section>`;
+}
+
 function renderFullDraw() {
   const listEl  = $('possible-list');
   const emptyEl = $('possible-empty');
@@ -11345,7 +11435,9 @@ function renderFullDraw() {
     }, 6000);
   }
 
-  const pools = TOURNAMENT.bracket?.pools || {};
+  const groupKey = _activeAgeGroup || getSelectedTeam() || getSelectedTeams()[0] || '';
+  const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
+  const pools = _getHostedFullDrawPools(tournament, groupKey);
   const paths = getAllTournamentBracketPaths() || [];
   const hasPools = Object.keys(pools).length > 0;
 
@@ -11380,10 +11472,9 @@ function renderFullDraw() {
     html += _renderFullDrawPoolsGrid(standings, scoreSource);
   }
 
-  // ── 2. All bracket paths ───────────────────────────────────────────────────
+  // ── 2. All bracket games ───────────────────────────────────────────────────
   if (paths.length) {
-    const projected = inferProjectedPath();
-    html += _renderFullDrawPathLanes(paths, projected, standings);
+    html += _renderFullDrawBracketInventory(paths);
   }
 
   if (!hasPools && !paths.length) {

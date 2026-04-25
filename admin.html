@@ -3537,6 +3537,7 @@
       S.roster = data.roster || null;
       S.role = data.adminRole || 'admin';
       S.director = JSON.parse(localStorage.getItem('ebadmin-director-' + S.team) || 'null');
+      await restoreDirectorFromPublishedCode();
       if (S.tournament.singleTeam !== true) {
         if (!Array.isArray(S.tournament.teams) || S.tournament.teams.length < 2) S.tournament.teams = ['A', 'B'];
         S.tournament.teamLabels = S.tournament.teamLabels || { A: 'Team A', B: 'Team B' };
@@ -3645,6 +3646,7 @@
         S.roster = data.roster || null;
         S.role = data.adminRole || 'admin';
         S.director = JSON.parse(localStorage.getItem('ebadmin-director-' + S.team) || 'null');
+        await restoreDirectorFromPublishedCode();
         if (S.tournament.singleTeam !== true) {
           if (!Array.isArray(S.tournament.teams) || S.tournament.teams.length < 2) S.tournament.teams = ['A', 'B'];
           S.tournament.teamLabels = S.tournament.teamLabels || { A: 'Team A', B: 'Team B' };
@@ -3726,6 +3728,7 @@
         S.roster = data.roster || null;
         S.role = data.adminRole || 'admin';
         S.director = JSON.parse(localStorage.getItem('ebadmin-director-' + S.team) || 'null');
+        await restoreDirectorFromPublishedCode();
         if (localStorage.getItem('ebadmin-director-pw') === pw) S.directorUnlocked = true;
         if (S.tournament.singleTeam !== true) {
           if (!Array.isArray(S.tournament.teams) || S.tournament.teams.length < 2) {
@@ -6242,6 +6245,7 @@
         S.history = data.history || S.history;
         S.scoredGames = data.scoredGames || S.scoredGames;
         S.roster = data.roster ?? S.roster;
+        await restoreDirectorFromPublishedCode();
         // Phase 3: if a cloud tournament is selected, overlay its age group data
         if (S.tournamentId && typeof fbLoadTournament === 'function') {
           try {
@@ -12946,9 +12950,9 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
       return Array.from(names).sort();
     }
 
-    function _dirImportGetPoolTeamNames(pkg, ageGroupName) {
-      const pools = Array.isArray(pkg?.importedPools) ? pkg.importedPools : [];
-      const normalizedAgeGroup = String(ageGroupName || '').trim().toLowerCase();
+function _dirImportGetPoolTeamNames(pkg, ageGroupName) {
+  const pools = Array.isArray(pkg?.importedPools) ? pkg.importedPools : [];
+  const normalizedAgeGroup = String(ageGroupName || '').trim().toLowerCase();
       const matchingBlocks = normalizedAgeGroup
         ? pools.filter(block => String(block?.ageGroupName || '').trim().toLowerCase() === normalizedAgeGroup)
         : pools.slice();
@@ -12959,13 +12963,22 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
             if (!_dirImportIsSyntheticTeamName(team)) names.add(team);
           }
         }
-      }
-      return Array.from(names).sort();
-    }
+  }
+  return Array.from(names).sort();
+}
 
-    function _dirImportFindHostedBracketBlock(pkg, ageGroupName) {
-      const blocks = Array.isArray(pkg?.importedBracketPaths) ? pkg.importedBracketPaths : [];
-      const normalizedAgeGroup = String(ageGroupName || '').trim().toLowerCase();
+function _dirImportGetHostedPools(pkg, ageGroupName) {
+  const pools = Array.isArray(pkg?.importedPools) ? pkg.importedPools : [];
+  const normalizedAgeGroup = String(ageGroupName || '').trim().toLowerCase();
+  const matchingBlock = normalizedAgeGroup
+    ? pools.find(block => String(block?.ageGroupName || '').trim().toLowerCase() === normalizedAgeGroup)
+    : (pools[0] || null);
+  return matchingBlock?.pools ? JSON.parse(JSON.stringify(matchingBlock.pools)) : null;
+}
+
+function _dirImportFindHostedBracketBlock(pkg, ageGroupName) {
+  const blocks = Array.isArray(pkg?.importedBracketPaths) ? pkg.importedBracketPaths : [];
+  const normalizedAgeGroup = String(ageGroupName || '').trim().toLowerCase();
       if (!normalizedAgeGroup) return blocks[0] || null;
       return blocks.find(block => String(block?.ageGroupName || '').trim().toLowerCase() === normalizedAgeGroup) || null;
     }
@@ -13225,6 +13238,10 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
         S.tournament.dirImportCode = S.dirImport.code;
         S.tournament.dirImportName = pkg?.tournamentName || '';
         if (!S.tournament.bracket) S.tournament.bracket = {};
+        const hostedPools = _dirImportGetHostedPools(pkg, selectedAgeGroup);
+        if (hostedPools && Object.keys(hostedPools).length) {
+          S.tournament.bracket.pools = hostedPools;
+        }
         if (Object.keys(hostedImportedPathMap).length) {
           // Hosted-tournament imports should prefer the published director rebracket
           // over any stale local generic bracket paths from older imports/deploys.
@@ -18570,9 +18587,49 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
 
     // ─── TOURNAMENT DIRECTOR TAB ──────────────────────────────────────────────────
 
-    function saveDirectorLocally() {
-      localStorage.setItem('ebadmin-director-' + S.team, JSON.stringify(S.director));
+function saveDirectorLocally() {
+  localStorage.setItem('ebadmin-director-' + S.team, JSON.stringify(S.director));
+}
+
+async function restoreDirectorFromPublishedCode() {
+  const liveCode = String(S.tournament?.directorCode || '').trim();
+  if (!liveCode) return;
+  if (!S.director) S.director = defaultDirector();
+  if (!S.director.publishedCode) S.director.publishedCode = liveCode;
+  if (!S.director.directorScoringPassword && S.tournament?.directorScoringPassword) {
+    S.director.directorScoringPassword = S.tournament.directorScoringPassword;
+  }
+  const needsHydrate = !Array.isArray(S.director.importedSchedule) || !S.director.importedSchedule.length;
+  if (!needsHydrate) {
+    saveDirectorLocally();
+    return;
+  }
+  try {
+    const res = await fetch(WORKER + '/tournament-pkg?code=' + encodeURIComponent(liveCode));
+    const data = await res.json().catch(() => null);
+    const pkg = data?.pkg;
+    if (!res.ok || !pkg) {
+      saveDirectorLocally();
+      return;
     }
+    S.director = {
+      ...defaultDirector(),
+      ...S.director,
+      ageGroups: Array.isArray(pkg.ageGroups) ? pkg.ageGroups : (S.director.ageGroups || []),
+      schedDays: Array.isArray(pkg.schedDays) ? pkg.schedDays : (S.director.schedDays || defaultDirector().schedDays),
+      importedSchedule: Array.isArray(pkg.importedSchedule) ? pkg.importedSchedule : (S.director.importedSchedule || []),
+      importedPools: Array.isArray(pkg.importedPools) ? pkg.importedPools : (S.director.importedPools || []),
+      importedRosters: Array.isArray(pkg.importedRosters) ? pkg.importedRosters : (S.director.importedRosters || []),
+      importedBracketPaths: Array.isArray(pkg.importedBracketPaths) ? pkg.importedBracketPaths : (S.director.importedBracketPaths || []),
+      publishedCode: liveCode,
+      publishedAt: pkg.publishedAt || S.director.publishedAt || null,
+      directorScoringPassword: S.director.directorScoringPassword || pkg.directorScoringPassword || '',
+    };
+  } catch (_) {
+    // Keep whatever local state exists; the live code is still restored above.
+  }
+  saveDirectorLocally();
+}
 
     function _dirHostedRosterSummary(entries) {
       const totalTeams = entries.length;
