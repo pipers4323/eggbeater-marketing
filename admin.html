@@ -13189,15 +13189,12 @@ function _dirImportFindHostedBracketBlock(pkg, ageGroupName) {
         const importedPaths = Object.values(pathMap)
           .sort((a, b) => a.id.localeCompare(b.id));
         const selectedAgeGroup = S.dirImport.selectedAgeGroup || '';
-        let hostedImportedPathMap = _dirImportGetHostedBracketMap(pkg, selectedAgeGroup);
-        if (!Object.keys(hostedImportedPathMap).length) {
-          hostedImportedPathMap = {};
-          for (const teamName of selTeams) {
-            const letter = teamLetterMap[teamName];
-            if (!letter) continue;
-            const hostedPaths = _dirImportGetHostedTeamPaths(pkg, selectedAgeGroup, teamName);
-            if (hostedPaths.length) hostedImportedPathMap[letter] = hostedPaths;
-          }
+        let hostedImportedPathMap = {};
+        for (const teamName of selTeams) {
+          const letter = teamLetterMap[teamName];
+          if (!letter) continue;
+          const hostedPaths = _dirImportGetHostedTeamPaths(pkg, selectedAgeGroup, teamName);
+          if (hostedPaths.length) hostedImportedPathMap[letter] = hostedPaths;
         }
         if (importedPaths.length && !Object.keys(hostedImportedPathMap).length) {
           if (selTeams.length <= 1) {

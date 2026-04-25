@@ -1651,6 +1651,34 @@ function getTournamentBracketPaths() {
   const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
   const bp = tournament.bracket?.paths;
   const ip = tournament.bracket?.importedPaths;
+  const currentHostedTeamNames = () => {
+    const names = new Set();
+    for (const game of (tournament.games || [])) {
+      const myTeam = String(game?.myTeam || '').trim();
+      if (myTeam && !_looksSyntheticHostedTeamName(myTeam)) names.add(myTeam.toLowerCase());
+    }
+    return Array.from(names);
+  };
+  const pickHostedImported = map => {
+    if (!map || Array.isArray(map) || typeof map !== 'object') return [];
+    const entries = Object.entries(map);
+    if (!entries.length) return [];
+    const letterKeys = entries.filter(([key]) => ['A', 'B', 'C'].includes(String(key || '').trim().toUpperCase()));
+    if (letterKeys.length) {
+      const letters = getActiveTeams();
+      if (!letters?.length) return [];
+      return letters.flatMap(letter => Array.isArray(map?.[letter]) ? map[letter] : []);
+    }
+    const selectedNames = currentHostedTeamNames();
+    if (selectedNames.length) {
+      const matched = entries
+        .filter(([teamName, paths]) => selectedNames.includes(String(teamName || '').trim().toLowerCase()) && Array.isArray(paths))
+        .flatMap(([, paths]) => paths);
+      if (matched.length) return matched;
+    }
+    if (entries.length === 1 && Array.isArray(entries[0][1])) return entries[0][1];
+    return [];
+  };
   const dedupePaths = paths => {
     const seen = new Set();
     return (paths || []).filter(path => {
@@ -1666,6 +1694,8 @@ function getTournamentBracketPaths() {
       : [];
   const importedFallback = () => {
     if (Array.isArray(ip) && ip.length) return dedupePaths(ip);
+    const selectedHosted = pickHostedImported(ip);
+    if (selectedHosted.length) return dedupePaths(selectedHosted);
     const keyedImported = normalizePathMap(ip);
     return keyedImported.length ? dedupePaths(keyedImported) : null;
   };
