@@ -165,3 +165,59 @@ If a new regression appears in Director import, inspect these areas first in `ad
 - `bsScanGames`
 - `bsDeploy`
 - Director render block where shared import cards are injected
+
+---
+
+## Late Update - Hosted Bracket Resolution
+
+After the original handoff, the Hydres hosted tournament package `XHD2BG` was pushed through a long round of production debugging.
+
+### What finally fixed Hydres Full Draw
+
+The critical root cause was in the published Director package shape, not just the renderer:
+
+- `importedSchedule` rows in the live package used `team1Name` / `team2Name`
+- the hosted `Full Draw` path was reading only `myTeam` / `opponent`
+- so the spectator app silently dropped the hosted division schedule and fell back to generic rebracket lane cards
+
+The final production fix narrowed hosted `Full Draw` to:
+
+- pool games whose teams belong to the selected hosted age-group/division
+- bracket games referenced by that division's published hosted rebracket block
+- schedule rows read from either `myTeam` / `opponent` or `team1Name` / `team2Name`
+
+### Resulting expected behavior
+
+- `My Path`:
+  - only the selected team's scheduled games
+- `Full Draw`:
+  - division scoreboard for the full hosted division
+  - pool games plus bracket games for that division
+  - uses live/director score data when present
+
+### Verified live package clue
+
+When the live package for `XHD2BG` was fetched directly, it showed:
+
+- `importedSchedule` present and flat
+- `ageGroupName` values like `Masters Division 1`, `Masters Division 2`, `Masters B`
+- hosted bracket paths still published as team-based lane maps under `importedBracketPaths`
+
+That package fetch was what finally exposed the mismatch between published schedule rows and spectator render expectations.
+
+### Follow-up still worth doing
+
+Even though the blocker was resolved, these remain worthwhile:
+
+1. Add a small debug/admin-only inspector for live Director package contents by code, so hosted-package regressions can be diagnosed without blind UI patching.
+2. Normalize Director package schedule rows at publish time to one canonical shape:
+   - `gameNum`
+   - `ageGroupName`
+   - `myTeam`
+   - `opponent`
+   - `date`
+   - `dateISO`
+   - `time`
+   - `location`
+3. Clean up `Full Draw` desktop formatting for hosted division scoreboards, especially spacing/card sizing.
+4. Keep monitoring Hydres-style hosted imports, because this path now depends on package shape consistency more than local tournament state.
