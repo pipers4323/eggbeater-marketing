@@ -11105,6 +11105,18 @@ function renderPossibleTab() {
 
   const projected  = inferProjectedPath();
 const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && getTournamentGames().length > 0;
+  const activeGroupKey = _activeAgeGroup || getSelectedTeam() || getSelectedTeams()[0] || '';
+  const activeTournament = getTournamentForGroup(activeGroupKey) || TOURNAMENT || {};
+  const isHostedTournamentImport = _isHostedDivisionContext(activeTournament, activeGroupKey);
+  const tPkgPath    = state.tscorePkg;
+  const tGamesPath  = tPkgPath?.directorGames || [];
+  const dirPkgPath  = getDirectorPkg();
+  const dGamesPath  = dirPkgPath?.directorGames || [];
+  const pathScoreSource = tGamesPath.length
+    ? { games: tGamesPath, scores: state.tscoreScores }
+    : dGamesPath.length
+    ? { games: dGamesPath, scores: state.dirScores }
+    : null;
 
   if (projected) {
     descEl.textContent = allPoolDone
@@ -11112,6 +11124,24 @@ const allPoolDone = getTournamentGames().every(g => _getResultForGame(g)) && get
       : appFormat('possible_projected', { record: getPoolRecord(), label: projected.label });
   } else {
     descEl.textContent = appT('possible_mark_results');
+  }
+
+  if (isHostedTournamentImport) {
+    descEl.textContent = 'Scheduled games for your selected team.';
+    let hostedHtml = '';
+    const pools = _getHostedFullDrawPools(activeTournament, activeGroupKey);
+    if (Object.keys(pools).length) {
+      const standings = _computeFullDrawStandings(pools, pathScoreSource);
+      hostedHtml += _renderFullDrawPoolsGrid(standings, pathScoreSource);
+    }
+    hostedHtml += _renderHostedGamesSection(_getHostedSelectedTeamScheduleGames(activeTournament), pathScoreSource, {
+      kicker: 'Possible Games',
+      title: 'Scheduled games for this team',
+      note: 'Pool play and published bracket games for the selected team.',
+      gameStateLabel: game => _isHostedBracketScheduleGame(game) ? 'Bracket' : 'Pool'
+    });
+    listEl.innerHTML = hostedHtml;
+    return;
   }
 
   paths.forEach(path => {
@@ -11536,6 +11566,18 @@ function _getHostedFullDrawScheduleGames(tournament, groupKey) {
   return tournament?.games || [];
 }
 
+function _isHostedDivisionContext(tournament, groupKey) {
+  const dirPkg = getDirectorPkg();
+  if (tournament?.dirImportCode || tournament?.directorCode) return true;
+  if (Array.isArray(dirPkg?.importedSchedule) && dirPkg.importedSchedule.length) {
+    const normalizedGroup = String(_resolveHostedImportAgeGroupName(tournament, groupKey, dirPkg) || '').trim().toLowerCase();
+    if (normalizedGroup && dirPkg.importedSchedule.some(game =>
+      String(game?.ageGroupName || '').trim().toLowerCase() === normalizedGroup
+    )) return true;
+  }
+  return false;
+}
+
 function _looksLikeBracketSeedRef(text) {
   const value = String(text || '').trim();
   if (!value) return false;
@@ -11566,6 +11608,25 @@ function _isHostedBracketScheduleGame(game) {
     _looksLikeBracketSeedRef(opponent) ||
     /^(Winner|Loser)\s+/i.test(myTeam) ||
     /^(Winner|Loser)\s+/i.test(opponent);
+}
+
+function _getHostedSelectedTeamScheduleGames(tournament) {
+  const gamesByKey = new Map();
+  for (const game of (tournament?.games || [])) {
+    const gameNum = String(game?.gameNum || '').trim();
+    const myTeam = String(game?.myTeam || '').trim();
+    const opponent = String(game?.opponent || '').trim();
+    const dateISO = String(game?.dateISO || '').trim() || parseDateToISO(game?.date || '');
+    const date = String(game?.date || '').trim();
+    const time = String(game?.time || '').trim();
+    const location = String(game?.location || '').trim();
+    if (!myTeam && !opponent) continue;
+    const key = gameNum || `${myTeam}|${opponent}|${dateISO}|${time}|${location}`;
+    if (!gamesByKey.has(key)) {
+      gamesByKey.set(key, { ...game, gameNum, myTeam, opponent, dateISO, date, time, location });
+    }
+  }
+  return Array.from(gamesByKey.values());
 }
 
 function _getHostedFullDrawGameInventory(tournament, paths) {
@@ -11599,6 +11660,186 @@ function _getHostedFullDrawGameInventory(tournament, paths) {
     }
   }
   return fallbackGames;
+}
+
+function _renderHostedDivisionSchedule(tournament, groupKey, scoreSource, options = {}) {
+  const title = options.title || 'Division Games';
+  const kicker = options.kicker || 'Hosted Schedule';
+  const gamesByKey = new Map();
+  for (const game of (_getHostedFullDrawScheduleGames(tournament, groupKey) || [])) {
+    const gameNum = String(game?.gameNum || '').trim();
+    const myTeam = String(game?.myTeam || '').trim();
+    const opponent = String(game?.opponent || '').trim();
+    const dateISO = String(game?.dateISO || '').trim() || parseDateToISO(game?.date || '');
+    const date = String(game?.date || '').trim();
+    const time = String(game?.time || '').trim();
+    const location = String(game?.location || '').trim();
+    const key = gameNum || `${myTeam}|${opponent}|${dateISO}|${time}|${location}`;
+    if (!key) continue;
+    if (!gamesByKey.has(key)) {
+      gamesByKey.set(key, { gameNum, myTeam, opponent, dateISO, date, time, location });
+    }
+  }
+  const games = Array.from(gamesByKey.values()).sort((a, b) => {
+    const leftDate = a.dateISO || '9999-12-31';
+    const rightDate = b.dateISO || '9999-12-31';
+    if (leftDate !== rightDate) return leftDate.localeCompare(rightDate);
+    const leftTime = _parseTimeToMinutes(a.time || '');
+    const rightTime = _parseTimeToMinutes(b.time || '');
+    if (leftTime !== rightTime) return leftTime - rightTime;
+    return (a.gameNum || '').localeCompare(b.gameNum || '');
+  });
+  if (!games.length) return '';
+
+  const scoreIndex = new Map();
+  if (scoreSource?.games?.length) {
+    for (const dirGame of scoreSource.games) {
+      const gameNum = String(dirGame?.gameNum || '').trim();
+      if (gameNum) scoreIndex.set(gameNum, dirGame);
+    }
+  }
+
+  const groups = new Map();
+  for (const game of games) {
+    const key = game.dateISO || game.date || 'TBD';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(game);
+  }
+
+  const sections = Array.from(groups.entries()).map(([dayKey, dayGames]) => {
+    const dayLabel = dayGames[0]?.date || (dayKey && dayKey !== 'TBD' ? formatDateGroupLabel(dayKey) : 'Date TBD');
+    const cards = dayGames.map(game => {
+      const dirGame = scoreIndex.get(game.gameNum || '');
+      const sc = dirGame ? scoreSource?.scores?.[dirGame.id] : null;
+      const hasScore = sc && (sc.score1 != null || sc.score2 != null);
+      const status = String(sc?.status || '').toLowerCase();
+      const scoreHtml = hasScore ? `
+        <div class="full-draw-step-meta">
+          <span><strong>${escHtml(String(sc.score1 ?? 0))}</strong> - <strong>${escHtml(String(sc.score2 ?? 0))}</strong></span>
+          <span>${status === 'final' ? 'Final' : status === 'live' ? 'Live' : 'Scored'}</span>
+        </div>` : '';
+      return `<article class="full-draw-step-card full-draw-game-list-card">
+        <div class="full-draw-step-shell">
+          <div class="full-draw-step-top">
+            <span class="full-draw-game-chip">Game ${escHtml(game.gameNum || 'TBD')}</span>
+            <span class="full-draw-step-state">${_isHostedBracketScheduleGame(game) ? 'Bracket' : 'Pool'}</span>
+          </div>
+          <div class="full-draw-step-desc">${escHtml(normalizeDisplayText(`${game.myTeam || 'TBD'} vs ${game.opponent || 'TBD'}`))}</div>
+          <div class="full-draw-step-meta">
+            <span>${escHtml(game.time || 'Time TBD')}</span>
+            <span>${escHtml(bracketLocationDisplay(game.location || '') || 'Location TBD')}</span>
+          </div>
+          ${scoreHtml}
+        </div>
+      </article>`;
+    }).join('');
+    return `<section class="full-draw-day-group">
+      <div class="full-draw-day-head">${escHtml(dayLabel)}</div>
+      <div class="full-draw-path-grid full-draw-game-grid">${cards}</div>
+    </section>`;
+  }).join('');
+
+  return `<section class="full-draw-section">
+    <div class="full-draw-section-head">
+      <div>
+        <div class="full-draw-kicker">${escHtml(kicker)}</div>
+        <h3 class="full-draw-title">${escHtml(title)}</h3>
+      </div>
+    </div>
+    <div class="full-draw-note">All scheduled games for this division, including pool play and published bracket games.</div>
+    ${sections}
+  </section>`;
+}
+
+function _renderHostedGamesSection(gamesInput, scoreSource, options = {}) {
+  const title = options.title || 'Games';
+  const kicker = options.kicker || 'Schedule';
+  const note = options.note || '';
+  const gameStateLabel = options.gameStateLabel || (() => '');
+  const gamesByKey = new Map();
+  for (const rawGame of (gamesInput || [])) {
+    const game = {
+      gameNum: String(rawGame?.gameNum || '').trim(),
+      myTeam: String(rawGame?.myTeam || '').trim(),
+      opponent: String(rawGame?.opponent || '').trim(),
+      dateISO: String(rawGame?.dateISO || '').trim() || parseDateToISO(rawGame?.date || ''),
+      date: String(rawGame?.date || '').trim(),
+      time: String(rawGame?.time || '').trim(),
+      location: String(rawGame?.location || '').trim(),
+    };
+    if (!game.myTeam && !game.opponent) continue;
+    const key = game.gameNum || `${game.myTeam}|${game.opponent}|${game.dateISO}|${game.time}|${game.location}`;
+    if (!gamesByKey.has(key)) gamesByKey.set(key, game);
+  }
+  const games = Array.from(gamesByKey.values()).sort((a, b) => {
+    const leftDate = a.dateISO || '9999-12-31';
+    const rightDate = b.dateISO || '9999-12-31';
+    if (leftDate !== rightDate) return leftDate.localeCompare(rightDate);
+    const leftTime = _parseTimeToMinutes(a.time || '');
+    const rightTime = _parseTimeToMinutes(b.time || '');
+    if (leftTime !== rightTime) return leftTime - rightTime;
+    return (a.gameNum || '').localeCompare(b.gameNum || '');
+  });
+  if (!games.length) return '';
+
+  const scoreIndex = new Map();
+  if (scoreSource?.games?.length) {
+    for (const dirGame of scoreSource.games) {
+      const gameNum = String(dirGame?.gameNum || '').trim();
+      if (gameNum) scoreIndex.set(gameNum, dirGame);
+    }
+  }
+
+  const groups = new Map();
+  for (const game of games) {
+    const key = game.dateISO || game.date || 'TBD';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(game);
+  }
+
+  const sections = Array.from(groups.entries()).map(([dayKey, dayGames]) => {
+    const dayLabel = dayGames[0]?.date || (dayKey && dayKey !== 'TBD' ? formatDateGroupLabel(dayKey) : 'Date TBD');
+    const cards = dayGames.map(game => {
+      const dirGame = scoreIndex.get(game.gameNum || '');
+      const sc = dirGame ? scoreSource?.scores?.[dirGame.id] : null;
+      const hasScore = sc && (sc.score1 != null || sc.score2 != null);
+      const status = String(sc?.status || '').toLowerCase();
+      const scoreHtml = hasScore ? `
+        <div class="full-draw-step-meta">
+          <span><strong>${escHtml(String(sc.score1 ?? 0))}</strong> - <strong>${escHtml(String(sc.score2 ?? 0))}</strong></span>
+          <span>${status === 'final' ? 'Final' : status === 'live' ? 'Live' : 'Scored'}</span>
+        </div>` : '';
+      return `<article class="full-draw-step-card full-draw-game-list-card">
+        <div class="full-draw-step-shell">
+          <div class="full-draw-step-top">
+            <span class="full-draw-game-chip">Game ${escHtml(game.gameNum || 'TBD')}</span>
+            <span class="full-draw-step-state">${escHtml(gameStateLabel(game) || '')}</span>
+          </div>
+          <div class="full-draw-step-desc">${escHtml(normalizeDisplayText(`${game.myTeam || 'TBD'} vs ${game.opponent || 'TBD'}`))}</div>
+          <div class="full-draw-step-meta">
+            <span>${escHtml(game.time || 'Time TBD')}</span>
+            <span>${escHtml(bracketLocationDisplay(game.location || '') || 'Location TBD')}</span>
+          </div>
+          ${scoreHtml}
+        </div>
+      </article>`;
+    }).join('');
+    return `<section class="full-draw-day-group">
+      <div class="full-draw-day-head">${escHtml(dayLabel)}</div>
+      <div class="full-draw-path-grid full-draw-game-grid">${cards}</div>
+    </section>`;
+  }).join('');
+
+  return `<section class="full-draw-section">
+    <div class="full-draw-section-head">
+      <div>
+        <div class="full-draw-kicker">${escHtml(kicker)}</div>
+        <h3 class="full-draw-title">${escHtml(title)}</h3>
+      </div>
+    </div>
+    ${note ? `<div class="full-draw-note">${escHtml(note)}</div>` : ''}
+    ${sections}
+  </section>`;
 }
 
 function _renderFullDrawBracketInventory(gamesInput) {
@@ -11738,18 +11979,26 @@ function renderFullDraw() {
   }
 
   // ── 2. All bracket games ───────────────────────────────────────────────────
-  const inventoryGames = _getHostedFullDrawGameInventory(tournament, paths);
-  if (inventoryGames.length) {
-    html += _renderFullDrawBracketInventory(inventoryGames);
-  }
-
-  if (!hasPools && !paths.length && !inventoryGames.length) {
-    html = `<div class="full-draw-shell">
-      <div class="full-draw-empty">
-        <div class="full-draw-empty-icon">📋</div>
-        <div class="full-draw-empty-copy">Full tournament draw will be<br>available once the schedule is posted.</div>
-      </div>
-    </div>`;
+  if (!!(tournament?.dirImportCode || tournament?.directorCode)) {
+    html += _renderHostedGamesSection(_getHostedFullDrawScheduleGames(tournament, groupKey), scoreSource, {
+      kicker: 'Full Draw',
+      title: 'All games for this division',
+      note: 'Division scoreboard showing all scheduled pool and bracket games.',
+      gameStateLabel: game => _isHostedBracketScheduleGame(game) ? 'Bracket' : 'Pool'
+    });
+  } else {
+    const inventoryGames = _getHostedFullDrawGameInventory(tournament, paths);
+    if (inventoryGames.length) {
+      html += _renderFullDrawBracketInventory(inventoryGames);
+    }
+    if (!hasPools && !paths.length && !inventoryGames.length) {
+      html = `<div class="full-draw-shell">
+        <div class="full-draw-empty">
+          <div class="full-draw-empty-icon">📋</div>
+          <div class="full-draw-empty-copy">Full tournament draw will be<br>available once the schedule is posted.</div>
+        </div>
+      </div>`;
+    }
   }
 
   if (html && !html.endsWith('</div>')) html += '</div>';
