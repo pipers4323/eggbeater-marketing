@@ -12993,6 +12993,27 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
       return out;
     }
 
+    function _normalizeHostedRosterName(name) {
+      return String(name || '').trim().toLowerCase();
+    }
+
+    function _dirImportGetHostedRoster(pkg, ageGroupName, teamName) {
+      const rosters = Array.isArray(pkg?.importedRosters) ? pkg.importedRosters : [];
+      const normalizedAgeGroup = String(ageGroupName || '').trim().toLowerCase();
+      const normalizedTeam = _normalizeHostedRosterName(teamName);
+      if (!normalizedTeam) return [];
+      const exact = rosters.find(entry =>
+        _normalizeHostedRosterName(entry?.teamName) === normalizedTeam &&
+        String(entry?.ageGroupName || '').trim().toLowerCase() === normalizedAgeGroup
+      );
+      if (exact?.players?.length) return JSON.parse(JSON.stringify(exact.players));
+      const fallbackMatches = rosters.filter(entry => _normalizeHostedRosterName(entry?.teamName) === normalizedTeam);
+      if (fallbackMatches.length === 1 && fallbackMatches[0]?.players?.length) {
+        return JSON.parse(JSON.stringify(fallbackMatches[0].players));
+      }
+      return [];
+    }
+
     function dirImportPickTeam(btnEl) {
       if (!S.dirImport?.pkg) return;
       const teamName = btnEl?.dataset?.team || btnEl;
@@ -13185,6 +13206,21 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
           });
         });
 
+        let hostedRoster = null;
+        if (selTeams.length) {
+          if (selTeams.length === 1) {
+            hostedRoster = _dirImportGetHostedRoster(pkg, selectedAgeGroup, selTeams[0]);
+          } else {
+            hostedRoster = {};
+            selTeams.forEach(teamName => {
+              const letter = teamLetterMap[teamName];
+              const players = _dirImportGetHostedRoster(pkg, selectedAgeGroup, teamName);
+              if (letter && players.length) hostedRoster[letter] = players;
+            });
+            if (!Object.keys(hostedRoster).length) hostedRoster = null;
+          }
+        }
+
         S.tournament.games = merged;
         S.tournament.dirImportCode = S.dirImport.code;
         S.tournament.dirImportName = pkg?.tournamentName || '';
@@ -13200,12 +13236,19 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
         delete S.tournament.upcomingMode;
         delete S.tournament.comingSoon;
 
+        if (hostedRoster) S.roster = hostedRoster;
+
         const saveRes = await api('PUT', '/admin/data', { tournament: S.tournament, history: S.history });
         if (!saveRes.ok) throw new Error('Save failed — tap 💾 Deploy in the header to retry');
+        if (hostedRoster) {
+          const rosterRes = await api('PUT', '/admin/roster', { roster: hostedRoster });
+          if (!rosterRes.ok) throw new Error('Roster save failed — tap Save Roster to retry');
+        }
         await _pushToFirebaseMirror(S.team, S.tournament, S.history || []);
         const hostedPathCount = Object.values(hostedImportedPathMap).reduce((sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0);
         const bracketNote = hostedPathCount ? ` + ${hostedPathCount} bracket path(s)` : '';
-        showStatus(`✅ ${merged.length} game(s)${bracketNote} imported from ${pkg?.tournamentName || S.dirImport.code}!`, 'ok');
+        const rosterNote = hostedRoster ? ' + roster' : '';
+        showStatus(`✅ ${merged.length} game(s)${bracketNote}${rosterNote} imported from ${pkg?.tournamentName || S.dirImport.code}!`, 'ok');
         S.dirImport = {};
         renderTab();
       } catch(e) {
@@ -18531,10 +18574,82 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
       localStorage.setItem('ebadmin-director-' + S.team, JSON.stringify(S.director));
     }
 
+    function _dirHostedRosterSummary(entries) {
+      const totalTeams = entries.length;
+      const totalPlayers = entries.reduce((sum, entry) => sum + ((entry?.players || []).length), 0);
+      return { totalTeams, totalPlayers };
+    }
+
+    function dirRosterParseBulk() {
+      const raw = document.getElementById('dir-roster-bulk-input')?.value || '';
+      if (!raw.trim()) { showStatus('Paste your roster spreadsheet data first', 'err'); return; }
+      const players = _parseBulkText(raw);
+      if (!players.length) { showStatus('No roster rows found', 'err'); return; }
+      if (!players.some(p => p.team)) { showStatus('Roster import needs a Team column', 'err'); return; }
+      S._dirRosterParsed = players;
+      renderTab();
+      showStatus(`Parsed ${players.length} roster row(s)`, 'ok');
+    }
+
+    function dirRosterUploadFile(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const players = _parseBulkText(e.target.result || '');
+        if (!players.length) { showStatus('No roster rows found', 'err'); return; }
+        if (!players.some(p => p.team)) { showStatus('Roster import needs a Team column', 'err'); return; }
+        S._dirRosterParsed = players;
+        renderTab();
+        showStatus(`Parsed ${players.length} roster row(s)`, 'ok');
+      };
+      reader.readAsText(file);
+    }
+
+    function dirRosterCommitParsed() {
+      const players = S._dirRosterParsed || [];
+      if (!players.length) return;
+      if (!S.director) S.director = defaultDirector();
+      const grouped = {};
+      for (const p of players) {
+        const teamName = String(p.team || '').trim();
+        if (!teamName) continue;
+        const ageGroupName = String(p.ageGroup || '').trim();
+        const key = `${ageGroupName.toLowerCase()}|${teamName.toLowerCase()}`;
+        if (!grouped[key]) grouped[key] = { ageGroupName, teamName, players: [] };
+        grouped[key].players.push({
+          cap: p.cap || '',
+          first: p.first || '',
+          last: p.last || '',
+          pos: p.pos || ''
+        });
+      }
+      const existing = Array.isArray(S.director.importedRosters) ? S.director.importedRosters : [];
+      const replaceKeys = new Set(Object.keys(grouped));
+      const kept = existing.filter(entry => !replaceKeys.has(`${String(entry?.ageGroupName || '').trim().toLowerCase()}|${String(entry?.teamName || '').trim().toLowerCase()}`));
+      S.director.importedRosters = [...kept, ...Object.values(grouped)];
+      S._dirRosterParsed = null;
+      saveDirectorLocally();
+      renderTab();
+      const summary = _dirHostedRosterSummary(S.director.importedRosters);
+      showStatus(`✅ Stored ${summary.totalPlayers} roster row(s) across ${summary.totalTeams} team roster(s) for hosted import`, 'ok');
+    }
+
+    function dirRosterClearHosted() {
+      if (!confirm('Clear all hosted director rosters?')) return;
+      if (!S.director) S.director = defaultDirector();
+      S.director.importedRosters = [];
+      S._dirRosterParsed = null;
+      saveDirectorLocally();
+      renderTab();
+      showStatus('Hosted director rosters cleared', 'ok');
+    }
+
     function defaultDirector() {
       return {
         ageGroups: [],
         schedDays: [{ date: '', startTime: '8:00 AM', endTime: '6:00 PM' }],
+        importedRosters: [],
         importedBracketPaths: [],
         publishedCode: null,
         publishedAt: null,
@@ -18743,6 +18858,7 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
           schedDays: S.director.schedDays,
           importedSchedule: S.director.importedSchedule || [],
           importedPools: S.director.importedPools || [],
+          importedRosters: S.director.importedRosters || [],
           importedBracketPaths: S.director.importedBracketPaths || [],
           sheetWritebackConfigured: !!(S.director.sheetWriteback?.webhookUrl || ''),
           publishedAt: Date.now(),
@@ -19425,6 +19541,29 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
       </div>
     </details>`;
 
+      const _hostedRosterEntries = Array.isArray(S.director?.importedRosters) ? S.director.importedRosters : [];
+      const _hostedRosterSummary = _dirHostedRosterSummary(_hostedRosterEntries);
+      const _dirRosterParsed = Array.isArray(S._dirRosterParsed) ? S._dirRosterParsed : [];
+      const dirHostedRosterCard = `
+    <div class="card">
+      <div class="card-header">👥 Hosted Tournament Rosters</div>
+      <div style="padding:10px 14px 14px">
+        <div class="info-hint" style="margin-bottom:8px">Load all tournament rosters once here, then hosted team imports will auto-save the selected team roster before deploy. Expected columns: Team, Cap #, First Name, Last Name. Optional column: Age Group / Division.</div>
+        <textarea id="dir-roster-bulk-input" class="info-input" style="min-height:120px;margin-bottom:8px" placeholder="Paste roster rows here...">${esc(S._dirRosterRaw || '')}</textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <button class="save-btn" style="flex:1" onclick="S._dirRosterRaw=document.getElementById('dir-roster-bulk-input')?.value||'';dirRosterParseBulk()">🔍 Parse Tournament Rosters</button>
+          <label class="save-btn" style="flex:0 0 auto;background:var(--g100);color:var(--g700);cursor:pointer">📁 Upload CSV<input type="file" accept=".csv,.txt" onchange="dirRosterUploadFile(event)" style="display:none"></label>
+          <button class="save-btn" style="flex:0 0 auto;background:#fff7ed;color:#c2410c;border-color:#fdba74" onclick="dirRosterClearHosted()">🗑 Clear Hosted Rosters</button>
+        </div>
+        <div style="font-size:0.8rem;color:var(--g500);margin-bottom:8px">Currently stored for hosted import: <strong>${_hostedRosterSummary.totalTeams}</strong> team rosters · <strong>${_hostedRosterSummary.totalPlayers}</strong> players</div>
+        ${_dirRosterParsed.length ? `<div style="border:1px solid var(--g200);border-radius:8px;padding:10px;background:var(--g50)">
+          <div style="font-size:0.82rem;font-weight:700;color:var(--royal);margin-bottom:6px">Ready to store ${_dirRosterParsed.length} parsed roster row(s)</div>
+          <div style="font-size:0.78rem;color:var(--g500);margin-bottom:8px">${Object.entries(_dirRosterParsed.reduce((acc, p) => { const key = String(p.ageGroup || '').trim() ? `${p.ageGroup} · ${p.team}` : p.team; if (!key) return acc; acc[key] = (acc[key] || 0) + 1; return acc; }, {})).map(([k, n]) => `${esc(k)} (${n})`).join(' · ')}</div>
+          <button class="save-btn" style="width:100%;background:var(--green);border-color:var(--green)" onclick="dirRosterCommitParsed()">💾 Store Hosted Team Rosters</button>
+        </div>` : ''}
+      </div>
+    </div>`;
+
       const dirBsCard = `
     <div class="card">
       <div class="card-header">📋 Schedule Sheet Import</div>
@@ -19463,6 +19602,7 @@ S.bsync = { step: 1, sheetUrl: _lsUrl, sheetId: _lsUrl.match(/\/spreadsheets\/d\
       return `${_dirToggle}
     ${tournamentInfoCard}
     ${dirSharedImportCard}
+    ${dirHostedRosterCard}
     ${dirBsCard}
     <div class="card">
       <div class="card-header">🏆 Tournament Director — Age Groups &amp; Divisions</div>
