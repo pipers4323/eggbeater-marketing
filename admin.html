@@ -18618,6 +18618,7 @@ async function restoreDirectorFromPublishedCode() {
       importedSchedule: Array.isArray(pkg.importedSchedule) ? pkg.importedSchedule : (S.director.importedSchedule || []),
       importedPools: Array.isArray(pkg.importedPools) ? pkg.importedPools : (S.director.importedPools || []),
       importedRosters: Array.isArray(pkg.importedRosters) ? pkg.importedRosters : (S.director.importedRosters || []),
+      importedLogoRegistry: Array.isArray(pkg.importedLogoRegistry) ? pkg.importedLogoRegistry : (S.director.importedLogoRegistry || []),
       importedBracketPaths: Array.isArray(pkg.importedBracketPaths) ? pkg.importedBracketPaths : (S.director.importedBracketPaths || []),
       publishedCode: liveCode,
       publishedAt: pkg.publishedAt || S.director.publishedAt || null,
@@ -18649,6 +18650,7 @@ async function restoreDirectorByCode(btn) {
       importedSchedule: Array.isArray(pkg.importedSchedule) ? pkg.importedSchedule : [],
       importedPools: Array.isArray(pkg.importedPools) ? pkg.importedPools : [],
       importedRosters: Array.isArray(pkg.importedRosters) ? pkg.importedRosters : [],
+      importedLogoRegistry: Array.isArray(pkg.importedLogoRegistry) ? pkg.importedLogoRegistry : [],
       importedBracketPaths: Array.isArray(pkg.importedBracketPaths) ? pkg.importedBracketPaths : [],
       publishedCode: code,
       publishedAt: pkg.publishedAt || Date.now(),
@@ -18768,11 +18770,190 @@ async function dirRosterFetchSheet(btn) {
       showStatus('Hosted director rosters cleared', 'ok');
     }
 
+    function _parseDirectorLogoRegistryText(raw) {
+      const lines = String(raw || '').split(/\r?\n/).filter(l => l.trim());
+      if (!lines.length) return [];
+      const firstLine = lines[0];
+      const delim = firstLine.includes('\t') ? '\t' : firstLine.includes('|') ? '|' : ',';
+      const rows = lines.map(line => line.split(delim).map(s => String(s || '').trim().replace(/^["']|["']$/g, '')));
+      const headers = rows[0].map(cell => cell.toLowerCase());
+      const findCol = (...patterns) => {
+        for (const p of patterns) {
+          const idx = headers.findIndex(h => h === p || h.includes(p));
+          if (idx !== -1) return idx;
+        }
+        return -1;
+      };
+      const teamCol = findCol('team', 'opponent', 'club', 'name', 'display');
+      const logoCol = findCol('logo url', 'logourl', 'logo', 'url', 'image');
+      const aliasCol = findCol('aliases', 'alias');
+      const ageCol = findCol('age group', 'agegroup', 'division', 'group');
+      const start = (teamCol !== -1 || logoCol !== -1 || aliasCol !== -1 || ageCol !== -1) ? 1 : 0;
+      const entries = [];
+      for (let i = start; i < rows.length; i++) {
+        const row = rows[i];
+        const teamName = String(teamCol >= 0 ? row[teamCol] : row[0] || '').trim();
+        const logoUrl = String(logoCol >= 0 ? row[logoCol] : row[1] || '').trim();
+        const aliasesRaw = String(aliasCol >= 0 ? row[aliasCol] : row[2] || '').trim();
+        const ageGroupName = String(ageCol >= 0 ? row[ageCol] : row[3] || '').trim();
+        if (!teamName || !logoUrl) continue;
+        const aliases = aliasesRaw
+          ? aliasesRaw.split(/[|,]/).map(v => String(v || '').trim()).filter(Boolean)
+          : [];
+        entries.push({ teamName, logoUrl, aliases, ageGroupName });
+      }
+      return entries;
+    }
+
+    function _dirLogoRegistryScope() {
+      return (document.getElementById('dir-logo-registry-scope')?.value || S._dirLogoRegistryScope || 'club');
+    }
+
+    function dirLogoRegistryParseBulk() {
+      const raw = document.getElementById('dir-logo-registry-input')?.value || '';
+      if (!raw.trim()) { showStatus('Paste logo registry rows first', 'err'); return; }
+      const entries = _parseDirectorLogoRegistryText(raw);
+      if (!entries.length) { showStatus('No logo rows found', 'err'); return; }
+      S._dirLogoRegistryParsed = entries;
+      renderTab();
+      showStatus(`Parsed ${entries.length} logo entr${entries.length === 1 ? 'y' : 'ies'}`, 'ok');
+    }
+
+    function dirLogoRegistryUploadFile(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const entries = _parseDirectorLogoRegistryText(e.target.result || '');
+        if (!entries.length) { showStatus('No logo rows found', 'err'); return; }
+        S._dirLogoRegistryParsed = entries;
+        renderTab();
+        showStatus(`Parsed ${entries.length} logo entr${entries.length === 1 ? 'y' : 'ies'}`, 'ok');
+      };
+      reader.readAsText(file);
+    }
+
+    async function dirLogoRegistryFetchSheet(btn) {
+      const url = (document.getElementById('dir-logo-sheet-url')?.value || '').trim();
+      if (!url) { showStatus('Enter a logo Google Sheet URL first', 'err'); return; }
+      const sheetId = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1];
+      if (!sheetId) { showStatus('Could not find a Google Sheet ID in that logo URL', 'err'); return; }
+      if (btn) btn.disabled = true;
+      try {
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:csv';
+        const resp = await fetch(csvUrl);
+        if (!resp.ok) throw new Error('Logo sheet fetch failed: HTTP ' + resp.status);
+        const text = await resp.text();
+        const entries = _parseDirectorLogoRegistryText(text);
+        if (!entries.length) throw new Error('No logo rows found in the sheet');
+        S._dirLogoRegistryParsed = entries;
+        renderTab();
+        showStatus(`Parsed ${entries.length} logo entr${entries.length === 1 ? 'y' : 'ies'} from sheet`, 'ok');
+      } catch (e) {
+        showStatus('❌ ' + e.message, 'err');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function dirLogoRegistryLoadSaved(btn) {
+      const scope = _dirLogoRegistryScope();
+      S._dirLogoRegistryScope = scope;
+      const original = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading…'; }
+      try {
+        const res = await api('GET', '/admin/team-logo-registry?scope=' + encodeURIComponent(scope));
+        const data = await res.json();
+        if (!res.ok || !data?.ok) throw new Error(data?.description || 'Failed to load saved team logos');
+        if (!S.director) S.director = defaultDirector();
+        if (scope === 'global') S.director.globalLogoRegistry = Array.isArray(data.entries) ? data.entries : [];
+        else S.director.importedLogoRegistry = Array.isArray(data.entries) ? data.entries : [];
+        saveDirectorLocally();
+        renderTab();
+        const count = scope === 'global' ? (S.director.globalLogoRegistry || []).length : (S.director.importedLogoRegistry || []).length;
+        showStatus(`Loaded ${count} saved ${scope === 'global' ? 'universal' : 'club'} logo entr${count === 1 ? 'y' : 'ies'}`, 'ok');
+      } catch (e) {
+        showStatus('❌ ' + e.message, 'err');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = original || 'Load Saved'; }
+      }
+    }
+
+    async function dirLogoRegistryCommitParsed(btn) {
+      const entries = Array.isArray(S._dirLogoRegistryParsed) ? S._dirLogoRegistryParsed : [];
+      if (!entries.length) return;
+      if (!S.director) S.director = defaultDirector();
+      const scope = _dirLogoRegistryScope();
+      S._dirLogoRegistryScope = scope;
+      const grouped = new Map();
+      for (const entry of entries) {
+        const teamName = String(entry.teamName || '').trim();
+        const logoUrl = String(entry.logoUrl || '').trim();
+        if (!teamName || !logoUrl) continue;
+        const ageGroupName = String(entry.ageGroupName || '').trim();
+        const key = `${ageGroupName.toLowerCase()}|${teamName.toLowerCase()}`;
+        grouped.set(key, {
+          teamName,
+          logoUrl,
+          ageGroupName,
+          aliases: Array.from(new Set((Array.isArray(entry.aliases) ? entry.aliases : []).map(v => String(v || '').trim()).filter(Boolean))),
+        });
+      }
+      const existing = scope === 'global'
+        ? (Array.isArray(S.director.globalLogoRegistry) ? S.director.globalLogoRegistry : [])
+        : (Array.isArray(S.director.importedLogoRegistry) ? S.director.importedLogoRegistry : []);
+      const replaceKeys = new Set(Array.from(grouped.keys()));
+      const kept = existing.filter(entry => !replaceKeys.has(`${String(entry?.ageGroupName || '').trim().toLowerCase()}|${String(entry?.teamName || '').trim().toLowerCase()}`));
+      const nextEntries = [...kept, ...Array.from(grouped.values())];
+      if (scope === 'global') S.director.globalLogoRegistry = nextEntries;
+      else S.director.importedLogoRegistry = nextEntries;
+      const original = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving…'; }
+      try {
+        const res = await api('PUT', '/admin/team-logo-registry?scope=' + encodeURIComponent(scope), { entries: nextEntries });
+        const data = await res.json();
+        if (!res.ok || !data?.ok) throw new Error(data?.description || 'Failed to save team logo registry');
+        if (scope === 'global') S.director.globalLogoRegistry = Array.isArray(data.entries) ? data.entries : nextEntries;
+        else S.director.importedLogoRegistry = Array.isArray(data.entries) ? data.entries : nextEntries;
+        S._dirLogoRegistryParsed = null;
+        saveDirectorLocally();
+        renderTab();
+        const count = scope === 'global' ? (S.director.globalLogoRegistry || []).length : (S.director.importedLogoRegistry || []).length;
+        showStatus(`✅ Stored ${count} ${scope === 'global' ? 'universal' : 'club'} logo entr${count === 1 ? 'y' : 'ies'}`, 'ok');
+      } catch (e) {
+        showStatus('❌ ' + e.message, 'err');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = original || 'Save'; }
+      }
+    }
+
+    async function dirLogoRegistryClearHosted() {
+      const scope = _dirLogoRegistryScope();
+      S._dirLogoRegistryScope = scope;
+      if (!confirm(`Clear all ${scope === 'global' ? 'universal' : 'club'} team logo overrides?`)) return;
+      if (!S.director) S.director = defaultDirector();
+      try {
+        const res = await api('PUT', '/admin/team-logo-registry?scope=' + encodeURIComponent(scope), { entries: [] });
+        const data = await res.json();
+        if (!res.ok || !data?.ok) throw new Error(data?.description || 'Failed to clear team logo registry');
+        if (scope === 'global') S.director.globalLogoRegistry = [];
+        else S.director.importedLogoRegistry = [];
+        S._dirLogoRegistryParsed = null;
+        saveDirectorLocally();
+        renderTab();
+        showStatus(`${scope === 'global' ? 'Universal' : 'Club'} team logo registry cleared`, 'ok');
+      } catch (e) {
+        showStatus('❌ ' + e.message, 'err');
+      }
+    }
+
     function defaultDirector() {
       return {
         ageGroups: [],
         schedDays: [{ date: '', startTime: '8:00 AM', endTime: '6:00 PM' }],
         importedRosters: [],
+        importedLogoRegistry: [],
+        globalLogoRegistry: [],
         importedBracketPaths: [],
         publishedCode: null,
         publishedAt: null,
@@ -18982,6 +19163,7 @@ async function dirRosterFetchSheet(btn) {
           importedSchedule: S.director.importedSchedule || [],
           importedPools: S.director.importedPools || [],
           importedRosters: S.director.importedRosters || [],
+          importedLogoRegistry: S.director.importedLogoRegistry || [],
           importedBracketPaths: S.director.importedBracketPaths || [],
           sheetWritebackConfigured: !!(S.director.sheetWriteback?.webhookUrl || ''),
           publishedAt: Date.now(),
@@ -18989,6 +19171,7 @@ async function dirRosterFetchSheet(btn) {
         const res = await api('PUT', '/admin/tournament-pkg', {
           pkg,
           code: S.director.publishedCode || undefined,
+          logoRegistry: S.director.importedLogoRegistry || [],
           writeback: S.director.sheetWriteback || null,
         });
         const data = await res.json();
@@ -19678,6 +19861,10 @@ async function dirRosterFetchSheet(btn) {
       const _hostedRosterEntries = Array.isArray(S.director?.importedRosters) ? S.director.importedRosters : [];
       const _hostedRosterSummary = _dirHostedRosterSummary(_hostedRosterEntries);
       const _dirRosterParsed = Array.isArray(S._dirRosterParsed) ? S._dirRosterParsed : [];
+      const _clubLogoRegistryEntries = Array.isArray(S.director?.importedLogoRegistry) ? S.director.importedLogoRegistry : [];
+      const _globalLogoRegistryEntries = Array.isArray(S.director?.globalLogoRegistry) ? S.director.globalLogoRegistry : [];
+      const _dirLogoRegistryParsed = Array.isArray(S._dirLogoRegistryParsed) ? S._dirLogoRegistryParsed : [];
+      const _logoScope = S._dirLogoRegistryScope || 'club';
       const dirHostedRosterCard = `
     <div class="card">
       <div class="card-header">👥 Hosted Tournament Rosters</div>
@@ -19705,6 +19892,41 @@ async function dirRosterFetchSheet(btn) {
           <div style="font-size:0.82rem;font-weight:700;color:var(--royal);margin-bottom:6px">Ready to store ${_dirRosterParsed.length} parsed roster row(s)</div>
           <div style="font-size:0.78rem;color:var(--g500);margin-bottom:8px">${Object.entries(_dirRosterParsed.reduce((acc, p) => { const key = String(p.ageGroup || '').trim() ? `${p.ageGroup} · ${p.team}` : p.team; if (!key) return acc; acc[key] = (acc[key] || 0) + 1; return acc; }, {})).map(([k, n]) => `${esc(k)} (${n})`).join(' · ')}</div>
           <button class="save-btn" style="width:100%;background:var(--green);border-color:var(--green)" onclick="dirRosterCommitParsed()">💾 Store Hosted Team Rosters</button>
+        </div>` : ''}
+      </div>
+    </div>`;
+
+      const dirLogoRegistryCard = `
+    <div class="card">
+      <div class="card-header">🖼 Opponent / Team Logo Registry</div>
+      <div style="padding:10px 14px 14px">
+        <div class="info-hint" style="margin-bottom:8px">Store logo URLs keyed by team name so Live Activities, watch, notifications, and spectator cards can resolve opponent logos automatically. Expected columns: Team, Logo URL. Optional: Aliases, Age Group / Division.</div>
+        <div style="display:grid;grid-template-columns:minmax(180px,220px) minmax(0,1fr) auto;gap:8px;align-items:end;margin-bottom:8px">
+          <div>
+            <div class="info-label">Registry scope</div>
+            <select id="dir-logo-registry-scope" class="info-input" onchange="S._dirLogoRegistryScope=this.value;renderTab()">
+              <option value="club" ${_logoScope === 'club' ? 'selected' : ''}>Club overrides</option>
+              <option value="global" ${_logoScope === 'global' ? 'selected' : ''}>Universal registry</option>
+            </select>
+          </div>
+          <div>
+            <div class="info-label">Google Sheets URL</div>
+            <input id="dir-logo-sheet-url" class="info-input" placeholder="https://docs.google.com/spreadsheets/d/..." />
+          </div>
+          <button class="save-btn" onclick="dirLogoRegistryFetchSheet(this)" style="white-space:nowrap">Fetch Logo Sheet</button>
+        </div>
+        <textarea id="dir-logo-registry-input" class="info-input" style="min-height:120px;margin-bottom:8px" placeholder="Paste rows like: Team, Logo URL, Aliases, Age Group">${esc(S._dirLogoRegistryRaw || '')}</textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <button class="save-btn" style="flex:1" onclick="S._dirLogoRegistryRaw=document.getElementById('dir-logo-registry-input')?.value||'';dirLogoRegistryParseBulk()">🔍 Parse Team Logos</button>
+          <label class="save-btn" style="flex:0 0 auto;background:var(--g100);color:var(--g700);cursor:pointer">📁 Upload CSV<input type="file" accept=".csv,.txt" onchange="dirLogoRegistryUploadFile(event)" style="display:none"></label>
+          <button class="save-btn" style="flex:0 0 auto;background:var(--g100);color:var(--g700)" onclick="dirLogoRegistryLoadSaved(this)">↺ Load Saved</button>
+          <button class="save-btn" style="flex:0 0 auto;background:#fff7ed;color:#c2410c;border-color:#fdba74" onclick="dirLogoRegistryClearHosted()">🗑 Clear Registry</button>
+        </div>
+        <div style="font-size:0.8rem;color:var(--g500);margin-bottom:8px">Current ${_logoScope === 'global' ? 'universal' : 'club'} registry: <strong>${_logoScope === 'global' ? _globalLogoRegistryEntries.length : _clubLogoRegistryEntries.length}</strong> logo entr${(_logoScope === 'global' ? _globalLogoRegistryEntries.length : _clubLogoRegistryEntries.length) === 1 ? 'y' : 'ies'}</div>
+        ${_dirLogoRegistryParsed.length ? `<div style="border:1px solid var(--g200);border-radius:8px;padding:10px;background:var(--g50)">
+          <div style="font-size:0.82rem;font-weight:700;color:var(--royal);margin-bottom:6px">Ready to store ${_dirLogoRegistryParsed.length} parsed logo entr${_dirLogoRegistryParsed.length === 1 ? 'y' : 'ies'}</div>
+          <div style="font-size:0.78rem;color:var(--g500);margin-bottom:8px">${_dirLogoRegistryParsed.slice(0, 8).map(entry => `${esc(entry.teamName)} → ${esc(entry.logoUrl)}`).join(' · ')}${_dirLogoRegistryParsed.length > 8 ? ` · +${_dirLogoRegistryParsed.length - 8} more` : ''}</div>
+          <button class="save-btn" style="width:100%;background:var(--green);border-color:var(--green)" onclick="dirLogoRegistryCommitParsed(this)">💾 Store ${_logoScope === 'global' ? 'Universal' : 'Club'} Team Logos</button>
         </div>` : ''}
       </div>
     </div>`;
@@ -19748,6 +19970,7 @@ async function dirRosterFetchSheet(btn) {
     ${tournamentInfoCard}
     ${dirSharedImportCard}
     ${dirHostedRosterCard}
+    ${dirLogoRegistryCard}
     ${dirBsCard}
     <div class="card">
       <div class="card-header">🏆 Tournament Director — Age Groups &amp; Divisions</div>
