@@ -2217,9 +2217,11 @@ function _meaningfulEventCount(score) {
 
 function _hasMeaningfulLiveScoreData(score) {
   if (!score) return false;
+  const gameState = String(score.gameState || '').trim().toLowerCase();
   return _meaningfulEventCount(score) > 0
     || Number(score.team || 0) !== 0
-    || Number(score.opp || 0) !== 0;
+    || Number(score.opp || 0) !== 0
+    || (!!gameState && gameState !== 'pre');
 }
 
 function _attachScoreContext(score, gameOrRef, explicitGroupKey = '') {
@@ -14667,7 +14669,7 @@ function lockScoring() {
 // Devices are distinguished by a random per-device ID stored in localStorage
 // so the scorer never overwrites their own live state with stale remote data.
 
-const LIVE_POLL_MS = 5_000;
+const LIVE_POLL_MS = 3_000;
 let _livePollTimer = null;
 
 function getDeviceId() {
@@ -15705,7 +15707,7 @@ function showLiveToast() {
 async function startLivePoller() {
   if (_livePollTimer) clearInterval(_livePollTimer);
   pollLiveScores(); // immediate first check
-  const interval = await _getPollInterval(LIVE_POLL_MS); // 5 s normal, 10 s on low battery
+  const interval = Math.min(5_000, await _getPollInterval(LIVE_POLL_MS)); // keep live propagation under 5 s even on power saver
   _livePollTimer = setInterval(pollLiveScores, interval);
 }
 
