@@ -2924,25 +2924,35 @@
             style="background:white;border:1px solid var(--g200);border-radius:var(--radius);padding:14px 16px">
             <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px">🖼 Universal Logo Registry</div>
             <div style="font-size:0.78rem;color:var(--g400);margin-bottom:10px">Upload a team logo once so spectator cards, scorer, widgets, Live Activities, and the watch app can match teams by name and aliases.</div>
-            <div style="display:grid;gap:8px">
-              <input id="platform-logo-team" class="info-input" style="margin:0;font-size:0.82rem" placeholder="Team name (e.g. St-Laurent)">
-              <input id="platform-logo-aliases" class="info-input" style="margin:0;font-size:0.82rem" placeholder="Aliases (comma or | separated)">
-              <input id="platform-logo-age-group" class="info-input" style="margin:0;font-size:0.82rem" placeholder="Age group / division (optional)">
-              <input id="platform-logo-url" class="info-input" style="margin:0;font-size:0.82rem" placeholder="Logo URL (optional if you upload a file)">
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <label class="save-btn" style="flex:0 0 auto;background:var(--g100);color:var(--g700);cursor:pointer">🖼 Upload Logo<input type="file" accept="image/*" onchange="superAdminLogoUploadFile(event)" style="display:none"></label>
-                <div id="platform-logo-file-name" style="font-size:0.76rem;color:var(--g500)">No file selected</div>
+            <div style="display:grid;grid-template-columns:minmax(0,1.05fr) minmax(280px,.95fr);gap:12px;align-items:start">
+              <div style="display:grid;gap:8px">
+                <div id="platform-logo-editing-note" style="display:none;font-size:0.76rem;font-weight:700;color:var(--royal);background:var(--royal-lt);border:1px solid #bfd3ff;border-radius:10px;padding:8px 10px"></div>
+                <input id="platform-logo-team" class="info-input" style="margin:0;font-size:0.82rem" placeholder="Team name (e.g. St-Laurent)">
+                <input id="platform-logo-aliases" class="info-input" style="margin:0;font-size:0.82rem" placeholder="Aliases (comma or | separated)">
+                <input id="platform-logo-age-group" class="info-input" style="margin:0;font-size:0.82rem" placeholder="Age group / division (optional)">
+                <input id="platform-logo-url" class="info-input" style="margin:0;font-size:0.82rem" placeholder="Logo URL (optional if you upload a file)">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <label class="save-btn" style="flex:0 0 auto;background:var(--g100);color:var(--g700);cursor:pointer">🖼 Upload Logo<input type="file" accept="image/*" onchange="superAdminLogoUploadFile(event)" style="display:none"></label>
+                  <div id="platform-logo-file-name" style="font-size:0.76rem;color:var(--g500)">No file selected</div>
+                </div>
+                <div id="platform-logo-preview-wrap" style="display:none;align-items:center;gap:10px">
+                  <img id="platform-logo-preview" alt="" style="width:52px;height:52px;object-fit:contain;border-radius:12px;background:#f8fafc;border:1px solid var(--g200);padding:6px">
+                  <div style="font-size:0.76rem;color:var(--g500)">Preview of the uploaded logo that will be stored in the universal registry.</div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button id="platform-logo-save-btn" class="save-btn" style="flex:1 1 180px;background:var(--royal);border-color:var(--royal)" onclick="superAdminLogoSaveEntry(this)">Save Logo Entry</button>
+                  <button class="save-btn" style="flex:0 0 auto;background:var(--g100);color:var(--g700)" onclick="superAdminLogoClearForm()">Clear Form</button>
+                  <button class="save-btn" style="flex:0 0 auto;background:var(--g100);color:var(--g700)" onclick="loadSuperAdminLogoRegistry(this)">↺ Load Registry</button>
+                </div>
               </div>
-              <div id="platform-logo-preview-wrap" style="display:none;align-items:center;gap:10px">
-                <img id="platform-logo-preview" alt="" style="width:52px;height:52px;object-fit:contain;border-radius:12px;background:#f8fafc;border:1px solid var(--g200);padding:6px">
-                <div style="font-size:0.76rem;color:var(--g500)">Preview of the uploaded logo that will be stored in the universal registry.</div>
+              <div style="display:grid;gap:8px">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <input id="platform-logo-search" class="info-input" style="flex:1 1 180px;margin:0;font-size:0.82rem" placeholder="Search team or alias" oninput="superAdminLogoFilterChanged(this.value)">
+                  <button class="save-btn" style="flex:0 0 auto;background:#fff7ed;color:#c2410c;border-color:#fdba74" onclick="superAdminLogoClearAll()">🗑 Clear All</button>
+                </div>
+                <div id="platform-logo-registry-count" style="font-size:0.78rem;color:var(--g500)">Loading universal registry…</div>
+                <div id="platform-logo-registry-list" style="display:grid;gap:6px;max-height:360px;overflow:auto;padding-right:2px"></div>
               </div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button class="save-btn" style="flex:1 1 180px;background:var(--royal);border-color:var(--royal)" onclick="superAdminLogoSaveEntry(this)">Save Logo Entry</button>
-                <button class="save-btn" style="flex:0 0 auto;background:var(--g100);color:var(--g700)" onclick="loadSuperAdminLogoRegistry(this)">↺ Load Registry</button>
-              </div>
-              <div id="platform-logo-registry-count" style="font-size:0.78rem;color:var(--g500)">Loading universal registry…</div>
-              <div id="platform-logo-registry-list" style="display:grid;gap:6px"></div>
             </div>
           </div>
         </div>
@@ -4043,11 +4053,33 @@
       }
     }
 
+    function _superAdminLogoEntryKey(entry = {}) {
+      return `${String(entry.ageGroupName || '').trim().toLowerCase()}|${String(entry.teamName || '').trim().toLowerCase()}`;
+    }
+
     function _renderSuperAdminLogoRegistryList(entries = []) {
-      if (!entries.length) {
+      const search = String(S._superAdminLogoSearch || '').trim().toLowerCase();
+      const filtered = entries
+        .filter(entry => {
+          if (!search) return true;
+          const aliases = Array.isArray(entry.aliases) ? entry.aliases : [];
+          const hay = [
+            String(entry.teamName || ''),
+            String(entry.ageGroupName || ''),
+            ...aliases.map(v => String(v || ''))
+          ].join(' ').toLowerCase();
+          return hay.includes(search);
+        })
+        .sort((a, b) => {
+          const ageA = String(a.ageGroupName || '').trim().toLowerCase();
+          const ageB = String(b.ageGroupName || '').trim().toLowerCase();
+          if (ageA !== ageB) return ageA.localeCompare(ageB);
+          return String(a.teamName || '').localeCompare(String(b.teamName || ''));
+        });
+      if (!filtered.length) {
         return `<div style="font-size:0.78rem;color:var(--g400);padding:8px 0">No universal logo entries saved yet.</div>`;
       }
-      return entries.slice(0, 6).map(entry => {
+      return filtered.map(entry => {
         const aliases = (Array.isArray(entry.aliases) ? entry.aliases : []).filter(Boolean);
         const age = String(entry.ageGroupName || '').trim();
         return `<div style="display:flex;align-items:center;gap:10px;border:1px solid var(--g200);border-radius:10px;padding:8px 10px;background:var(--g50)">
@@ -4057,8 +4089,12 @@
             <div style="font-size:0.82rem;font-weight:700;color:var(--royal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(entry.teamName || '')}</div>
             <div style="font-size:0.74rem;color:var(--g500)">${age ? esc(age) + ' · ' : ''}${aliases.length ? esc(aliases.join(', ')) : 'No aliases'}</div>
           </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="save-btn" style="padding:6px 8px;font-size:0.72rem;background:var(--g100);color:var(--g700)" onclick="superAdminLogoEditEntry('${esc(_superAdminLogoEntryKey(entry))}')">Edit</button>
+            <button class="save-btn" style="padding:6px 8px;font-size:0.72rem;background:#fff7ed;color:#c2410c;border-color:#fdba74" onclick="superAdminLogoDeleteEntry('${esc(_superAdminLogoEntryKey(entry))}')">Delete</button>
+          </div>
         </div>`;
-      }).join('') + (entries.length > 6 ? `<div style="font-size:0.74rem;color:var(--g500)">+${entries.length - 6} more entries in the universal registry</div>` : '');
+      }).join('');
     }
 
     function _refreshSuperAdminLogoRegistryPanel() {
@@ -4068,7 +4104,16 @@
       const fileNameEl = document.getElementById('platform-logo-file-name');
       const previewWrap = document.getElementById('platform-logo-preview-wrap');
       const previewImg = document.getElementById('platform-logo-preview');
-      if (countEl) countEl.textContent = `Universal registry: ${entries.length} logo entr${entries.length === 1 ? 'y' : 'ies'}`;
+      const editingNote = document.getElementById('platform-logo-editing-note');
+      const saveBtn = document.getElementById('platform-logo-save-btn');
+      const filteredCount = entries.filter(entry => {
+        const search = String(S._superAdminLogoSearch || '').trim().toLowerCase();
+        if (!search) return true;
+        const aliases = Array.isArray(entry.aliases) ? entry.aliases : [];
+        const hay = [String(entry.teamName || ''), String(entry.ageGroupName || ''), ...aliases.map(v => String(v || ''))].join(' ').toLowerCase();
+        return hay.includes(search);
+      }).length;
+      if (countEl) countEl.textContent = `Universal registry: ${entries.length} logo entr${entries.length === 1 ? 'y' : 'ies'}${S._superAdminLogoSearch ? ` · showing ${filteredCount}` : ''}`;
       if (listEl) listEl.innerHTML = _renderSuperAdminLogoRegistryList(entries);
       if (fileNameEl && !S._superAdminLogoUploadName) fileNameEl.textContent = 'No file selected';
       if (previewWrap && previewImg) {
@@ -4079,6 +4124,93 @@
           previewWrap.style.display = 'none';
           previewImg.removeAttribute('src');
         }
+      }
+      if (editingNote) {
+        if (S._superAdminLogoEditingKey) {
+          editingNote.style.display = 'block';
+          editingNote.textContent = 'Editing existing registry entry — saving will replace that team/age-group record.';
+        } else {
+          editingNote.style.display = 'none';
+          editingNote.textContent = '';
+        }
+      }
+      if (saveBtn) saveBtn.textContent = S._superAdminLogoEditingKey ? 'Update Logo Entry' : 'Save Logo Entry';
+    }
+
+    function superAdminLogoFilterChanged(value) {
+      S._superAdminLogoSearch = String(value || '').trim();
+      _refreshSuperAdminLogoRegistryPanel();
+    }
+
+    function superAdminLogoClearForm() {
+      S._superAdminLogoEditingKey = '';
+      S._superAdminLogoUploadDataUrl = '';
+      S._superAdminLogoUploadName = '';
+      ['platform-logo-team','platform-logo-aliases','platform-logo-age-group','platform-logo-url','platform-logo-search'].forEach(id => {
+        if (id === 'platform-logo-search') return;
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      const fileInput = document.querySelector('#platform-logo-registry-card input[type="file"]');
+      if (fileInput) fileInput.value = '';
+      _refreshSuperAdminLogoRegistryPanel();
+    }
+
+    function superAdminLogoEditEntry(key) {
+      const entries = Array.isArray(S._superAdminLogoRegistryEntries) ? S._superAdminLogoRegistryEntries : [];
+      const match = entries.find(entry => _superAdminLogoEntryKey(entry) === String(key || ''));
+      if (!match) return;
+      document.getElementById('platform-logo-team').value = String(match.teamName || '');
+      document.getElementById('platform-logo-aliases').value = (Array.isArray(match.aliases) ? match.aliases : []).join(', ');
+      document.getElementById('platform-logo-age-group').value = String(match.ageGroupName || '');
+      document.getElementById('platform-logo-url').value = /^data:image/i.test(String(match.logoUrl || '')) ? '' : String(match.logoUrl || '');
+      S._superAdminLogoUploadDataUrl = /^data:image/i.test(String(match.logoUrl || '')) ? String(match.logoUrl || '') : '';
+      S._superAdminLogoUploadName = S._superAdminLogoUploadDataUrl ? 'Stored uploaded logo' : '';
+      S._superAdminLogoEditingKey = String(key || '');
+      _refreshSuperAdminLogoRegistryPanel();
+    }
+
+    async function superAdminLogoDeleteEntry(key) {
+      const entries = Array.isArray(S._superAdminLogoRegistryEntries) ? S._superAdminLogoRegistryEntries : [];
+      const match = entries.find(entry => _superAdminLogoEntryKey(entry) === String(key || ''));
+      if (!match) return;
+      if (!confirm(`Delete logo entry for ${match.teamName}${match.ageGroupName ? ` (${match.ageGroupName})` : ''}?`)) return;
+      try {
+        const nextEntries = entries.filter(entry => _superAdminLogoEntryKey(entry) !== String(key || ''));
+        const res = await fetch(WORKER + '/admin/team-logo-registry?scope=global', {
+          method: 'PUT',
+          headers: { ..._superAdminAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ entries: nextEntries })
+        });
+        const data = await res.json();
+        if (!res.ok || !data?.ok) throw new Error(data?.description || 'Failed to delete logo entry');
+        S._superAdminLogoRegistryEntries = Array.isArray(data.entries) ? data.entries : nextEntries;
+        if (S._superAdminLogoEditingKey === String(key || '')) superAdminLogoClearForm();
+        _refreshSuperAdminLogoRegistryPanel();
+        showStatus(`Deleted logo for ${match.teamName}`, 'ok');
+      } catch (e) {
+        showStatus('❌ ' + e.message, 'err');
+      }
+    }
+
+    async function superAdminLogoClearAll() {
+      const entries = Array.isArray(S._superAdminLogoRegistryEntries) ? S._superAdminLogoRegistryEntries : [];
+      if (!entries.length) { showStatus('Universal registry is already empty', 'info'); return; }
+      if (!confirm('Clear the entire universal logo registry?')) return;
+      try {
+        const res = await fetch(WORKER + '/admin/team-logo-registry?scope=global', {
+          method: 'PUT',
+          headers: { ..._superAdminAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ entries: [] })
+        });
+        const data = await res.json();
+        if (!res.ok || !data?.ok) throw new Error(data?.description || 'Failed to clear universal registry');
+        S._superAdminLogoRegistryEntries = [];
+        superAdminLogoClearForm();
+        _refreshSuperAdminLogoRegistryPanel();
+        showStatus('Universal logo registry cleared', 'ok');
+      } catch (e) {
+        showStatus('❌ ' + e.message, 'err');
       }
     }
 
@@ -4129,12 +4261,7 @@
       const original = btn ? btn.textContent : '';
       if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving…'; }
       try {
-        const currentRes = await fetch(WORKER + '/admin/team-logo-registry?scope=global', {
-          headers: _superAdminAuthHeaders()
-        });
-        const currentData = await currentRes.json();
-        if (!currentRes.ok || !currentData?.ok) throw new Error(currentData?.description || 'Failed to load universal registry');
-        const existing = Array.isArray(currentData.entries) ? currentData.entries : [];
+        const existing = Array.isArray(S._superAdminLogoRegistryEntries) ? S._superAdminLogoRegistryEntries : [];
         const matchKey = `${ageGroupName.toLowerCase()}|${teamName.toLowerCase()}`;
         const nextEntries = existing
           .filter(entry => `${String(entry?.ageGroupName || '').trim().toLowerCase()}|${String(entry?.teamName || '').trim().toLowerCase()}` !== matchKey)
@@ -4147,14 +4274,7 @@
         const data = await res.json();
         if (!res.ok || !data?.ok) throw new Error(data?.description || 'Failed to save universal registry');
         S._superAdminLogoRegistryEntries = Array.isArray(data.entries) ? data.entries : nextEntries;
-        S._superAdminLogoUploadDataUrl = '';
-        S._superAdminLogoUploadName = '';
-        ['platform-logo-team','platform-logo-aliases','platform-logo-age-group','platform-logo-url'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.value = '';
-        });
-        const fileInput = document.querySelector('#platform-logo-registry-card input[type="file"]');
-        if (fileInput) fileInput.value = '';
+        S._superAdminLogoEditingKey = matchKey;
         _refreshSuperAdminLogoRegistryPanel();
         showStatus(`Saved logo for ${teamName}`, 'ok');
       } catch (e) {
