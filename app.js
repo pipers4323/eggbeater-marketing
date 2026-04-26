@@ -12246,27 +12246,30 @@ function buildHistoryCard(t, options = {}) {
       ? `${recomputed.team ?? 0}-${recomputed.opp ?? 0}`
       : (syncedScore || lsDirectScore || scoreObj || (typeof g.score === 'string' ? g.score : '') || (typeof g.time === 'string' ? g.time : '') || '');
 
-    // Goal scorer chips
-    const teamGoals   = nonState.filter(ev => ev.type === 'goal');
-    const scorerChips = teamGoals.map(ev => {
+    const _buildHistoryPlayerChip = (ev, extraClass = '', extraSuffix = '') => {
       const cap   = ev.cap || '';
       const name  = ev.name || '';
       const label = cap
         ? `#${escHtml(cap)} ${escHtml(name.split(' ')[0])}`
         : escHtml(name.split(' ')[0] || '?');
       const sixTag = ev.sixOnFive ? ' ⚡' : '';
-      return `<span class="hist-scorer-chip">${label}${sixTag}</span>`;
-    }).join('');
+      return `<span class="hist-scorer-chip${extraClass ? ` ${extraClass}` : ''}">${label}${sixTag}${extraSuffix}</span>`;
+    };
+
+    // Goal scorer chips
+    const teamGoals   = nonState.filter(ev => ev.type === 'goal');
+    const scorerChips = teamGoals.map(ev => _buildHistoryPlayerChip(ev)).join('');
+    const teamSoGoals = nonState.filter(ev => ev.type === 'so_goal');
+    const soGoalChips = teamSoGoals.map(ev => _buildHistoryPlayerChip(ev, 'hist-assist-chip', ' 🎯')).join('');
+    const teamSoMisses = nonState.filter(ev => ev.type === 'so_miss');
+    const soMissChips = teamSoMisses.map(ev => _buildHistoryPlayerChip(ev, 'hist-assist-chip', ' ❌')).join('');
 
     // Assist chips
     const teamAssists  = nonState.filter(ev => ev.type === 'assist');
     const assistChips  = teamAssists.map(ev => {
       const cap   = ev.cap || '';
       const name  = ev.name || '';
-      const label = cap
-        ? `#${escHtml(cap)} ${escHtml(name.split(' ')[0])}`
-        : escHtml(name.split(' ')[0] || '?');
-      return `<span class="hist-scorer-chip hist-assist-chip">${label}</span>`;
+      return _buildHistoryPlayerChip(ev, 'hist-assist-chip');
     }).join('');
 
     // Per-player box score table (only when meaningful data exists)
@@ -12274,27 +12277,34 @@ function buildHistoryCard(t, options = {}) {
     for (const ev of nonState) {
       if (ev.side !== 'team') continue;
       const k = ev.cap || ev.name || '?';
-      if (!playerMap[k]) playerMap[k] = { cap: ev.cap||'', name: ev.name||'', G:0, A:0, Ex:0 };
+      if (!playerMap[k]) playerMap[k] = { cap: ev.cap||'', name: ev.name||'', G:0, SOG:0, SOM:0, A:0, Ex:0 };
       if (ev.type === 'goal')                              playerMap[k].G++;
+      if (ev.type === 'so_goal')                           playerMap[k].SOG++;
+      if (ev.type === 'so_miss')                           playerMap[k].SOM++;
       if (ev.type === 'assist')                            playerMap[k].A++;
       if (ev.type === 'exclusion' || ev.type === 'brutality') playerMap[k].Ex++;
     }
     const playerRows = Object.values(playerMap)
       .sort((a, b) => parseInt(a.cap||'999') - parseInt(b.cap||'999'));
-    const hasStats   = playerRows.some(p => p.G || p.A || p.Ex);
+    const hasShootoutStats = playerRows.some(p => p.SOG || p.SOM);
+    const hasStats   = playerRows.some(p => p.G || p.SOG || p.SOM || p.A || p.Ex);
 
     const boxScoreTable = hasStats ? `
       <div class="hist-box-score">
         <div class="hist-bs-row hist-bs-header">
           <span class="hist-bs-player">${appT('history_player_label')}</span>
           <span class="hist-bs-stat">G</span>
+          ${hasShootoutStats ? `<span class="hist-bs-stat" title="${escHtml(appT('boxscore_so_goals'))}">SO✓</span>` : ''}
+          ${hasShootoutStats ? `<span class="hist-bs-stat" title="${escHtml(appT('boxscore_so_misses'))}">SO✗</span>` : ''}
           <span class="hist-bs-stat">A</span>
           <span class="hist-bs-stat">Ex</span>
         </div>
-        ${playerRows.filter(p => p.G || p.A || p.Ex).map(p => `
+        ${playerRows.filter(p => p.G || p.SOG || p.SOM || p.A || p.Ex).map(p => `
           <div class="hist-bs-row">
             <span class="hist-bs-player">${p.cap ? `#${escHtml(p.cap)} ` : ''}${escHtml((p.name||'').split(' ')[0] || '?')}</span>
             <span class="hist-bs-stat">${p.G || '—'}</span>
+            ${hasShootoutStats ? `<span class="hist-bs-stat">${p.SOG || '—'}</span>` : ''}
+            ${hasShootoutStats ? `<span class="hist-bs-stat">${p.SOM || '—'}</span>` : ''}
             <span class="hist-bs-stat">${p.A || '—'}</span>
             <span class="hist-bs-stat">${p.Ex || '—'}</span>
           </div>`).join('')}
@@ -12312,6 +12322,16 @@ function buildHistoryCard(t, options = {}) {
         <div class="hist-scorer-row">
           <span class="hist-scorers-label">${appT('history_goals_label')}</span>
           <div class="hist-scorer-chips">${scorerChips}</div>
+        </div>` : ''}
+      ${soGoalChips ? `
+        <div class="hist-scorer-row">
+          <span class="hist-scorers-label">${escHtml(appT('boxscore_so_goals'))}</span>
+          <div class="hist-scorer-chips">${soGoalChips}</div>
+        </div>` : ''}
+      ${soMissChips ? `
+        <div class="hist-scorer-row">
+          <span class="hist-scorers-label">${escHtml(appT('boxscore_so_misses'))}</span>
+          <div class="hist-scorer-chips">${soMissChips}</div>
         </div>` : ''}
       ${assistChips ? `
         <div class="hist-scorer-row">
