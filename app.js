@@ -4374,11 +4374,18 @@ function setGameState(gameId, gstate) {
   if (newPeriod != null) s.period = newPeriod;
   const mappedPhase = TIMER_PHASE_FOR_STATE[gstate];
   if (mappedPhase) s.timerPhase = mappedPhase;
+  if (gstate === 'shootout') {
+    s.timerRunning = false;
+    s.timerStartedAt = 0;
+    s.timerSecondsLeft = 0;
+    s.clock = '';
+    s.timerPhase = 'shootout';
+  }
   s.events.push({ type: 'game_state', gameState: gstate, clock: s.clock || '', period: s.period, ts: Date.now() });
   _setLiveScore(gameId, s);
 
   // Feedback: Auto-reset clock when moving to a quarter state
-  const isQuarter = ['q1','q2','q3','q4','ot','shootout'].includes(gstate);
+  const isQuarter = ['q1','q2','q3','q4','ot'].includes(gstate);
   if (isQuarter) {
     resetGameClock(gameId, mappedPhase || null, true);
   } else if (gstate === 'half') {
@@ -5055,7 +5062,16 @@ function _buildScoreDetailScorerPanel(game, s) {
   const sprintAdvance = pendingAdvance && _phaseNeedsSprintStart(pendingAdvance);
   const teamTOUsed = s.teamTimeoutsUsed || [];
   const oppTOUsed  = s.oppTimeoutsUsed || [];
-  const timingRow = `
+  const isShootout = s.gameState === 'shootout';
+  const timingRow = isShootout ? `
+    <div class="auto-clock-wrap auto-clock-wrap-shootout${s.timerExpired ? ' is-expired' : ''}">
+      <div class="auto-clock-phase">${escHtml(appT('scorer_shootout_mode'))}</div>
+      <div class="auto-clock-expired-note">${escHtml(appT('scorer_shootout_hint'))}</div>
+      <div class="auto-clock-controls auto-clock-controls-secondary">
+        <button class="auto-clock-btn auto-clock-advance" onclick="openEventPicker('${gid}','sprint_won')">Sprint</button>
+        <button class="auto-clock-btn auto-clock-finalize" onclick="openFinalizeGameModal('${gid}','manual')">Review Final Score</button>
+      </div>
+    </div>` : `
     <div class="auto-clock-wrap${s.timerExpired ? ' is-expired' : ''}">
       <div class="auto-clock-phase">${phaseLabel}</div>
       <div class="auto-clock-time" id="game-clock-${gid}">${fmtClock(timerSecsLeft)}</div>
@@ -10905,8 +10921,16 @@ function buildGameCard(g, viewerOnly = false, showLocation = true, ageGroupLabel
   const isBreakPhase = s.timerPhase === 'break12' || s.timerPhase === 'break34' || s.timerPhase === 'halftime';
   const teamTOUsed = s.teamTimeoutsUsed || [];
   const oppTOUsed  = s.oppTimeoutsUsed  || [];
+  const isShootout = s.gameState === 'shootout';
 
-  const timingRow = `
+  const timingRow = isShootout ? `
+    <div class="auto-clock-wrap auto-clock-wrap-shootout">
+      <div class="auto-clock-phase">${escHtml(appT('scorer_shootout_mode'))}</div>
+      <div class="auto-clock-expired-note">${escHtml(appT('scorer_shootout_hint'))}</div>
+      <div class="auto-clock-controls">
+        <button class="auto-clock-btn auto-clock-advance" onclick="openEventPicker('${gid}','sprint_won')">Sprint</button>
+      </div>
+    </div>` : `
     <div class="auto-clock-wrap">
       <div class="auto-clock-phase">${phaseLabel}</div>
       <div class="auto-clock-time" id="game-clock-${gid}">${fmtClock(timerSecsLeft)}</div>
@@ -11632,24 +11656,37 @@ function _getHostedFullDrawScheduleGames(tournament, groupKey) {
     }
     return false;
   };
-  const sourceGames = hostedGames.length
-    ? hostedGames
-    : allImportedGames.length
-    ? allImportedGames
-    : allDirectorGames;
-  if (sourceGames.length) {
-    const fallbackDivisionGames = sourceGames.filter(game => {
+  const mergedGamesByKey = new Map();
+  const ingestGame = game => {
+    const gameNum = String(game?.gameNum || '').trim();
+    const myTeam = String(game?.myTeam || '').trim();
+    const opponent = String(game?.opponent || '').trim();
+    const dateISO = String(game?.dateISO || '').trim();
+    const time = String(game?.time || '').trim();
+    const location = String(game?.location || '').trim();
+    const key = gameNum || `${myTeam}|${opponent}|${dateISO}|${time}|${location}`;
+    if (!key || mergedGamesByKey.has(key)) return;
+    mergedGamesByKey.set(key, game);
+  };
+  hostedGames.forEach(ingestGame);
+  allImportedGames.forEach(ingestGame);
+  allDirectorGames.forEach(ingestGame);
+  const mergedGames = Array.from(mergedGamesByKey.values());
+  if (mergedGames.length) {
+    const divisionGames = mergedGames.filter(game => {
       const sideA = String(game?.myTeam || '').trim();
       const sideB = String(game?.opponent || '').trim();
       const sideALower = sideA.toLowerCase();
       const sideBLower = sideB.toLowerCase();
       const gameNum = String(game?.gameNum || '').trim();
+      const gameGroup = String(game?.ageGroupName || '').trim().toLowerCase();
+      if (normalizedGroup && gameGroup === normalizedGroup) return true;
       if (divisionTeams.size && (divisionTeams.has(sideALower) || divisionTeams.has(sideBLower))) return true;
       if (gameNum && bracketGameNums.has(gameNum)) return true;
       if (matchesHostedBracketRef(sideA) && matchesHostedBracketRef(sideB)) return true;
       return false;
     });
-    if (fallbackDivisionGames.length) return fallbackDivisionGames;
+    if (divisionGames.length) return divisionGames;
     if (hostedGames.length) return hostedGames;
   }
   return [];
@@ -11715,6 +11752,55 @@ function _getHostedSelectedTeamScheduleGames(tournament) {
       gamesByKey.set(key, { ...game, gameNum, myTeam, opponent, dateISO, date, time, location });
     }
   }
+  return Array.from(gamesByKey.values());
+}
+
+function _getLocalFullDrawScheduleGames(tournament, paths) {
+  const gamesByKey = new Map();
+  const ingestGame = rawGame => {
+    const gameNum = String(rawGame?.gameNum || '').trim();
+    const myTeam = String(rawGame?.myTeam || rawGame?.team1Name || '').trim();
+    const opponent = String(rawGame?.opponent || rawGame?.team2Name || '').trim();
+    const dateISO = String(rawGame?.dateISO || '').trim() || parseDateToISO(rawGame?.date || '');
+    const date = String(rawGame?.date || '').trim() || (dateISO ? isoToDate(dateISO) : '');
+    const time = String(rawGame?.time || '').trim();
+    const location = String(rawGame?.location || rawGame?.pool || rawGame?.venue || '').trim();
+    if (!myTeam && !opponent && !gameNum) return;
+    const key = gameNum || `${myTeam}|${opponent}|${dateISO}|${time}|${location}`;
+    if (!key || gamesByKey.has(key)) return;
+    gamesByKey.set(key, {
+      ...rawGame,
+      gameNum,
+      myTeam,
+      opponent,
+      dateISO,
+      date,
+      time,
+      location,
+    });
+  };
+
+  for (const game of (tournament?.games || [])) ingestGame(game);
+
+  for (const path of (paths || [])) {
+    for (const step of (path?.steps || [])) {
+      const desc = String(step?.desc || '').trim();
+      if (!desc) continue;
+      const parts = desc.split(/\s+vs\s+/i);
+      const myTeam = String(parts[0] || '').trim();
+      const opponent = String(parts[1] || '').trim();
+      ingestGame({
+        gameNum: step?.gameNum,
+        myTeam,
+        opponent,
+        dateISO: step?.dateISO,
+        date: step?.date,
+        time: step?.time,
+        location: step?.location,
+      });
+    }
+  }
+
   return Array.from(gamesByKey.values());
 }
 
@@ -11855,6 +11941,10 @@ function _renderHostedGamesSection(gamesInput, scoreSource, options = {}) {
       date: String(rawGame?.date || '').trim(),
       time: String(rawGame?.time || '').trim(),
       location: String(rawGame?.location || '').trim(),
+      liveScore: rawGame?.liveScore || null,
+      teamScore: rawGame?.teamScore,
+      oppScore: rawGame?.oppScore,
+      result: rawGame?.result,
     };
     if (!game.myTeam && !game.opponent) continue;
     const key = game.gameNum || `${game.myTeam}|${game.opponent}|${game.dateISO}|${game.time}|${game.location}`;
@@ -11890,7 +11980,20 @@ function _renderHostedGamesSection(gamesInput, scoreSource, options = {}) {
     const dayLabel = dayGames[0]?.date || (dayKey && dayKey !== 'TBD' ? formatDateGroupLabel(dayKey) : 'Date TBD');
     const cards = dayGames.map(game => {
       const dirGame = scoreIndex.get(game.gameNum || '');
-      const sc = dirGame ? scoreSource?.scores?.[dirGame.id] : null;
+      const localLiveScore = game.liveScore && typeof game.liveScore === 'object' ? game.liveScore : null;
+      const localScore = (!dirGame && (
+        localLiveScore ||
+        typeof game.teamScore === 'number' ||
+        typeof game.oppScore === 'number' ||
+        (game.teamScore !== '' && game.teamScore != null) ||
+        (game.oppScore !== '' && game.oppScore != null)
+      )) ? {
+        score1: localLiveScore?.team ?? game.teamScore ?? null,
+        score2: localLiveScore?.opp ?? game.oppScore ?? null,
+        status: String(localLiveScore?.gameState || '').toLowerCase() === 'final' || !!game.result ? 'final'
+          : (_hasMeaningfulLiveScoreData(localLiveScore) ? 'live' : ''),
+      } : null;
+      const sc = dirGame ? scoreSource?.scores?.[dirGame.id] : localScore;
       const hasScore = sc && (sc.score1 != null || sc.score2 != null);
       const status = String(sc?.status || '').toLowerCase();
       const scoreHtml = hasScore ? `
@@ -12076,17 +12179,27 @@ function renderFullDraw() {
       gameStateLabel: game => _isHostedBracketScheduleGame(game) ? 'Bracket' : 'Pool'
     });
   } else {
-    const inventoryGames = _getHostedFullDrawGameInventory(tournament, paths);
-    if (inventoryGames.length) {
-      html += _renderFullDrawBracketInventory(inventoryGames);
-    }
-    if (!hasPools && !paths.length && !inventoryGames.length) {
-      html = `<div class="full-draw-shell">
-        <div class="full-draw-empty">
-          <div class="full-draw-empty-icon">📋</div>
-          <div class="full-draw-empty-copy">Full tournament draw will be<br>available once the schedule is posted.</div>
-        </div>
-      </div>`;
+    const localFullDrawGames = _getLocalFullDrawScheduleGames(tournament, paths);
+    if (localFullDrawGames.length) {
+      html += _renderHostedGamesSection(localFullDrawGames, null, {
+        kicker: 'Full Draw',
+        title: 'All games for this division',
+        note: 'Division scoreboard showing all scheduled pool and bracket games.',
+        gameStateLabel: game => _isHostedBracketScheduleGame(game) ? 'Bracket' : 'Pool'
+      });
+    } else {
+      const inventoryGames = _getHostedFullDrawGameInventory(tournament, paths);
+      if (inventoryGames.length) {
+        html += _renderFullDrawBracketInventory(inventoryGames);
+      }
+      if (!hasPools && !paths.length && !inventoryGames.length) {
+        html = `<div class="full-draw-shell">
+          <div class="full-draw-empty">
+            <div class="full-draw-empty-icon">📋</div>
+            <div class="full-draw-empty-copy">Full tournament draw will be<br>available once the schedule is posted.</div>
+          </div>
+        </div>`;
+      }
     }
   }
 
