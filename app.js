@@ -14896,6 +14896,16 @@ async function _setScorerOutboxStatus(gameOrRef, explicitGroupKey = '', kind = '
 async function _ackFinalizeSync(gameOrRef, explicitGroupKey = '', extra = {}) { return ScorerPersistence.ackFinalize(gameOrRef, explicitGroupKey, extra); }
 async function _clearRecoveredDraftForGame(gameOrRef, explicitGroupKey = '') { return ScorerPersistence.clearRecoveredDraft(gameOrRef, explicitGroupKey); }
 
+function _canMirrorActiveScorerState(gameOrRef, explicitGroupKey = '', tournament = null) {
+  const groupKey = _contextGroupKey(gameOrRef, explicitGroupKey);
+  const gameId = _gameIdOnly(gameOrRef);
+  const activeDetail = state.scoreDetail || null;
+  if (!groupKey || !gameId || !activeDetail?.scorerMode || activeDetail?.viewerOnly) return false;
+  if (_gameIdOnly(activeDetail.gameId || '') !== gameId) return false;
+  if (_contextGroupKey(activeDetail.gameId || '', activeDetail.groupKey || '') !== groupKey) return false;
+  return isScorerUnlockedForTournament(tournament || getTournamentForGroup(groupKey) || TOURNAMENT || {});
+}
+
 const ScorerMirror = {
   async draft(gameOrRef, explicitGroupKey = '', extra = {}) {
     try {
@@ -14907,6 +14917,7 @@ const ScorerMirror = {
       const tournament = getTournamentForGroup(groupKey) || TOURNAMENT || {};
       const tournamentId = tournament.id || score.tournamentId || '_';
       if (!clubId || !groupKey) return;
+      if (!_canMirrorActiveScorerState(gameOrRef, explicitGroupKey, tournament)) return;
       const session = extra.session || _getScorerSession(gameOrRef, groupKey);
       const payload = {
         clubId,
@@ -14943,6 +14954,8 @@ const ScorerMirror = {
       const tournamentId = tournament.id || _getTournamentIdForGame(gameOrRef, explicitGroupKey)
         || session?.tournamentId || getLiveScore(gameOrRef)?.tournamentId || '_';
       if (!clubId || !groupKey || !session?.gameId) return;
+      const nextStatus = String(extra.status || session.status || 'open').trim() || 'open';
+      if (!extra.force && ['open', 'finalizing'].includes(nextStatus) && !_canMirrorActiveScorerState(gameOrRef, explicitGroupKey, tournament)) return;
       const headers = { 'Content-Type': 'application/json' };
       const scorePw = (tournament.scoringPassword || '').trim();
       if (scorePw) headers['X-Score-Password'] = scorePw;
@@ -14961,7 +14974,7 @@ const ScorerMirror = {
             scopedKey: session.scopedKey || scopedKey,
           },
           deviceId: getDeviceId(),
-          status: extra.status || session.status || 'open',
+          status: nextStatus,
           reason: extra.reason || 'session',
           force: extra.force || false,
           updatedAt: Date.parse(extra.session?.lastTouchedAt || session.lastTouchedAt || '') || Date.now(),
