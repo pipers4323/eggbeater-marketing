@@ -3993,6 +3993,7 @@ async function _ensureFollowedLiveActivity(gameId) {
   const remaining = score.timerRunning
     ? Math.max(0, (score.timerSecondsLeft || 0) - (Date.now() - (score.timerStartedAt || Date.now())) / 1000)
     : 0;
+  const { homeLogoUrl, awayLogoUrl } = _resolveGameLogoUrls(scopedGameId);
   try {
     await plugin.updateActivity({
       homeScore: score.team || 0,
@@ -4000,7 +4001,8 @@ async function _ensureFollowedLiveActivity(gameId) {
       clock: score.clock || fmtClock(score.timerSecondsLeft || 0),
       quarter: String(score.period || 1),
       lastEvent: _buildLastEventStr(scopedGameId),
-      homeLogoUrl: _clubLogoDownloadUrl(),
+      homeLogoUrl,
+      awayLogoUrl,
       timerEnd: score.timerRunning && remaining > 0 ? (Date.now() / 1000 + remaining) : 0,
     });
     window._activeLA = { gameId: scopedGameId, plugin };
@@ -4215,16 +4217,18 @@ function afterScore(gameId) {
       const _la = window.Capacitor?.Plugins?.LiveActivity ||
         (window.Capacitor?.nativePromise ? { updateActivity: (o) => window.Capacitor.nativePromise('LiveActivity', 'updateActivity', o) } : null);
       if (_la) {
-        const _remaining = _las.timerRunning
+      const _remaining = _las.timerRunning
           ? Math.max(0, (_las.timerSecondsLeft || 0) - (Date.now() - (_las.timerStartedAt || Date.now())) / 1000)
           : 0;
+        const { homeLogoUrl, awayLogoUrl } = _resolveGameLogoUrls(gameRef);
         _la.updateActivity({
           homeScore: _las.team  || 0,
           awayScore: _las.opp   || 0,
           clock:     _las.clock || '0:00',
           quarter:   String(_las.period || 1),
           lastEvent: _buildLastEventStr(gameRef),
-          homeLogoUrl: _clubLogoDownloadUrl(),
+          homeLogoUrl,
+          awayLogoUrl,
           timerEnd:  _las.timerRunning && _remaining > 0 ? (Date.now() / 1000 + _remaining) : 0,
         }).catch(() => {});
       }
@@ -6229,13 +6233,15 @@ function _tickAllClocks() {
         window._laLastClockPush = now;
         const _la = window.Capacitor?.Plugins?.LiveActivity ||
           (window.Capacitor?.nativePromise ? { updateActivity: (o) => window.Capacitor.nativePromise('LiveActivity', 'updateActivity', o) } : null);
+        const { homeLogoUrl, awayLogoUrl } = _resolveGameLogoUrls(gameId);
         if (_la) _la.updateActivity({
           homeScore: s.team  || 0,
           awayScore: s.opp   || 0,
           clock:     fmtTime,
           quarter:   String(s.period || 1),
           lastEvent: _buildLastEventStr(gameId),
-          homeLogoUrl: _clubLogoDownloadUrl(),
+          homeLogoUrl,
+          awayLogoUrl,
           // Native iOS countdown timer — Date.now()/1000 + remaining seconds = end timestamp
           timerEnd:  s.timerRunning && remaining > 0 ? (Date.now() / 1000 + remaining) : 0,
         }).catch(() => {});
@@ -6459,13 +6465,15 @@ function _pushLAClockState(gameId) {
   const remaining = s.timerRunning
     ? Math.max(0, (s.timerSecondsLeft || 0) - (Date.now() - (s.timerStartedAt || Date.now())) / 1000)
     : 0;
+  const { homeLogoUrl, awayLogoUrl } = _resolveGameLogoUrls(gameId);
   _la.updateActivity({
     homeScore: s.team  || 0,
     awayScore: s.opp   || 0,
     clock:     s.clock || fmtClock(s.timerSecondsLeft || 0),
     quarter:   String(s.period || 1),
     lastEvent: _buildLastEventStr(gameId),
-    homeLogoUrl: _clubLogoDownloadUrl(),
+    homeLogoUrl,
+    awayLogoUrl,
     // timerEnd non-zero → SwiftUI runs native countdown; 0 → shows frozen clockStr
     timerEnd:  s.timerRunning && remaining > 0 ? (Date.now() / 1000 + remaining) : 0,
   }).catch(() => {});
@@ -8555,6 +8563,16 @@ function _clubLogoDownloadUrl() {
   return getAppClubId()
     ? `${PUSH_SERVER_URL}/club-logo?club=${encodeURIComponent(getAppClubId())}`
     : '';
+}
+
+function _resolveGameLogoUrls(gameOrRef, explicitGroupKey = '') {
+  const game = typeof gameOrRef === 'object' && gameOrRef
+    ? gameOrRef
+    : _findGameByRef(gameOrRef, explicitGroupKey);
+  return {
+    homeLogoUrl: String(game?.teamLogoUrl || _clubLogoDownloadUrl() || '').trim(),
+    awayLogoUrl: String(game?.opponentLogoUrl || '').trim(),
+  };
 }
 
 async function syncVolumeButtonShortcut() {
@@ -15780,13 +15798,15 @@ async function pollLiveScores() {
               const _lsRemaining = ls.timerRunning
                 ? Math.max(0, (ls.timerSecondsLeft || 0) - (Date.now() - (ls.timerStartedAt || Date.now())) / 1000)
                 : 0;
+              const { homeLogoUrl, awayLogoUrl } = _resolveGameLogoUrls(laGameId);
               await laPlugin.updateActivity({
                 homeScore: ls.team  || 0,
                 awayScore: ls.opp   || 0,
                 clock:     ls.clock || '0:00',
                 quarter:   String(ls.period || 1),
                 lastEvent: _buildLastEventStr(laGameId),
-                homeLogoUrl: _clubLogoDownloadUrl(),
+                homeLogoUrl,
+                awayLogoUrl,
                 timerEnd:  ls.timerRunning && _lsRemaining > 0 ? (Date.now() / 1000 + _lsRemaining) : 0,
               });
             } catch (e) {
@@ -16514,6 +16534,8 @@ function _buildWatchPayload(availableTeams, clubName) {
         teamKey: team.key,
         teamLabel: team.label,
         opponent: game.opponent || 'TBD',
+        teamLogoUrl: game.teamLogoUrl || _clubLogoDownloadUrl() || '',
+        opponentLogoUrl: game.opponentLogoUrl || '',
         time: game.time || '',
         dateISO: game.dateISO || game.date || '',
         dateLabel: game.dateLabel || _watchDateLabel(game.dateISO || game.date || ''),
@@ -16531,6 +16553,7 @@ function _buildWatchPayload(availableTeams, clubName) {
 
   return {
     clubName: clubName || 'Eggbeater Water Polo',
+    clubLogoUrl: _clubLogoDownloadUrl() || '',
     primaryColor: (state.clubInfo?.primaryColor) || '#002868',
     secondaryColor: (state.clubInfo?.secondaryColor) || '#00A693',
     teams: availableTeams,
@@ -17229,7 +17252,7 @@ async function toggleLiveActivity(gameId) {
       }
     });
 
-    const clubLogoUrl = _clubLogoDownloadUrl();
+    const { homeLogoUrl, awayLogoUrl } = _resolveGameLogoUrls(gameId);
 
     await LiveActivity.startActivity({
       homeTeam:      game ? (`${localStorage.getItem('ebwp-club-name') || getAppClubId() || ''}${game.team ? ' ' + game.team : ''}`).trim() : "Home",
@@ -17242,8 +17265,8 @@ async function toggleLiveActivity(gameId) {
       // Native iOS countdown — non-zero timerEnd makes SwiftUI tick the clock automatically
       timerEnd:      score.timerRunning && _laRemaining > 0 ? (Date.now() / 1000 + _laRemaining) : 0,
       // Use HTTPS worker URL for logo — base64 data: URLs don't load in AsyncImage
-      homeLogoUrl:   clubLogoUrl,
-      awayLogoUrl:   '',   // opponent logo not yet stored
+      homeLogoUrl:   homeLogoUrl,
+      awayLogoUrl:   awayLogoUrl,
       primaryColor:  primaryColor,
       secondaryColor: secondaryColor,
       ageGroup:      _resolveGameAgeGroup(gameId),
