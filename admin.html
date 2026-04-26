@@ -2951,6 +2951,11 @@
                   <button class="save-btn" style="flex:0 0 auto;background:#fff7ed;color:#c2410c;border-color:#fdba74" onclick="superAdminLogoClearAll()">🗑 Clear All</button>
                 </div>
                 <div id="platform-logo-registry-count" style="font-size:0.78rem;color:var(--g500)">Loading universal registry…</div>
+                <div style="display:grid;gap:6px;border:1px dashed var(--g200);border-radius:12px;padding:10px;background:#fbfdff">
+                  <div style="font-size:0.74rem;font-weight:700;color:var(--g600)">Resolver check</div>
+                  <input id="platform-logo-match-test" class="info-input" style="margin:0;font-size:0.8rem" placeholder="Type opponent name exactly as it appears in schedule/scoring" oninput="superAdminLogoTestMatch(this.value)">
+                  <div id="platform-logo-match-result" style="font-size:0.75rem;color:var(--g500)">Type a team name here to preview which uploaded logo will match at runtime.</div>
+                </div>
                 <div id="platform-logo-registry-list" style="display:grid;gap:6px;max-height:360px;overflow:auto;padding-right:2px"></div>
               </div>
             </div>
@@ -4057,6 +4062,65 @@
       return `${String(entry.ageGroupName || '').trim().toLowerCase()}|${String(entry.teamName || '').trim().toLowerCase()}`;
     }
 
+    function _normalizeLogoLookupLabelClient(value) {
+      return String(value || '')
+        .toLowerCase()
+        .replace(/&/g, ' and ')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function _simplifyLogoLookupLabelClient(value) {
+      const stripped = _normalizeLogoLookupLabelClient(value)
+        .replace(/\b(water|polo|waterpolo|aquatic|aquatics|club|team|academy|association|wp|wpc|hs|high|school|girls|boys|women|men|coed|division|group|squad)\b/g, ' ')
+        .replace(/\b(red|blue|white|black|gold|silver|a|b|c|d|1|2|3|4)\b/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      return stripped || _normalizeLogoLookupLabelClient(value);
+    }
+
+    function _buildLogoLookupVariantsClient(value) {
+      const raw = String(value || '').trim();
+      if (!raw) return [];
+      const variants = new Set();
+      const push = candidate => {
+        const exact = _normalizeLogoLookupLabelClient(candidate);
+        const base = _simplifyLogoLookupLabelClient(candidate);
+        if (exact) variants.add(exact);
+        if (base) variants.add(base);
+      };
+      push(raw);
+      push(raw.replace(/[()]/g, ' '));
+      push(raw.replace(/[-/]/g, ' '));
+      push(raw.replace(/[()\-/.]/g, ' '));
+      return Array.from(variants).filter(Boolean);
+    }
+
+    function _resolveLogoRegistryEntryClient(teamName) {
+      const entries = Array.isArray(S._superAdminLogoRegistryEntries) ? S._superAdminLogoRegistryEntries : [];
+      const variants = _buildLogoLookupVariantsClient(teamName);
+      if (!variants.length || !entries.length) return null;
+      const exactSet = new Set(variants.map(_normalizeLogoLookupLabelClient).filter(Boolean));
+      const baseSet = new Set(variants.map(_simplifyLogoLookupLabelClient).filter(Boolean));
+      const toAliasSet = (entry, mapper) => {
+        const aliases = [String(entry.teamName || ''), ...(Array.isArray(entry.aliases) ? entry.aliases : [])];
+        return new Set(aliases.map(mapper).filter(Boolean));
+      };
+      return entries.find(entry => {
+        const exactAliases = toAliasSet(entry, _normalizeLogoLookupLabelClient);
+        return Array.from(exactSet).some(v => exactAliases.has(v));
+      }) || entries.find(entry => {
+        const baseAliases = toAliasSet(entry, _simplifyLogoLookupLabelClient);
+        return Array.from(baseSet).some(v => baseAliases.has(v));
+      }) || entries.find(entry => {
+        const exactAliases = Array.from(toAliasSet(entry, _normalizeLogoLookupLabelClient));
+        const baseAliases = Array.from(toAliasSet(entry, _simplifyLogoLookupLabelClient));
+        return exactAliases.some(alias => alias && Array.from(exactSet).some(v => v && (v.startsWith(alias) || alias.startsWith(v))))
+          || baseAliases.some(alias => alias && Array.from(baseSet).some(v => v && (v.startsWith(alias) || alias.startsWith(v))));
+      }) || null;
+    }
+
     function _renderSuperAdminLogoRegistryList(entries = []) {
       const search = String(S._superAdminLogoSearch || '').trim().toLowerCase();
       const filtered = entries
@@ -4135,11 +4199,33 @@
         }
       }
       if (saveBtn) saveBtn.textContent = S._superAdminLogoEditingKey ? 'Update Logo Entry' : 'Save Logo Entry';
+      superAdminLogoTestMatch(document.getElementById('platform-logo-match-test')?.value || '');
     }
 
     function superAdminLogoFilterChanged(value) {
       S._superAdminLogoSearch = String(value || '').trim();
       _refreshSuperAdminLogoRegistryPanel();
+    }
+
+    function superAdminLogoTestMatch(value) {
+      const resultEl = document.getElementById('platform-logo-match-result');
+      if (!resultEl) return;
+      const raw = String(value || '').trim();
+      if (!raw) {
+        resultEl.innerHTML = 'Type a team name here to preview which uploaded logo will match at runtime.';
+        return;
+      }
+      const match = _resolveLogoRegistryEntryClient(raw);
+      if (!match) {
+        resultEl.innerHTML = `<span style="color:#b45309;font-weight:700">No current registry match</span> for <strong>${esc(raw)}</strong>. Add an alias if the runtime schedule uses a different name.`;
+        return;
+      }
+      const aliases = (Array.isArray(match.aliases) ? match.aliases : []).filter(Boolean);
+      resultEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <img src="${esc(match.logoUrl || '')}" alt="" style="width:26px;height:26px;object-fit:contain;border-radius:8px;background:white;border:1px solid var(--g200);padding:3px">
+        <span><span style="color:#166534;font-weight:700">Will match:</span> <strong>${esc(match.teamName || '')}</strong>${match.ageGroupName ? ` <span style="color:var(--g500)">(${esc(match.ageGroupName)})</span>` : ''}</span>
+      </div>
+      <div style="margin-top:4px;color:var(--g500)">${aliases.length ? `Aliases: ${esc(aliases.join(', '))}` : 'Matched from team name.'}</div>`;
     }
 
     function superAdminLogoClearForm() {
