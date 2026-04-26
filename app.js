@@ -8575,6 +8575,19 @@ function _resolveGameLogoUrls(gameOrRef, explicitGroupKey = '') {
   };
 }
 
+function _scoreDetailTeamChipHtml(name, logoUrl, side = '') {
+  const teamName = String(name || 'TBD').trim() || 'TBD';
+  const initial = teamName.charAt(0).toUpperCase() || '?';
+  const imgHtml = logoUrl
+    ? `<img class="scores-detail-team-logo" src="${escAttr(String(logoUrl).trim())}" alt="${escAttr(teamName)} logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    : '';
+  return `<div class="scores-detail-team-chip${side ? ` scores-detail-team-chip-${side}` : ''}">
+    ${imgHtml}
+    <div class="scores-detail-team-logo-fallback"${imgHtml ? ' style="display:none"' : ''}>${escHtml(initial)}</div>
+    <div class="scores-detail-team-chip-name">${escHtml(teamName)}</div>
+  </div>`;
+}
+
 async function syncVolumeButtonShortcut() {
   if (!window.Capacitor?.isNativePlatform?.() || window.Capacitor?.getPlatform?.() !== 'ios') return;
   const plugin = getVolumeButtonPlugin();
@@ -9023,6 +9036,10 @@ function buildScoreDetailView(ctx) {
     const { game, viewerOnly, ageGroupLabel } = ctx;
     const s = getLiveScore(game);
     const canScore = !TOURNAMENT.scoringPassword || isScorerUnlockedForTournament(TOURNAMENT);
+    const gameRef = _gameRef(game);
+    const { homeLogoUrl, awayLogoUrl } = _resolveGameLogoUrls(gameRef);
+    const homeName = _teamDisplayNameForGame(game, TOURNAMENT.clubName || 'Team');
+    const awayName = normalizeOpponentName(game.opponent || 'TBD');
     const summaryAction = (!viewerOnly && canScore && !ctx.scorerMode)
       ? `<button class="scores-open-scorer-btn score-detail-inline-scorer-btn" onclick="enableScoreDetailScorer()">✏️ ${escHtml(appT('scorer_open'))}</button>`
       : '';
@@ -9046,7 +9063,11 @@ function buildScoreDetailView(ctx) {
           <div class="scores-detail-hero-top">
             <div>
               <div class="scores-detail-kicker">${escHtml(TOURNAMENT.name || 'Game Details')}</div>
-              <div class="scores-detail-title">${escHtml(_teamDisplayNameForGame(game, TOURNAMENT.clubName || 'Team'))} vs ${escHtml(normalizeOpponentName(game.opponent || 'TBD'))}</div>
+              <div class="scores-detail-matchup">
+                ${_scoreDetailTeamChipHtml(homeName, homeLogoUrl, 'home')}
+                <div class="scores-detail-vs">vs</div>
+                ${_scoreDetailTeamChipHtml(awayName, awayLogoUrl, 'away')}
+              </div>
             </div>
             <div class="scores-detail-hero-actions">
               ${summaryAction}

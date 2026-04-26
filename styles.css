@@ -1807,6 +1807,67 @@ h2 {
   letter-spacing: -0.02em;
 }
 
+.scores-detail-matchup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.scores-detail-team-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.scores-detail-team-logo,
+.scores-detail-team-logo-fallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.scores-detail-team-logo {
+  object-fit: contain;
+  background: rgba(255,255,255,0.95);
+  padding: 4px;
+}
+
+.scores-detail-team-logo-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.22);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.scores-detail-team-chip-name {
+  min-width: 0;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scores-detail-vs {
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.72);
+}
+
 .scores-detail-game-num {
   background: rgba(255,255,255,0.14);
   border-radius: 999px;
